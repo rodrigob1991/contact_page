@@ -1,6 +1,14 @@
 import styled from "@emotion/styled"
 import {useState} from "react"
-import {HomeProps, Story} from "./api/revalidate_home";
+
+type Story = {
+    title: string
+    body: string
+}
+type HomeProps = {
+    presentation: string
+    stories: Story[]
+}
 
 export async function getStaticProps(){
 

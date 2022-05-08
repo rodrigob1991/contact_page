@@ -1,0 +1,25 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url = env("DATABASE_URL")
+}
+
+model HomeProps {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  presentation String
+  stories Story[]
+}
+
+model Story {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  title String
+  body String
+  homeProps    HomeProps   @relation(fields: [homePropsId], references: [id])
+  homePropsId  String @db.ObjectId
+}
