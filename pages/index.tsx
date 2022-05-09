@@ -1,5 +1,6 @@
 import styled from "@emotion/styled"
 import {useState} from "react"
+import {PrismaClient} from "@prisma/client"
 
 type Story = {
     title: string
@@ -10,8 +11,14 @@ type HomeProps = {
     stories: Story[]
 }
 
-export async function getStaticProps(){
+export async function getStaticProps() {
+    const prisma = new PrismaClient()
+    const homeProps = await prisma.homeProps.findFirst()
+    if (!homeProps) {
+        throw new Error("There is not home props in the database")
+    }
 
+    return {props: homeProps}
 }
 
 export default function Home({presentation, stories}: HomeProps) {
