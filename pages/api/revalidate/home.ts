@@ -1,6 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type {NextApiRequest, NextApiResponse} from 'next'
-import {RevalidationPathId, RevalidationResponseBody} from "../../../types/Revalidation"
+import {RevalidatedPath, RevalidationPathId, RevalidationResponseBody} from "../../../types/Revalidation"
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse<RevalidationResponseBody>) {
     const queryParams = request.query
@@ -10,30 +10,35 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     if (queryParams.secret !== process.env.REVALIDATION_TOKEN) {
         httpCode = 401
-        body = {message: 'Invalid token'}
+        body = {errorMessage: "invalid token"}
     } else {
         const pathIds = queryParams.ids
         if (!pathIds || pathIds.length === 0) {
             httpCode = 400
-            body = {message: 'path ids missed'}
+            body = {errorMessage: "path ids missed"}
         } else {
+            const revalidationsStates: RevalidatedPath[] = []
+
             for (const pathId of pathIds) {
+                const revalidationState = {pathId: pathId, revalidated: false, message: ""}
                 const path = getPath(pathId)
                 if (!path) {
-
+                    revalidationState.message = "does not exit a path with that id"
                 } else {
                     try {
                         await response.unstable_revalidate(path)
-                        httpCode = 200
-                        body = {message: 'successfully revalidated'}
+                        revalidationState.revalidated = true
+                        revalidationState.message = "successfully revalidated"
                     } catch (err) {
                         // If there was an error, Next.js will continue
                         // to show the last successfully generated page
-                        httpCode = 500
-                        body = {message: 'Error revalidating'}
+                        revalidationState.message = "internal error revalidating"
                     }
                 }
+                revalidationsStates.push(revalidationState)
             }
+            httpCode = 200
+            body = {revalidationsStates: revalidationsStates}
         }
     }
     response.status(httpCode).json(body)
