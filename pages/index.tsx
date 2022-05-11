@@ -1,15 +1,7 @@
 import styled from "@emotion/styled"
 import {useState} from "react"
 import {PrismaClient} from "@prisma/client"
-
-type Story = {
-    title: string
-    body: string
-}
-type HomeProps = {
-    presentation: string
-    stories: Story[]
-}
+import {HomeProps, Story} from "../types/Home"
 
 export async function getStaticProps() {
     const prisma = new PrismaClient()
@@ -60,7 +52,7 @@ export default function Home({presentation, stories}: HomeProps) {
 
 const Container = styled.div`
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   padding: 20px;
   gap: 10px;
   background-color: #FF8C00

@@ -12,7 +12,7 @@ datasource db {
 
 model HomeProps {
   id String @id @default(auto()) @map("_id") @db.ObjectId
-  presentation String
+  presentation String?
   stories Story[]
 }
 

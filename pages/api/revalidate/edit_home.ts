@@ -1,15 +1,12 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type {NextApiRequest, NextApiResponse} from 'next'
-
-type RevalidationResponseBody = {
-  message: string
-}
+import {RevalidationResponseBody} from "../../../types/Revalidation";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<RevalidationResponseBody>) {
   let httpCode: number
   let body: RevalidationResponseBody
 
-  if (req.query.secret !== process.env.REVALIDATION_HOME_TOKEN) {
+  if (req.query.secret !== process.env.REVALIDATION_TOKEN) {
     httpCode = 401
     body = {message: 'Invalid token'}
   } else {
