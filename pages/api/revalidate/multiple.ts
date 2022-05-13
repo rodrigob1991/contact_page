@@ -1,6 +1,18 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type {NextApiRequest, NextApiResponse} from 'next'
 import {RevalidatedPath, RevalidationPathId, RevalidationResponseBody} from "../../../types/Revalidation"
+import {HOME_PATH} from "../../index"
+import {EDITH_HOME_PATH} from "../../user/edit_home"
+import path from "path"
+
+const ENDPOINT = `${process.env.BASE_URL}/${path.relative("/pages","./")}`
+
+export const revalidatePages = async (pagesId: RevalidationPathId[]) => {
+    const url = ENDPOINT + `?secret=${process.env.REVALIDATION_TOKEN}&ids=${pagesId}`
+    const response = await fetch(url)
+    const body: RevalidationResponseBody = await response.json()
+
+    return {httpCode: response.status, body: body}
+}
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse<RevalidationResponseBody>) {
     const queryParams = request.query
@@ -23,7 +35,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
                 const revalidationState = {pathId: pathId, revalidated: false, message: ""}
                 const path = getPath(pathId)
                 if (!path) {
-                    revalidationState.message = "does not exit a path with that id"
+                    revalidationState.message = "does not exit a path with this id"
                 } else {
                     try {
                         await response.unstable_revalidate(path)
@@ -48,10 +60,10 @@ const getPath = (pathId: string) => {
     let path
     switch (pathId) {
         case RevalidationPathId.HOME:
-            path = "/"
+            path = HOME_PATH
             break
         case RevalidationPathId.EDIT_HOME:
-            path = "/user/edit_home"
+            path = EDITH_HOME_PATH
     }
     return path
 }

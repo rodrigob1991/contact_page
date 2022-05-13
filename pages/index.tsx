@@ -2,6 +2,9 @@ import styled from "@emotion/styled"
 import {useState} from "react"
 import {PrismaClient} from "@prisma/client"
 import {HomeProps, Story} from "../types/Home"
+import path from "path";
+
+export const HOME_PATH = path.relative("/pages", "./")
 
 export async function getStaticProps() {
     const prisma = new PrismaClient()

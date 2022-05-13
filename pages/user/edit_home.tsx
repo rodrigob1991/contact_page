@@ -1,7 +1,12 @@
 import styled from "@emotion/styled"
 import {PrismaClient} from "@prisma/client"
-import {HomeProps} from "../index"
-import {FormEvent, useState} from "react";
+import {FormEvent, useState} from "react"
+import {HomeProps} from "../../types/Home"
+import path from "path"
+import {revalidatePages} from "../api/revalidate/multiple";
+import {RevalidationPathId} from "../../types/Revalidation";
+
+export const EDITH_HOME_PATH = path.relative("/pages", "./")
 
 export async function getStaticProps() {
     const prisma = new PrismaClient()
@@ -19,9 +24,7 @@ export default function EditHome(props : HomeProps | null){
         const prisma = new PrismaClient()
         const newHomeProps = {presentation: presentation, stories: stories}
         await prisma.homeProps.upsert({where: {id: "homeProps"}, create: newHomeProps, update: newHomeProps})
-
-
-
+        const revalidationResponse = await revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME])
     }
 
     return (
