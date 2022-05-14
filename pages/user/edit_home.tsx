@@ -19,25 +19,43 @@ export default function EditHome(props : HomeProps | null){
     const [presentation, setPresentation] = useState(props?.presentation)
     const [stories, setStories] = useState(props?.stories)
 
+    const [revalidationMessage, setRevalidationMessage] = useState("")
+
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         // event.preventDefault()
         const prisma = new PrismaClient()
         const newHomeProps = {presentation: presentation, stories: stories}
-        await prisma.homeProps.upsert({where: {id: "homeProps"}, create: newHomeProps, update: newHomeProps})
-        const revalidationResponse = await revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME])
+        try {
+            await prisma.homeProps.upsert({where: {id: "homeProps"}, create: newHomeProps, update: newHomeProps})
+
+            const revalidationResponse = await revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME])
+            if (revalidationResponse.httpCode >= 400) {
+                setRevalidationMessage(revalidationResponse.errorMessage || "there must be always an error message")
+            } else {
+                //there must always be revalidations here
+                if (revalidationResponse.revalidations) {
+                    const message = revalidationResponse.revalidations.map(r => r.pathId + ":" + r.message).toString()
+                    setRevalidationMessage(message)
+                }
+            }
+
+        } catch (e) {
+            setRevalidationMessage("could not update the data")
+            console.error(e)
+        }
     }
 
     return (
         <FormContainer onSubmit={handleSubmit}>
-            <PresentationInput onChange={(e)=> setPresentation(e.target.value)} />
+            <PresentationInput onChange={(e) => setPresentation(e.target.value)}/>
             <StoryContainer>
 
             </StoryContainer>
             <Button> UPDATE HOME </Button>
+            {revalidationMessage}
 
         </FormContainer>
     )
-
 }
 
 const FormContainer = styled.form`

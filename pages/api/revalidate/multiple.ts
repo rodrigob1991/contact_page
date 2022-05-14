@@ -11,7 +11,7 @@ export const revalidatePages = async (pagesId: RevalidationPathId[]) => {
     const response = await fetch(url)
     const body: RevalidationResponseBody = await response.json()
 
-    return {httpCode: response.status, body: body}
+    return {httpCode: response.status, errorMessage: body.errorMessage, revalidations: body.revalidationsStates}
 }
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse<RevalidationResponseBody>) {
