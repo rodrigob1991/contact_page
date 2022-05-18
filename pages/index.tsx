@@ -2,13 +2,15 @@ import styled from "@emotion/styled"
 import {useState} from "react"
 import {PrismaClient} from "@prisma/client"
 import {HomeProps, Story} from "../types/Home"
-import path from "path";
+import path from "path"
 
 export const HOME_PATH = path.relative("/pages", "./")
 
+export const HOME_PROPS_ID = "homeProps"
+
 export async function getStaticProps() {
     const prisma = new PrismaClient()
-    const homeProps = await prisma.homeProps.findFirst()
+    const homeProps = await prisma.props.findUnique({where: {id: HOME_PROPS_ID}})
     if (!homeProps) {
         throw new Error("There is not home props in the database")
     }
@@ -44,7 +46,7 @@ export default function Home({presentation, stories}: HomeProps) {
   return (
       <Container>
         <Presentation>
-          {presentation}
+          {presentation?.introduction}
         </Presentation>
         <StoryContainer>
           {storiesWithState.map(({story, isOpen}, index) => getStoryView(story, index, isOpen))}

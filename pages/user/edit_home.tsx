@@ -68,13 +68,31 @@ const FormContainer = styled.form`
   height: fit-content;
 `
 const StoryContainer = styled.div`
-  align-items: center;
+  align-items: left;
   display: flex;
   flex-direction: column;
   background-color: #006400;
   gap: 20px;
 `
+const EditStoryContainer = styled.div`
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  background-color:;
+  gap: 15px;
+`
+const StoryDataContainer = styled.div`
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  background-color:;
+  gap: 10px;
+`
+
+
 const PresentationInput = styled.input`
+    `
+const StoryInput = styled.input`
     `
 const Button = styled.button`
  background-color: #000000;

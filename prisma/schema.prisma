@@ -10,16 +10,24 @@ datasource db {
   url = env("DATABASE_URL")
 }
 
-model HomeProps {
+model Props {
   id String @id @default(auto()) @map("_id") @db.ObjectId
-  presentation String?
+  presentation Presentation? @relation(fields: [presentationId], references: [id])
+  presentationId String @db.ObjectId
   stories Story[]
+}
+
+model Presentation {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String
+  introduction String
+  props Props?
 }
 
 model Story {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   title String
   body String
-  homeProps    HomeProps   @relation(fields: [homePropsId], references: [id])
-  homePropsId  String @db.ObjectId
+  props Props @relation(fields: [propsId], references: [id])
+  propsId String    @db.ObjectId
 }
