@@ -26,7 +26,6 @@ export default function EditHome(props : HomeProps | null){
         const prisma = new PrismaClient()
         const newHomeProps = {presentation: presentation, stories: stories}
         try {
-            await prisma.homeProps.upsert({where: {id: "homeProps"}, create: newHomeProps, update: newHomeProps})
 
             const revalidationResponse = await revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME])
             if (revalidationResponse.httpCode >= 400) {
