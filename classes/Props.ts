@@ -1,5 +1,5 @@
 import {PrismaClient} from "@prisma/client"
-import {HomeProps, PresentationComponent, StoryComponent} from "../types/Home";
+import {PresentationComponent, StoryComponent} from "../types/Home";
 import {HOME_PROPS_ID} from "../pages";
 
 class Props {
@@ -54,7 +54,7 @@ class Props {
                 update: {
                     stories: {
                         upsert: {
-                            where: {},
+                            where: {id: storyComponent.id},
                             create: storyComponent,
                             update: storyComponent
                         }
@@ -73,5 +73,6 @@ class Props {
         })
     }
 */
-
 }
+
+export const propsClient = new Props()

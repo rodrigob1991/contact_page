@@ -1,63 +1,74 @@
 import styled from "@emotion/styled"
-import {PrismaClient} from "@prisma/client"
-import {FormEvent, useState} from "react"
-import {HomeProps} from "../../types/Home"
+import {useState} from "react"
+import {HomeComponentProps, StoryComponent} from "../../types/Home"
 import path from "path"
-import {revalidatePages} from "../api/revalidate/multiple";
-import {RevalidationPathId} from "../../types/Revalidation";
+import {revalidatePages} from "../api/revalidate/multiple"
+import {RevalidationPathId} from "../../types/Revalidation"
+import {propsClient} from "../../classes/Props"
 
 export const EDITH_HOME_PATH = path.relative("/pages", "./")
 
 export async function getStaticProps() {
-    const prisma = new PrismaClient()
-    const homeProps = await prisma.homeProps.findFirst()
+    const homeProps = await propsClient.getHomeProps()
 
     return {props: homeProps}
 }
 
-export default function EditHome(props : HomeProps | null){
-    const [presentation, setPresentation] = useState(props?.presentation)
+export default function EditHome(props : HomeComponentProps | null){
+    const [namePresentation, setNamePresentation] = useState(props?.presentation?.name)
+    const [introductionPresentation, setIntroductionPresentation] = useState(props?.presentation?.introduction)
+
     const [stories, setStories] = useState(props?.stories)
+    const [selectedStory, setSelectedStory] = useState<StoryComponent>({title: "", body: ""})
 
     const [revalidationMessage, setRevalidationMessage] = useState("")
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        // event.preventDefault()
-        const prisma = new PrismaClient()
-        const newHomeProps = {presentation: presentation, stories: stories}
+    const revalidateHome = async () => {
         try {
-
-            const revalidationResponse = await revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME])
-            if (revalidationResponse.httpCode >= 400) {
-                setRevalidationMessage(revalidationResponse.errorMessage || "there must be always an error message")
+            const revalidationsResponse = await revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME])
+            if (revalidationsResponse.httpCode >= 400) {
+                setRevalidationMessage(revalidationsResponse.errorMessage || "there must be always an error message")
             } else {
+                const revalidations = revalidationsResponse.revalidations
                 //there must always be revalidations here
-                if (revalidationResponse.revalidations) {
-                    const message = revalidationResponse.revalidations.map(r => r.pathId + ":" + r.message).toString()
+                if (revalidations) {
+                    const message = revalidations.map(r => r.pathId + ":" + r.message).toString()
                     setRevalidationMessage(message)
                 }
             }
-
         } catch (e) {
-            setRevalidationMessage("could not update the data")
+            setRevalidationMessage("could not revalidate the home")
             console.error(e)
         }
     }
 
     return (
-        <FormContainer onSubmit={handleSubmit}>
-            <PresentationInput onChange={(e) => setPresentation(e.target.value)}/>
+        <Container>
+            <PresentationForm>
+                <TextInput type={"text"} onChange={(e)=> setNamePresentation(e.target.value)}/>
+                <TextInput type={"text"} onChange={(e)=> setIntroductionPresentation(e.target.value)}/>
+                <Button type={"submit"}> SAVE PRESENTATION </Button>
+            </PresentationForm>
             <StoryContainer>
+                <EditStoryForm>
+                    <EditStoryDataContainer>
+                        <TextInput type={"text"} onChange={(e) => setNamePresentation(e.target.value)}/>
+                        <TextInput type={"text"} onChange={(e) => setNamePresentation(e.target.value)}/>
+                    </EditStoryDataContainer>
+                    <Button type={"submit"}> {selectedStory.id ? "UPDATE" : "CREATE"} </Button>
+                </EditStoryForm>
+                <StoryTable>
+                    {sto}
+                </StoryTable>
 
             </StoryContainer>
-            <Button> UPDATE HOME </Button>
+            <Button onClick={revalidateHome}> REVALIDATE HOME </Button>
             {revalidationMessage}
-
-        </FormContainer>
+        </Container>
     )
 }
 
-const FormContainer = styled.form`
+const Container = styled.div`
   align-items: center;
   display: flex;
   flex-direction: column;
@@ -66,6 +77,15 @@ const FormContainer = styled.form`
   gap: 15px;
   height: fit-content;
 `
+const PresentationForm = styled.form`
+  align-items: left;
+  display: flex;
+  flex-direction: column;
+  background-color: #006400;
+  gap: 20px;
+`
+const TextInput = styled.input`
+    `
 const StoryContainer = styled.div`
   align-items: left;
   display: flex;
@@ -73,26 +93,33 @@ const StoryContainer = styled.div`
   background-color: #006400;
   gap: 20px;
 `
-const EditStoryContainer = styled.div`
+const EditStoryForm = styled.form`
   align-items: center;
   display: flex;
   flex-direction: row;
   background-color:;
   gap: 15px;
 `
-const StoryDataContainer = styled.div`
+const EditStoryDataContainer = styled.div`
   align-items: center;
   display: flex;
   flex-direction: column;
   background-color:;
-  gap: 10px;
+  gap: 15px;
 `
-
-
-const PresentationInput = styled.input`
-    `
-const StoryInput = styled.input`
-    `
+const StoryTable = styled.div`
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  background-color:;
+  gap: 5px;
+`
+const StoryRow = styled.div`
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+`
 const Button = styled.button`
  background-color: #000000;
  color: #FFFFFF;

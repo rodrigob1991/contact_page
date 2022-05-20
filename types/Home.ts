@@ -8,8 +8,9 @@ type OmitHomeProps = Pick<HomeProps, "presentationId" | "id">
 export type HomeComponentProps = Omit<HomeProps, keyof OmitHomeProps>
 
 export type Story = Prisma.StoryGetPayload<Prisma.StoryArgs>
-type OmitStory = Pick<Story, "propsId">
-export type StoryComponent = Omit<Story, keyof OmitStory>
+type OmitStory = Pick<Story, "propsId" | "id">
+type OptionalStoryId = Partial<Pick<Story, "id">>
+export type StoryComponent = Omit<Story, keyof OmitStory> & OptionalStoryId
 
 export type Presentation = Prisma.PresentationGetPayload<Prisma.PresentationArgs>
 type OmitPresentation = Pick<Presentation, "id">
