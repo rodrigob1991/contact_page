@@ -14,4 +14,5 @@ export type StoryComponent = Omit<Story, keyof OmitStory> & OptionalStoryId
 
 export type Presentation = Prisma.PresentationGetPayload<Prisma.PresentationArgs>
 type OmitPresentation = Pick<Presentation, "id">
-export type PresentationComponent = Omit<Presentation, keyof OmitPresentation>
+type OptionalPresentationId = Partial<Pick<Story, "id">>
+export type PresentationComponent = Omit<Presentation, keyof OmitPresentation> & OptionalPresentationId

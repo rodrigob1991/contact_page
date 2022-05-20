@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import {useState} from "react"
+import {ChangeEvent, FormEvent, useState} from "react"
 import {HomeComponentProps, StoryComponent} from "../../types/Home"
 import path from "path"
 import {revalidatePages} from "../api/revalidate/multiple"
@@ -14,14 +14,43 @@ export async function getStaticProps() {
     return {props: homeProps}
 }
 
-export default function EditHome(props : HomeComponentProps | null){
-    const [namePresentation, setNamePresentation] = useState(props?.presentation?.name)
-    const [introductionPresentation, setIntroductionPresentation] = useState(props?.presentation?.introduction)
+const emptyStory = {title: "", body: ""}
+const emptyPresentation = {title: "", body: ""}
+
+export default function EditHome(props: HomeComponentProps | null) {
+    const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
+    const handleCreateUpdatePresentation = async (e: FormEvent<HTMLFormElement>) => {
+        const createOrUpdateStr =
+        try {
+            const story = await propsClient.setPresentation({
+                name: namePresentation,
+                introduction: introductionPresentation
+            })
+        } catch (e) {
+            set
+        }
+
+    }
+    const [createUpdatePresentationMessage, seCreateUpdatePresentationMessage] = useState("")
 
     const [stories, setStories] = useState(props?.stories)
-    const [selectedStory, setSelectedStory] = useState<StoryComponent>({title: "", body: ""})
+    const [selectedStory, setSelectedStory] = useState<StoryComponent>(emptyStory)
+    const handleChangeStory = (e: ChangeEvent<HTMLInputElement>, storyKey: keyof StoryComponent) => {
+        setSelectedStory((story) => {
+            story[storyKey] = e.target.value;
+            return story
+        })
+    }
+    const handleCreateUpdateStory = async (e: FormEvent<HTMLFormElement>) => {
+        try {
+            const story = await propsClient.setStory(selectedStory)
+            set
+        } catch (e) {
 
-    const [revalidationMessage, setRevalidationMessage] = useState("")
+        }
+
+    }
+    const [createUpdateStoryMessage, seCreateUpdateStoryMessage] = useState("")
 
     const revalidateHome = async () => {
         try {
@@ -41,6 +70,7 @@ export default function EditHome(props : HomeComponentProps | null){
             console.error(e)
         }
     }
+    const [revalidationMessage, setRevalidationMessage] = useState("")
 
     return (
         <Container>
@@ -52,8 +82,8 @@ export default function EditHome(props : HomeComponentProps | null){
             <StoryContainer>
                 <EditStoryForm>
                     <EditStoryDataContainer>
-                        <TextInput type={"text"} onChange={(e) => setNamePresentation(e.target.value)}/>
-                        <TextInput type={"text"} onChange={(e) => setNamePresentation(e.target.value)}/>
+                        <TextInput type={"text"} onChange={(e) => handleChangeStory(e,"title")}/>
+                        <TextInput type={"text"} onChange={(e) => handleChangeStory(e, "body")}/>
                     </EditStoryDataContainer>
                     <Button type={"submit"}> {selectedStory.id ? "UPDATE" : "CREATE"} </Button>
                 </EditStoryForm>
