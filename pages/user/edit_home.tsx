@@ -1,6 +1,6 @@
 import styled from "@emotion/styled"
 import {ChangeEvent, FormEvent, useState} from "react"
-import {HomeComponentProps, StoryComponent} from "../../types/Home"
+import {HomeComponentProps, PresentationComponent, Story, StoryComponent} from "../../types/Home"
 import path from "path"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationPathId} from "../../types/Revalidation"
@@ -14,44 +14,62 @@ export async function getStaticProps() {
     return {props: homeProps}
 }
 
-const emptyStory = {title: "", body: ""}
-const emptyPresentation = {title: "", body: ""}
+const emptyStory = {id: undefined, title: "", body: ""}
+const emptyPresentation = {id: undefined, name: "", introduction: ""}
 
 export default function EditHome(props: HomeComponentProps | null) {
     const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
-    const handleCreateUpdatePresentation = async (e: FormEvent<HTMLFormElement>) => {
-        const createOrUpdateStr =
-        try {
-            const story = await propsClient.setPresentation({
-                name: namePresentation,
-                introduction: introductionPresentation
-            })
-        } catch (e) {
-            set
-        }
-
+    const handlePresentationChange = (e: ChangeEvent<HTMLInputElement>, presentationKey: keyof PresentationComponent) => {
+        setPresentation((presentation) => {
+            presentation[presentationKey] = e.target.value
+            return presentation
+        })
     }
-    const [createUpdatePresentationMessage, seCreateUpdatePresentationMessage] = useState("")
+    const handleSavePresentation = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+
+        const operation = presentation.id ? "UPDATE" : "CREATE"
+        let resultMessage = ""
+        try {
+            await propsClient.setPresentation(presentation)
+            resultMessage = `presentation ${operation}d`
+        } catch (e) {
+            resultMessage = `could not ${operation} the presentation`
+        } finally {
+            setSavedPresentationMessage(resultMessage)
+        }
+    }
+    const [savedPresentationMessage, setSavedPresentationMessage] = useState("")
 
     const [stories, setStories] = useState(props?.stories)
     const [selectedStory, setSelectedStory] = useState<StoryComponent>(emptyStory)
-    const handleChangeStory = (e: ChangeEvent<HTMLInputElement>, storyKey: keyof StoryComponent) => {
+    const handleStoryChange = (e: ChangeEvent<HTMLInputElement>, storyKey: keyof StoryComponent) => {
         setSelectedStory((story) => {
-            story[storyKey] = e.target.value;
+            story[storyKey] = e.target.value
             return story
         })
     }
-    const handleCreateUpdateStory = async (e: FormEvent<HTMLFormElement>) => {
+    const handleSavedStory = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+
+        const isCreate = presentation.id === undefined
+        const operation =  isCreate ? "CREATE" : "UPDATE"
+        let resultMessage = ""
+        let story = undefined
         try {
-            const story = await propsClient.setStory(selectedStory)
-            set
+            story = await propsClient.setStory(selectedStory)
+            resultMessage = `story ${operation}d`
         } catch (e) {
-
+            resultMessage = `could not ${operation} the story`
+            console.error(e)
+        } finally {
+            setSavedStoryMessage(resultMessage)
+            if (story) {
+                setSelectedStory(story)
+            }
         }
-
     }
-    const [createUpdateStoryMessage, seCreateUpdateStoryMessage] = useState("")
-
+    const [savedStoryMessage, setSavedStoryMessage] = useState("")
     const revalidateHome = async () => {
         try {
             const revalidationsResponse = await revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME])
@@ -75,15 +93,15 @@ export default function EditHome(props: HomeComponentProps | null) {
     return (
         <Container>
             <PresentationForm>
-                <TextInput type={"text"} onChange={(e)=> setNamePresentation(e.target.value)}/>
-                <TextInput type={"text"} onChange={(e)=> setIntroductionPresentation(e.target.value)}/>
+                <TextInput type={"text"} onChange={(e) => handlePresentationChange(e, "name")}/>
+                <TextInput type={"text"} onChange={(e) => handlePresentationChange(e, "introduction")}/>
                 <Button type={"submit"}> SAVE PRESENTATION </Button>
             </PresentationForm>
             <StoryContainer>
                 <EditStoryForm>
                     <EditStoryDataContainer>
-                        <TextInput type={"text"} onChange={(e) => handleChangeStory(e,"title")}/>
-                        <TextInput type={"text"} onChange={(e) => handleChangeStory(e, "body")}/>
+                        <TextInput type={"text"} onChange={(e) => handleStoryChange(e,"title")}/>
+                        <TextInput type={"text"} onChange={(e) => handleStoryChange(e, "body")}/>
                     </EditStoryDataContainer>
                     <Button type={"submit"}> {selectedStory.id ? "UPDATE" : "CREATE"} </Button>
                 </EditStoryForm>
