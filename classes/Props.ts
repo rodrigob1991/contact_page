@@ -1,7 +1,7 @@
 import {PrismaClient} from "@prisma/client"
 import {PresentationComponent, StoryComponent} from "../types/Home"
 
-class Props {
+class PropsClient {
     private readonly prisma: PrismaClient
     private readonly HOME_PROPS_ID = "homePropsUnique"
     private readonly PRESENTATION_ID = "homePropsPresentationUnique"
@@ -79,6 +79,10 @@ class Props {
         )
     }
 
+    async deleteStory(id: string) {
+        return this.prisma.story.delete({where: {id: id}})
+    }
+
     /*async setHomeProps(presentation?: { name: string, introduction: string }, stories?: { title: string, body: string }[]) {
         const homeProps =
         await this.prisma.upsert({
@@ -90,4 +94,4 @@ class Props {
 */
 }
 
-export const propsClient = new Props()
+export const propsClient = new PropsClient()
