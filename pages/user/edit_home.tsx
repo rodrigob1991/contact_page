@@ -6,12 +6,13 @@ import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationPathId} from "../../types/Revalidation"
 import {propsClient} from "../../classes/Props"
 
-export const EDITH_HOME_PATH = path.relative("/pages", "./")
+export const EDITH_HOME_PATH = path.normalize(path.relative("/pages", "./"))
 
 export async function getStaticProps() {
+    console.log(EDITH_HOME_PATH)
     const homeProps = await propsClient.getHomeProps()
 
-    return {props: homeProps}
+    return {props: {homeProps}}
 }
 
 const emptyStory = {id: undefined, title: "", body: ""}

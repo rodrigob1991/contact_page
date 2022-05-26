@@ -1,20 +1,21 @@
 import {PrismaClient} from "@prisma/client"
 import {PresentationComponent, StoryComponent} from "../types/Home"
+import {ObjectID} from "bson"
 
-class PropsClient {
+class PropsStorageClient {
     private readonly prisma: PrismaClient
-    private readonly HOME_PROPS_ID = "homePropsUnique"
-    private readonly PRESENTATION_ID = "homePropsPresentationUnique"
+    private readonly HOME_PROPS_ID = new ObjectID("111111111111111111111111").toJSON()
+    private readonly PRESENTATION_ID = new ObjectID("111111111111111111111111").toJSON()
 
     constructor() {
         this.prisma = new PrismaClient()
     }
 
     async getHomeProps() {
+        console.log(`HOME ID=${this.HOME_PROPS_ID}`)
         return await this.prisma.props.findUnique({
             where: {id: this.HOME_PROPS_ID},
             include: {presentation: true, stories: true}
-
         })
     }
 
@@ -94,4 +95,4 @@ class PropsClient {
 */
 }
 
-export const propsClient = new PropsClient()
+export const propsStorageClient = new PropsStorageClient()

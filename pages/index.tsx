@@ -2,12 +2,12 @@ import styled from "@emotion/styled"
 import {useState} from "react"
 import {HomeComponentProps, StoryComponent} from "../types/Home"
 import path from "path"
-import {propsClient} from "../classes/Props";
+import {propsStorageClient} from "../classes/Props"
 
 export const HOME_PATH = path.relative("/pages", "./")
 
 export async function getStaticProps() {
-    const homeProps = await propsClient.getHomeProps()
+    const homeProps = await propsStorageClient.getHomeProps()
 
     if (!homeProps) {
         throw new Error("There is not home props in the database")
