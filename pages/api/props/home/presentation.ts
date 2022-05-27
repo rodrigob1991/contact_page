@@ -1,6 +1,6 @@
 import {NextApiRequest, NextApiResponse} from "next"
 import {propsStorageClient} from "../../../../classes/Props"
-import {PresentationComponent} from "../../../../types/Home"
+import {PresentationAPIParam, PresentationComponent} from "../../../../types/Home"
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
     const params = request.body
@@ -10,15 +10,20 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     switch (request.method) {
         case "PUT" :
-            const presentation: PresentationComponent = params
-            try {
-                const savedPresentation = await propsStorageClient.setPresentation(presentation)
-                httpCode = 200
-                body = savedPresentation
-            } catch (e) {
-                httpCode = 500
-                body = "could not saved the presentation"
-                console.error(e)
+            const presentation: PresentationAPIParam = params
+            if (!validPresentation(presentation)) {
+                httpCode = 400
+                body = "missing data"
+            } else {
+                try {
+                    const savedPresentation = await propsStorageClient.setPresentation(presentation as PresentationComponent)
+                    httpCode = 200
+                    body = savedPresentation
+                } catch (e) {
+                    httpCode = 500
+                    body = "could not saved the presentation"
+                    console.error(e)
+                }
             }
             break
         default :
@@ -26,4 +31,10 @@ export default async function handler(request: NextApiRequest, response: NextApi
             body = "invalid http method"
     }
     response.status(httpCode).json(body)
+}
+
+const validPresentation = (presentation: PresentationAPIParam) => {
+    return presentation !== undefined && presentation.name !== undefined
+        && presentation.name.length > 0 && presentation.introduction !== undefined
+        && presentation.introduction.length > 0
 }

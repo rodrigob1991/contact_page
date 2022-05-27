@@ -12,7 +12,6 @@ class PropsStorageClient {
     }
 
     async getHomeProps() {
-        console.log(`HOME ID=${this.HOME_PROPS_ID}`)
         return await this.prisma.props.findUnique({
             where: {id: this.HOME_PROPS_ID},
             include: {presentation: true, stories: true}

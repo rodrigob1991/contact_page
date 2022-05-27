@@ -1,6 +1,6 @@
 import {NextApiRequest, NextApiResponse} from "next"
 import {propsStorageClient} from "../../../../classes/Props"
-import {StoryComponent} from "../../../../types/Home"
+import {StoryAPIParam, StoryComponent} from "../../../../types/Home"
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
     const params = request.body
@@ -10,27 +10,37 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     switch (request.method) {
         case "PUT" :
-            const story: StoryComponent = params
-            try {
-                const savedStory = await propsStorageClient.setStory(story)
-                httpCode = 200
-                body = savedStory
-            } catch (e) {
-                httpCode = 500
-                body = "could not saved the story"
-                console.error(e)
+            const story: StoryAPIParam = params
+            if (!validStory(story)) {
+                httpCode = 400
+                body = "missing data"
+            } else {
+                try {
+                    const savedStory = await propsStorageClient.setStory(story as StoryComponent)
+                    httpCode = 200
+                    body = savedStory
+                } catch (e) {
+                    httpCode = 500
+                    body = "could not saved the story"
+                    console.error(e)
+                }
             }
             break
         case "DELETE" :
             const storyId: string = params
-            try {
-                await propsStorageClient.deleteStory(storyId)
-                httpCode = 200
-                body = "story deleted"
-            } catch (e) {
-                httpCode = 500
-                body = "could not delete the story"
-                console.error(e)
+            if (storyId === undefined || storyId.length === 0) {
+                httpCode = 400
+                body = "missing story id"
+            } else {
+                try {
+                    await propsStorageClient.deleteStory(storyId)
+                    httpCode = 200
+                    body = "story deleted"
+                } catch (e) {
+                    httpCode = 500
+                    body = "could not delete the story"
+                    console.error(e)
+                }
             }
             break
         default :
@@ -38,4 +48,10 @@ export default async function handler(request: NextApiRequest, response: NextApi
             body = "invalid http method"
     }
     response.status(httpCode).json(body)
+}
+
+const validStory = (story: StoryAPIParam) => {
+    return story !== undefined && story.title !== undefined
+        && story.title.length > 0 && story.body !== undefined
+        && story.body.length > 0
 }
