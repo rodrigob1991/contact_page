@@ -1,6 +1,6 @@
 import {NextApiRequest, NextApiResponse} from "next"
 import {propsStorageClient} from "../../../../classes/Props"
-import {PresentationAPIParam, PresentationComponent} from "../../../../types/Home"
+import {PresentationComponent, PresentationPutParam} from "../../../../types/Home"
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
     const params = request.body
@@ -10,7 +10,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     switch (request.method) {
         case "PUT" :
-            const presentation: PresentationAPIParam = params
+            const presentation: PresentationPutParam = params
             if (!validPresentation(presentation)) {
                 httpCode = 400
                 body = "missing data"
@@ -33,7 +33,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
     response.status(httpCode).json(body)
 }
 
-const validPresentation = (presentation: PresentationAPIParam) => {
+const validPresentation = (presentation: PresentationPutParam) => {
     return presentation !== undefined && presentation.name !== undefined
         && presentation.name.length > 0 && presentation.introduction !== undefined
         && presentation.introduction.length > 0
