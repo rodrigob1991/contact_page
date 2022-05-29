@@ -15,16 +15,66 @@ type DeleteBodyResponse = {
 type BodyResponse = PutBodyResponse | DeleteBodyResponse | string
 
 export const putStory = async (story: StoryComponent) => {
-    const response = await fetch(ENDPOINT, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(story),
-    })
-    const body: PutBodyResponse = await response.json()
+    let success: boolean
+    let bodyReturn: PutBodyResponse | undefined
+    let errorMessage: string | undefined
 
-    return {httpCode: response.status, body: body}
+    try {
+        const response = await fetch(ENDPOINT, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(story),
+        })
+        const body = await response.json()
+
+        if (response.status >= 400) {
+            success = false
+            errorMessage = body.errorMessage
+        } else {
+            success = true
+            bodyReturn = body
+        }
+
+    } catch (e) {
+        success = false
+        errorMessage = "could not put the story"
+        console.error(e)
+    }
+
+    return {success: success, body: bodyReturn, errorMessage: errorMessage}
+}
+export const deleteStory = async (storyId: string) => {
+    let success: boolean
+    let bodyReturn: DeleteBodyResponse | undefined
+    let errorMessage: string | undefined
+
+    try {
+        const response = await fetch(ENDPOINT, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: storyId,
+        })
+        const body = await response.json()
+
+        if (response.status >= 400) {
+            success = false
+            errorMessage = body.errorMessage
+        } else {
+            success = true
+            bodyReturn = body
+        }
+
+    } catch (e) {
+        success = false
+        errorMessage = "could not delete the story"
+        console.error(e)
+    }
+
+    return {success: success, body: bodyReturn, errorMessage: errorMessage}
 }
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
