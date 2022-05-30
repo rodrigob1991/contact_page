@@ -15,9 +15,7 @@ type DeleteBodyResponse = {
 type BodyResponse = PutBodyResponse | DeleteBodyResponse | string
 
 export const putStory = async (story: StoryComponent) => {
-    let success: boolean
-    let bodyReturn: PutBodyResponse | undefined
-    let errorMessage: string | undefined
+    const result: { succeed: boolean, story?: StoryComponent, errorMessage?: string } = {succeed: false}
 
     try {
         const response = await fetch(ENDPOINT, {
@@ -27,28 +25,31 @@ export const putStory = async (story: StoryComponent) => {
             },
             body: JSON.stringify(story),
         })
-        const body = await response.json()
 
-        if (response.status >= 400) {
-            success = false
-            errorMessage = body.errorMessage
-        } else {
-            success = true
-            bodyReturn = body
+        try {
+            const body: PutBodyResponse = await response.json()
+
+            if (response.ok) {
+                result.story = body.story
+            } else {
+                result.errorMessage = body.errorMessage
+            }
+
+        } catch (e) {
+            console.error(`Error getting response json body: ${e}`)
         }
 
+        result.succeed = response.ok
     } catch (e) {
-        success = false
-        errorMessage = "could not put the story"
-        console.error(e)
+        result.succeed = false
+        result.errorMessage = "could not put the story"
+        console.error(`Error getting response: ${e}`)
     }
 
-    return {success: success, body: bodyReturn, errorMessage: errorMessage}
+    return result
 }
 export const deleteStory = async (storyId: string) => {
-    let success: boolean
-    let bodyReturn: DeleteBodyResponse | undefined
-    let errorMessage: string | undefined
+    const result: { succeed: boolean, body?: string, errorMessage?: string } = {succeed: false}
 
     try {
         const response = await fetch(ENDPOINT, {
@@ -58,23 +59,27 @@ export const deleteStory = async (storyId: string) => {
             },
             body: storyId,
         })
-        const body = await response.json()
 
-        if (response.status >= 400) {
-            success = false
-            errorMessage = body.errorMessage
-        } else {
-            success = true
-            bodyReturn = body
+        try {
+            const body: DeleteBodyResponse = await response.json()
+            const message = body.message
+            if (response.ok) {
+                result.body = message
+            } else {
+                result.errorMessage = message
+            }
+        } catch (e) {
+            console.error(`Error retrieving json body: ${e}`)
         }
 
+        result.succeed = response.ok
     } catch (e) {
-        success = false
-        errorMessage = "could not delete the story"
-        console.error(e)
+        result.succeed = false
+        result.errorMessage = "could not delete the story"
+        console.error(`Error retrieving response: ${e}`)
     }
 
-    return {success: success, body: bodyReturn, errorMessage: errorMessage}
+    return result
 }
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {

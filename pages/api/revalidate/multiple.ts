@@ -7,11 +7,23 @@ import path from "path"
 const ENDPOINT = `${process.env.BASE_URL}/${path.relative("/pages","./")}`
 
 export const revalidatePages = async (pagesId: RevalidationPathId[]) => {
-    const url = ENDPOINT + `?secret=${process.env.REVALIDATION_TOKEN}&ids=${pagesId}`
-    const response = await fetch(url)
-    const body: RevalidationResponseBody = await response.json()
+    const result: { revalidations?: RevalidatedPath[], errorMessage?: string } = {}
 
-    return {httpCode: response.status, errorMessage: body.errorMessage, revalidations: body.revalidationsStates}
+    const url = ENDPOINT + `?secret=${process.env.REVALIDATION_TOKEN}&ids=${pagesId}`
+    try {
+        const response = await fetch(url)
+        const body: RevalidationResponseBody = await response.json()
+        if (response.ok) {
+            result.revalidations = body.revalidationsStates
+        } else {
+            result.errorMessage = body.errorMessage
+        }
+
+    } catch (e) {
+        console.error(`Error consuming revalidating endpoint: ${e}`)
+    }
+
+    return result
 }
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse<RevalidationResponseBody>) {
