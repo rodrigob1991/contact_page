@@ -7,7 +7,7 @@ import path from "path"
 const ENDPOINT = `${process.env.BASE_URL}/${path.relative("/pages","./")}`
 
 export const revalidatePages = async (pagesId: RevalidationPathId[]) => {
-    const result: { revalidations?: RevalidatedPath[], errorMessage?: string } = {}
+    const result: {succeed: boolean, revalidations?: RevalidatedPath[], errorMessage?: string } = {succeed: false}
 
     const url = ENDPOINT + `?secret=${process.env.REVALIDATION_TOKEN}&ids=${pagesId}`
     try {
@@ -18,6 +18,7 @@ export const revalidatePages = async (pagesId: RevalidationPathId[]) => {
         } else {
             result.errorMessage = body.errorMessage
         }
+        result.succeed = response.ok
 
     } catch (e) {
         console.error(`Error consuming revalidating endpoint: ${e}`)

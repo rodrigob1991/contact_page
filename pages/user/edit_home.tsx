@@ -1,16 +1,18 @@
 import styled from "@emotion/styled"
 import React, {ChangeEvent, FormEvent, useState} from "react"
-import {HomeComponentProps, PresentationComponent, Story, StoryComponent} from "../../types/Home"
+import {HomeComponentProps, PresentationComponent, StoryComponent} from "../../types/Home"
 import path from "path"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationPathId} from "../../types/Revalidation"
-import {propsClient} from "../../classes/Props"
+import {propsStorageClient} from "../../classes/Props";
+import {putPresentation} from "../api/props/home/presentation";
+import {deleteStory, putStory} from "../api/props/home/story";
 
 export const EDITH_HOME_PATH = path.normalize(path.relative("/pages", "./"))
 
 export async function getStaticProps() {
     console.log(EDITH_HOME_PATH)
-    const homeProps = await propsClient.getHomeProps()
+    const homeProps = await propsStorageClient.getHomeProps()
 
     return {props: {homeProps}}
 }
@@ -30,15 +32,18 @@ export default function EditHome(props: HomeComponentProps | null) {
         e.preventDefault()
 
         const operation = presentation.id ? "UPDATE" : "CREATE"
-        let resultMessage = ""
-        try {
-            await propsClient.setPresentation(presentation)
-            resultMessage = `presentation ${operation}d`
-        } catch (e) {
-            resultMessage = `could not ${operation} the presentation`
-        } finally {
-            setEditPresentationMessage(resultMessage)
-        }
+
+        putPresentation(presentation).then(({succeed, presentation, errorMessage}) => {
+                if (succeed) {
+                    setEditPresentationMessage(`presentation ${operation}d`)
+                    if (presentation) {
+                        setPresentation(presentation)
+                    }
+                } else {
+                    setEditPresentationMessage(errorMessage || `could not ${operation} the presentation`)
+                }
+            }
+        )
     }
     const [editPresentationMessage, setEditPresentationMessage] = useState("")
 
@@ -56,38 +61,35 @@ export default function EditHome(props: HomeComponentProps | null) {
 
         const isCreate = presentation.id === undefined
         const operation = isCreate ? "CREATE" : "UPDATE"
-        let resultMessage = ""
-        let story: Story | undefined = undefined
-        try {
-            story = await propsClient.setStory(selectedStory)
-            resultMessage = `story ${operation}d`
-        } catch (e) {
-            resultMessage = `could not ${operation} the story`
-            console.error(e)
-        } finally {
-            setEditStoryMessage(resultMessage)
-            if (story) {
-                setSelectedStory(story)
-                const updatedStories = isCreate ? [...stories, story] :
-                    stories.splice(stories.findIndex(s => s.id === story?.id), 1, story)
-                setStories(updatedStories)
+
+        putStory(selectedStory).then(({succeed, story, errorMessage}) => {
+                if (succeed) {
+                    setEditStoryMessage(`story ${operation}d`)
+                    if (story) {
+                        setSelectedStory(story)
+                        const updatedStories = isCreate ? [...stories, story] :
+                            stories.splice(stories.findIndex(s => s.id === story?.id), 1, story)
+                        setStories(updatedStories)
+                    }
+
+                } else {
+                    setEditStoryMessage(errorMessage || `could not ${operation} the story`)
+                }
             }
-        }
+        )
     }
     const handleDeleteStory = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault()
 
         if (selectedStory.id) {
-            let resultMessage = ""
-            try {
-                await propsClient.deleteStory(selectedStory.id)
-                resultMessage = "story deleted successfully"
-            } catch (e) {
-                resultMessage = "could not delete the story"
-                console.error(e)
-            } finally {
-                setEditStoryMessage(resultMessage)
-            }
+            deleteStory(selectedStory.id).then(({succeed, errorMessage}) => {
+                    if (succeed) {
+                        setEditStoryMessage("story deleted successfully")
+                    } else {
+                        setEditStoryMessage(errorMessage || "could not delete the story")
+                    }
+                }
+            )
         }
     }
     const [editStoryMessage, setEditStoryMessage] = useState("")
@@ -97,7 +99,7 @@ export default function EditHome(props: HomeComponentProps | null) {
 
         try {
             const revalidationsResponse = await revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME])
-            if (revalidationsResponse.httpCode >= 400) {
+            if (!revalidationsResponse.succeed) {
                 setRevalidationMessage(revalidationsResponse.errorMessage || "there must be always an error message")
             } else {
                 const revalidations = revalidationsResponse.revalidations
