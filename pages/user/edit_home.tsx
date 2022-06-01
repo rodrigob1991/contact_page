@@ -4,17 +4,17 @@ import {HomeComponentProps, PresentationComponent, StoryComponent} from "../../t
 import path from "path"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationPathId} from "../../types/Revalidation"
-import {propsStorageClient} from "../../classes/Props";
-import {putPresentation} from "../api/props/home/presentation";
-import {deleteStory, putStory} from "../api/props/home/story";
+import {PropsStorageClient} from "../../classes/Props"
+import {putPresentation} from "../api/props/home/presentation"
+import {deleteStory, putStory} from "../api/props/home/story"
 
-export const EDITH_HOME_PATH = path.normalize(path.relative("/pages", "./"))
+export const EDITH_HOME_PATH = "/user/edit_home"
 
 export async function getStaticProps() {
-    console.log(EDITH_HOME_PATH)
+    const propsStorageClient = new PropsStorageClient()
     const homeProps = await propsStorageClient.getHomeProps()
 
-    return {props: {homeProps}}
+    return {props: homeProps}
 }
 
 const emptyStory = {id: undefined, title: "", body: ""}
@@ -97,30 +97,30 @@ export default function EditHome(props: HomeComponentProps | null) {
     const revalidateHome = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault()
 
-        try {
-            const revalidationsResponse = await revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME])
-            if (!revalidationsResponse.succeed) {
-                setRevalidationMessage(revalidationsResponse.errorMessage || "there must be always an error message")
-            } else {
-                const revalidations = revalidationsResponse.revalidations
-                //there must always be revalidations here
-                if (revalidations) {
-                    const message = revalidations.map(r => r.pathId + ":" + r.message).toString()
-                    setRevalidationMessage(message)
+        revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME]).then(({
+                                                                                           succeed,
+                                                                                           revalidations,
+                                                                                           errorMessage
+                                                                                       }) => {
+                if (succeed) {
+                    //there must always be revalidations here
+                    if (revalidations) {
+                        const message = revalidations.map(r => r.pathId + ":" + r.message).toString()
+                        setRevalidationMessage(message)
+                    }
+                } else {
+                    setRevalidationMessage(errorMessage || "there must be always an error message")
                 }
             }
-        } catch (e) {
-            setRevalidationMessage("could not revalidate the home")
-            console.error(e)
-        }
+        )
     }
     const [revalidationMessage, setRevalidationMessage] = useState("")
 
     return (
         <Container>
             <PresentationForm onSubmit={handleSavePresentation}>
-                <TextInput type={"text"} onChange={(e) => handlePresentationChange(e, "name")}/>
-                <TextInput type={"text"} onChange={(e) => handlePresentationChange(e, "introduction")}/>
+                <TextInput value={presentation.name} type={"text"} onChange={(e) => handlePresentationChange(e, "name")}/>
+                <TextInput value={presentation.introduction} type={"text"} onChange={(e) => handlePresentationChange(e, "introduction")}/>
                 <Button type={"submit"}> SAVE PRESENTATION </Button>
                 {editPresentationMessage}
             </PresentationForm>
@@ -169,6 +169,9 @@ const PresentationForm = styled.form`
 `
 const TextInput = styled.input`
     `
+const TextArea = styled.input`
+    `
+
 const StoryContainer = styled.div`
   align-items: left;
   display: flex;

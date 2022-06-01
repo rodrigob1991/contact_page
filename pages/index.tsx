@@ -2,12 +2,14 @@ import styled from "@emotion/styled"
 import {useState} from "react"
 import {HomeComponentProps, StoryComponent} from "../types/Home"
 import path from "path"
-import {propsStorageClient} from "../classes/Props"
+import {PropsStorageClient} from "../classes/Props"
 
-export const HOME_PATH = path.relative("/pages", "./")
+export const HOME_PATH = "/"
 
 export async function getStaticProps() {
+    const propsStorageClient = new PropsStorageClient()
     const homeProps = await propsStorageClient.getHomeProps()
+    console.table(homeProps)
 
     if (!homeProps) {
         throw new Error("There is not home props in the database")
@@ -43,9 +45,16 @@ export default function Home({presentation, stories}: HomeComponentProps) {
   }
   return (
       <Container>
-        <Presentation>
-          {presentation?.introduction}
-        </Presentation>
+          <PresentationContainer>
+              <PresentationName>
+                  {presentation?.name}
+              </PresentationName>
+              <PresentationIntroduction>
+                  {presentation?.introduction}
+              </PresentationIntroduction>
+
+          </PresentationContainer>
+
         <StoryContainer>
           {storiesWithState.map(({story, isOpen}, index) => getStoryView(story, index, isOpen))}
         </StoryContainer>
@@ -60,8 +69,16 @@ const Container = styled.div`
   gap: 10px;
   background-color: #FF8C00
     `
-const Presentation = styled.text`
-  color: #FF8C00
+const PresentationName = styled.text`
+    `
+const PresentationIntroduction = styled.text`
+    `
+const PresentationContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  padding-left: 20px;
+  gap: 20px;
+  background-color: #FF8C00
     `
 const StoryContainer = styled.div`
   display: flex;

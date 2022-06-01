@@ -1,9 +1,8 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {propsStorageClient} from "../../../../classes/Props"
+import {PropsStorageClient} from "../../../../classes/Props"
 import {Presentation, PresentationComponent, PresentationPutParam} from "../../../../types/Home"
-import path from "path";
 
-const ENDPOINT = `${process.env.BASE_URL}/${path.relative("/pages","./")}`
+const PRESENTATION_API_PATH = "/api/props/home/presentation"
 
 type PutBodyResponse = {
     presentation?: Presentation
@@ -13,6 +12,7 @@ type PutBodyResponse = {
 export const putPresentation = async (presentation: PresentationComponent) => {
     const result: { succeed: boolean, presentation?: Presentation, errorMessage?: string } = {succeed: false}
 
+    const  ENDPOINT = process.env.NEXT_PUBLIC_BASE_URL + PRESENTATION_API_PATH
     try {
         const response = await fetch(ENDPOINT, {
             method: "PUT",
@@ -44,6 +44,8 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     let httpCode: number
     let body: PutBodyResponse | string
+
+    const propsStorageClient = new PropsStorageClient()
 
     switch (request.method) {
         case "PUT" :

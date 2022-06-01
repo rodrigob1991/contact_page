@@ -2,7 +2,7 @@ import {PrismaClient} from "@prisma/client"
 import {PresentationComponent, StoryComponent} from "../types/Home"
 import {ObjectID} from "bson"
 
-class PropsStorageClient {
+export class PropsStorageClient {
     private readonly prisma: PrismaClient
     private readonly HOME_PROPS_ID = new ObjectID("111111111111111111111111").toJSON()
     private readonly PRESENTATION_ID = new ObjectID("111111111111111111111111").toJSON()
@@ -94,4 +94,4 @@ class PropsStorageClient {
 */
 }
 
-export const propsStorageClient = new PropsStorageClient()
+//export const propsStorageClient = new PropsStorageClient()

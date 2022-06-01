@@ -1,9 +1,10 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {propsStorageClient} from "../../../../classes/Props"
+import {PropsStorageClient} from "../../../../classes/Props"
 import {Story, StoryComponent, StoryPutParam} from "../../../../types/Home"
-import path from "path"
 
-const ENDPOINT = `${process.env.BASE_URL}/${path.relative("/pages","./")}`
+const STORY_API_PATH = "/api/props/home/story"
+
+const API_ENDPOINT = process.env.NEXT_PUBLIC_BASE_URL + STORY_API_PATH
 
 type PutBodyResponse = {
     story?: Story
@@ -17,7 +18,7 @@ export const putStory = async (story: StoryComponent) => {
     const result: { succeed: boolean, story?: Story, errorMessage?: string } = {succeed: false}
 
     try {
-        const response = await fetch(ENDPOINT, {
+        const response = await fetch(API_ENDPOINT, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -45,7 +46,7 @@ export const deleteStory = async (storyId: string) => {
     const result: { succeed: boolean, body?: string, errorMessage?: string } = {succeed: false}
 
     try {
-        const response = await fetch(ENDPOINT, {
+        const response = await fetch(API_ENDPOINT, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",
@@ -75,6 +76,8 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     let httpCode: number
     let body: PutBodyResponse | DeleteBodyResponse | string
+
+    const propsStorageClient = new PropsStorageClient()
 
     switch (request.method) {
         case "PUT" :
