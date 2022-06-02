@@ -42,6 +42,7 @@ export class PropsStorageClient {
     }*/
 
     async setPresentation(presentation: PresentationComponent) {
+        presentation.id = this.PRESENTATION_ID
         return this.prisma.presentation.upsert(
             {
                 where: {id: this.PRESENTATION_ID},
@@ -55,28 +56,33 @@ export class PropsStorageClient {
                     }
                 }
                 ,
-                update: presentation,
+                update: (({id, ...p}) => p)(presentation),
             }
         )
     }
 
-    async setStory(storyComponent: StoryComponent) {
-        return this.prisma.story.upsert(
-            {
-                where: {id: storyComponent.id},
-                create: {
-                    ...storyComponent,
-                    props: {
-                        connectOrCreate: {
-                            where: {id: this.HOME_PROPS_ID},
-                            create: {id: this.HOME_PROPS_ID}
+    async setStory(story: StoryComponent) {
+        if (story.id) {
+            return this.prisma.story.update({
+                where: {id: story.id},
+                data: story
+            })
+        } else {
+            return this.prisma.story.create(
+                {
+                    data: {
+                        ...story,
+                        props: {
+                            connectOrCreate: {
+                                where: {id: this.HOME_PROPS_ID},
+                                create: {id: this.HOME_PROPS_ID}
+                            }
                         }
                     }
                 }
-                ,
-                update: storyComponent,
-            }
-        )
+            )
+        }
+        // (({id, ...s}) => s)(story)
     }
 
     async deleteStory(id: string) {

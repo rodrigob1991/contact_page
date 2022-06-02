@@ -1,12 +1,12 @@
 import styled from "@emotion/styled"
 import React, {ChangeEvent, FormEvent, useState} from "react"
 import {HomeComponentProps, PresentationComponent, StoryComponent} from "../../types/Home"
-import path from "path"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationPathId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../classes/Props"
 import {putPresentation} from "../api/props/home/presentation"
 import {deleteStory, putStory} from "../api/props/home/story"
+import {css} from "@emotion/react";
 
 export const EDITH_HOME_PATH = "/user/edit_home"
 
@@ -22,10 +22,11 @@ const emptyPresentation = {id: undefined, name: "", introduction: ""}
 
 export default function EditHome(props: HomeComponentProps | null) {
     const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
-    const handlePresentationChange = (e: ChangeEvent<HTMLInputElement>, presentationKey: keyof PresentationComponent) => {
+    const handlePresentationChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, presentationKey: keyof PresentationComponent) => {
         setPresentation((presentation) => {
-            presentation[presentationKey] = e.target.value
-            return presentation
+            const updatedPresentation = {...presentation}
+            updatedPresentation[presentationKey] = e.target.value
+            return updatedPresentation
         })
     }
     const handleSavePresentation = async (e: FormEvent<HTMLFormElement>) => {
@@ -35,7 +36,7 @@ export default function EditHome(props: HomeComponentProps | null) {
 
         putPresentation(presentation).then(({succeed, presentation, errorMessage}) => {
                 if (succeed) {
-                    setEditPresentationMessage(`presentation ${operation}d`)
+                    setEditPresentationMessage(`presentation ${operation}D`)
                     if (presentation) {
                         setPresentation(presentation)
                     }
@@ -50,21 +51,22 @@ export default function EditHome(props: HomeComponentProps | null) {
     const [stories, setStories] = useState(props?.stories || [])
     const [selectedStory, setSelectedStory] = useState<StoryComponent>(emptyStory)
     const creatingStory = selectedStory.id === undefined
-    const handleStoryChange = (e: ChangeEvent<HTMLInputElement>, storyKey: keyof StoryComponent) => {
+    const handleStoryChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, storyKey: keyof StoryComponent) => {
         setSelectedStory((story) => {
-            story[storyKey] = e.target.value
-            return story
+            const updatedStory = {...story}
+            updatedStory[storyKey] = e.target.value
+            return updatedStory
         })
     }
     const handleSavedStory = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault()
 
-        const isCreate = presentation.id === undefined
+        const isCreate = selectedStory.id === undefined
         const operation = isCreate ? "CREATE" : "UPDATE"
 
         putStory(selectedStory).then(({succeed, story, errorMessage}) => {
                 if (succeed) {
-                    setEditStoryMessage(`story ${operation}d`)
+                    setEditStoryMessage(`story ${operation}D`)
                     if (story) {
                         setSelectedStory(story)
                         const updatedStories = isCreate ? [...stories, story] :
@@ -119,16 +121,16 @@ export default function EditHome(props: HomeComponentProps | null) {
     return (
         <Container>
             <PresentationForm onSubmit={handleSavePresentation}>
-                <TextInput value={presentation.name} type={"text"} onChange={(e) => handlePresentationChange(e, "name")}/>
-                <TextInput value={presentation.introduction} type={"text"} onChange={(e) => handlePresentationChange(e, "introduction")}/>
+                <TextInput width={300} value={presentation.name} type={"text"} onChange={(e) => handlePresentationChange(e, "name")}/>
+                <TextArea height={400} width={1000} value={presentation.introduction} onChange={(e) => handlePresentationChange(e, "introduction")}/>
                 <Button type={"submit"}> SAVE PRESENTATION </Button>
                 {editPresentationMessage}
             </PresentationForm>
             <StoryContainer>
                 <EditStoryForm onSubmit={handleSavedStory}>
                     <EditStoryDataContainer>
-                        <TextInput type={"text"} onChange={(e) => handleStoryChange(e, "title")}/>
-                        <TextInput type={"text"} onChange={(e) => handleStoryChange(e, "body")}/>
+                        <TextInput width={300} type={"text"} onChange={(e) => handleStoryChange(e, "title")}/>
+                        <TextArea height={350} width={700} onChange={(e) => handleStoryChange(e, "body")}/>
                         {editStoryMessage}
                     </EditStoryDataContainer>
                     <Button type={"submit"}> {creatingStory ? "CREATE" : "UPDATE"} </Button>
@@ -156,28 +158,45 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   padding: 50px;
-  background-color: #006400;
-  gap: 15px;
+  background-color: #4682B4;
+  gap: 20px;
   height: fit-content;
 `
 const PresentationForm = styled.form`
-  align-items: left;
+  align-items: center;
   display: flex;
   flex-direction: column;
-  background-color: #006400;
+  background-color: #B0C4DE;
   gap: 20px;
+  padding: 50px;
 `
 const TextInput = styled.input`
+    height:40px;
+    width:600px;
+    font-size: 20px;
+    ${props =>
+    css`
+      height:${props.height}px;
+      width:${props.width}px;
+    `}
     `
-const TextArea = styled.input`
+const TextArea = styled.textarea<{height?: number, width?: number}>`
+    vertical-align: top;
+    text-align: left;
+    font-size: 20px;
+    ${props =>
+    css`
+      height:${props.height}px;
+      width:${props.width}px;
+    `}
     `
-
 const StoryContainer = styled.div`
   align-items: left;
   display: flex;
   flex-direction: column;
-  background-color: #006400;
+  background-color: #B0C4DE;
   gap: 20px;
+  padding: 50px;
 `
 const EditStoryForm = styled.form`
   align-items: center;
@@ -209,4 +228,8 @@ const StoryRow = styled.div`
 const Button = styled.button`
  background-color: #000000;
  color: #FFFFFF;
+ width: fit-content;
+ font-weight: bold;
+ cursor: pointer;
+ font-size: 22px;
 `

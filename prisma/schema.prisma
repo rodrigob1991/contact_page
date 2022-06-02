@@ -11,14 +11,14 @@ datasource db {
 }
 
 model Props {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id String @id @map("_id") @db.ObjectId
   presentation Presentation? @relation(fields: [presentationId], references: [id])
   presentationId String @db.ObjectId
   stories Story[]
 }
 
 model Presentation {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+  id String @id @map("_id") @db.ObjectId
   name String
   introduction String
   props Props?

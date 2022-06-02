@@ -9,7 +9,6 @@ export const HOME_PATH = "/"
 export async function getStaticProps() {
     const propsStorageClient = new PropsStorageClient()
     const homeProps = await propsStorageClient.getHomeProps()
-    console.table(homeProps)
 
     if (!homeProps) {
         throw new Error("There is not home props in the database")
@@ -26,7 +25,11 @@ export default function Home({presentation, stories}: HomeComponentProps) {
   const openOrCloseStory = (index: number) => {
     const story = {...storiesWithState[index]}
     story.isOpen = !story.isOpen
-    setStoriesWithState((stories) => stories.splice(index, 0, story))
+    setStoriesWithState((stories) => {
+        const updatedStories = [...stories]
+        updatedStories.splice(index, 1, story)
+        return updatedStories
+    })
   }
 
   const getStoryView = (story: StoryComponent, index: number, isOpen: boolean) => {
@@ -34,7 +37,7 @@ export default function Home({presentation, stories}: HomeComponentProps) {
     return (
         isOpen ?
             <StoryOpenView>
-              {storyTitle}
+                {storyTitle}
               <StoryBody>
                 {story.body}
               </StoryBody>
@@ -67,39 +70,51 @@ const Container = styled.div`
   flex-direction: column;
   padding: 20px;
   gap: 10px;
-  background-color: #FF8C00
+  background-color: #4682B4;
     `
 const PresentationName = styled.text`
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 20px;
     `
 const PresentationIntroduction = styled.text`
+  font-weight: bold;
+  font-size: 18px;
     `
 const PresentationContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding-left: 20px;
   gap: 20px;
-  background-color: #FF8C00
+  background-color: #F5F5F5;
+  align-items: center;
     `
 const StoryContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding-left: 20px;
   gap: 20px;
-  background-color: #FF8C00
+  background-color: #F5F5F5
+  width: fit-content;
     `
 const StoryBody = styled.text`
   color: #000000;
   font-size: 20px;
   font-family: "Lucida Console", "Courier New", monospace;
 `
-const StoryTitle = styled.title`
-  color: #000000;
-  font-size: 40px;
-  text-decoration-line: underline;
+const StoryTitle = styled.text`
+  font-size: 25px;
+  font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  width: fit-content;
+  background-color: #F5F5F5;
 `
 const StoryOpenView = styled.div`
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
+  align-items: left;
+  gap: 15px;
 `
