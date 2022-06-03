@@ -1,8 +1,8 @@
 import styled from "@emotion/styled"
 import {useState} from "react"
 import {HomeComponentProps, StoryComponent} from "../types/Home"
-import path from "path"
 import {PropsStorageClient} from "../classes/Props"
+import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 
 export const HOME_PATH = "/"
 
@@ -32,18 +32,25 @@ export default function Home({presentation, stories}: HomeComponentProps) {
     })
   }
 
-  const getStoryView = (story: StoryComponent, index: number, isOpen: boolean) => {
-    const storyTitle = <StoryTitle onClick={(e => openOrCloseStory(index))}>{story.title}</StoryTitle>
+    const getStoryView = (story: StoryComponent, index: number, isOpen: boolean) => {
+        const storyTitle =
+            <StoryTitleView onClick={(e => openOrCloseStory(index))}>
+                <StoryTitle>{story.title}</StoryTitle>
+                {isOpen ? <BsChevronDoubleUp/> : <BsChevronDoubleDown/>}
+            </StoryTitleView>
     return (
-        isOpen ?
-            <StoryOpenView>
-                {storyTitle}
-              <StoryBody>
-                {story.body}
-              </StoryBody>
-            </StoryOpenView>
-            :
-            storyTitle
+        <StoryView>{
+            isOpen ?
+                <StoryOpenView>
+                    {storyTitle}
+                    <StoryBody>
+                        {story.body}
+                    </StoryBody>
+                </StoryOpenView>
+                :
+                storyTitle
+        }
+        </StoryView>
     )
   }
   return (
@@ -55,12 +62,15 @@ export default function Home({presentation, stories}: HomeComponentProps) {
               <PresentationIntroduction>
                   {presentation?.introduction}
               </PresentationIntroduction>
-
           </PresentationContainer>
 
         <StoryContainer>
+            <StoryContainerTitle>STORIES</StoryContainerTitle>
           {storiesWithState.map(({story, isOpen}, index) => getStoryView(story, index, isOpen))}
         </StoryContainer>
+          <FooterContainer>
+
+          </FooterContainer>
       </Container>
   )
 }
@@ -68,49 +78,84 @@ export default function Home({presentation, stories}: HomeComponentProps) {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  gap: 10px;
-  background-color: #4682B4;
     `
 const PresentationName = styled.text`
+  color: #FFFFFF;
+  text-decoration-color: #FFFFFF;
   text-decoration-line: underline;
   text-decoration-style: solid;
   text-transform: uppercase;
   font-weight: bold;
   font-size: 20px;
+  text-shadow: 2px 2px 5px #000000;
     `
 const PresentationIntroduction = styled.text`
   font-weight: bold;
   font-size: 18px;
+  background-color: #778899;
+  padding: 7px;
+  border-radius: 15px;
+  color: #FFFFFF;
+  text-shadow: 2px 2px 5px #000000;
     `
 const PresentationContainer = styled.div`
   display: flex;
   flex-direction: column;
-  padding-left: 20px;
+  padding: 30px;
   gap: 20px;
-  background-color: #F5F5F5;
+  background-image: linear-gradient(#00008B,#87CEFA);
   align-items: center;
+  box-shadow: 5px 10px #888888;
     `
+const StoryContainerTitle = styled.text`
+  color: #FFFFFF;
+  text-decoration-style: solid;
+  text-shadow: 2px 2px 5px #000000;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 20px;
+  border-radius: 15px;
+  background-color: #778899;
+  width: fit-content;
+  padding: 5px;
+  `
 const StoryContainer = styled.div`
   display: flex;
   flex-direction: column;
-  padding-left: 20px;
-  gap: 20px;
-  background-color: #F5F5F5
-  width: fit-content;
+  padding-left: 90px;
+  gap: 5px;
+  background-color: #00008B;
+  padding-top: 15px;
+  padding-bottom: 15px;
     `
+const StoryView = styled.div`
+  padding: 15px;
+`
 const StoryBody = styled.text`
-  color: #000000;
-  font-size: 20px;
+  color: #FFD700;
+  font-size: 22px;
+  font-weight: bold;
   font-family: "Lucida Console", "Courier New", monospace;
+  border-style: solid;
+  border-color: #778899;
+  padding: 10px;
+  border-radius: 5px;
+`
+const StoryTitleView = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: left;
+  gap: 15px;
+  color: #FFFFFF;
+  font-size: 25px;
+  cursor: pointer;
 `
 const StoryTitle = styled.text`
   font-size: 25px;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
-  cursor: pointer;
   width: fit-content;
-  background-color: #F5F5F5;
+  text-shadow: 2px 2px 5px #000000;
 `
 const StoryOpenView = styled.div`
   display: flex;
@@ -118,3 +163,12 @@ const StoryOpenView = styled.div`
   align-items: left;
   gap: 15px;
 `
+const FooterContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  background-color: #87CEFA;
+  align-items: center;
+  align-self: flex-start;
+  height: 100%;
+  width: 100%;
+    `

@@ -51,6 +51,10 @@ export default function EditHome(props: HomeComponentProps | null) {
     const [stories, setStories] = useState(props?.stories || [])
     const [selectedStory, setSelectedStory] = useState<StoryComponent>(emptyStory)
     const creatingStory = selectedStory.id === undefined
+    const handleStorySelection = (e: React.MouseEvent<HTMLDivElement>, story: StoryComponent) => {
+        e.preventDefault()
+        setSelectedStory(story)
+    }
     const handleStoryChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, storyKey: keyof StoryComponent) => {
         setSelectedStory((story) => {
             const updatedStory = {...story}
@@ -70,15 +74,22 @@ export default function EditHome(props: HomeComponentProps | null) {
                     if (story) {
                         setSelectedStory(story)
                         const updatedStories = isCreate ? [...stories, story] :
-                            stories.splice(stories.findIndex(s => s.id === story?.id), 1, story)
+                            () => {
+                                const auxStories = [...stories]
+                                auxStories.splice(stories.findIndex(s => s.id === story?.id), 1, story)
+                                return auxStories
+                            }
                         setStories(updatedStories)
                     }
-
                 } else {
                     setEditStoryMessage(errorMessage || `could not ${operation} the story`)
                 }
             }
         )
+    }
+    const handleNewStory = (e: React.MouseEvent<HTMLButtonElement>)=>{
+        e.preventDefault()
+        setSelectedStory(emptyStory)
     }
     const handleDeleteStory = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault()
@@ -129,23 +140,27 @@ export default function EditHome(props: HomeComponentProps | null) {
             <StoryContainer>
                 <EditStoryForm onSubmit={handleSavedStory}>
                     <EditStoryDataContainer>
-                        <TextInput width={300} type={"text"} onChange={(e) => handleStoryChange(e, "title")}/>
-                        <TextArea height={350} width={700} onChange={(e) => handleStoryChange(e, "body")}/>
+                        <TextInput width={300} value={selectedStory.title} type={"text"} onChange={(e) => handleStoryChange(e, "title")}/>
+                        <TextArea height={350} width={700} value={selectedStory.body} onChange={(e) => handleStoryChange(e, "body")}/>
                         {editStoryMessage}
                     </EditStoryDataContainer>
-                    <Button type={"submit"}> {creatingStory ? "CREATE" : "UPDATE"} </Button>
-                    {creatingStory ?
-                        <Button onClick={handleDeleteStory}> DELETE </Button>
-                        : ""
-                    }
+                    <EditStoryButtonsContainer>
+                        <Button type={"submit"}> {creatingStory ? "CREATE" : "UPDATE"} </Button>
+                        {!creatingStory ?
+                            <><Button onClick={handleNewStory}> NEW </Button>
+                                <Button onClick={handleDeleteStory}> DELETE </Button></>
+                            : ""
+                        }
+                    </EditStoryButtonsContainer>
 
                 </EditStoryForm>
                 <StoryTable>
-                    {stories.map((s)=> (
-                        <StoryRow key={s.id}> <div> {s.title}</div> <div>{s.body}</div></StoryRow>
+                    <StoryTableTitle>Stories</StoryTableTitle>
+                    {stories.map((s) => (
+                        <StoryRow key={s.id} onClick={(e) => handleStorySelection(e, s)}>
+                            <StoryColumn> {s.title}</StoryColumn> </StoryRow>
                     ))}
                 </StoryTable>
-
             </StoryContainer>
             <Button onClick={revalidateHome}> REVALIDATE HOME </Button>
             {revalidationMessage}
@@ -212,21 +227,43 @@ const EditStoryDataContainer = styled.div`
   background-color:;
   gap: 15px;
 `
+const EditStoryButtonsContainer = styled.div`
+  align-items: left;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+`
 const StoryTable = styled.div`
   align-items: center;
   display: flex;
   flex-direction: column;
-  background-color:;
+  background-color: #B0C4DE;
   gap: 5px;
 `
+const StoryTableTitle = styled.text`
+  color: #4682B4;
+  text-decoration-color: #4682B4;
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 20px;
+    `
+
 const StoryRow = styled.div`
-  align-items: center;
+  align-items: left;
   display: flex;
   flex-direction: row;
-  gap: 5px;
+  cursor: pointer;
+  font-weight: bold;
 `
+const StoryColumn = styled.div`
+  border-style: solid;
+  border-color: #4682B4;
+`
+
 const Button = styled.button`
- background-color: #000000;
+ background-color: #4682B4;
  color: #FFFFFF;
  width: fit-content;
  font-weight: bold;

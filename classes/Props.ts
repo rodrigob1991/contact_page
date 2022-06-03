@@ -65,7 +65,7 @@ export class PropsStorageClient {
         if (story.id) {
             return this.prisma.story.update({
                 where: {id: story.id},
-                data: story
+                data: (({id, ...s}) => s)(story)
             })
         } else {
             return this.prisma.story.create(
