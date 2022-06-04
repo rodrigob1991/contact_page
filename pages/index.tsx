@@ -3,6 +3,9 @@ import {useState} from "react"
 import {HomeComponentProps, StoryComponent} from "../types/Home"
 import {PropsStorageClient} from "../classes/Props"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
+import {FaRegEnvelope} from "react-icons/fa"
+import Image from "next/image"
+import Link from "next/link"
 
 export const HOME_PATH = "/"
 
@@ -55,10 +58,26 @@ export default function Home({presentation, stories}: HomeComponentProps) {
   }
   return (
       <Container>
+          <Header>
+              <ContactLinksContainer>
+                  <Link href={"https://www.linkedin.com/in/rodrigo-benoit-867152150"}>
+                      <Image style={{cursor: "pointer"}} src="/linkedin.svg" width="40" height="40"/>
+                  </Link>
+                  <Link href={"https://github.com/rodrigob1991"}>
+                      <Image style={{cursor: "pointer"}} src="/github.svg" width="40" height="40"/>
+                  </Link>
+              </ContactLinksContainer>
+              <MessageContainer>
+                  <FaRegEnvelope size={50} style={{cursor: "pointer"}}/>
+              </MessageContainer>
+          </Header>
           <PresentationContainer>
-              <PresentationName>
-                  {presentation?.name}
-              </PresentationName>
+              <PresentationNameImageContainer>
+                  <Image src="/yo.jpeg" width="100" height="100"/>
+                  <PresentationName>
+                      {presentation?.name}
+                  </PresentationName>
+              </PresentationNameImageContainer>
               <PresentationIntroduction>
                   {presentation?.introduction}
               </PresentationIntroduction>
@@ -68,16 +87,17 @@ export default function Home({presentation, stories}: HomeComponentProps) {
             <StoryContainerTitle>STORIES</StoryContainerTitle>
           {storiesWithState.map(({story, isOpen}, index) => getStoryView(story, index, isOpen))}
         </StoryContainer>
-          <FooterContainer>
+          <Footer>
 
-          </FooterContainer>
+          </Footer>
       </Container>
   )
 }
 
 const Container = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-flow: column;
+  height: 100vh;
     `
 const PresentationName = styled.text`
   color: #FFFFFF;
@@ -98,12 +118,18 @@ const PresentationIntroduction = styled.text`
   color: #FFFFFF;
   text-shadow: 2px 2px 5px #000000;
     `
+const PresentationNameImageContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 15px;
+    `
 const PresentationContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: 30px;
   gap: 20px;
-  background-image: linear-gradient(#00008B,#87CEFA);
+  background-image: linear-gradient(#00008B,#0000FF);
   align-items: center;
   box-shadow: 5px 10px #888888;
     `
@@ -149,12 +175,12 @@ const StoryTitleView = styled.div`
   color: #FFFFFF;
   font-size: 25px;
   cursor: pointer;
+  width: fit-content;
 `
 const StoryTitle = styled.text`
   font-size: 25px;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
-  width: fit-content;
   text-shadow: 2px 2px 5px #000000;
 `
 const StoryOpenView = styled.div`
@@ -163,12 +189,30 @@ const StoryOpenView = styled.div`
   align-items: left;
   gap: 15px;
 `
-const FooterContainer = styled.div`
+const Footer = styled.div`
   display: flex;
   flex-direction: column;
-  background-color: #87CEFA;
-  align-items: center;
-  align-self: flex-start;
+  background-image: linear-gradient(#0000FF, #00008B);
   height: 100%;
-  width: 100%;
     `
+const Header = styled.div`
+  display: flex;
+  flex-direction: row;
+  height: 150px;
+  border-bottom-style: solid;
+  border-color: #000000;
+  background-color: #0000FF;
+    `
+const ContactLinksContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  padding-left: 50px;
+  gap: 20px;
+    `
+const MessageContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  margin-left: auto;  
+  align-items: center;
+  padding-right: 30px;
+  `

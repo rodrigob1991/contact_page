@@ -76,7 +76,7 @@ export default function EditHome(props: HomeComponentProps | null) {
                         const updatedStories = isCreate ? [...stories, story] :
                             () => {
                                 const auxStories = [...stories]
-                                auxStories.splice(stories.findIndex(s => s.id === story?.id), 1, story)
+                                auxStories.splice(stories.findIndex(s => s.id === story.id), 1, story)
                                 return auxStories
                             }
                         setStories(updatedStories)
@@ -97,6 +97,12 @@ export default function EditHome(props: HomeComponentProps | null) {
         if (selectedStory.id) {
             deleteStory(selectedStory.id).then(({succeed, errorMessage}) => {
                     if (succeed) {
+                        setStories((stories)=> {
+                            const updatedStories = [...stories]
+                            updatedStories.splice(stories.findIndex(s => s.id === selectedStory.id),1)
+                            return updatedStories
+                        })
+                        setSelectedStory(emptyStory)
                         setEditStoryMessage("story deleted successfully")
                     } else {
                         setEditStoryMessage(errorMessage || "could not delete the story")

@@ -51,7 +51,7 @@ export const deleteStory = async (storyId: string) => {
             headers: {
                 "Content-Type": "application/json",
             },
-            body: storyId,
+            body: JSON.stringify(storyId),
         })
 
         result.succeed = response.ok
