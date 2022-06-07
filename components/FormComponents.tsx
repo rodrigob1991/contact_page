@@ -5,9 +5,10 @@ export const TextInput = ({
                               value,
                               setValue,
                               width,
-                          }: { value: string, setValue: (value: string) => void, width: number }) => {
+                              placeholder
+                          }: { value: string, setValue: (value: string) => void, width: number, placeholder? : string }) => {
     return (
-        <Input width={width} value={value} type={"text"} onChange={(e) => setValue(e.target.value)}/>
+        <Input placeholder={placeholder} width={width} value={value} type={"text"} onChange={(e) => setValue(e.target.value)}/>
     )
 }
 
@@ -15,10 +16,11 @@ export const TextAreaInput = ({
                                   value,
                                   setValue,
                                   width,
-                                  height
-                              }: { value: string, setValue: (value: string) => void, width: number, height: number }) => {
+                                  height,
+                                  placeholder
+                              }: { value: string, setValue: (value: string) => void, width: number, height: number, placeholder?: string }) => {
     return (
-        <TextArea width={width} height={height} value={value} onChange={(e) => setValue(e.target.value)}/>
+        <TextArea placeholder={placeholder} width={width} height={height} value={value} onChange={(e) => setValue(e.target.value)}/>
     )
 }
 

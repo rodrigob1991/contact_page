@@ -1,11 +1,14 @@
 import styled from "@emotion/styled"
-import {useState} from "react"
+import {FormEvent, useState} from "react"
 import {HomeComponentProps, StoryComponent} from "../types/Home"
 import {PropsStorageClient} from "../classes/Props"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
-import {FaRegEnvelope} from "react-icons/fa"
+import {MdForwardToInbox} from "react-icons/md"
 import Image from "next/image"
 import Link from "next/link"
+import {TextAreaInput, TextInput} from "../components/FormComponents"
+import {Button} from "../components/Buttons"
+import {SucceedOperationMessage} from "../components/Labels";
 
 export const HOME_PATH = "/"
 
@@ -21,19 +24,64 @@ export async function getStaticProps() {
 }
 
 export default function Home({presentation, stories}: HomeComponentProps) {
-  const [storiesWithState, setStoriesWithState] = useState(stories.map((story) => {
-    return {story: story, isOpen: false}
-  }))
+    const [showSendMessageModal, setShowSendMessageModal] = useState(false)
+    const [fromEmail, setFromEmail] = useState("")
+    const [subjectEmail, setSubjectEmail] = useState("")
+    const [messageEmail, setMessageEmail] = useState("")
+    const [sendEmailResultMessage, setSendEmailResultMessage] = useState({succeed: false, message: ""})
+    const handleSendEmail = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        sendEmail()
+    }
+    const sendEmail = () => {
+        const body = {
+            sender: {email: fromEmail},
+            to: [{email: process.env.NEXT_PUBLIC_MY_EMAIL, name: "Rodrigo"}],
+            subject: subjectEmail,
+            htmlContent: `<!DOCTYPE html>  
+                <html> 
+                    <body>  
+                        ${messageEmail}
+                    </body> 
+                </html>`
+        }
 
-  const openOrCloseStory = (index: number) => {
-    const story = {...storiesWithState[index]}
-    story.isOpen = !story.isOpen
-    setStoriesWithState((stories) => {
-        const updatedStories = [...stories]
-        updatedStories.splice(index, 1, story)
-        return updatedStories
-    })
-  }
+        fetch(process.env.NEXT_PUBLIC_SENDINBLUE_URL as string, {
+            method: "POST",
+            headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "api-key": process.env.NEXT_PUBLIC_SENDINBLUE_API_KEY as string
+            },
+            body: JSON.stringify(body),
+        }).then((response) => {
+                const succeed = response.ok
+                const message = succeed ? "email sent" : "email was not sent"
+                setSendEmailResultMessage({succeed: succeed, message: message})
+
+                return response.json()
+            }
+        ).then((body) => {
+            console.log(`response body of send email: ${body}`)
+        }).catch((e) => {
+            setSendEmailResultMessage({succeed: false, message: "could not send the email"})
+            console.error(`Error sending the email: ${e}`)
+        })
+    }
+
+    const [storiesWithState, setStoriesWithState] = useState(stories.map((story) => {
+        return {story: story, isOpen: false}
+    }))
+
+    const openOrCloseStory = (index: number) => {
+        const story = {...storiesWithState[index]}
+        story.isOpen = !story.isOpen
+        setStoriesWithState((stories) => {
+            const updatedStories = [...stories]
+            updatedStories.splice(index, 1, story)
+            return updatedStories
+        })
+    }
 
     const getStoryView = (story: StoryComponent, index: number, isOpen: boolean) => {
         const storyTitle =
@@ -41,23 +89,30 @@ export default function Home({presentation, stories}: HomeComponentProps) {
                 <StoryTitle>{story.title}</StoryTitle>
                 {isOpen ? <BsChevronDoubleUp/> : <BsChevronDoubleDown/>}
             </StoryTitleView>
-    return (
-        <StoryView>{
-            isOpen ?
-                <StoryOpenView>
-                    {storyTitle}
-                    <StoryBody>
-                        {story.body}
-                    </StoryBody>
-                </StoryOpenView>
-                :
-                storyTitle
-        }
-        </StoryView>
-    )
-  }
+        return (
+            <StoryView>{
+                isOpen ?
+                    <StoryOpenView>
+                        {storyTitle}
+                        <StoryBody>
+                            {story.body}
+                        </StoryBody>
+                    </StoryOpenView>
+                    :
+                    storyTitle
+            }
+            </StoryView>
+        )
+    }
   return (
       <Container>
+          <SendMessageModal onSubmit={handleSendEmail} display={showSendMessageModal}>
+              <TextInput placeholder={"from"} value={fromEmail} setValue={setFromEmail} width={300}/>
+              <TextInput placeholder={"subject"} value={subjectEmail} setValue={setSubjectEmail} width={300}/>
+              <TextAreaInput placeholder={"message"} value={messageEmail} setValue={setMessageEmail} width={300} height={150}/>
+              <Button backgroundColor={"#00008B"}>SEND EMAIL</Button>
+              <SucceedOperationMessage {...sendEmailResultMessage}/>
+          </SendMessageModal>
           <Header>
               <ContactLinksContainer>
                   <Link href={"https://www.linkedin.com/in/rodrigo-benoit-867152150"}>
@@ -66,14 +121,13 @@ export default function Home({presentation, stories}: HomeComponentProps) {
                   <Link href={"https://github.com/rodrigob1991"}>
                       <Image style={{cursor: "pointer"}} src="/github.svg" width="40" height="40"/>
                   </Link>
+                  {/*<Image style={{cursor: "pointer"}} src="/message.png"   width="30px" height="15px" onClick={(e)=> setShowSendMessageModal(!showSendMessageModal)}/>*/}
+                  <MdForwardToInbox size={70} style={{cursor: "pointer", paddingLeft: 20, paddingTop: 25}} onClick={(e)=> setShowSendMessageModal(!showSendMessageModal)}/>
               </ContactLinksContainer>
-              <MessageContainer>
-                  <FaRegEnvelope size={50} style={{cursor: "pointer"}}/>
-              </MessageContainer>
           </Header>
           <PresentationContainer>
               <PresentationNameImageContainer>
-                  <Image src="/yo.jpeg" width="100" height="100"/>
+               {/*   <Image src="/yo.jpeg" width="100" height="100"/>*/}
                   <PresentationName>
                       {presentation?.name}
                   </PresentationName>
@@ -198,21 +252,34 @@ const Footer = styled.div`
 const Header = styled.div`
   display: flex;
   flex-direction: row;
-  height: 150px;
-  border-bottom-style: solid;
+  height: 100px;
+  min-height: 100px; 
+  max-height: 100px;
+  border-bottom: 2px solid;
   border-color: #000000;
-  background-color: #0000FF;
+  background-color: #F5F5F5;
     `
 const ContactLinksContainer = styled.div`
   display: flex;
   flex-direction: row;
   padding-left: 50px;
-  gap: 20px;
+  gap: 30px;
+  align-items: left;
     `
-const MessageContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  margin-left: auto;  
+const SendMessageModal = styled.form<{display: boolean}>`
+  display: ${props => props.display ? "flex" : "none"};
+  flex-direction: column;
   align-items: center;
-  padding-right: 30px;
-  `
+  z-index: 1; 
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  padding: 15px;
+  gap: 15px;
+  overflow: auto; 
+  background-color: rgb(0,0,0); 
+  background-color: rgba(0,0,0,0.4);
+ `
+

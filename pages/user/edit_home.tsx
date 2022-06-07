@@ -1,12 +1,13 @@
 import styled from "@emotion/styled"
-import React, {ChangeEvent, FormEvent, useState} from "react"
+import React, {FormEvent, useState} from "react"
 import {HomeComponentProps, PresentationComponent, StoryComponent} from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationPathId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../classes/Props"
 import {putPresentation} from "../api/props/home/presentation"
 import {deleteStory, putStory} from "../api/props/home/story"
-import {css} from "@emotion/react";
+import {TextAreaInput, TextInput} from "../../components/FormComponents";
+import {Button} from "../../components/Buttons";
 
 export const EDITH_HOME_PATH = "/user/edit_home"
 
@@ -22,10 +23,10 @@ const emptyPresentation = {id: undefined, name: "", introduction: ""}
 
 export default function EditHome(props: HomeComponentProps | null) {
     const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
-    const handlePresentationChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, presentationKey: keyof PresentationComponent) => {
+    const setPresentationProperty = (presentationKey: keyof PresentationComponent, propertyValue: string) => {
         setPresentation((presentation) => {
             const updatedPresentation = {...presentation}
-            updatedPresentation[presentationKey] = e.target.value
+            updatedPresentation[presentationKey] = propertyValue
             return updatedPresentation
         })
     }
@@ -55,10 +56,10 @@ export default function EditHome(props: HomeComponentProps | null) {
         e.preventDefault()
         setSelectedStory(story)
     }
-    const handleStoryChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, storyKey: keyof StoryComponent) => {
+    const setStoryProperty = (storyKey: keyof StoryComponent, propertyValue: string) => {
         setSelectedStory((story) => {
             const updatedStory = {...story}
-            updatedStory[storyKey] = e.target.value
+            updatedStory[storyKey] = propertyValue
             return updatedStory
         })
     }
@@ -138,16 +139,20 @@ export default function EditHome(props: HomeComponentProps | null) {
     return (
         <Container>
             <PresentationForm onSubmit={handleSavePresentation}>
-                <TextInput width={300} value={presentation.name} type={"text"} onChange={(e) => handlePresentationChange(e, "name")}/>
-                <TextArea height={400} width={1000} value={presentation.introduction} onChange={(e) => handlePresentationChange(e, "introduction")}/>
+                <TextInput width={300} value={presentation.name}
+                           setValue={(value) => setPresentationProperty("name", value)}/>
+                <TextAreaInput height={400} width={1000} value={presentation.introduction}
+                               setValue={(value) => setPresentationProperty("introduction", value)}/>
                 <Button type={"submit"}> SAVE PRESENTATION </Button>
                 {editPresentationMessage}
             </PresentationForm>
             <StoryContainer>
                 <EditStoryForm onSubmit={handleSavedStory}>
                     <EditStoryDataContainer>
-                        <TextInput width={300} value={selectedStory.title} type={"text"} onChange={(e) => handleStoryChange(e, "title")}/>
-                        <TextArea height={350} width={700} value={selectedStory.body} onChange={(e) => handleStoryChange(e, "body")}/>
+                        <TextInput width={300} value={selectedStory.title}
+                                   setValue={(value) => setStoryProperty("title", value)}/>
+                        <TextAreaInput height={350} width={700} value={selectedStory.body}
+                                       setValue={(value) => setStoryProperty("body", value)}/>
                         {editStoryMessage}
                     </EditStoryDataContainer>
                     <EditStoryButtonsContainer>
@@ -191,26 +196,7 @@ const PresentationForm = styled.form`
   gap: 20px;
   padding: 50px;
 `
-const TextInput = styled.input`
-    height:40px;
-    width:600px;
-    font-size: 20px;
-    ${props =>
-    css`
-      height:${props.height}px;
-      width:${props.width}px;
-    `}
-    `
-const TextArea = styled.textarea<{height?: number, width?: number}>`
-    vertical-align: top;
-    text-align: left;
-    font-size: 20px;
-    ${props =>
-    css`
-      height:${props.height}px;
-      width:${props.width}px;
-    `}
-    `
+
 const StoryContainer = styled.div`
   align-items: left;
   display: flex;
@@ -266,13 +252,4 @@ const StoryRow = styled.div`
 const StoryColumn = styled.div`
   border-style: solid;
   border-color: #4682B4;
-`
-
-const Button = styled.button`
- background-color: #4682B4;
- color: #FFFFFF;
- width: fit-content;
- font-weight: bold;
- cursor: pointer;
- font-size: 22px;
 `
