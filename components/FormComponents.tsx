@@ -24,7 +24,6 @@ export const TextAreaInput = ({
     )
 }
 
-
 const Input = styled.input`
     height:40px;
     width:600px;

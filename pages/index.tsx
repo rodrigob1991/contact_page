@@ -8,9 +8,9 @@ import Image from "next/image"
 import Link from "next/link"
 import {TextAreaInput, TextInput} from "../components/FormComponents"
 import {Button} from "../components/Buttons"
-import {SucceedOperationMessage} from "../components/Labels";
+import {SucceedOperationMessage} from "../components/Labels"
 
-export const HOME_PATH = "/"
+export const HOME_ROUTE = "/"
 
 export async function getStaticProps() {
     const propsStorageClient = new PropsStorageClient()
@@ -34,7 +34,7 @@ export default function Home({presentation, stories}: HomeComponentProps) {
         sendEmail()
     }
     const sendEmail = () => {
-        const body = {
+        const bodyParams = {
             sender: {email: fromEmail},
             to: [{email: process.env.NEXT_PUBLIC_MY_EMAIL, name: "Rodrigo"}],
             subject: subjectEmail,
@@ -53,7 +53,7 @@ export default function Home({presentation, stories}: HomeComponentProps) {
                 "Content-Type": "application/json",
                 "api-key": process.env.NEXT_PUBLIC_SENDINBLUE_API_KEY as string
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify(bodyParams),
         }).then((response) => {
                 const succeed = response.ok
                 const message = succeed ? "email sent" : "email was not sent"

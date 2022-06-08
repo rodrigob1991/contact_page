@@ -2,9 +2,9 @@ import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../classes/Props"
 import {Story, StoryComponent, StoryPutParam} from "../../../../types/Home"
 
-const STORY_API_PATH = "/api/props/home/story"
+const STORY_API_ROUTE = "/api/props/home/story"
 
-const API_ENDPOINT = process.env.NEXT_PUBLIC_BASE_URL + STORY_API_PATH
+const URL = process.env.NEXT_PUBLIC_BASE_URL + STORY_API_ROUTE
 
 type PutBodyResponse = {
     story?: Story
@@ -18,7 +18,7 @@ export const putStory = async (story: StoryComponent) => {
     const result: { succeed: boolean, story?: Story, errorMessage?: string } = {succeed: false}
 
     try {
-        const response = await fetch(API_ENDPOINT, {
+        const response = await fetch(URL, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -46,7 +46,7 @@ export const deleteStory = async (storyId: string) => {
     const result: { succeed: boolean, body?: string, errorMessage?: string } = {succeed: false}
 
     try {
-        const response = await fetch(API_ENDPOINT, {
+        const response = await fetch(URL, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",

@@ -1,14 +1,14 @@
-export type RevalidatedPath = {
-    pathId: string
+export type RevalidatedRoute = {
+    routeId: string
     revalidated: boolean
     message: string
 }
 
 export type RevalidationResponseBody = {
-    revalidationsStates?: RevalidatedPath[]
+    revalidationsStates?: RevalidatedRoute[]
     errorMessage?: string
 }
 
-export enum RevalidationPathId {
+export enum RevalidationRouteId {
     HOME = "H", EDIT_HOME = "EH"
 }

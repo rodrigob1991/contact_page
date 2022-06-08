@@ -2,7 +2,9 @@ import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../classes/Props"
 import {Presentation, PresentationComponent, PresentationPutParam} from "../../../../types/Home"
 
-const PRESENTATION_API_PATH = "/api/props/home/presentation"
+const PRESENTATION_API_ROUTE = "/api/props/home/presentation"
+
+const URL = process.env.NEXT_PUBLIC_BASE_URL + PRESENTATION_API_ROUTE
 
 type PutBodyResponse = {
     presentation?: Presentation
@@ -12,9 +14,8 @@ type PutBodyResponse = {
 export const putPresentation = async (presentation: PresentationComponent) => {
     const result: { succeed: boolean, presentation?: Presentation, errorMessage?: string } = {succeed: false}
 
-    const  ENDPOINT = process.env.NEXT_PUBLIC_BASE_URL + PRESENTATION_API_PATH
     try {
-        const response = await fetch(ENDPOINT, {
+        const response = await fetch(URL, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",

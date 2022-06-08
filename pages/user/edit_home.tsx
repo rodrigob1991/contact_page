@@ -2,14 +2,14 @@ import styled from "@emotion/styled"
 import React, {FormEvent, useState} from "react"
 import {HomeComponentProps, PresentationComponent, StoryComponent} from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
-import {RevalidationPathId} from "../../types/Revalidation"
+import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../classes/Props"
 import {putPresentation} from "../api/props/home/presentation"
 import {deleteStory, putStory} from "../api/props/home/story"
-import {TextAreaInput, TextInput} from "../../components/FormComponents";
-import {Button} from "../../components/Buttons";
+import {TextAreaInput, TextInput} from "../../components/FormComponents"
+import {Button} from "../../components/Buttons"
 
-export const EDITH_HOME_PATH = "/user/edit_home"
+export const EDITH_HOME_ROUTE = "/user/edit_home"
 
 export async function getStaticProps() {
     const propsStorageClient = new PropsStorageClient()
@@ -117,7 +117,7 @@ export default function EditHome(props: HomeComponentProps | null) {
     const revalidateHome = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault()
 
-        revalidatePages([RevalidationPathId.HOME, RevalidationPathId.EDIT_HOME]).then(({
+        revalidatePages([RevalidationRouteId.HOME, RevalidationRouteId.EDIT_HOME]).then(({
                                                                                            succeed,
                                                                                            revalidations,
                                                                                            errorMessage
@@ -125,7 +125,7 @@ export default function EditHome(props: HomeComponentProps | null) {
                 if (succeed) {
                     //there must always be revalidations here
                     if (revalidations) {
-                        const message = revalidations.map(r => r.pathId + ":" + r.message).toString()
+                        const message = revalidations.map(r => r.routeId + ":" + r.message).toString()
                         setRevalidationMessage(message)
                     }
                 } else {
@@ -143,7 +143,7 @@ export default function EditHome(props: HomeComponentProps | null) {
                            setValue={(value) => setPresentationProperty("name", value)}/>
                 <TextAreaInput height={400} width={1000} value={presentation.introduction}
                                setValue={(value) => setPresentationProperty("introduction", value)}/>
-                <Button type={"submit"}> SAVE PRESENTATION </Button>
+                <Button backgroundColor={"#00008B"} type={"submit"}> SAVE PRESENTATION </Button>
                 {editPresentationMessage}
             </PresentationForm>
             <StoryContainer>
@@ -156,10 +156,10 @@ export default function EditHome(props: HomeComponentProps | null) {
                         {editStoryMessage}
                     </EditStoryDataContainer>
                     <EditStoryButtonsContainer>
-                        <Button type={"submit"}> {creatingStory ? "CREATE" : "UPDATE"} </Button>
+                        <Button backgroundColor={"#00008B"} type={"submit"}> {creatingStory ? "CREATE" : "UPDATE"} </Button>
                         {!creatingStory ?
-                            <><Button onClick={handleNewStory}> NEW </Button>
-                                <Button onClick={handleDeleteStory}> DELETE </Button></>
+                            <><Button backgroundColor={"#00008B"} onClick={handleNewStory}> NEW </Button>
+                                <Button backgroundColor={"#00008B"} onClick={handleDeleteStory}> DELETE </Button></>
                             : ""
                         }
                     </EditStoryButtonsContainer>
@@ -173,7 +173,7 @@ export default function EditHome(props: HomeComponentProps | null) {
                     ))}
                 </StoryTable>
             </StoryContainer>
-            <Button onClick={revalidateHome}> REVALIDATE HOME </Button>
+            <Button backgroundColor={"#00008B"} onClick={revalidateHome}> REVALIDATE HOME </Button>
             {revalidationMessage}
         </Container>
     )

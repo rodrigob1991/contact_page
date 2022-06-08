@@ -1,17 +1,17 @@
 import type {NextApiRequest, NextApiResponse} from 'next'
-import {RevalidatedPath, RevalidationPathId, RevalidationResponseBody} from "../../../types/Revalidation"
-import {HOME_PATH} from "../../index"
-import {EDITH_HOME_PATH} from "../../user/edit_home"
-import path from "path"
+import {RevalidatedRoute, RevalidationResponseBody, RevalidationRouteId} from "../../../types/Revalidation"
+import {HOME_ROUTE} from "../../index"
+import {EDITH_HOME_ROUTE} from "../../user/edit_home"
 
-const ENDPOINT = `${process.env.BASE_URL}/${path.relative("/pages","./")}`
+const REVALIDATION_API_ROUTE = "api/revalidate/multiple"
 
-export const revalidatePages = async (pagesId: RevalidationPathId[]) => {
-    const result: {succeed: boolean, revalidations?: RevalidatedPath[], errorMessage?: string } = {succeed: false}
+const URL = process.env.NEXT_PUBLIC_BASE_URL + "/" + REVALIDATION_API_ROUTE
 
-    const url = ENDPOINT + `?secret=${process.env.REVALIDATION_TOKEN}&ids=${pagesId}`
+export const revalidatePages = async (pagesId: RevalidationRouteId[]) => {
+    const result: {succeed: boolean, revalidations?: RevalidatedRoute[], errorMessage?: string } = {succeed: false}
+
     try {
-        const response = await fetch(url)
+        const response = await fetch(`${URL}?secret=${process.env.NEXT_PUBLIC_REVALIDATION_TOKEN}&ids=${pagesId}`)
         const body: RevalidationResponseBody = await response.json()
         if (response.ok) {
             result.revalidations = body.revalidationsStates
@@ -33,25 +33,25 @@ export default async function handler(request: NextApiRequest, response: NextApi
     let httpCode: number
     let body: RevalidationResponseBody
 
-    if (queryParams.secret !== process.env.REVALIDATION_TOKEN) {
+    if (queryParams.secret !== process.env.NEXT_PUBLIC_REVALIDATION_TOKEN) {
         httpCode = 401
         body = {errorMessage: "invalid token"}
     } else {
-        const pathIds = queryParams.ids
-        if (!pathIds || pathIds.length === 0) {
+        const routesIds = (queryParams.ids as string ).split(",")
+        if (!routesIds || routesIds.length === 0) {
             httpCode = 400
             body = {errorMessage: "path ids missed"}
         } else {
-            const revalidationsStates: RevalidatedPath[] = []
+            const revalidationsStates: RevalidatedRoute[] = []
 
-            for (const pathId of pathIds) {
-                const revalidationState = {pathId: pathId, revalidated: false, message: ""}
-                const path = getPath(pathId)
-                if (!path) {
-                    revalidationState.message = "does not exit a path with this id"
+            for (const routeId of routesIds) {
+                const revalidationState = {routeId: routeId, revalidated: false, message: ""}
+                const route = getRoute(routeId)
+                if (!route) {
+                    revalidationState.message = "does not exit a route with this id"
                 } else {
                     try {
-                        await response.unstable_revalidate(path)
+                        await response.unstable_revalidate(route)
                         revalidationState.revalidated = true
                         revalidationState.message = "successfully revalidated"
                     } catch (err) {
@@ -69,14 +69,14 @@ export default async function handler(request: NextApiRequest, response: NextApi
     response.status(httpCode).json(body)
 }
 
-const getPath = (pathId: string) => {
-    let path
-    switch (pathId) {
-        case RevalidationPathId.HOME:
-            path = HOME_PATH
+const getRoute = (routeId: string) => {
+    let route
+    switch (routeId) {
+        case RevalidationRouteId.HOME:
+            route = HOME_ROUTE
             break
-        case RevalidationPathId.EDIT_HOME:
-            path = EDITH_HOME_PATH
+        case RevalidationRouteId.EDIT_HOME:
+            route = EDITH_HOME_ROUTE
     }
-    return path
+    return route
 }
