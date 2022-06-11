@@ -2,6 +2,7 @@ import type {NextApiRequest, NextApiResponse} from 'next'
 import {RevalidatedRoute, RevalidationResponseBody, RevalidationRouteId} from "../../../types/Revalidation"
 import {HOME_ROUTE} from "../../index"
 import {EDITH_HOME_ROUTE} from "../../user/edit_home"
+import {getPrivateToken} from "../../../utils/ClientFunctions"
 
 const REVALIDATION_API_ROUTE = "api/revalidate/multiple"
 
@@ -11,7 +12,7 @@ export const revalidatePages = async (pagesId: RevalidationRouteId[]) => {
     const result: {succeed: boolean, revalidations?: RevalidatedRoute[], errorMessage?: string } = {succeed: false}
 
     try {
-        const response = await fetch(`${URL}?secret=${process.env.NEXT_PUBLIC_REVALIDATION_TOKEN}&ids=${pagesId}`)
+        const response = await fetch(`${URL}?secret=${getPrivateToken()}&ids=${pagesId}`)
         const body: RevalidationResponseBody = await response.json()
         if (response.ok) {
             result.revalidations = body.revalidationsStates
@@ -33,7 +34,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
     let httpCode: number
     let body: RevalidationResponseBody
 
-    if (queryParams.secret !== process.env.NEXT_PUBLIC_REVALIDATION_TOKEN) {
+    if (queryParams.secret !== process.env.PRIVATE_TOKEN) {
         httpCode = 401
         body = {errorMessage: "invalid token"}
     } else {
