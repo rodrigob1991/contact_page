@@ -1,5 +1,5 @@
 import {PrismaClient} from "@prisma/client"
-import {PresentationComponent, StoryComponent} from "../types/Home"
+import {PresentationComponent, StoryComponent} from "../src/types/Home"
 import {ObjectID} from "bson"
 
 export class PropsStorageClient {

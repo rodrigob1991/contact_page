@@ -1,12 +1,13 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {PropsStorageClient} from "../../../../classes/Props"
+import {PropsStorageClient} from "../../../../../classes/Props"
 import {Presentation, PresentationComponent, PresentationPutParam} from "../../../../types/Home"
+import {AuthResponseBody} from "../../_middleware";
 
 const PRESENTATION_API_ROUTE = "/api/props/home/presentation"
 
 const URL = process.env.NEXT_PUBLIC_BASE_URL + PRESENTATION_API_ROUTE
 
-type PutBodyResponse = {
+type PutResponseBody = {
     presentation?: Presentation
     errorMessage?: string
 }
@@ -25,14 +26,17 @@ export const putPresentation = async (presentation: PresentationComponent) => {
 
         result.succeed = response.ok
 
-        const body: PutBodyResponse = await response.json()
-
-        if (response.ok) {
-            result.presentation = body.presentation
+        if (response.status === 401) {
+            const authBody: AuthResponseBody = await response.json()
+            result.errorMessage = authBody
         } else {
-            result.errorMessage = body.errorMessage
+            const putBody: PutResponseBody = await response.json()
+            if (response.ok) {
+                result.presentation = putBody.presentation
+            } else {
+                result.errorMessage = putBody.errorMessage
+            }
         }
-
     } catch (e) {
         console.error(`Error getting response: ${e}`)
     }
@@ -44,7 +48,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
     const params = request.body
 
     let httpCode: number
-    let body: PutBodyResponse | string
+    let body: PutResponseBody
 
     const propsStorageClient = new PropsStorageClient()
 
@@ -68,7 +72,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
             break
         default :
             httpCode = 405
-            body = "invalid http method"
+            body = {errorMessage: "invalid http method"}
     }
 
     response.status(httpCode).json(body)

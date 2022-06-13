@@ -1,16 +1,17 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {PropsStorageClient} from "../../../../classes/Props"
+import {PropsStorageClient} from "../../../../../classes/Props"
 import {Story, StoryComponent, StoryPutParam} from "../../../../types/Home"
+import {AuthResponseBody} from "../../_middleware";
 
 const STORY_API_ROUTE = "/api/props/home/story"
 
 const URL = process.env.NEXT_PUBLIC_BASE_URL + STORY_API_ROUTE
 
-type PutBodyResponse = {
+type PutResponseBody = {
     story?: Story
     errorMessage?: string
 }
-type DeleteBodyResponse = {
+type DeleteResponseBody = {
     message: string
 }
 
@@ -28,13 +29,17 @@ export const putStory = async (story: StoryComponent) => {
 
         result.succeed = response.ok
 
-        const body: PutBodyResponse = await response.json()
-        if (response.ok) {
-            result.story = body.story
+        if (response.status === 401) {
+            const authBody: AuthResponseBody = await response.json()
+            result.errorMessage = authBody
         } else {
-            result.errorMessage = body.errorMessage
+            const putBody: PutResponseBody = await response.json()
+            if (response.ok) {
+                result.story = putBody.story
+            } else {
+                result.errorMessage = putBody.errorMessage
+            }
         }
-
     } catch (e) {
         console.error(`Error getting response: ${e}`)
     }
@@ -56,14 +61,17 @@ export const deleteStory = async (storyId: string) => {
 
         result.succeed = response.ok
 
-        const body: DeleteBodyResponse = await response.json()
-        const message = body.message
-        if (response.ok) {
-            result.body = message
+        if (response.status === 401) {
+            const authBody: AuthResponseBody = await response.json()
+            result.errorMessage = authBody
         } else {
-            result.errorMessage = message
+            const deleteBody: DeleteResponseBody = await response.json()
+            if (response.ok) {
+                result.body = deleteBody.message
+            } else {
+                result.errorMessage = deleteBody.message
+            }
         }
-
     } catch (e) {
         console.error(`Error retrieving response: ${e}`)
     }
@@ -75,7 +83,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
     const params = request.body
 
     let httpCode: number
-    let body: PutBodyResponse | DeleteBodyResponse | string
+    let body: PutResponseBody | DeleteResponseBody
 
     const propsStorageClient = new PropsStorageClient()
 
@@ -116,7 +124,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
             break
         default :
             httpCode = 405
-            body = "invalid http method"
+            body = {errorMessage: "invalid http method"}
     }
     response.status(httpCode).json(body)
 }
