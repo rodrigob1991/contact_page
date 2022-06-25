@@ -1,29 +1,46 @@
 import styled from "@emotion/styled"
 import {useEffect, useState} from "react"
-import {countTimeFromDate} from "../utils/Dates"
+import {CountedTime, countTimeFromDate, WhatUnitsCount} from "../utils/Dates"
+import {JSX, JSXElement} from "@babel/types";
 
-export default function Clock({fromDate, backgroundColor}: { fromDate: Date, backgroundColor?: string }) {
-    const [countedTime, setCountedTime] = useState({hours: 0, minutes: 0, seconds: 0})
+export default function Clock({
+                                  fromDate,
+                                  whatUnitsCount,
+                                  backgroundColor
+                              }: { fromDate: Date, whatUnitsCount: WhatUnitsCount, backgroundColor?: string }) {
+    const [countedTime, setCountedTime] = useState<CountedTime>({days: 0,hours: 0, minutes: 0, seconds: 0})
 
     useEffect(() => {
-            countTimeFromDate(fromDate, setCountedTime)
+            countTimeFromDate(fromDate,whatUnitsCount, setCountedTime)
         }
         , [fromDate])
 
     return (
         <Container backgroundColor={backgroundColor}>
+            {whatUnitsCount.days &&
+            <UnitContainer>
+                <UnitLabel>d:</UnitLabel>
+                <UnitValue>{countedTime.days}</UnitValue>
+            </UnitContainer>
+            }
+            {whatUnitsCount.hours &&
             <UnitContainer>
                 <UnitLabel>h:</UnitLabel>
                 <UnitValue>{countedTime.hours}</UnitValue>
             </UnitContainer>
+            }
+            {whatUnitsCount.minutes &&
             <UnitContainer>
                 <UnitLabel>m:</UnitLabel>
                 <UnitValue>{countedTime.minutes}</UnitValue>
             </UnitContainer>
+            }
+            {whatUnitsCount.seconds &&
             <UnitContainer>
                 <UnitLabel>s:</UnitLabel>
                 <UnitValue>{countedTime.seconds}</UnitValue>
             </UnitContainer>
+            }
         </Container>
     )
 }

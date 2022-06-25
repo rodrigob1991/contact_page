@@ -1,5 +1,5 @@
 import {PrismaClient} from "@prisma/client"
-import {PresentationComponent, StoryComponent} from "../src/types/Home"
+import {Presentation, PresentationComponent, StoryComponent} from "../types/Home"
 import {ObjectID} from "bson"
 
 export class PropsStorageClient {
@@ -47,7 +47,7 @@ export class PropsStorageClient {
             {
                 where: {id: this.PRESENTATION_ID},
                 create: {
-                    ...presentation,
+                    ...presentation as Presentation,
                     props: {
                         connectOrCreate: {
                             where: {id: this.HOME_PROPS_ID},

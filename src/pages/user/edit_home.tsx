@@ -3,7 +3,7 @@ import React, {FormEvent, useState} from "react"
 import {HomeComponentProps, PresentationComponent, StoryComponent} from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
-import {PropsStorageClient} from "../../../classes/Props"
+import {PropsStorageClient} from "../../classes/Props"
 import {putPresentation} from "../api/props/home/presentation"
 import {deleteStory, putStory} from "../api/props/home/story"
 import {TextAreaInput, TextInput} from "../../components/FormComponents"
@@ -11,7 +11,7 @@ import {Button} from "../../components/Buttons"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
-export async function getStaticProps() {
+export async function getServerSideProps() {
     const propsStorageClient = new PropsStorageClient()
     const homeProps = await propsStorageClient.getHomeProps()
 
@@ -117,7 +117,7 @@ export default function EditHome(props: HomeComponentProps | null) {
     const revalidateHome = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault()
 
-        revalidatePages([RevalidationRouteId.HOME, RevalidationRouteId.EDIT_HOME]).then(({
+        revalidatePages([RevalidationRouteId.HOME]).then(({
                                                                                            succeed,
                                                                                            revalidations,
                                                                                            errorMessage

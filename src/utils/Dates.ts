@@ -1,11 +1,23 @@
-export const countTimeFromDate = (fromDate: Date, setCountedTime: (timeInfo: { years?: number, months?: number, days?: number, hours: number, minutes: number, seconds: number }) => void) => {
+export type WhatUnitsCount = { days?: boolean, hours?: boolean, minutes?: boolean, seconds?: boolean }
+export type CountedTime = { [U in keyof WhatUnitsCount]: number }
+
+export const countTimeFromDate = (fromDate: Date, whatUnitsCount: WhatUnitsCount, setCountedTime: (timeInfo: CountedTime) => void) => {
 
     setInterval(() => {
         const timeTillDate = Date.now() - fromDate.getTime()
-        const seconds = Math.floor(timeTillDate / 1000)
-        const minutes = Math.floor(seconds / 60)
-        const hours = Math.floor(minutes / 60)
 
-        setCountedTime({hours: hours, minutes: minutes % 60, seconds: seconds % 60})
+        const countedTime: CountedTime = {}
+        switch (true) {
+            case whatUnitsCount.seconds:
+                countedTime["seconds"] = Math.floor(timeTillDate / 1000 % 60)
+            case whatUnitsCount.minutes:
+                countedTime["minutes"] = Math.floor(timeTillDate / 1000 / 60 % 60)
+            case whatUnitsCount.hours:
+                countedTime["hours"] = Math.floor(timeTillDate / 1000 / 60 / 60 % 24)
+            case whatUnitsCount.days:
+                countedTime["days"] = Math.floor(timeTillDate / 1000 / 60 / 60 / 24)
+        }
+
+        setCountedTime(countedTime)
     }, 500)
 }

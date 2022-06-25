@@ -1,7 +1,7 @@
 import styled from "@emotion/styled"
 import {FormEvent, useState} from "react"
 import {HomeComponentProps, StoryComponent} from "../types/Home"
-import {PropsStorageClient} from "../../classes/Props"
+import {PropsStorageClient} from "../classes/Props"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import {MdForwardToInbox} from "react-icons/md"
 import Image from "next/image"
@@ -125,9 +125,6 @@ export default function Home({presentation, stories}: HomeComponentProps) {
                   {/*<Image style={{cursor: "pointer"}} src="/message.png"   width="30px" height="15px" onClick={(e)=> setShowSendMessageModal(!showSendMessageModal)}/>*/}
                   <MdForwardToInbox size={70} style={{cursor: "pointer", paddingLeft: 20, paddingTop: 25}} onClick={(e)=> setShowSendMessageModal(!showSendMessageModal)}/>
               </ContactLinksContainer>
-              <Clock fromDate={
-                  new Date()
-              }/>
           </Header>
           <PresentationContainer>
               <PresentationNameImageContainer>
@@ -276,7 +273,7 @@ const SendMessageModal = styled.form<{display: boolean}>`
   align-items: center;
   z-index: 1; 
   position: fixed;
-  top: 20%;
+  top: 45%;
   left: 50%;
   -webkit-transform: translate(-50%, -50%);
   transform: translate(-50%, -50%);

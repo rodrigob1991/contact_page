@@ -1,5 +1,5 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {PropsStorageClient} from "../../../../../classes/Props"
+import {PropsStorageClient} from "../../../../classes/Props"
 import {Presentation, PresentationComponent, PresentationPutParam} from "../../../../types/Home"
 import {AuthResponseBody} from "../../_middleware";
 
