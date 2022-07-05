@@ -125,9 +125,6 @@ export default function Home({presentation, stories}: HomeComponentProps) {
                   {/*<Image style={{cursor: "pointer"}} src="/message.png"   width="30px" height="15px" onClick={(e)=> setShowSendMessageModal(!showSendMessageModal)}/>*/}
                   <MdForwardToInbox size={70} style={{cursor: "pointer", paddingLeft: 20, paddingTop: 25}} onClick={(e)=> setShowSendMessageModal(!showSendMessageModal)}/>
               </ContactLinksContainer>
-              <Clock fromDate={
-                  new Date()
-              }/>
           </Header>
           <PresentationContainer>
               <PresentationNameImageContainer>

@@ -8,6 +8,7 @@ import {putPresentation} from "../api/props/home/presentation"
 import {deleteStory, putStory} from "../api/props/home/story"
 import {TextAreaInput, TextAreaWithImages, TextInput} from "../../components/FormComponents"
 import {Button} from "../../components/Buttons"
+import {Presentation} from "../../components/Home"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -22,7 +23,7 @@ const emptyStory = {id: undefined, title: "", body: ""}
 const emptyPresentation = {id: undefined, name: "", introduction: ""}
 
 export default function EditHome(props: HomeComponentProps | null) {
-    const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
+    /*const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
     const setPresentationProperty = (presentationKey: keyof PresentationComponent, propertyValue: string) => {
         setPresentation((presentation) => {
             const updatedPresentation = {...presentation}
@@ -47,7 +48,7 @@ export default function EditHome(props: HomeComponentProps | null) {
             }
         )
     }
-    const [editPresentationMessage, setEditPresentationMessage] = useState("")
+    const [editPresentationMessage, setEditPresentationMessage] = useState("")*/
 
     const [stories, setStories] = useState(props?.stories || [])
     const [selectedStory, setSelectedStory] = useState<StoryComponent>(emptyStory)
@@ -144,14 +145,15 @@ export default function EditHome(props: HomeComponentProps | null) {
 
     return (
         <Container>
-            <PresentationForm onSubmit={handleSavePresentation}>
+            <Presentation editing data={props?.presentation || undefined}/>
+            {/*<PresentationForm onSubmit={handleSavePresentation}>
                 <TextInput width={300} value={presentation.name}
                            setValue={(value) => setPresentationProperty("name", value)}/>
                 <TextAreaInput height={400} width={1000} value={presentation.introduction}
                                setValue={(value) => setPresentationProperty("introduction", value)}/>
-                <Button backgroundColor={"#00008B"} type={"submit"}> SAVE PRESENTATION </Button>
+                <Button type={"submit"}> SAVE PRESENTATION </Button>
                 {editPresentationMessage}
-            </PresentationForm>
+            </PresentationForm>*/}
             <StoryContainer>
                 <EditStoryForm onSubmit={handleSavedStory}>
                     <EditStoryDataContainer>
