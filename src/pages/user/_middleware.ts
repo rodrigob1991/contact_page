@@ -6,7 +6,6 @@ export function middleware(request: NextRequest, ev: NextFetchEvent) {
 
     const auth = request.headers.get("authorization")
     if (auth && auth === process.env.PRIVATE_TOKEN) {
-        //const [user, pwd] = Buffer.from(auth, 'base64').toString().split(':')
         response = NextResponse.next()
     } else {
         response = NextResponse.redirect(process.env.NEXT_PUBLIC_BASE_URL + ROUTE_ERROR_404)

@@ -6,12 +6,12 @@ import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../../classes/Props"
 import {putPresentation} from "../api/props/home/presentation"
 import {deleteStory, putStory} from "../api/props/home/story"
-import {TextAreaInput, TextInput} from "../../components/FormComponents"
+import {TextAreaInput, TextAreaWithImages, TextInput} from "../../components/FormComponents"
 import {Button} from "../../components/Buttons"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
-export async function getStaticProps() {
+export async function getServerSideProps() {
     const propsStorageClient = new PropsStorageClient()
     const homeProps = await propsStorageClient.getHomeProps()
 
@@ -113,11 +113,17 @@ export default function EditHome(props: HomeComponentProps | null) {
         }
     }
     const [editStoryMessage, setEditStoryMessage] = useState("")
+    const queueStoryImage = (image: File) => {
+
+    }
+    const removeStoryImage = (image: File) => {
+
+    }
 
     const revalidateHome = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault()
 
-        revalidatePages([RevalidationRouteId.HOME, RevalidationRouteId.EDIT_HOME]).then(({
+        revalidatePages([RevalidationRouteId.HOME]).then(({
                                                                                            succeed,
                                                                                            revalidations,
                                                                                            errorMessage
@@ -151,15 +157,19 @@ export default function EditHome(props: HomeComponentProps | null) {
                     <EditStoryDataContainer>
                         <TextInput width={300} value={selectedStory.title}
                                    setValue={(value) => setStoryProperty("title", value)}/>
-                        <TextAreaInput height={350} width={700} value={selectedStory.body}
-                                       setValue={(value) => setStoryProperty("body", value)}/>
+                        <TextAreaWithImages height={350} width={700} value={selectedStory.body}
+                                            setValue={(value) => setStoryProperty("body", value)}
+                                            imageMaxSize={10} processNewImage={queueStoryImage}
+                                            processRemovedImage={removeStoryImage}/>
                         {editStoryMessage}
                     </EditStoryDataContainer>
                     <EditStoryButtonsContainer>
-                        <Button backgroundColor={"#00008B"} type={"submit"}> {creatingStory ? "CREATE" : "UPDATE"} </Button>
+                        <Button type={"submit"}> {creatingStory ? "create" : "update"} </Button>
                         {!creatingStory ?
-                            <><Button backgroundColor={"#00008B"} onClick={handleNewStory}> NEW </Button>
-                                <Button backgroundColor={"#00008B"} onClick={handleDeleteStory}> DELETE </Button></>
+                            <>
+                                <Button onClick={handleNewStory}> new </Button>
+                                <Button onClick={handleDeleteStory}> delete </Button>
+                            </>
                             : ""
                         }
                     </EditStoryButtonsContainer>
@@ -173,7 +183,7 @@ export default function EditHome(props: HomeComponentProps | null) {
                     ))}
                 </StoryTable>
             </StoryContainer>
-            <Button backgroundColor={"#00008B"} onClick={revalidateHome}> REVALIDATE HOME </Button>
+            <Button onClick={revalidateHome}> REVALIDATE HOME </Button>
             {revalidationMessage}
         </Container>
     )
