@@ -1,6 +1,6 @@
 import styled from "@emotion/styled"
 import React, {FormEvent, useState} from "react"
-import {HomeComponentProps, PresentationComponent, StoryComponent} from "../../types/Home"
+import {HomeComponentProps, PresentationComponent, PresentationHTMLElementIds, StoryComponent} from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../../classes/Props"
@@ -8,7 +8,7 @@ import {putPresentation} from "../api/props/home/presentation"
 import {deleteStory, putStory} from "../api/props/home/story"
 import {TextAreaInput, TextAreaWithImages, TextInput} from "../../components/FormComponents"
 import {Button} from "../../components/Buttons"
-import {Presentation} from "../../components/Home"
+import {HomeContainer, PresentationView} from "../../components/Home"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -23,6 +23,7 @@ const emptyStory = {id: undefined, title: "", body: ""}
 const emptyPresentation = {id: undefined, name: "", introduction: ""}
 
 export default function EditHome(props: HomeComponentProps | null) {
+    const presentationHtmlElementIds: PresentationHTMLElementIds = {nameHtmlElementId: "", introductionHtmlElementId: ""}
     /*const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
     const setPresentationProperty = (presentationKey: keyof PresentationComponent, propertyValue: string) => {
         setPresentation((presentation) => {
@@ -144,8 +145,8 @@ export default function EditHome(props: HomeComponentProps | null) {
     const [revalidationMessage, setRevalidationMessage] = useState("")
 
     return (
-        <Container>
-            <Presentation editing data={props?.presentation || undefined}/>
+        <HomeContainer>
+            <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={props?.presentation || undefined}/>
             {/*<PresentationForm onSubmit={handleSavePresentation}>
                 <TextInput width={300} value={presentation.name}
                            setValue={(value) => setPresentationProperty("name", value)}/>
@@ -187,7 +188,7 @@ export default function EditHome(props: HomeComponentProps | null) {
             </StoryContainer>
             <Button onClick={revalidateHome}> REVALIDATE HOME </Button>
             {revalidationMessage}
-        </Container>
+        </HomeContainer>
     )
 }
 

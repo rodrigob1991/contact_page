@@ -18,3 +18,4 @@ type OmitPresentation = Pick<Presentation, "id">
 type OptionalPresentationId = Partial<Pick<Presentation, "id">>
 export type PresentationComponent = Omit<Presentation, keyof OmitPresentation> & OptionalPresentationId
 export type PresentationPutParam = Partial<Presentation>
+export type PresentationHTMLElementIds = {[K in keyof PresentationComponent as `${K}HtmlElementId`] : PresentationComponent[K]}
