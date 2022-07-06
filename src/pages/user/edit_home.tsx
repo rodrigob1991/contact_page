@@ -1,14 +1,14 @@
 import styled from "@emotion/styled"
 import React, {FormEvent, useState} from "react"
-import {HomeComponentProps, PresentationComponent, PresentationHTMLElementIds, StoryComponent} from "../../types/Home"
+import {HomeComponentProps, PresentationHTMLElementIds, StoryComponent} from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../../classes/Props"
-import {putPresentation} from "../api/props/home/presentation"
 import {deleteStory, putStory} from "../api/props/home/story"
-import {TextAreaInput, TextAreaWithImages, TextInput} from "../../components/FormComponents"
+import {TextAreaWithImages, TextInput} from "../../components/FormComponents"
 import {Button} from "../../components/Buttons"
 import {HomeContainer, PresentationView} from "../../components/Home"
+import {putPresentation} from "../api/props/home/presentation";
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -20,10 +20,43 @@ export async function getServerSideProps() {
 }
 
 const emptyStory = {id: undefined, title: "", body: ""}
-const emptyPresentation = {id: undefined, name: "", introduction: ""}
 
 export default function EditHome(props: HomeComponentProps | null) {
-    const presentationHtmlElementIds: PresentationHTMLElementIds = {nameHtmlElementId: "", introductionHtmlElementId: ""}
+    const [presentation, setPresentation] = useState(props?.presentation)
+    const [stories, setStories] = useState(props?.stories || [])
+
+    const presentationHtmlElementIds: PresentationHTMLElementIds = {nameHtmlElementId: "presentation-name", introductionHtmlElementId: "presentation-introduction"}
+
+    const [storageResultMessage, setStorageResultMessage] = useState("")
+    const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>)=> {
+        let resultMessage = ""
+        Promise.all([storePresentation(), storeStories()])
+            .then((messages)=> messages.forEach((message)=> resultMessage += message + ":" ))
+            .finally(()=> setStorageResultMessage(resultMessage))
+    }
+
+    const storePresentation = async () => {
+        const operation = presentation ? "UPDATE" : "CREATE"
+
+        const presentationData = {
+            name: (document.getElementById(presentationHtmlElementIds.nameHtmlElementId) as HTMLElement).innerText,
+            introduction: (document.getElementById(presentationHtmlElementIds.introductionHtmlElementId) as HTMLElement).innerText
+        }
+
+        const {succeed, presentation: savedPresentation, errorMessage} = await putPresentation(presentationData)
+        let message
+        if (succeed) {
+            message = `presentation ${operation}D`
+            setPresentation(savedPresentation)
+        } else {
+            message = errorMessage || `could not ${operation} the presentation`
+        }
+
+        return message
+    }
+    const storeStories = ()=> {
+
+    }
     /*const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
     const setPresentationProperty = (presentationKey: keyof PresentationComponent, propertyValue: string) => {
         setPresentation((presentation) => {
@@ -51,7 +84,7 @@ export default function EditHome(props: HomeComponentProps | null) {
     }
     const [editPresentationMessage, setEditPresentationMessage] = useState("")*/
 
-    const [stories, setStories] = useState(props?.stories || [])
+
     const [selectedStory, setSelectedStory] = useState<StoryComponent>(emptyStory)
     const creatingStory = selectedStory.id === undefined
     const handleStorySelection = (e: React.MouseEvent<HTMLDivElement>, story: StoryComponent) => {
@@ -122,31 +155,30 @@ export default function EditHome(props: HomeComponentProps | null) {
 
     }
 
-    const revalidateHome = async (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault()
-
-        revalidatePages([RevalidationRouteId.HOME]).then(({
-                                                                                           succeed,
-                                                                                           revalidations,
-                                                                                           errorMessage
-                                                                                       }) => {
-                if (succeed) {
-                    //there must always be revalidations here
-                    if (revalidations) {
-                        const message = revalidations.map(r => r.routeId + ":" + r.message).toString()
-                        setRevalidationMessage(message)
+    const revalidateHomeProps = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        revalidatePages([RevalidationRouteId.HOME])
+            .then(({
+                       succeed,
+                       revalidations,
+                       errorMessage
+                   }) => {
+                    if (succeed) {
+                        //there must always be revalidations here
+                        if (revalidations) {
+                            const message = revalidations.map(r => r.routeId + ":" + r.message).toString()
+                            setRevalidationResultMessage(message)
+                        }
+                    } else {
+                        setRevalidationResultMessage(errorMessage || "there must be always an error message")
                     }
-                } else {
-                    setRevalidationMessage(errorMessage || "there must be always an error message")
                 }
-            }
-        )
+            )
     }
-    const [revalidationMessage, setRevalidationMessage] = useState("")
+    const [revalidationResultMessage, setRevalidationResultMessage] = useState("")
 
     return (
         <HomeContainer>
-            <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={props?.presentation || undefined}/>
+            <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation}/>
             {/*<PresentationForm onSubmit={handleSavePresentation}>
                 <TextInput width={300} value={presentation.name}
                            setValue={(value) => setPresentationProperty("name", value)}/>
@@ -186,30 +218,22 @@ export default function EditHome(props: HomeComponentProps | null) {
                     ))}
                 </StoryTable>
             </StoryContainer>
-            <Button onClick={revalidateHome}> REVALIDATE HOME </Button>
-            {revalidationMessage}
+            <ButtonsContainer>
+                <Button onClick={storeHomeProps}> STORE </Button>
+                <Button onClick={revalidateHomeProps}> REVALIDATE </Button>
+            </ButtonsContainer>
+            {storageResultMessage + " " + revalidationResultMessage}
         </HomeContainer>
     )
 }
 
-const Container = styled.div`
-  align-items: center;
+const ButtonsContainer = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: center;
   padding: 50px;
-  background-color: #4682B4;
   gap: 20px;
-  height: fit-content;
 `
-const PresentationForm = styled.form`
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  background-color: #B0C4DE;
-  gap: 20px;
-  padding: 50px;
-`
-
 const StoryContainer = styled.div`
   align-items: left;
   display: flex;

@@ -1,4 +1,4 @@
-import {Presentation, PresentationHTMLElementIds, Story, StoryComponent} from "../types/Home"
+import {Presentation, PresentationHTMLElementIds, PresentationWithoutId, Story, StoryComponent} from "../types/Home"
 import styled from "@emotion/styled"
 import React, {useState} from "react"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
@@ -6,62 +6,35 @@ import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 type PresentationProps = {
     editing: boolean
     htmlElementIds: PresentationHTMLElementIds
-    presentation?: Presentation
+    presentation?: Presentation | null
 }
 
 export const PresentationView = ({editing, presentation, htmlElementIds: {nameHtmlElementId,introductionHtmlElementId}}: PresentationProps) => {
-    const [saved, setSaved] = useState(presentation === undefined)
-
-    const getPresentationDate = () => {
-        const name = (document.getElementById(nameHtmlElementId) as HTMLElement).innerText
-        const introduction = (document.getElementById(introductionHtmlElementId) as HTMLElement).innerText
-        console.log(`name: ${name}. introduction: ${introduction}`)
-
-        return {name: name, introduction: introduction}
-    }
-
-    const handleSavePresentation = async (e: React.MouseEvent<HTMLButtonElement>) => {
-        const operation = saved ? "UPDATE" : "CREATE"
-
-        getPresentationDate()
-
-       /* putPresentation(getPresentationDate()).then(({succeed, errorMessage}) => {
-            let message
-            if (succeed) {
-                message = `presentation ${operation}D`
-                setSaved(true)
-            } else {
-                message = errorMessage || `could not ${operation} the presentation`
-            }
-
-            setSaveResultMessage(message)
-        })*/
-    }
-
-        const [saveResultMessage, setSaveResultMessage] = useState("")
-
 
         return (
             <PresentationContainer>
                 <PresentationNameImageContainer>
                     {/*   <Image src="/yo.jpeg" width="100" height="100"/>*/}
                     <PresentationName id={nameHtmlElementId} contentEditable={editing}>
-                        {presentation?.name || ""}
+                        {presentation?.name}
                     </PresentationName>
                 </PresentationNameImageContainer>
                 <PresentationIntroduction id={introductionHtmlElementId} contentEditable={editing}>
-                    {presentation?.introduction || ""}
+                    {presentation?.introduction}
                 </PresentationIntroduction>
-               {/* {editing ?
-                    <>
-                        <Button onClick={handleSavePresentation}> SAVE </Button>
-                        {saveResultMessage}
-                    </>
-                    : ""}*/}
             </PresentationContainer>
         )
     }
 
+const PresentationContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  padding: 30px;
+  gap: 20px;
+  background-image: linear-gradient(#00008B,#0000FF);
+  align-items: center;
+  box-shadow: 5px 10px #888888;
+    `
 const PresentationName = styled.div`
   color: #FFFFFF;
   text-decoration-color: #FFFFFF;
@@ -87,15 +60,7 @@ const PresentationNameImageContainer = styled.div`
   align-items: center;
   gap: 15px;
     `
-const PresentationContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding: 30px;
-  gap: 20px;
-  background-image: linear-gradient(#00008B,#0000FF);
-  align-items: center;
-  box-shadow: 5px 10px #888888;
-    `
+
 export const HomeContainer = styled.div`
   display: flex;
   flex-flow: column;
