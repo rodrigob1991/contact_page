@@ -1,14 +1,15 @@
 import styled from "@emotion/styled"
-import React, {FormEvent, useState} from "react"
-import {HomeComponentProps, PresentationHTMLElementIds, StoryComponent} from "../../types/Home"
+import React, {FormEvent, useEffect, useRef, useState} from "react"
+import {HomeComponentProps, Presentation, PresentationHTMLElementIds, StoryComponent} from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../../classes/Props"
 import {deleteStory, putStory} from "../api/props/home/story"
-import {TextAreaWithImages, TextInput} from "../../components/FormComponents"
 import {Button} from "../../components/Buttons"
-import {HomeContainer, PresentationView} from "../../components/Home"
-import {putPresentation} from "../api/props/home/presentation";
+import {putPresentation} from "../api/props/home/presentation"
+import {Container} from "../../components/home/Layout"
+import PresentationView from "../../components/home/PresentationView"
+import StoriesView from "../../components/home/StoriesView"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -20,12 +21,55 @@ export async function getServerSideProps() {
 }
 
 const emptyStory = {id: undefined, title: "", body: ""}
+const emptyPresentation = {id: undefined, name: "", introduction: ""}
 
 export default function EditHome(props: HomeComponentProps | null) {
-    const [presentation, setPresentation] = useState(props?.presentation)
-    const [stories, setStories] = useState(props?.stories || [])
-
     const presentationHtmlElementIds: PresentationHTMLElementIds = {nameHtmlElementId: "presentation-name", introductionHtmlElementId: "presentation-introduction"}
+    const storyHtmlElementIdPrefixes =
+
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+
+        const observer = new MutationObserver(
+            (mutationList: MutationRecord[], observer: MutationObserver) => {
+                for (const mutation of mutationList) {
+                    const elementId = (mutation.target.parentElement as HTMLElement).id
+                    const changedText = mutation.target.textContent as string
+
+                    if (elementId === presentationHtmlElementIds.nameHtmlElementId) {
+                        setPresentationProperty("name", changedText)
+
+                    } else if (elementId === presentationHtmlElementIds.introductionHtmlElementId) {
+                        setPresentationProperty("introduction", changedText)
+                    }
+                    else if(elementId.startsWith("story")){
+
+                    }
+
+                    console.table(mutation)
+                    /*if (mutation.type === 'childList') {
+                        console.log('A child node has been added or removed.')
+                    }
+                    else if (mutation.type === 'attributes') {
+                        console.log('The ' + mutation.attributeName + ' attribute was modified.')
+                    }*/
+                }
+            })
+        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true})
+
+        // return () => observer.disconnect()
+    }, [])
+
+    const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
+    const setPresentationProperty = (presentationKey: keyof Presentation, propertyValue: string) => {
+        setPresentation((p)=> {
+            const updatedPresentation = {...p}
+            updatedPresentation[presentationKey] = propertyValue
+            return updatedPresentation
+        })
+    }
+    const [stories, setStories] = useState(props?.stories || [])
 
     const [storageResultMessage, setStorageResultMessage] = useState("")
     const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>)=> {
@@ -47,7 +91,7 @@ export default function EditHome(props: HomeComponentProps | null) {
         let message
         if (succeed) {
             message = `presentation ${operation}D`
-            setPresentation(savedPresentation)
+            setPresentation(savedPresentation as Presentation)
         } else {
             message = errorMessage || `could not ${operation} the presentation`
         }
@@ -57,15 +101,8 @@ export default function EditHome(props: HomeComponentProps | null) {
     const storeStories = ()=> {
 
     }
-    /*const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
-    const setPresentationProperty = (presentationKey: keyof PresentationComponent, propertyValue: string) => {
-        setPresentation((presentation) => {
-            const updatedPresentation = {...presentation}
-            updatedPresentation[presentationKey] = propertyValue
-            return updatedPresentation
-        })
-    }
-    const handleSavePresentation = async (e: FormEvent<HTMLFormElement>) => {
+
+   /* const handleSavePresentation = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault()
 
         const operation = presentation.id ? "UPDATE" : "CREATE"
@@ -82,8 +119,8 @@ export default function EditHome(props: HomeComponentProps | null) {
             }
         )
     }
-    const [editPresentationMessage, setEditPresentationMessage] = useState("")*/
-
+    const [editPresentationMessage, setEditPresentationMessage] = useState("")
+*/
 
     const [selectedStory, setSelectedStory] = useState<StoryComponent>(emptyStory)
     const creatingStory = selectedStory.id === undefined
@@ -177,8 +214,9 @@ export default function EditHome(props: HomeComponentProps | null) {
     const [revalidationResultMessage, setRevalidationResultMessage] = useState("")
 
     return (
-        <HomeContainer>
+        <Container ref={ref}>
             <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation}/>
+            <StoriesView editing stories={stories}/>
             {/*<PresentationForm onSubmit={handleSavePresentation}>
                 <TextInput width={300} value={presentation.name}
                            setValue={(value) => setPresentationProperty("name", value)}/>
@@ -187,7 +225,7 @@ export default function EditHome(props: HomeComponentProps | null) {
                 <Button type={"submit"}> SAVE PRESENTATION </Button>
                 {editPresentationMessage}
             </PresentationForm>*/}
-            <StoryContainer>
+           {/* <StoryContainer>
                 <EditStoryForm onSubmit={handleSavedStory}>
                     <EditStoryDataContainer>
                         <TextInput width={300} value={selectedStory.title}
@@ -217,13 +255,13 @@ export default function EditHome(props: HomeComponentProps | null) {
                             <StoryColumn> {s.title}</StoryColumn> </StoryRow>
                     ))}
                 </StoryTable>
-            </StoryContainer>
+            </StoryContainer>*/}
             <ButtonsContainer>
                 <Button onClick={storeHomeProps}> STORE </Button>
                 <Button onClick={revalidateHomeProps}> REVALIDATE </Button>
             </ButtonsContainer>
             {storageResultMessage + " " + revalidationResultMessage}
-        </HomeContainer>
+        </Container>
     )
 }
 
