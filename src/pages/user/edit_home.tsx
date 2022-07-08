@@ -1,6 +1,12 @@
 import styled from "@emotion/styled"
 import React, {FormEvent, useEffect, useRef, useState} from "react"
-import {HomeComponentProps, Presentation, PresentationHTMLElementIds, StoryComponent} from "../../types/Home"
+import {
+    HomeComponentProps,
+    Presentation, PresentationComponent,
+    PresentationHTMLElementIds,
+    StoryComponent,
+    StoryHTMLElementIds
+} from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../../classes/Props"
@@ -20,49 +26,64 @@ export async function getServerSideProps() {
     return {props: homeProps}
 }
 
-const emptyStory = {id: undefined, title: "", body: ""}
-const emptyPresentation = {id: undefined, name: "", introduction: ""}
-
 export default function EditHome(props: HomeComponentProps | null) {
-    const presentationHtmlElementIds: PresentationHTMLElementIds = {nameHtmlElementId: "presentation-name", introductionHtmlElementId: "presentation-introduction"}
-    const storyHtmlElementIdPrefixes =
+    const emptyPresentation: PresentationComponent = {id: undefined, name: "", introduction: ""}
+    const emptyStory: StoryComponent = {id: undefined, title: "", body: ""}
+
+    const presentationHtmlElementIdsPrefix = "presentation"
+    const presentationHtmlElementIds: PresentationHTMLElementIds = (() => {
+        const htmlElementIds: Record<string, string> = {}
+        for (const key in emptyPresentation) {
+            htmlElementIds[key] = presentationHtmlElementIdsPrefix + "-" + key
+        }
+        return htmlElementIds as PresentationHTMLElementIds
+    })()
+
+    const storyHtmlElementIdsPrefix = "story"
+    const storyHtmlElementIds: StoryHTMLElementIds = (()=> {
+        const htmlElementIds: Record<string, string> = {}
+        for (const key in emptyPresentation) {
+            htmlElementIds[key] = storyHtmlElementIdsPrefix + "{}" + key
+        }
+        return htmlElementIds as StoryHTMLElementIds
+    })()
 
     const ref = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
+        const updatePresentation = (htmlElementId: string, newPropertyValue: string) => {
+            const key = htmlElementId.substring(htmlElementId.indexOf("-") + 1) as keyof PresentationComponent
+            setPresentationProperty(key, newPropertyValue)
+        }
+        const updateStory = (htmlElementId: string, newPropertyValue: string) => {
+            const storyId = htmlElementId.substring(htmlElementId.indexOf("{") + 1, htmlElementId.indexOf("}"))
+        }
 
         const observer = new MutationObserver(
             (mutationList: MutationRecord[], observer: MutationObserver) => {
                 for (const mutation of mutationList) {
-                    const elementId = (mutation.target.parentElement as HTMLElement).id
-                    const changedText = mutation.target.textContent as string
+                    const htmlElementId = (mutation.target.parentElement as HTMLElement).id
+                    const newPropertyValue = mutation.target.textContent as string
 
-                    if (elementId === presentationHtmlElementIds.nameHtmlElementId) {
-                        setPresentationProperty("name", changedText)
-
-                    } else if (elementId === presentationHtmlElementIds.introductionHtmlElementId) {
-                        setPresentationProperty("introduction", changedText)
+                    if (htmlElementId.startsWith("presentation")){
+                        updatePresentation(htmlElementId, newPropertyValue)
                     }
-                    else if(elementId.startsWith("story")){
+                    else if (htmlElementId.startsWith("story")) {
+                        updateStory(htmlElementId, newPropertyValue)
+
 
                     }
 
                     console.table(mutation)
-                    /*if (mutation.type === 'childList') {
-                        console.log('A child node has been added or removed.')
-                    }
-                    else if (mutation.type === 'attributes') {
-                        console.log('The ' + mutation.attributeName + ' attribute was modified.')
-                    }*/
                 }
             })
         observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true})
 
-        // return () => observer.disconnect()
+        return () => observer.disconnect()
     }, [])
 
     const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
-    const setPresentationProperty = (presentationKey: keyof Presentation, propertyValue: string) => {
+    const setPresentationProperty = (presentationKey: keyof PresentationComponent, propertyValue: string) => {
         setPresentation((p)=> {
             const updatedPresentation = {...p}
             updatedPresentation[presentationKey] = propertyValue
@@ -79,15 +100,10 @@ export default function EditHome(props: HomeComponentProps | null) {
             .finally(()=> setStorageResultMessage(resultMessage))
     }
 
-    const storePresentation = async () => {
+   /* const storePresentation = async () => {
         const operation = presentation ? "UPDATE" : "CREATE"
 
-        const presentationData = {
-            name: (document.getElementById(presentationHtmlElementIds.nameHtmlElementId) as HTMLElement).innerText,
-            introduction: (document.getElementById(presentationHtmlElementIds.introductionHtmlElementId) as HTMLElement).innerText
-        }
-
-        const {succeed, presentation: savedPresentation, errorMessage} = await putPresentation(presentationData)
+        const {succeed, presentation: savedPresentation, errorMessage} = await putPresentation(presentation)
         let message
         if (succeed) {
             message = `presentation ${operation}D`
@@ -100,7 +116,7 @@ export default function EditHome(props: HomeComponentProps | null) {
     }
     const storeStories = ()=> {
 
-    }
+    }*/
 
    /* const handleSavePresentation = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -121,7 +137,6 @@ export default function EditHome(props: HomeComponentProps | null) {
     }
     const [editPresentationMessage, setEditPresentationMessage] = useState("")
 */
-
     const [selectedStory, setSelectedStory] = useState<StoryComponent>(emptyStory)
     const creatingStory = selectedStory.id === undefined
     const handleStorySelection = (e: React.MouseEvent<HTMLDivElement>, story: StoryComponent) => {
