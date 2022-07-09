@@ -1,5 +1,5 @@
 import {PrismaClient} from "@prisma/client"
-import {PresentationComponent, StoryComponent} from "../src/types/Home"
+import {PresentationWithoutId, StoryComponent} from "../src/types/Home"
 import {ObjectID} from "bson"
 
 export class PropsStorageClient {
@@ -41,13 +41,12 @@ export class PropsStorageClient {
         )
     }*/
 
-    async setPresentation(presentation: PresentationComponent) {
-        presentation.id = this.PRESENTATION_ID
+    async setPresentation(presentation: PresentationWithoutId) {
         return this.prisma.presentation.upsert(
             {
                 where: {id: this.PRESENTATION_ID},
                 create: {
-                    ...presentation,
+                    id: this.PRESENTATION_ID, ...presentation,
                     props: {
                         connectOrCreate: {
                             where: {id: this.HOME_PROPS_ID},
@@ -56,7 +55,7 @@ export class PropsStorageClient {
                     }
                 }
                 ,
-                update: (({id, ...p}) => p)(presentation),
+                update: presentation,
             }
         )
     }
@@ -89,15 +88,14 @@ export class PropsStorageClient {
         return this.prisma.story.delete({where: {id: id}})
     }
 
-    /*async setHomeProps(presentation?: { name: string, introduction: string }, stories?: { title: string, body: string }[]) {
-        const homeProps =
-        await this.prisma.upsert({
+    /*async setHomeProps(homeProps: HomeProps) {
+       homeProps.
+        await this.prisma.props.upsert({
             where: {id: this.HOME_PROPS_ID},
             create: homeProps,
             update: homeProps
         })
-    }
-*/
+    }*/
 }
 
 //export const propsStorageClient = new PropsStorageClient()

@@ -3,7 +3,7 @@ import React, {FormEvent, useEffect, useRef, useState} from "react"
 import {
     HomeComponentProps,
     Presentation, PresentationComponent,
-    PresentationHTMLElementIds,
+    PresentationHTMLElementIds, PresentationWithoutId, Story,
     StoryComponent,
     StoryHTMLElementIds
 } from "../../types/Home"
@@ -27,9 +27,15 @@ export async function getServerSideProps() {
 }
 
 export default function EditHome(props: HomeComponentProps | null) {
-    const emptyPresentation: PresentationComponent = {id: undefined, name: "", introduction: ""}
-    const emptyStory: StoryComponent = {id: undefined, title: "", body: ""}
-
+    const emptyPresentation: PresentationWithoutId = {name: "", introduction: ""}
+    const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
+    const setPresentationProperty = (presentationKey: keyof PresentationWithoutId, propertyValue: string) => {
+        setPresentation((p)=> {
+            const updatedPresentation = {...p}
+            updatedPresentation[presentationKey] = propertyValue
+            return updatedPresentation
+        })
+    }
     const presentationHtmlElementIdsPrefix = "presentation"
     const presentationHtmlElementIds: PresentationHTMLElementIds = (() => {
         const htmlElementIds: Record<string, string> = {}
@@ -39,41 +45,53 @@ export default function EditHome(props: HomeComponentProps | null) {
         return htmlElementIds as PresentationHTMLElementIds
     })()
 
+    const emptyStory: Story = {id: "", title: "", body: ""}
+    const [stories, setStories] = useState(props?.stories || [])
+    const [newStories, setNewStories] = useState<Story[]>([])
+    const getUpdatedStories = (storyId: string, key: keyof Story, value: string, stories: Story[]) => {
+        const storyToUpdateIndex = stories.findIndex((s)=> s.id === storyId)
+        const updatedStories = [...stories]
+        updatedStories[storyToUpdateIndex][key] = value
+        return updatedStories
+    }
     const storyHtmlElementIdsPrefix = "story"
-    const storyHtmlElementIds: StoryHTMLElementIds = (()=> {
+    const getStoryHtmlElementIds = (storyId: string) => {
         const htmlElementIds: Record<string, string> = {}
-        for (const key in emptyPresentation) {
-            htmlElementIds[key] = storyHtmlElementIdsPrefix + "{}" + key
+        for (const key in emptyStory) {
+            htmlElementIds[key] = `${storyHtmlElementIdsPrefix}{${storyId}}${key}`
         }
         return htmlElementIds as StoryHTMLElementIds
-    })()
+    }
 
     const ref = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         const updatePresentation = (htmlElementId: string, newPropertyValue: string) => {
-            const key = htmlElementId.substring(htmlElementId.indexOf("-") + 1) as keyof PresentationComponent
+            const key = htmlElementId.substring(htmlElementId.indexOf("-") + 1) as keyof PresentationWithoutId
             setPresentationProperty(key, newPropertyValue)
         }
         const updateStory = (htmlElementId: string, newPropertyValue: string) => {
             const storyId = htmlElementId.substring(htmlElementId.indexOf("{") + 1, htmlElementId.indexOf("}"))
+            const key = htmlElementId.substring(htmlElementId.indexOf("}") + 1) as keyof Story
+            if(parseInt(storyId) > 0){
+                setStories((stories)=> getUpdatedStories(storyId,key,newPropertyValue,stories))
+            }else{
+                setNewStories((stories)=> getUpdatedStories(storyId,key,newPropertyValue,stories))
+            }
         }
 
         const observer = new MutationObserver(
-            (mutationList: MutationRecord[], observer: MutationObserver) => {
+            (mutationList, observer) => {
                 for (const mutation of mutationList) {
                     const htmlElementId = (mutation.target.parentElement as HTMLElement).id
                     const newPropertyValue = mutation.target.textContent as string
 
-                    if (htmlElementId.startsWith("presentation")){
+                    if (htmlElementId.startsWith(presentationHtmlElementIdsPrefix)){
                         updatePresentation(htmlElementId, newPropertyValue)
                     }
-                    else if (htmlElementId.startsWith("story")) {
+                    else if (htmlElementId.startsWith(storyHtmlElementIdsPrefix)) {
                         updateStory(htmlElementId, newPropertyValue)
-
-
                     }
-
                     console.table(mutation)
                 }
             })
@@ -81,16 +99,6 @@ export default function EditHome(props: HomeComponentProps | null) {
 
         return () => observer.disconnect()
     }, [])
-
-    const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
-    const setPresentationProperty = (presentationKey: keyof PresentationComponent, propertyValue: string) => {
-        setPresentation((p)=> {
-            const updatedPresentation = {...p}
-            updatedPresentation[presentationKey] = propertyValue
-            return updatedPresentation
-        })
-    }
-    const [stories, setStories] = useState(props?.stories || [])
 
     const [storageResultMessage, setStorageResultMessage] = useState("")
     const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>)=> {
