@@ -1,5 +1,5 @@
 import {PrismaClient} from "@prisma/client"
-import {PresentationWithoutId, StoryComponent} from "../src/types/Home"
+import {PresentationWithoutId, Story, StoryComponent, StoryWithoutId} from "../src/types/Home"
 import {ObjectID} from "bson"
 
 export class PropsStorageClient {
@@ -46,7 +46,8 @@ export class PropsStorageClient {
             {
                 where: {id: this.PRESENTATION_ID},
                 create: {
-                    id: this.PRESENTATION_ID, ...presentation,
+                    id: this.PRESENTATION_ID,
+                    ...presentation,
                     props: {
                         connectOrCreate: {
                             where: {id: this.HOME_PROPS_ID},
@@ -81,21 +82,63 @@ export class PropsStorageClient {
                 }
             )
         }
-        // (({id, ...s}) => s)(story)
     }
 
     async deleteStory(id: string) {
         return this.prisma.story.delete({where: {id: id}})
     }
 
-    /*async setHomeProps(homeProps: HomeProps) {
-       homeProps.
-        await this.prisma.props.upsert({
-            where: {id: this.HOME_PROPS_ID},
-            create: homeProps,
-            update: homeProps
-        })
-    }*/
+    async setHomeProps(presentation: PresentationWithoutId, newStories: StoryWithoutId[], updateStories: Story[], deleteStories: Story[]) {
+        return this.prisma.props.upsert(
+            {
+                where: {id: this.HOME_PROPS_ID},
+                create: {
+                    id: this.HOME_PROPS_ID,
+                    presentation: {
+                        create: {
+                            id: this.PRESENTATION_ID,
+                            ...presentation
+                        }
+                    },
+                    stories: {
+                        createMany: {
+                            data: {
+                                ...newStories
+                            }
+                        }
+                    }
+                },
+                update: {
+                    presentation: {
+                        upsert: {
+                            create: {
+                                id: this.PRESENTATION_ID,
+                                ...presentation
+                            },
+                            update:
+                            presentation
+                        }
+                    },
+                    stories: {
+                        createMany: {
+                            data: {
+                                ...newStories
+                            }
+                        },
+                        updateMany: {
+                            where: {
+                                propsId: this.HOME_PROPS_ID
+                            },
+                            data: {
+                                ...updateStories
+                            }
+                        },
+                        deleteMany: {
+                            ...deleteStories
+                        }
+                    }
+                }
+            }
+        )
+    }
 }
-
-//export const propsStorageClient = new PropsStorageClient()

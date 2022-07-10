@@ -16,6 +16,7 @@ import {putPresentation} from "../api/props/home/presentation"
 import {Container} from "../../components/home/Layout"
 import PresentationView from "../../components/home/PresentationView"
 import StoriesView from "../../components/home/StoriesView"
+import {getContainedString} from "../../utils/StringFunctions";
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -67,12 +68,12 @@ export default function EditHome(props: HomeComponentProps | null) {
 
     useEffect(() => {
         const updatePresentation = (htmlElementId: string, newPropertyValue: string) => {
-            const key = htmlElementId.substring(htmlElementId.indexOf("-") + 1) as keyof PresentationWithoutId
+            const key = getContainedString(htmlElementId, "-") as keyof PresentationWithoutId
             setPresentationProperty(key, newPropertyValue)
         }
         const updateStory = (htmlElementId: string, newPropertyValue: string) => {
-            const storyId = htmlElementId.substring(htmlElementId.indexOf("{") + 1, htmlElementId.indexOf("}"))
-            const key = htmlElementId.substring(htmlElementId.indexOf("}") + 1) as keyof Story
+            const storyId = getContainedString(htmlElementId, "{", "}")
+            const key = getContainedString(htmlElementId, "}") as keyof Story
             if(parseInt(storyId) > 0){
                 setStories((stories)=> getUpdatedStories(storyId,key,newPropertyValue,stories))
             }else{
