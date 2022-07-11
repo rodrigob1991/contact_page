@@ -1,5 +1,5 @@
 import {PrismaClient} from "@prisma/client"
-import {PresentationWithoutId, Story, StoryComponent, StoryWithoutId} from "../src/types/Home"
+import {PresentationWithoutId, SetHomeProps, StoryComponent} from "../types/Home"
 import {ObjectID} from "bson"
 
 export class PropsStorageClient {
@@ -88,54 +88,73 @@ export class PropsStorageClient {
         return this.prisma.story.delete({where: {id: id}})
     }
 
-    async setHomeProps(presentation: PresentationWithoutId, newStories: StoryWithoutId[], updateStories: Story[], deleteStories: Story[]) {
+    async setHomeProps({
+                           presentation,
+                           stories: {delete: deleteStories, new: newStories, update: updateStories} = {}
+                       }: SetHomeProps) {
+        let createPresentation = undefined
+        let upsertPresentation = undefined
+        if (presentation) {
+            createPresentation = {
+                create: {
+                    id: this.PRESENTATION_ID,
+                    ...presentation
+                }
+            }
+            upsertPresentation = {
+                upsert: {
+                    ...createPresentation,
+                    update:
+                    presentation
+                }
+            }
+        }
+        let createManyStories = undefined
+        if (newStories) {
+            createManyStories = {
+                createMany: {
+                    data: {
+                        ...newStories
+                    }
+                }
+            }
+        }
+        let updateManyStories = undefined
+        if (updateStories) {
+            updateManyStories = {
+                updateMany: {
+                    where: {
+                        propsId: this.HOME_PROPS_ID
+                    },
+                    data: {
+                        ...updateStories
+                    }
+                }
+            }
+        }
+        let deleteManyStories = undefined
+        if (deleteStories) {
+            deleteManyStories = {
+                deleteMany: {
+                    ...deleteStories
+                }
+            }
+        }
+
         return this.prisma.props.upsert(
             {
                 where: {id: this.HOME_PROPS_ID},
                 create: {
                     id: this.HOME_PROPS_ID,
-                    presentation: {
-                        create: {
-                            id: this.PRESENTATION_ID,
-                            ...presentation
-                        }
-                    },
-                    stories: {
-                        createMany: {
-                            data: {
-                                ...newStories
-                            }
-                        }
-                    }
+                    presentation: createPresentation,
+                    stories: createManyStories
                 },
                 update: {
-                    presentation: {
-                        upsert: {
-                            create: {
-                                id: this.PRESENTATION_ID,
-                                ...presentation
-                            },
-                            update:
-                            presentation
-                        }
-                    },
+                    presentation: upsertPresentation,
                     stories: {
-                        createMany: {
-                            data: {
-                                ...newStories
-                            }
-                        },
-                        updateMany: {
-                            where: {
-                                propsId: this.HOME_PROPS_ID
-                            },
-                            data: {
-                                ...updateStories
-                            }
-                        },
-                        deleteMany: {
-                            ...deleteStories
-                        }
+                        ...createManyStories,
+                        ...updateManyStories,
+                        ...deleteManyStories
                     }
                 }
             }
