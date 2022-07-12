@@ -11,3 +11,6 @@ export const getContainedString = (str: string, betweenLeft?: string, betweenRig
     }
     return containedString
 }
+export const isEmptyString = (str: string | undefined | null) => {
+    return str === undefined || str === null || str.trim().length === 0
+}

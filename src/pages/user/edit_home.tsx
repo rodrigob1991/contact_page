@@ -4,12 +4,11 @@ import {
     HomeComponentProps,
     Presentation, PresentationComponent,
     PresentationHTMLElementIds, PresentationWithoutId, Story,
-    StoryComponent,
     StoryHTMLElementIds
 } from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
-import {PropsStorageClient} from "../../classes/Props"
+import {PropsStorageClient} from "../../classes/PropsStorageClient"
 import {deleteStory, putStory} from "../api/props/home/story"
 import {Button} from "../../components/Buttons"
 import {putPresentation} from "../api/props/home/presentation"

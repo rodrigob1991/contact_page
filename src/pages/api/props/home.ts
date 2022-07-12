@@ -1,11 +1,17 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {PropsStorageClient} from "../../../classes/Props"
-import {Presentation, PresentationComponent, PresentationPutParam, SetHomeProps} from "../../../types/Home"
+import {PropsStorageClient} from "../../../classes/PropsStorageClient"
+import {Presentation, SetHomeProps} from "../../../types/Home"
 import {AuthResponseBody} from "../_middleware"
+import {ApiParamsValidator} from "../../../classes/ApiParamsValidator";
 
 const HOME_PROPS_API_ROUTE = "/api/props/home"
 
 const URL = process.env.NEXT_PUBLIC_BASE_URL + HOME_PROPS_API_ROUTE
+
+type PutResponseBody = {
+    presentation?: Presentation
+    errorMessage?: string
+}
 
 export const putHomeProps = async (homeProps: SetHomeProps) => {
     const result: { succeed: boolean, presentation?: Presentation, errorMessage?: string } = {succeed: false}
@@ -40,8 +46,6 @@ export const putHomeProps = async (homeProps: SetHomeProps) => {
 }
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
-    const params = request.body
-
     let httpCode: number
     let body: PutResponseBody
 
@@ -49,15 +53,16 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     switch (request.method) {
         case "PUT" :
-            const presentation: PresentationPutParam = params
-            if (!validPresentation(presentation)) {
+            const params: SetHomeProps = request.body
+            if (!ApiParamsValidator.areValidSetHomeProps(params)) {
                 httpCode = 400
-                body = {errorMessage: "missing data"}
+                body = {errorMessage: "invalid data"}
             } else {
                 try {
-                    const savedPresentation = await propsStorageClient.setPresentation(presentation as PresentationComponent)
+                    const homeProps = await propsStorageClient.setHomeProps(params)
+                    homeProps.
                     httpCode = 200
-                    body = {presentation: savedPresentation}
+                    body = {homeProps: savedPresentation}
                 } catch (e) {
                     httpCode = 500
                     body = {errorMessage: "could not saved the presentation"}

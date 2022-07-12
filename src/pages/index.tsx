@@ -1,7 +1,7 @@
 import styled from "@emotion/styled"
 import {FormEvent, useState} from "react"
 import {HomeComponentProps, StoryComponent} from "../types/Home"
-import {PropsStorageClient} from "../classes/Props"
+import {PropsStorageClient} from "../classes/PropsStorageClient"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import {MdForwardToInbox} from "react-icons/md"
 import Image from "next/image"

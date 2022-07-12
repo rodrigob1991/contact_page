@@ -1,71 +1,53 @@
 import {PrismaClient} from "@prisma/client"
-import {PresentationWithoutId, SetHomeProps, StoryComponent} from "../types/Home"
+import {PresentationWithoutId, SetHomeProps, Story, StoryWithoutId} from "../types/Home"
 import {ObjectID} from "bson"
 
 export class PropsStorageClient {
     private readonly prisma: PrismaClient
-    private readonly HOME_PROPS_ID = new ObjectID("111111111111111111111111").toJSON()
-    private readonly PRESENTATION_ID = new ObjectID("111111111111111111111111").toJSON()
+    private readonly homePropsId = new ObjectID("111111111111111111111111").toJSON()
+    private readonly presentationId = new ObjectID("111111111111111111111111").toJSON()
+    private readonly selectPresentation = {select: {name: true, introduction: true}}
+    private readonly selectStory = {select: {id: true, title: true, body: true}}
+    private readonly selectHomeProps = {
+        stories: this.selectStory,
+        presentation: this.selectPresentation
+    }
 
     constructor() {
         this.prisma = new PrismaClient()
     }
-
     async getHomeProps() {
-        return await this.prisma.props.findUnique({
-            where: {id: this.HOME_PROPS_ID},
-            include: {presentation: true, stories: true}
+        return this.prisma.props.findUnique({
+            where: {id: this.homePropsId},
+            include: this.selectHomeProps
         })
     }
 
-   /* async setHomePropsPresentation(presentationComponent: PresentationComponent) {
-        const presentation = {id: this.HOME_PROPS_PRESENTATION_ID, ...presentationComponent}
-
-        return this.prisma.upsert(
-            {
-                where: {id: this.HOME_PROPS_ID},
-                create: {
-                    presentation: {
-                        create: presentation
-                    }
-                },
-                update: {
-                    presentation: {
-                        upsert: {
-                            create: presentation,
-                            update: presentation
-                        }
-                    }
-                }
-            }
-        )
-    }*/
-
-    async setPresentation(presentation: PresentationWithoutId) {
+    async setPresentation(presentation: PresentationWithoutId): Promise<PresentationWithoutId> {
         return this.prisma.presentation.upsert(
             {
-                where: {id: this.PRESENTATION_ID},
+                where: {id: this.presentationId},
                 create: {
-                    id: this.PRESENTATION_ID,
+                    id: this.presentationId,
                     ...presentation,
                     props: {
                         connectOrCreate: {
-                            where: {id: this.HOME_PROPS_ID},
-                            create: {id: this.HOME_PROPS_ID}
+                            where: {id: this.homePropsId},
+                            create: {id: this.homePropsId}
                         }
                     }
-                }
-                ,
+                },
                 update: presentation,
+                ...this.selectPresentation
             }
         )
     }
-
-    async setStory(story: StoryComponent) {
-        if (story.id) {
+    async setStory(story: StoryWithoutId | Story) : Promise<Story> {
+        if ("id" in story) {
             return this.prisma.story.update({
                 where: {id: story.id},
-                data: (({id, ...s}) => s)(story)
+                data: (({id, ...s}) => s)(story),
+                ...this.selectStory
             })
         } else {
             return this.prisma.story.create(
@@ -74,30 +56,29 @@ export class PropsStorageClient {
                         ...story,
                         props: {
                             connectOrCreate: {
-                                where: {id: this.HOME_PROPS_ID},
-                                create: {id: this.HOME_PROPS_ID}
+                                where: {id: this.homePropsId},
+                                create: {id: this.homePropsId}
                             }
                         }
-                    }
+                    },
+                    ...this.selectStory
                 }
             )
         }
     }
-
     async deleteStory(id: string) {
         return this.prisma.story.delete({where: {id: id}})
     }
-
     async setHomeProps({
                            presentation,
-                           stories: {delete: deleteStories, new: newStories, update: updateStories} = {}
+                           stories: {delete: deleteStories, new: newStories = [], update: updateStories} = {}
                        }: SetHomeProps) {
         let createPresentation = undefined
         let upsertPresentation = undefined
         if (presentation) {
             createPresentation = {
                 create: {
-                    id: this.PRESENTATION_ID,
+                    id: this.presentationId,
                     ...presentation
                 }
             }
@@ -115,7 +96,7 @@ export class PropsStorageClient {
                 createMany: {
                     data: {
                         ...newStories
-                    }
+                    },
                 }
             }
         }
@@ -124,7 +105,7 @@ export class PropsStorageClient {
             updateManyStories = {
                 updateMany: {
                     where: {
-                        propsId: this.HOME_PROPS_ID
+                        propsId: this.homePropsId
                     },
                     data: {
                         ...updateStories
@@ -143,9 +124,9 @@ export class PropsStorageClient {
 
         return this.prisma.props.upsert(
             {
-                where: {id: this.HOME_PROPS_ID},
+                where: {id: this.homePropsId},
                 create: {
-                    id: this.HOME_PROPS_ID,
+                    id: this.homePropsId,
                     presentation: createPresentation,
                     stories: createManyStories
                 },
@@ -154,9 +135,10 @@ export class PropsStorageClient {
                     stories: {
                         ...createManyStories,
                         ...updateManyStories,
-                        ...deleteManyStories
+                        ...deleteManyStories,
                     }
-                }
+                },
+                include: this.selectHomeProps
             }
         )
     }

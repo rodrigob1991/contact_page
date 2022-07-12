@@ -1,19 +1,20 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {PropsStorageClient} from "../../../../classes/Props"
-import {Presentation, PresentationComponent, PresentationPutParam} from "../../../../types/Home"
-import {AuthResponseBody} from "../../_middleware";
+import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
+import {PresentationWithoutId} from "../../../../types/Home"
+import {AuthResponseBody} from "../../_middleware"
+import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator";
 
 const PRESENTATION_API_ROUTE = "/api/props/home/presentation"
 
 const URL = process.env.NEXT_PUBLIC_BASE_URL + PRESENTATION_API_ROUTE
 
 type PutResponseBody = {
-    presentation?: Presentation
+    presentation?: PresentationWithoutId
     errorMessage?: string
 }
 
-export const putPresentation = async (presentation: PresentationComponent) => {
-    const result: { succeed: boolean, presentation?: Presentation, errorMessage?: string } = {succeed: false}
+export const putPresentation = async (presentation: PresentationWithoutId) => {
+    const result: { succeed: boolean, presentation?: PresentationWithoutId, errorMessage?: string } = {succeed: false}
 
     try {
         const response = await fetch(URL, {
@@ -54,13 +55,13 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     switch (request.method) {
         case "PUT" :
-            const presentation: PresentationPutParam = params
-            if (!validPresentation(presentation)) {
+            const presentation: PresentationWithoutId = params
+            if (!presentation || !ApiParamsValidator.isValidPresentation(presentation)) {
                 httpCode = 400
-                body = {errorMessage: "missing data"}
+                body = {errorMessage: "invalid params"}
             } else {
                 try {
-                    const savedPresentation = await propsStorageClient.setPresentation(presentation as PresentationComponent)
+                    const savedPresentation = await propsStorageClient.setPresentation(presentation)
                     httpCode = 200
                     body = {presentation: savedPresentation}
                 } catch (e) {
@@ -76,10 +77,4 @@ export default async function handler(request: NextApiRequest, response: NextApi
     }
 
     response.status(httpCode).json(body)
-}
-
-const validPresentation = (presentation: PresentationPutParam) => {
-    return presentation !== undefined && presentation.name !== undefined
-        && presentation.name.length > 0 && presentation.introduction !== undefined
-        && presentation.introduction.length > 0
 }
