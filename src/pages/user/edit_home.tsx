@@ -1,21 +1,22 @@
 import styled from "@emotion/styled"
 import React, {FormEvent, useEffect, useRef, useState} from "react"
 import {
-    HomeComponentProps,
-    Presentation, PresentationComponent,
-    PresentationHTMLElementIds, PresentationWithoutId, Story,
-    StoryHTMLElementIds
+    HomeProps,
+    Presentation,
+    PresentationHTMLElementIds,
+    Story,
+    StoryHTMLElementIds,
+    NewStory
 } from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../classes/PropsStorageClient"
 import {deleteStory, putStory} from "../api/props/home/story"
 import {Button} from "../../components/Buttons"
-import {putPresentation} from "../api/props/home/presentation"
 import {Container} from "../../components/home/Layout"
 import PresentationView from "../../components/home/PresentationView"
 import StoriesView from "../../components/home/StoriesView"
-import {getContainedString} from "../../utils/StringFunctions";
+import {getContainedString} from "../../utils/StringFunctions"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -26,10 +27,10 @@ export async function getServerSideProps() {
     return {props: homeProps}
 }
 
-export default function EditHome(props: HomeComponentProps | null) {
-    const emptyPresentation: PresentationWithoutId = {name: "", introduction: ""}
+export default function EditHome(props?: HomeProps) {
+    const emptyPresentation: Presentation = {name: "", introduction: ""}
     const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
-    const setPresentationProperty = (presentationKey: keyof PresentationWithoutId, propertyValue: string) => {
+    const setPresentationProperty = (presentationKey: keyof Presentation, propertyValue: string) => {
         setPresentation((p)=> {
             const updatedPresentation = {...p}
             updatedPresentation[presentationKey] = propertyValue
@@ -47,18 +48,31 @@ export default function EditHome(props: HomeComponentProps | null) {
 
     const emptyStory: Story = {id: "", title: "", body: ""}
     const [stories, setStories] = useState(props?.stories || [])
-    const [newStories, setNewStories] = useState<Story[]>([])
-    const getUpdatedStories = (storyId: string, key: keyof Story, value: string, stories: Story[]) => {
-        const storyToUpdateIndex = stories.findIndex((s)=> s.id === storyId)
-        const updatedStories = [...stories]
-        updatedStories[storyToUpdateIndex][key] = value
-        return updatedStories
+    const updateStories = (storyId: string, key: keyof NewStory, value: string) => {
+        setStories((stories) => {
+            const storyToUpdateIndex = stories.findIndex((s) => s.id === storyId)
+            const updatedStories = [...stories]
+            updatedStories[storyToUpdateIndex][key] = value
+            return updatedStories
+        })
+    }
+    const [newStories, setNewStories] = useState<NewStory[]>([])
+    const updateNewStories = (negativeIndex: string, key: keyof NewStory, value: string) => {
+        setNewStories((newStories) => {
+            const storyToUpdateIndex = parseInt(getContainedString(negativeIndex, "-"))
+            const updatedStories = [...newStories]
+            updatedStories[storyToUpdateIndex][key] = value
+            return updatedStories
+        })
     }
     const storyHtmlElementIdsPrefix = "story"
-    const getStoryHtmlElementIds = (storyId: string) => {
+    const getStoryHtmlElementIds = (storyIdOrIndexNewStory: string | number, ) => {
+        const id = typeof storyIdOrIndexNewStory === "number"
+            ? "-" + storyIdOrIndexNewStory
+            : storyIdOrIndexNewStory
         const htmlElementIds: Record<string, string> = {}
         for (const key in emptyStory) {
-            htmlElementIds[key] = `${storyHtmlElementIdsPrefix}{${storyId}}${key}`
+            htmlElementIds[key] = `${storyHtmlElementIdsPrefix}{${id}}${key}`
         }
         return htmlElementIds as StoryHTMLElementIds
     }
@@ -67,16 +81,16 @@ export default function EditHome(props: HomeComponentProps | null) {
 
     useEffect(() => {
         const updatePresentation = (htmlElementId: string, newPropertyValue: string) => {
-            const key = getContainedString(htmlElementId, "-") as keyof PresentationWithoutId
+            const key = getContainedString(htmlElementId, "-") as keyof Presentation
             setPresentationProperty(key, newPropertyValue)
         }
         const updateStory = (htmlElementId: string, newPropertyValue: string) => {
-            const storyId = getContainedString(htmlElementId, "{", "}")
-            const key = getContainedString(htmlElementId, "}") as keyof Story
-            if(parseInt(storyId) > 0){
-                setStories((stories)=> getUpdatedStories(storyId,key,newPropertyValue,stories))
+            const storyIdOrIndexNewStory = getContainedString(htmlElementId, "{", "}")
+            const key = getContainedString(htmlElementId, "}") as keyof NewStory
+            if(parseInt(storyIdOrIndexNewStory) > 0){
+                updateStories(storyIdOrIndexNewStory,key,newPropertyValue)
             }else{
-                setNewStories((stories)=> getUpdatedStories(storyId,key,newPropertyValue,stories))
+                updateNewStories(storyIdOrIndexNewStory,key,newPropertyValue)
             }
         }
 

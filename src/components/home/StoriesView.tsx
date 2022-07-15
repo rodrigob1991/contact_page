@@ -1,17 +1,28 @@
-import {Story, StoryComponent} from "../../types/Home"
-import React, {useEffect, useState} from "react"
+import {NewStory, Story} from "../../types/Home"
+import React, {useState} from "react"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import styled from "@emotion/styled"
 
-type StoriesProps = {
-    editing: boolean
+type Mode =  "editing" | "watching"
+
+type StoryVisibility<S extends NewStory | Story> = { story: S, isOpen: boolean }
+type NewStories<M extends Mode> = M extends "editing" ? NewStory[] : undefined
+type GetHtmlElementIds<M extends Mode> = M extends "editing" ? (IdOrIndex: string | number) => string : undefined
+
+type Props<M extends Mode> = {
+    editing: M extends "editing" ? true : false
     stories: Story[]
+    newStories: NewStories<M>
+    getHtmlElementIds: GetHtmlElementIds<M>
 }
 
-export default function StoriesView({editing, stories}: StoriesProps) {
-    const [storiesWithState, setStoriesWithState] = useState(stories.map((story) => {
+export default function StoriesView<M extends Mode>({editing, stories, newStories, getHtmlElementIds}: Props<M>) {
+    const [storiesVisibility, setStoriesVisibility] = useState<StoryVisibility<Story>[]>(stories.map((story) => {
         return {story: story, isOpen: false}
     }))
+    const [newStoriesVisibility, setNewStoriesVisibility] = useState<StoryVisibility<NewStory>[]>(newStories ? newStories.map((story) => {
+        return {story: story, isOpen: false}
+    }) : [])
 
     const openOrCloseStory = (index: number) => {
         const story = {...storiesWithState[index]}
@@ -23,10 +34,12 @@ export default function StoriesView({editing, stories}: StoriesProps) {
         })
     }
 
-    const getStoryView = (story: StoryComponent, index: number, isOpen: boolean) => {
+    const getStoryView = (storyVisibility: StoryVisibility<Story>, index: number) => {
+        const {story : {title, body}, isOpen} = storyVisibility
+
         const storyTitle =
             <StoryTitleView>
-                <StoryTitle id={"story-" + story.title} contentEditable={editing}>{story.title}</StoryTitle>
+                <StoryTitle>{title}</StoryTitle>
                 <StoryOpenCloseIcon onClick={(e => openOrCloseStory(index))}>
                     {isOpen ? <BsChevronDoubleUp/>
                         :
@@ -38,8 +51,36 @@ export default function StoriesView({editing, stories}: StoriesProps) {
                 isOpen ?
                     <StoryOpenView>
                         {storyTitle}
-                        <StoryBody contentEditable={editing}>
-                            {story.body}
+                        <StoryBody>
+                            {body}
+                        </StoryBody>
+                    </StoryOpenView>
+                    :
+                    storyTitle
+            }
+            </StoryView>
+        )
+    }
+    const getEditableStoryView = (storyVisibility: StoryVisibility<Story | NewStory>, index: number, getHtmlElementIds: GetHtmlElementIds<"editing">) => {
+        const {story: {title, body}, isOpen} = storyVisibility
+        const htmlIds = getHtmlElementIds()
+
+        const storyTitle =
+            <StoryTitleView>
+                <StoryTitle id={} contentEditable={editing}>{title}</StoryTitle>
+                <StoryOpenCloseIcon onClick={(e => openOrCloseStory(index))}>
+                    {isOpen ? <BsChevronDoubleUp/>
+                        :
+                        <BsChevronDoubleDown/>}
+                </StoryOpenCloseIcon>
+            </StoryTitleView>
+        return (
+            <StoryView>{
+                isOpen ?
+                    <StoryOpenView>
+                        {storyTitle}
+                        <StoryBody id={} contentEditable={editing}>
+                            {body}
                         </StoryBody>
                     </StoryOpenView>
                     :
@@ -51,7 +92,11 @@ export default function StoriesView({editing, stories}: StoriesProps) {
     return (
         <Container>
             <StoryContainerTitle>STORIES</StoryContainerTitle>
-            {storiesWithState.map(({story, isOpen}, index) => getStoryView(story, index, isOpen))}
+            {storiesVisibility
+                .map(({story, isOpen}, index) => getStoryView(story, index, isOpen))
+                .concat(newStoriesVisibility
+                    .map(({story, isOpen}, index) => getStoryView(story, index, isOpen)))
+            }
         </Container>
     )
 }

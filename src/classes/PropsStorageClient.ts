@@ -1,5 +1,5 @@
 import {PrismaClient} from "@prisma/client"
-import {PresentationWithoutId, SetHomeProps, Story, StoryWithoutId} from "../types/Home"
+import {HomeProps, Presentation, SetHomeProps, Story, NewStory} from "../types/Home"
 import {ObjectID} from "bson"
 
 export class PropsStorageClient {
@@ -16,14 +16,18 @@ export class PropsStorageClient {
     constructor() {
         this.prisma = new PrismaClient()
     }
-    async getHomeProps() {
+
+    async getHomeProps(): Promise<HomeProps | undefined> {
         return this.prisma.props.findUnique({
             where: {id: this.homePropsId},
             include: this.selectHomeProps
+        }).then((props) => {
+            return props ? {presentation: props.presentation || undefined, stories: props.stories}
+                : undefined
         })
     }
 
-    async setPresentation(presentation: PresentationWithoutId): Promise<PresentationWithoutId> {
+    async setPresentation(presentation: Presentation): Promise<Presentation> {
         return this.prisma.presentation.upsert(
             {
                 where: {id: this.presentationId},
@@ -42,7 +46,7 @@ export class PropsStorageClient {
             }
         )
     }
-    async setStory(story: StoryWithoutId | Story) : Promise<Story> {
+    async setStory(story: NewStory | Story) : Promise<Story> {
         if ("id" in story) {
             return this.prisma.story.update({
                 where: {id: story.id},

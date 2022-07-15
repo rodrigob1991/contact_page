@@ -1,25 +1,32 @@
-import {PresentationWithoutId, PresentationHTMLElementIds} from "../../types/Home"
+import {Presentation, PresentationHTMLElementIds} from "../../types/Home"
 import styled from "@emotion/styled"
 import React from "react"
 
-type PresentationProps = {
+type Props = {
     editing: boolean
     htmlElementIds: PresentationHTMLElementIds
-    presentation: PresentationWithoutId
+    presentation: Presentation
 }
 
-export default  function PresentationView({editing, presentation, htmlElementIds: {nameHtmlElementId,introductionHtmlElementId}}: PresentationProps) {
+export default function PresentationView({
+                                             editing,
+                                             presentation: {name, introduction},
+                                             htmlElementIds: {
+                                                 name: nameHtmlElementId,
+                                                 introduction: introductionHtmlElementId
+                                             }
+                                         }: Props) {
 
     return (
         <PresentationContainer>
             <PresentationNameImageContainer>
                 {/*   <Image src="/yo.jpeg" width="100" height="100"/>*/}
                 <PresentationName id={nameHtmlElementId} contentEditable={editing}>
-                    {presentation.name}
+                    {name}
                 </PresentationName>
             </PresentationNameImageContainer>
             <PresentationIntroduction id={introductionHtmlElementId} contentEditable={editing}>
-                {presentation.introduction}
+                {introduction}
             </PresentationIntroduction>
         </PresentationContainer>
     )
