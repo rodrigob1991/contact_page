@@ -1,28 +1,29 @@
-import {NewStory, Story, StoryHTMLElementIds} from "../../types/Home"
+import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../types/Home"
 import React, {useState} from "react"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import styled from "@emotion/styled"
 
-type Mode =  "editing" | "reading"
 type GetHtmlElementIds = (id: string) => StoryHTMLElementIds
-
+type GetNewStoryWithId = (s: NewStory, index: number) => Story
+type OnDeleteStory = (id: string) => void
 type EditingProps = {
     editing: true
     newStories: NewStory[]
+    getNewStoryWithId: GetNewStoryWithId
     getHtmlElementIds: GetHtmlElementIds
-
+    onDeleteStory : OnDeleteStory
 }
-type Props<M extends Mode> = {
+type Props<M extends ViewMode> = {
     stories: Story[]
 } & (M extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
-type StoryVisibility = { story: Story, isOpen: boolean}
+export default function StoriesView<M extends ViewMode>({editing, stories, newStories,getNewStoryWithId, getHtmlElementIds, onDeleteStory}: Props<M>) {
+    type StoryVisibility = { story: Story, isOpen: boolean}
 
-export default function StoriesView<M extends Mode>({editing, stories, newStories, getHtmlElementIds}: Props<M>) {
-    const [storiesVisibility, setStoriesVisibility] = useState(stories.map<StoryVisibility>((story) => {
-        return {story: story, isOpen: false}
-    }).concat(newStories ? newStories.map((story, index) => {
-        return {story: {id: "-" + index, ...story}, isOpen: false}
+    const [storiesVisibility, setStoriesVisibility] = useState(stories.map<StoryVisibility>((s) => {
+        return {story: s, isOpen: false}
+    }).concat(newStories ? newStories.map((ns, index) => {
+        return {story: (getNewStoryWithId as GetNewStoryWithId)(ns,index), isOpen: false}
     }) : []))
 
     const openOrCloseStory = (index: number) => {

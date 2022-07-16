@@ -24,3 +24,5 @@ type PresentationArgs = Prisma.PresentationGetPayload<Prisma.PresentationArgs>
 type OmitPresentation = Pick<PresentationArgs, "id">
 export type Presentation = Omit<PresentationArgs, keyof OmitPresentation>
 export type PresentationHTMLElementIds = {[K in keyof Presentation as `${K}`] : Presentation[K]}
+
+export type ViewMode =  "editing" | "reading"

@@ -57,22 +57,41 @@ export default function EditHome(props?: HomeProps) {
         })
     }
     const [newStories, setNewStories] = useState<NewStory[]>([])
-    const updateNewStories = (negativeIndex: string, key: keyof NewStory, value: string) => {
+    const updateNewStories = (id: string, key: keyof NewStory, value: string) => {
         setNewStories((newStories) => {
-            const storyToUpdateIndex = parseInt(getContainedString(negativeIndex, "-"))
+            const storyToUpdateIndex = getIndexFromNewStoryId(id)
             const updatedStories = [...newStories]
             updatedStories[storyToUpdateIndex][key] = value
             return updatedStories
         })
     }
+    const getIndexFromNewStoryId = (id: string) => {
+        return parseInt(getContainedString(id, "-"))
+    }
+    const [deleteStories, setDeleteStories] = useState<Story[]>([])
+    const onDeleteStory = (id: string) => {
+        if (isNewStory(id)) {
+            setNewStories((newStories) => {
+                const updatedNewStories = [...newStories]
+                updatedNewStories.splice(getIndexFromNewStoryId(id), 1)
+                return updatedNewStories
+            })
+        } else {
+            const storyToDelete = stories.find((s) => s.id === id) as Story
+            setDeleteStories([...deleteStories, storyToDelete])
+        }
+    }
+    const getNewStoryWithId = (s: NewStory, index: number) => {
+        return {id: "-" + index, ...s}
+    }
+    const isNewStory = (id: string) => {
+        return id.startsWith("-")
+    }
     const storyHtmlElementIdsPrefix = "story"
-    const getStoryHtmlElementIds = (storyIdOrIndexNewStory: string | number, ) => {
-        const id = typeof storyIdOrIndexNewStory === "number"
-            ? "-" + storyIdOrIndexNewStory
-            : storyIdOrIndexNewStory
+    const getStoryHtmlElementIds = (storyId: string ) => {
         const htmlElementIds: Record<string, string> = {}
         for (const key in emptyStory) {
-            htmlElementIds[key] = `${storyHtmlElementIdsPrefix}{${id}}${key}`
+            htmlElementIds[key] = `${storyHtmlElementIdsPrefix}{${storyId}}${key}`
         }
         return htmlElementIds as StoryHTMLElementIds
     }
@@ -85,12 +104,12 @@ export default function EditHome(props?: HomeProps) {
             setPresentationProperty(key, newPropertyValue)
         }
         const updateStory = (htmlElementId: string, newPropertyValue: string) => {
-            const storyIdOrIndexNewStory = getContainedString(htmlElementId, "{", "}")
+            const storyId = getContainedString(htmlElementId, "{", "}")
             const key = getContainedString(htmlElementId, "}") as keyof NewStory
-            if(parseInt(storyIdOrIndexNewStory) > 0){
-                updateStories(storyIdOrIndexNewStory,key,newPropertyValue)
-            }else{
-                updateNewStories(storyIdOrIndexNewStory,key,newPropertyValue)
+            if (isNewStory(storyId)) {
+                updateNewStories(storyId, key, newPropertyValue)
+            } else {
+                updateStories(storyId, key, newPropertyValue)
             }
         }
 
@@ -117,116 +136,9 @@ export default function EditHome(props?: HomeProps) {
     const [storageResultMessage, setStorageResultMessage] = useState("")
     const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>)=> {
         let resultMessage = ""
-        Promise.all([storePresentation(), storeStories()])
+       /* Promise.all([storePresentation(), storeStories()])
             .then((messages)=> messages.forEach((message)=> resultMessage += message + ":" ))
-            .finally(()=> setStorageResultMessage(resultMessage))
-    }
-
-   /* const storePresentation = async () => {
-        const operation = presentation ? "UPDATE" : "CREATE"
-
-        const {succeed, presentation: savedPresentation, errorMessage} = await putPresentation(presentation)
-        let message
-        if (succeed) {
-            message = `presentation ${operation}D`
-            setPresentation(savedPresentation as Presentation)
-        } else {
-            message = errorMessage || `could not ${operation} the presentation`
-        }
-
-        return message
-    }
-    const storeStories = ()=> {
-
-    }*/
-
-   /* const handleSavePresentation = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-
-        const operation = presentation.id ? "UPDATE" : "CREATE"
-
-        putPresentation(presentation).then(({succeed, presentation, errorMessage}) => {
-                if (succeed) {
-                    setEditPresentationMessage(`presentation ${operation}D`)
-                    if (presentation) {
-                        setPresentation(presentation)
-                    }
-                } else {
-                    setEditPresentationMessage(errorMessage || `could not ${operation} the presentation`)
-                }
-            }
-        )
-    }
-    const [editPresentationMessage, setEditPresentationMessage] = useState("")
-*/
-    const [selectedStory, setSelectedStory] = useState<StoryComponent>(emptyStory)
-    const creatingStory = selectedStory.id === undefined
-    const handleStorySelection = (e: React.MouseEvent<HTMLDivElement>, story: StoryComponent) => {
-        e.preventDefault()
-        setSelectedStory(story)
-    }
-    const setStoryProperty = (storyKey: keyof StoryComponent, propertyValue: string) => {
-        setSelectedStory((story) => {
-            const updatedStory = {...story}
-            updatedStory[storyKey] = propertyValue
-            return updatedStory
-        })
-    }
-    const handleSavedStory = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-
-        const isCreate = selectedStory.id === undefined
-        const operation = isCreate ? "CREATE" : "UPDATE"
-
-        putStory(selectedStory).then(({succeed, story, errorMessage}) => {
-                if (succeed) {
-                    setEditStoryMessage(`story ${operation}D`)
-                    if (story) {
-                        setSelectedStory(story)
-                        const updatedStories = isCreate ? [...stories, story] :
-                            () => {
-                                const auxStories = [...stories]
-                                auxStories.splice(stories.findIndex(s => s.id === story.id), 1, story)
-                                return auxStories
-                            }
-                        setStories(updatedStories)
-                    }
-                } else {
-                    setEditStoryMessage(errorMessage || `could not ${operation} the story`)
-                }
-            }
-        )
-    }
-    const handleNewStory = (e: React.MouseEvent<HTMLButtonElement>)=>{
-        e.preventDefault()
-        setSelectedStory(emptyStory)
-    }
-    const handleDeleteStory = async (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault()
-
-        if (selectedStory.id) {
-            deleteStory(selectedStory.id).then(({succeed, errorMessage}) => {
-                    if (succeed) {
-                        setStories((stories)=> {
-                            const updatedStories = [...stories]
-                            updatedStories.splice(stories.findIndex(s => s.id === selectedStory.id),1)
-                            return updatedStories
-                        })
-                        setSelectedStory(emptyStory)
-                        setEditStoryMessage("story deleted successfully")
-                    } else {
-                        setEditStoryMessage(errorMessage || "could not delete the story")
-                    }
-                }
-            )
-        }
-    }
-    const [editStoryMessage, setEditStoryMessage] = useState("")
-    const queueStoryImage = (image: File) => {
-
-    }
-    const removeStoryImage = (image: File) => {
-
+            .finally(()=> setStorageResultMessage(resultMessage))*/
     }
 
     const revalidateHomeProps = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -253,7 +165,8 @@ export default function EditHome(props?: HomeProps) {
     return (
         <Container ref={ref}>
             <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation}/>
-            <StoriesView editing stories={stories}/>
+            <StoriesView editing stories={stories} newStories={newStories} getHtmlElementIds={getStoryHtmlElementIds}
+                         getNewStoryWithId={getNewStoryWithId} onDeleteStory={onDeleteStory}/>
             {/*<PresentationForm onSubmit={handleSavePresentation}>
                 <TextInput width={300} value={presentation.name}
                            setValue={(value) => setPresentationProperty("name", value)}/>
