@@ -1,30 +1,45 @@
 import {PrismaClient} from "@prisma/client"
-import {HomeProps, Presentation, SetHomeProps, Story, NewStory} from "../types/Home"
+import {HomeProps, Presentation, SetHomeProps, Story, NewStory, HomePropsArgs} from "../types/Home"
 import {ObjectID} from "bson"
+
+type NormalizedHomeProps<T extends HomePropsArgs | null> = T extends HomePropsArgs ? HomeProps : HomeProps | undefined
 
 export class PropsStorageClient {
     private readonly prisma: PrismaClient
     private readonly homePropsId = new ObjectID("111111111111111111111111").toJSON()
     private readonly presentationId = new ObjectID("111111111111111111111111").toJSON()
-    private readonly selectPresentation = {select: {name: true, introduction: true}}
-    private readonly selectStory = {select: {id: true, title: true, body: true}}
-    private readonly selectHomeProps = {
-        stories: this.selectStory,
-        presentation: this.selectPresentation
+
+    static readonly selectPresentation = {select: {name: true, introduction: true}}
+    static readonly selectStory = {select: {id: true, title: true, body: true}}
+    static readonly selectHomeProps = {
+        select: {
+            stories: this.selectStory,
+            presentation: this.selectPresentation
+        }
     }
 
     constructor() {
         this.prisma = new PrismaClient()
     }
 
+    static #normalizeHomeProps<T extends HomePropsArgs | null>(homeProps: T): NormalizedHomeProps<T> {
+        let normalizedHomeProps: Record<string, any> | undefined
+        if (homeProps) {
+            normalizedHomeProps = {}
+            for (const [key, value] of Object.entries(homeProps)) {
+                normalizedHomeProps[key] = (value === null ? undefined : value)
+            }
+        } else {
+            normalizedHomeProps = undefined
+        }
+        return normalizedHomeProps as NormalizedHomeProps<T>
+    }
+
     async getHomeProps(): Promise<HomeProps | undefined> {
         return this.prisma.props.findUnique({
             where: {id: this.homePropsId},
-            include: this.selectHomeProps
-        }).then((props) => {
-            return props ? {presentation: props.presentation || undefined, stories: props.stories}
-                : undefined
-        })
+            ...PropsStorageClient.selectHomeProps
+        }).then(PropsStorageClient.#normalizeHomeProps)
     }
 
     async setPresentation(presentation: Presentation): Promise<Presentation> {
@@ -42,7 +57,7 @@ export class PropsStorageClient {
                     }
                 },
                 update: presentation,
-                ...this.selectPresentation
+                ...PropsStorageClient.selectPresentation
             }
         )
     }
@@ -51,7 +66,7 @@ export class PropsStorageClient {
             return this.prisma.story.update({
                 where: {id: story.id},
                 data: (({id, ...s}) => s)(story),
-                ...this.selectStory
+                ...PropsStorageClient.selectStory
             })
         } else {
             return this.prisma.story.create(
@@ -65,7 +80,7 @@ export class PropsStorageClient {
                             }
                         }
                     },
-                    ...this.selectStory
+                    ...PropsStorageClient.selectStory
                 }
             )
         }
@@ -76,7 +91,7 @@ export class PropsStorageClient {
     async setHomeProps({
                            presentation,
                            stories: {delete: deleteStories, new: newStories = [], update: updateStories} = {}
-                       }: SetHomeProps) {
+                       }: SetHomeProps) : Promise<HomeProps> {
         let createPresentation = undefined
         let upsertPresentation = undefined
         if (presentation) {
@@ -95,7 +110,7 @@ export class PropsStorageClient {
             }
         }
         let createManyStories = undefined
-        if (newStories) {
+        if (newStories && newStories.length > 0) {
             createManyStories = {
                 createMany: {
                     data: {
@@ -105,7 +120,7 @@ export class PropsStorageClient {
             }
         }
         let updateManyStories = undefined
-        if (updateStories) {
+        if (updateStories && updateStories.length > 0) {
             updateManyStories = {
                 updateMany: {
                     where: {
@@ -118,14 +133,13 @@ export class PropsStorageClient {
             }
         }
         let deleteManyStories = undefined
-        if (deleteStories) {
+        if (deleteStories && deleteStories.length > 0) {
             deleteManyStories = {
                 deleteMany: {
                     ...deleteStories
                 }
             }
         }
-
         return this.prisma.props.upsert(
             {
                 where: {id: this.homePropsId},
@@ -142,8 +156,8 @@ export class PropsStorageClient {
                         ...deleteManyStories,
                     }
                 },
-                include: this.selectHomeProps
+                ...PropsStorageClient.selectHomeProps
             }
-        )
+        ).then(PropsStorageClient.#normalizeHomeProps)
     }
 }

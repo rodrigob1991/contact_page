@@ -1,20 +1,20 @@
 import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../classes/PropsStorageClient"
-import {Presentation, SetHomeProps} from "../../../types/Home"
+import {HomeProps, SetHomeProps} from "../../../types/Home"
 import {AuthResponseBody} from "../_middleware"
-import {ApiParamsValidator} from "../../../classes/ApiParamsValidator";
+import {ApiParamsValidator} from "../../../classes/ApiParamsValidator"
 
 const HOME_PROPS_API_ROUTE = "/api/props/home"
 
 const URL = process.env.NEXT_PUBLIC_BASE_URL + HOME_PROPS_API_ROUTE
 
 type PutResponseBody = {
-    presentation?: Presentation
+    homeProps?: HomeProps
     errorMessage?: string
 }
 
 export const putHomeProps = async (homeProps: SetHomeProps) => {
-    const result: { succeed: boolean, presentation?: Presentation, errorMessage?: string } = {succeed: false}
+    const result: { succeed: boolean, homeProps?: HomeProps, errorMessage?: string } = {succeed: false}
 
     try {
         const response = await fetch(URL, {
@@ -33,7 +33,7 @@ export const putHomeProps = async (homeProps: SetHomeProps) => {
         } else {
             const putBody: PutResponseBody = await response.json()
             if (response.ok) {
-                result.presentation = putBody.presentation
+                result.homeProps = putBody.homeProps
             } else {
                 result.errorMessage = putBody.errorMessage
             }
@@ -60,12 +60,11 @@ export default async function handler(request: NextApiRequest, response: NextApi
             } else {
                 try {
                     const homeProps = await propsStorageClient.setHomeProps(params)
-                    homeProps.
                     httpCode = 200
-                    body = {homeProps: savedPresentation}
+                    body = {homeProps: homeProps}
                 } catch (e) {
                     httpCode = 500
-                    body = {errorMessage: "could not saved the presentation"}
+                    body = {errorMessage: "could not saved home props"}
                     console.error(e)
                 }
             }

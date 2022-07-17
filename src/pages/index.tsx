@@ -1,15 +1,15 @@
 import styled from "@emotion/styled"
 import {FormEvent, useState} from "react"
-import {HomeComponentProps, StoryComponent} from "../types/Home"
 import {PropsStorageClient} from "../classes/PropsStorageClient"
-import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import {MdForwardToInbox} from "react-icons/md"
 import Image from "next/image"
 import Link from "next/link"
 import {TextAreaInput, TextInput} from "../components/FormComponents"
 import {Button} from "../components/Buttons"
 import {SucceedOperationMessage} from "../components/Labels"
-import Clock from "../components/Clock";
+import {HomeProps} from "../types/Home";
+import PresentationView from "../components/home/PresentationView";
+import StoriesView from "../components/home/StoriesView";
 
 export const HOME_ROUTE = "/"
 
@@ -24,7 +24,7 @@ export async function getStaticProps() {
     return {props: homeProps}
 }
 
-export default function Home({presentation, stories}: HomeComponentProps) {
+export default function Home({presentation, stories}: HomeProps) {
     const [showSendMessageModal, setShowSendMessageModal] = useState(false)
     const [fromEmail, setFromEmail] = useState("")
     const [subjectEmail, setSubjectEmail] = useState("")
@@ -70,7 +70,7 @@ export default function Home({presentation, stories}: HomeComponentProps) {
         })
     }
 
-    const [storiesWithState, setStoriesWithState] = useState(stories.map((story) => {
+   /* const [storiesWithState, setStoriesWithState] = useState(stories.map((story) => {
         return {story: story, isOpen: false}
     }))
 
@@ -104,7 +104,7 @@ export default function Home({presentation, stories}: HomeComponentProps) {
             }
             </StoryView>
         )
-    }
+    }*/
   return (
       <Container>
           <SendMessageModal onSubmit={handleSendEmail} display={showSendMessageModal}>
@@ -126,9 +126,11 @@ export default function Home({presentation, stories}: HomeComponentProps) {
                   <MdForwardToInbox size={70} style={{cursor: "pointer", paddingLeft: 20, paddingTop: 25}} onClick={(e)=> setShowSendMessageModal(!showSendMessageModal)}/>
               </ContactLinksContainer>
           </Header>
-          <PresentationContainer>
+          <PresentationView presentation={presentation || {name:"", introduction: ""}}/>
+          <StoriesView stories={stories}/>
+          {/*<PresentationContainer>
               <PresentationNameImageContainer>
-               {/*   <Image src="/yo.jpeg" width="100" height="100"/>*/}
+                  <Image src="/yo.jpeg" width="100" height="100"/>
                   <PresentationName>
                       {presentation?.name}
                   </PresentationName>
@@ -141,7 +143,7 @@ export default function Home({presentation, stories}: HomeComponentProps) {
         <StoryContainer>
             <StoryContainerTitle>STORIES</StoryContainerTitle>
           {storiesWithState.map(({story, isOpen}, index) => getStoryView(story, index, isOpen))}
-        </StoryContainer>
+        </StoryContainer>*/}
           <Footer>
 
           </Footer>

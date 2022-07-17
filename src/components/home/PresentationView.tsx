@@ -5,7 +5,6 @@ type EditingProps = {
     editing: true
     htmlElementIds: PresentationHTMLElementIds
 }
-
 type Props<VM extends ViewMode> = {
     presentation: Presentation
 } & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})

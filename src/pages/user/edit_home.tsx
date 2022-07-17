@@ -1,22 +1,22 @@
 import styled from "@emotion/styled"
-import React, {FormEvent, useEffect, useRef, useState} from "react"
+import React, {useEffect, useRef, useState} from "react"
 import {
     HomeProps,
+    NewStory,
     Presentation,
     PresentationHTMLElementIds,
     Story,
-    StoryHTMLElementIds,
-    NewStory
+    StoryHTMLElementIds
 } from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../classes/PropsStorageClient"
-import {deleteStory, putStory} from "../api/props/home/story"
 import {Button} from "../../components/Buttons"
 import {Container} from "../../components/home/Layout"
 import PresentationView from "../../components/home/PresentationView"
 import StoriesView from "../../components/home/StoriesView"
 import {getContainedString} from "../../utils/StringFunctions"
+import {putHomeProps} from "../api/props/home";
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -31,11 +31,7 @@ export default function EditHome(props?: HomeProps) {
     const emptyPresentation: Presentation = {name: "", introduction: ""}
     const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
     const setPresentationProperty = (presentationKey: keyof Presentation, propertyValue: string) => {
-        setPresentation((p)=> {
-            const updatedPresentation = {...p}
-            updatedPresentation[presentationKey] = propertyValue
-            return updatedPresentation
-        })
+        presentation[presentationKey] = propertyValue
     }
     const presentationHtmlElementIdsPrefix = "presentation"
     const presentationHtmlElementIds: PresentationHTMLElementIds = (() => {
@@ -49,21 +45,13 @@ export default function EditHome(props?: HomeProps) {
     const emptyStory: Story = {id: "", title: "", body: ""}
     const [stories, setStories] = useState(props?.stories || [])
     const updateStories = (storyId: string, key: keyof NewStory, value: string) => {
-        setStories((stories) => {
-            const storyToUpdateIndex = stories.findIndex((s) => s.id === storyId)
-            const updatedStories = [...stories]
-            updatedStories[storyToUpdateIndex][key] = value
-            return updatedStories
-        })
+        const storyToUpdateIndex = stories.findIndex((s) => s.id === storyId)
+        stories[storyToUpdateIndex][key] = value
     }
     const [newStories, setNewStories] = useState<NewStory[]>([])
     const updateNewStories = (id: string, key: keyof NewStory, value: string) => {
-        setNewStories((newStories) => {
-            const storyToUpdateIndex = getIndexFromNewStoryId(id)
-            const updatedStories = [...newStories]
-            updatedStories[storyToUpdateIndex][key] = value
-            return updatedStories
-        })
+        const storyToUpdateIndex = getIndexFromNewStoryId(id)
+        newStories[storyToUpdateIndex][key] = value
     }
     const getIndexFromNewStoryId = (id: string) => {
         return parseInt(getContainedString(id, "-"))
@@ -116,16 +104,18 @@ export default function EditHome(props?: HomeProps) {
         const observer = new MutationObserver(
             (mutationList, observer) => {
                 for (const mutation of mutationList) {
-                    const htmlElementId = (mutation.target.parentElement as HTMLElement).id
-                    const newPropertyValue = mutation.target.textContent as string
+                    const htmlElement = mutation.target.parentElement
+                    if (htmlElement) {
+                        const htmlElementId = htmlElement.id
+                        const newPropertyValue = mutation.target.textContent as string
 
-                    if (htmlElementId.startsWith(presentationHtmlElementIdsPrefix)){
-                        updatePresentation(htmlElementId, newPropertyValue)
+                        if (htmlElementId.startsWith(presentationHtmlElementIdsPrefix)) {
+                            updatePresentation(htmlElementId, newPropertyValue)
+                        } else if (htmlElementId.startsWith(storyHtmlElementIdsPrefix)) {
+                            updateStory(htmlElementId, newPropertyValue)
+                        }
+                        console.table(mutation)
                     }
-                    else if (htmlElementId.startsWith(storyHtmlElementIdsPrefix)) {
-                        updateStory(htmlElementId, newPropertyValue)
-                    }
-                    console.table(mutation)
                 }
             })
         observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true})
@@ -134,11 +124,21 @@ export default function EditHome(props?: HomeProps) {
     }, [])
 
     const [storageResultMessage, setStorageResultMessage] = useState("")
-    const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>)=> {
-        let resultMessage = ""
-       /* Promise.all([storePresentation(), storeStories()])
-            .then((messages)=> messages.forEach((message)=> resultMessage += message + ":" ))
-            .finally(()=> setStorageResultMessage(resultMessage))*/
+    const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
+        putHomeProps({presentation: presentation, stories: {new: newStories, delete: deleteStories}})
+            .then(({succeed, homeProps: {presentation, stories} = {}, errorMessage}) => {
+                let resultMessage = ""
+                if (succeed) {
+                    resultMessage = "home props successfully stored"
+                    setPresentation(presentation || emptyPresentation)
+                    setStories(stories || [])
+                    setNewStories([])
+                    setDeleteStories([])
+                } else {
+                    resultMessage = errorMessage || "home props could not be stored"
+                }
+                setStorageResultMessage(resultMessage)
+            })
     }
 
     const revalidateHomeProps = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -210,7 +210,10 @@ export default function EditHome(props?: HomeProps) {
                 <Button onClick={storeHomeProps}> STORE </Button>
                 <Button onClick={revalidateHomeProps}> REVALIDATE </Button>
             </ButtonsContainer>
-            {storageResultMessage + " " + revalidationResultMessage}
+            <OperationMessagesContainer>
+                <OperationMessage>{storageResultMessage}</OperationMessage>
+                <OperationMessage>{revalidationResultMessage}</OperationMessage>
+            </OperationMessagesContainer>
         </Container>
     )
 }
@@ -219,9 +222,21 @@ const ButtonsContainer = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: center;
-  padding: 50px;
+  padding-top: 20px;
   gap: 20px;
 `
+const OperationMessagesContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  gap: 10px;
+`
+const OperationMessage = styled.text`
+  font-weight: bold;
+  font-size: 20px;
+  color: #00008B;
+    `
 const StoryContainer = styled.div`
   align-items: left;
   display: flex;

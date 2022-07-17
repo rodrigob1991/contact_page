@@ -1,12 +1,10 @@
 import {Prisma} from '@prisma/client'
 import {ChangePropertiesType} from "../utils/Types"
+import {PropsStorageClient} from "../classes/PropsStorageClient"
 
-const propsArgs = Prisma.validator<Prisma.PropsArgs>()({
-    include: {presentation: true, stories: true},
-})
-export type PropsArgs = Prisma.PropsGetPayload<typeof propsArgs>
-type OmitHomeProps = Pick<PropsArgs, "presentationId" | "id">
-export type HomeProps = ChangePropertiesType<Omit<PropsArgs, keyof OmitHomeProps>, [["stories", Story[]],["presentation", Presentation | undefined]]>
+const homePropsArgs = Prisma.validator<Prisma.PropsArgs>()(PropsStorageClient.selectHomeProps)
+export type HomePropsArgs = Prisma.PropsGetPayload<typeof homePropsArgs>
+export type HomeProps = ChangePropertiesType<HomePropsArgs, [["stories", Story[]],["presentation", Presentation | undefined]]>
 type StoryOperations = { new?: NewStory[], update?: Story[], delete?: Story[] }
 type HomePropsPresentation = Pick<HomeProps, "presentation">
 type SetHomePropsPresentation = {[K in keyof HomePropsPresentation]?: Presentation}
@@ -14,15 +12,16 @@ type HomePropsStories = Pick<HomeProps, "stories">
 type SetHomePropsStories = {[K in keyof HomePropsStories]? : StoryOperations}
 export type SetHomeProps = SetHomePropsPresentation & SetHomePropsStories
 
-type StoryArgs = Prisma.StoryGetPayload<Prisma.StoryArgs>
-export type Story = Omit<StoryArgs, keyof Pick<StoryArgs, "propsId">>
+const storyArgs = Prisma.validator<Prisma.StoryArgs>()(PropsStorageClient.selectStory)
+type StoryArgs = Prisma.StoryGetPayload<typeof storyArgs>
+export type Story = StoryArgs
 type OmitStory = Pick<Story, "id">
 export type NewStory = Omit<Story, keyof OmitStory>
 export type StoryHTMLElementIds = {[K in keyof NewStory as `${K}`] : NewStory[K]}
 
-type PresentationArgs = Prisma.PresentationGetPayload<Prisma.PresentationArgs>
-type OmitPresentation = Pick<PresentationArgs, "id">
-export type Presentation = Omit<PresentationArgs, keyof OmitPresentation>
+const presentationArgs = Prisma.validator<Prisma.PresentationArgs>()(PropsStorageClient.selectPresentation)
+type PresentationArgs = Prisma.PresentationGetPayload<typeof presentationArgs>
+export type Presentation = PresentationArgs
 export type PresentationHTMLElementIds = {[K in keyof Presentation as `${K}`] : Presentation[K]}
 
 export type ViewMode =  "editing" | "reading"
