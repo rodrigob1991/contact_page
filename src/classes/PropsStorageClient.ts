@@ -90,8 +90,9 @@ export class PropsStorageClient {
     }
     async setHomeProps({
                            presentation,
-                           stories: {delete: deleteStories, new: newStories = [], update: updateStories} = {}
+                           stories: {delete: deleteStories, new: newStories, update: updateStories} = {}
                        }: SetHomeProps) : Promise<HomeProps> {
+        console.table(updateStories)
         let createPresentation = undefined
         let upsertPresentation = undefined
         if (presentation) {
@@ -113,30 +114,23 @@ export class PropsStorageClient {
         if (newStories && newStories.length > 0) {
             createManyStories = {
                 createMany: {
-                    data: {
-                        ...newStories
-                    },
+                    data: newStories
                 }
             }
         }
         let updateManyStories = undefined
         if (updateStories && updateStories.length > 0) {
             updateManyStories = {
-                updateMany: {
-                    where: {
-                        propsId: this.homePropsId
-                    },
-                    data: {
-                        ...updateStories
-                    }
-                }
+                update: updateStories.map((s) => {
+                    return {where: {id: s.id}, data: (({id, ...s}) => s)(s)}
+                })
             }
         }
         let deleteManyStories = undefined
         if (deleteStories && deleteStories.length > 0) {
             deleteManyStories = {
                 deleteMany: {
-                    ...deleteStories
+                    id: {in: deleteStories},
                 }
             }
         }
@@ -153,7 +147,7 @@ export class PropsStorageClient {
                     stories: {
                         ...createManyStories,
                         ...updateManyStories,
-                        ...deleteManyStories,
+                        ...deleteManyStories
                     }
                 },
                 ...PropsStorageClient.selectHomeProps

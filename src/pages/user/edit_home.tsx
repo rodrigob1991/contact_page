@@ -16,7 +16,7 @@ import {Container} from "../../components/home/Layout"
 import PresentationView from "../../components/home/PresentationView"
 import StoriesView from "../../components/home/StoriesView"
 import {getContainedString} from "../../utils/StringFunctions"
-import {putHomeProps} from "../api/props/home";
+import {putHomeProps} from "../api/props/home"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -31,7 +31,11 @@ export default function EditHome(props?: HomeProps) {
     const emptyPresentation: Presentation = {name: "", introduction: ""}
     const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
     const setPresentationProperty = (presentationKey: keyof Presentation, propertyValue: string) => {
-        presentation[presentationKey] = propertyValue
+        setPresentation((p) => {
+            const updatedPresentation = {...p}
+            updatedPresentation[presentationKey] = propertyValue
+            return updatedPresentation
+        })
     }
     const presentationHtmlElementIdsPrefix = "presentation"
     const presentationHtmlElementIds: PresentationHTMLElementIds = (() => {
@@ -46,17 +50,25 @@ export default function EditHome(props?: HomeProps) {
     const [stories, setStories] = useState(props?.stories || [])
     const updateStories = (storyId: string, key: keyof NewStory, value: string) => {
         const storyToUpdateIndex = stories.findIndex((s) => s.id === storyId)
-        stories[storyToUpdateIndex][key] = value
+        setStories((stories)=> {
+            const updatedStories = [...stories]
+            updatedStories[storyToUpdateIndex][key] = value
+            return updatedStories
+        })
     }
     const [newStories, setNewStories] = useState<NewStory[]>([])
     const updateNewStories = (id: string, key: keyof NewStory, value: string) => {
         const storyToUpdateIndex = getIndexFromNewStoryId(id)
-        newStories[storyToUpdateIndex][key] = value
+        setNewStories((newStories) => {
+            const updatedNewStories = [...stories]
+            updatedNewStories[storyToUpdateIndex][key] = value
+            return updatedNewStories
+        })
     }
     const getIndexFromNewStoryId = (id: string) => {
         return parseInt(getContainedString(id, "-"))
     }
-    const [deleteStories, setDeleteStories] = useState<Story[]>([])
+    const [deleteStoriesId, setDeleteStoriesId] = useState<string[]>([])
     const onDeleteStory = (id: string) => {
         if (isNewStory(id)) {
             setNewStories((newStories) => {
@@ -65,8 +77,7 @@ export default function EditHome(props?: HomeProps) {
                 return updatedNewStories
             })
         } else {
-            const storyToDelete = stories.find((s) => s.id === id) as Story
-            setDeleteStories([...deleteStories, storyToDelete])
+            setDeleteStoriesId([...deleteStoriesId, id])
         }
     }
     const getNewStoryWithId = (s: NewStory, index: number) => {
@@ -86,21 +97,20 @@ export default function EditHome(props?: HomeProps) {
 
     const ref = useRef<HTMLDivElement>(null)
 
+    const updatePresentation = (htmlElementId: string, newPropertyValue: string) => {
+        const key = getContainedString(htmlElementId, "-") as keyof Presentation
+        setPresentationProperty(key, newPropertyValue)
+    }
+    const updateStory = (htmlElementId: string, newPropertyValue: string) => {
+        const storyId = getContainedString(htmlElementId, "{", "}")
+        const key = getContainedString(htmlElementId, "}") as keyof NewStory
+        if (isNewStory(storyId)) {
+            updateNewStories(storyId, key, newPropertyValue)
+        } else {
+            updateStories(storyId, key, newPropertyValue)
+        }
+    }
     useEffect(() => {
-        const updatePresentation = (htmlElementId: string, newPropertyValue: string) => {
-            const key = getContainedString(htmlElementId, "-") as keyof Presentation
-            setPresentationProperty(key, newPropertyValue)
-        }
-        const updateStory = (htmlElementId: string, newPropertyValue: string) => {
-            const storyId = getContainedString(htmlElementId, "{", "}")
-            const key = getContainedString(htmlElementId, "}") as keyof NewStory
-            if (isNewStory(storyId)) {
-                updateNewStories(storyId, key, newPropertyValue)
-            } else {
-                updateStories(storyId, key, newPropertyValue)
-            }
-        }
-
         const observer = new MutationObserver(
             (mutationList, observer) => {
                 for (const mutation of mutationList) {
@@ -125,15 +135,20 @@ export default function EditHome(props?: HomeProps) {
 
     const [storageResultMessage, setStorageResultMessage] = useState("")
     const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
-        putHomeProps({presentation: presentation, stories: {new: newStories, delete: deleteStories}})
+        const params = {
+            presentation: presentation,
+            stories: {new: newStories, update: stories, delete: deleteStoriesId}
+        }
+        console.table(stories)
+        putHomeProps(params)
             .then(({succeed, homeProps: {presentation, stories} = {}, errorMessage}) => {
-                let resultMessage = ""
+                let resultMessage
                 if (succeed) {
                     resultMessage = "home props successfully stored"
                     setPresentation(presentation || emptyPresentation)
                     setStories(stories || [])
                     setNewStories([])
-                    setDeleteStories([])
+                    setDeleteStoriesId([])
                 } else {
                     resultMessage = errorMessage || "home props could not be stored"
                 }
@@ -141,7 +156,7 @@ export default function EditHome(props?: HomeProps) {
             })
     }
 
-    const revalidateHomeProps = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    const revalidateHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
         revalidatePages([RevalidationRouteId.HOME])
             .then(({
                        succeed,

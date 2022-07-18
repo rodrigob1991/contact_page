@@ -18,6 +18,7 @@ type Props<M extends ViewMode> = {
 } & (M extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
 export default function StoriesView<M extends ViewMode>({editing, stories, newStories,getNewStoryWithId, getHtmlElementIds, onDeleteStory}: Props<M>) {
+    console.log("STORIES RENDERING")
     type StoryVisibility = { story: Story, isOpen: boolean}
 
     const [storiesVisibility, setStoriesVisibility] = useState(stories.map<StoryVisibility>((s) => {
@@ -73,7 +74,7 @@ export default function StoriesView<M extends ViewMode>({editing, stories, newSt
                 </StoryOpenCloseIcon>
             </StoryTitleView>
         return (
-            <StoryView>{
+            <StoryView key={id}>{
                 isOpen ?
                     <StoryOpenView>
                         {storyTitle}

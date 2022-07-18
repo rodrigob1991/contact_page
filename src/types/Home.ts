@@ -5,7 +5,7 @@ import {PropsStorageClient} from "../classes/PropsStorageClient"
 const homePropsArgs = Prisma.validator<Prisma.PropsArgs>()(PropsStorageClient.selectHomeProps)
 export type HomePropsArgs = Prisma.PropsGetPayload<typeof homePropsArgs>
 export type HomeProps = ChangePropertiesType<HomePropsArgs, [["stories", Story[]],["presentation", Presentation | undefined]]>
-type StoryOperations = { new?: NewStory[], update?: Story[], delete?: Story[] }
+type StoryOperations = { new?: NewStory[], update?: Story[], delete?: string[] }
 type HomePropsPresentation = Pick<HomeProps, "presentation">
 type SetHomePropsPresentation = {[K in keyof HomePropsPresentation]?: Presentation}
 type HomePropsStories = Pick<HomeProps, "stories">
