@@ -29,13 +29,18 @@ export async function getServerSideProps() {
 
 export default function EditHome(props?: HomeProps) {
     const emptyPresentation: Presentation = {name: "", introduction: ""}
-    const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
+    const presentation = useRef(props?.presentation || emptyPresentation)
+    const getPresentation = ()=> presentation.current
+    const setPresentation = (p: Presentation) => {
+        presentation.current = p
+    }
     const setPresentationProperty = (presentationKey: keyof Presentation, propertyValue: string) => {
-        setPresentation((p) => {
+        /*setPresentation((p) => {
             const updatedPresentation = {...p}
             updatedPresentation[presentationKey] = propertyValue
             return updatedPresentation
-        })
+        })*/
+        getPresentation()[presentationKey] = propertyValue
     }
     const presentationHtmlElementIdsPrefix = "presentation"
     const presentationHtmlElementIds: PresentationHTMLElementIds = (() => {
@@ -48,27 +53,39 @@ export default function EditHome(props?: HomeProps) {
 
     const emptyStory: Story = {id: "", title: "", body: ""}
     const [stories, setStories] = useState(props?.stories || [])
-    const updateStories = (storyId: string, key: keyof NewStory, value: string) => {
+    const savedStories = useRef<Story[]>(props?.stories || [])
+    const getSavedStories = () => savedStories.current
+    const setSavedStories = (ns: Story[]) => {
+        savedStories.current = ns
+    }
+    const updateSavedStories = (storyId: string, key: keyof NewStory, value: string) => {
         const storyToUpdateIndex = stories.findIndex((s) => s.id === storyId)
-        setStories((stories)=> {
+        /*setStories((stories) => {
             const updatedStories = [...stories]
             updatedStories[storyToUpdateIndex][key] = value
             return updatedStories
-        })
+        })*/
+        getSavedStories()[storyToUpdateIndex][key] = value
     }
-    const [newStories, setNewStories] = useState<NewStory[]>([])
+    const newStories = useRef<NewStory[]>([])
+    const getNewStories = () => newStories.current
+    const setNewStories = (ns: NewStory[]) => {newStories.current = ns}
     const updateNewStories = (id: string, key: keyof NewStory, value: string) => {
         const storyToUpdateIndex = getIndexFromNewStoryId(id)
-        setNewStories((newStories) => {
+       /* setNewStories((newStories) => {
             const updatedNewStories = [...stories]
             updatedNewStories[storyToUpdateIndex][key] = value
             return updatedNewStories
-        })
+        })*/
+        getNewStories()[storyToUpdateIndex][key] = value
     }
     const getIndexFromNewStoryId = (id: string) => {
         return parseInt(getContainedString(id, "-"))
     }
-    const [deleteStoriesId, setDeleteStoriesId] = useState<string[]>([])
+    const deleteStoriesId = useRef<string[]>([])
+    const setDeleteStoriesId = (ids: string[])=> {
+        deleteStoriesId.current = ids
+    }
     const onDeleteStory = (id: string) => {
         if (isNewStory(id)) {
             setNewStories((newStories) => {
@@ -80,8 +97,10 @@ export default function EditHome(props?: HomeProps) {
             setDeleteStoriesId([...deleteStoriesId, id])
         }
     }
-    const getNewStoryWithId = (s: NewStory, index: number) => {
-        return {id: "-" + index, ...s}
+    const getNewStory = () => {
+        const newStory = {title: "title", body: "body"}
+        const index = newStories.current.push(newStory) - 1
+        return {id: "-" + index, ...newStory}
     }
     const isNewStory = (id: string) => {
         return id.startsWith("-")
@@ -97,20 +116,20 @@ export default function EditHome(props?: HomeProps) {
 
     const ref = useRef<HTMLDivElement>(null)
 
-    const updatePresentation = (htmlElementId: string, newPropertyValue: string) => {
-        const key = getContainedString(htmlElementId, "-") as keyof Presentation
-        setPresentationProperty(key, newPropertyValue)
-    }
-    const updateStory = (htmlElementId: string, newPropertyValue: string) => {
-        const storyId = getContainedString(htmlElementId, "{", "}")
-        const key = getContainedString(htmlElementId, "}") as keyof NewStory
-        if (isNewStory(storyId)) {
-            updateNewStories(storyId, key, newPropertyValue)
-        } else {
-            updateStories(storyId, key, newPropertyValue)
-        }
-    }
     useEffect(() => {
+        const updatePresentation = (htmlElementId: string, newPropertyValue: string) => {
+            const key = getContainedString(htmlElementId, "-") as keyof Presentation
+            setPresentationProperty(key, newPropertyValue)
+        }
+        const updateStory = (htmlElementId: string, newPropertyValue: string) => {
+            const storyId = getContainedString(htmlElementId, "{", "}")
+            const key = getContainedString(htmlElementId, "}") as keyof NewStory
+            if (isNewStory(storyId)) {
+                updateNewStories(storyId, key, newPropertyValue)
+            } else {
+                updateStories(storyId, key, newPropertyValue)
+            }
+        }
         const observer = new MutationObserver(
             (mutationList, observer) => {
                 for (const mutation of mutationList) {
@@ -135,12 +154,11 @@ export default function EditHome(props?: HomeProps) {
 
     const [storageResultMessage, setStorageResultMessage] = useState("")
     const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
-        const params = {
-            presentation: presentation,
-            stories: {new: newStories, update: stories, delete: deleteStoriesId}
-        }
         console.table(stories)
-        putHomeProps(params)
+        putHomeProps( {
+            presentation: presentation.current,
+            stories: {new: newStories.current, update: stories, delete: deleteStoriesId}
+        })
             .then(({succeed, homeProps: {presentation, stories} = {}, errorMessage}) => {
                 let resultMessage
                 if (succeed) {
@@ -179,9 +197,9 @@ export default function EditHome(props?: HomeProps) {
 
     return (
         <Container ref={ref}>
-            <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation}/>
-            <StoriesView editing stories={stories} newStories={newStories} getHtmlElementIds={getStoryHtmlElementIds}
-                         getNewStoryWithId={getNewStoryWithId} onDeleteStory={onDeleteStory}/>
+            <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation.current}/>
+            <StoriesView editing stories={stories} getHtmlElementIds={getStoryHtmlElementIds}
+                         getNewStory={getNewStory} onDeleteStory={onDeleteStory}/>
             {/*<PresentationForm onSubmit={handleSavePresentation}>
                 <TextInput width={300} value={presentation.name}
                            setValue={(value) => setPresentationProperty("name", value)}/>

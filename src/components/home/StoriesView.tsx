@@ -3,13 +3,14 @@ import React, {useState} from "react"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import styled from "@emotion/styled"
 
+type StoryVisibility = { story: Story, isOpen: boolean}
+
 type GetHtmlElementIds = (id: string) => StoryHTMLElementIds
-type GetNewStoryWithId = (s: NewStory, index: number) => Story
+type GetNewStory = () => Story
 type OnDeleteStory = (id: string) => void
 type EditingProps = {
     editing: true
-    newStories: NewStory[]
-    getNewStoryWithId: GetNewStoryWithId
+    getNewStory: GetNewStory
     getHtmlElementIds: GetHtmlElementIds
     onDeleteStory : OnDeleteStory
 }
@@ -17,47 +18,42 @@ type Props<M extends ViewMode> = {
     stories: Story[]
 } & (M extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
-export default function StoriesView<M extends ViewMode>({editing, stories, newStories,getNewStoryWithId, getHtmlElementIds, onDeleteStory}: Props<M>) {
-    console.log("STORIES RENDERING")
-    type StoryVisibility = { story: Story, isOpen: boolean}
-
+export default function StoriesView<M extends ViewMode>({editing, stories,getNewStory, getHtmlElementIds, onDeleteStory}: Props<M>) {
     const [storiesVisibility, setStoriesVisibility] = useState(stories.map<StoryVisibility>((s) => {
         return {story: s, isOpen: false}
-    }).concat(newStories ? newStories.map((ns, index) => {
-        return {story: (getNewStoryWithId as GetNewStoryWithId)(ns,index), isOpen: false}
-    }) : []))
-
+    }))
+    const addNewStory = () => {
+        setStoriesVisibility((sv) => {
+                return [...sv, {story: (getNewStory as GetNewStory)(), isOpen: true}]
+            }
+        )
+    }
     const openOrCloseStory = (index: number) => {
         const updatedStoriesVisibility = [...storiesVisibility]
         updatedStoriesVisibility[index].isOpen = !updatedStoriesVisibility[index].isOpen
         setStoriesVisibility(updatedStoriesVisibility)
     }
-
     const getStoryView = (storyVisibility: StoryVisibility, index: number) => {
-        const {story : {title, body}, isOpen} = storyVisibility
+        const {story : {id, title, body}, isOpen} = storyVisibility
 
         const storyTitle =
             <StoryTitleView>
                 <StoryTitle>{title}</StoryTitle>
-                <StoryOpenCloseIcon onClick={(e => openOrCloseStory(index))}>
-                    {isOpen ? <BsChevronDoubleUp/>
-                        :
-                        <BsChevronDoubleDown/>}
-                </StoryOpenCloseIcon>
+                <StoryOpenCloseIcon onClick={(e => openOrCloseStory(index))}>{
+                    isOpen ? <BsChevronDoubleUp/>
+                        : <BsChevronDoubleDown/>
+                }</StoryOpenCloseIcon>
             </StoryTitleView>
         return (
-            <StoryView>{
-                isOpen ?
-                    <StoryOpenView>
-                        {storyTitle}
-                        <StoryBody>
-                            {body}
-                        </StoryBody>
-                    </StoryOpenView>
-                    :
-                    storyTitle
-            }
-            </StoryView>
+            <StoryView key={id}>{
+                isOpen ? <StoryOpenView>
+                            {storyTitle}
+                            <StoryBody>
+                                {body}
+                            </StoryBody>
+                        </StoryOpenView>
+                    : storyTitle
+            }</StoryView>
         )
     }
     const getEditableStoryView = (storyVisibility: StoryVisibility, index: number) => {
@@ -67,40 +63,38 @@ export default function StoriesView<M extends ViewMode>({editing, stories, newSt
         const storyTitle =
             <StoryTitleView>
                 <StoryTitle id={htmlIds.title} contentEditable={editing}>{title}</StoryTitle>
-                <StoryOpenCloseIcon onClick={(e => openOrCloseStory(index))}>
-                    {isOpen ? <BsChevronDoubleUp/>
-                        :
-                        <BsChevronDoubleDown/>}
-                </StoryOpenCloseIcon>
+                <StoryOpenCloseIcon onClick={(e => openOrCloseStory(index))}>{
+                    isOpen ? <BsChevronDoubleUp/>
+                        : <BsChevronDoubleDown/>
+                }</StoryOpenCloseIcon>
             </StoryTitleView>
         return (
             <StoryView key={id}>{
-                isOpen ?
-                    <StoryOpenView>
-                        {storyTitle}
-                        <StoryBody id={htmlIds.body} contentEditable={editing}>
-                            {body}
-                        </StoryBody>
-                    </StoryOpenView>
-                    :
-                    storyTitle
-            }
-            </StoryView>
+                isOpen ? <StoryOpenView>
+                            {storyTitle}
+                            <StoryBody id={htmlIds.body} contentEditable={editing}>
+                                {body}
+                            </StoryBody>
+                        </StoryOpenView>
+                    : storyTitle
+            }</StoryView>
         )
     }
     return (
         <Container>
-            <StoryContainerTitle>STORIES</StoryContainerTitle>
+            <StoriesTitle>STORIES</StoriesTitle>
+            <ul>
             {storiesVisibility
                 .map((sv, index) =>
                     editing ? getEditableStoryView(sv, index) : getStoryView(sv, index)
                 )
             }
+            </ul>
         </Container>
     )
 }
 
-const StoryContainerTitle = styled.div`
+const StoriesTitle = styled.text`
   color: #FFFFFF;
   text-decoration-style: solid;
   text-shadow: 2px 2px 5px #000000;
@@ -121,8 +115,9 @@ const Container = styled.div`
   padding-top: 15px;
   padding-bottom: 15px;
     `
-const StoryView = styled.div`
-  padding: 15px;
+const StoryView = styled.li`
+  list-style-type: none;
+  padding-bottom: 15px;
 `
 const StoryBody = styled.span`
   color: #FFD700;

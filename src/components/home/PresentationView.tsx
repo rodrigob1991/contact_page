@@ -14,11 +14,11 @@ export default function PresentationView<VM extends ViewMode>({
                                              presentation: {name, introduction},
                                              htmlElementIds
                                          }: Props<VM>) {
-
     return (
         <PresentationContainer>
             <PresentationNameImageContainer>
                 {/*   <Image src="/yo.jpeg" width="100" height="100"/>*/}
+
                 <PresentationName id={htmlElementIds?.name} contentEditable={editing}>
                     {name}
                 </PresentationName>
@@ -40,6 +40,7 @@ const PresentationContainer = styled.div`
   box-shadow: 5px 10px #888888;
     `
 const PresentationName = styled.span`
+  display: inline-block;
   color: #FFFFFF;
   text-decoration-color: #FFFFFF;
   text-decoration-line: underline;
