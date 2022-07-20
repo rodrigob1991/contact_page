@@ -30,7 +30,7 @@ export async function getServerSideProps() {
 export default function EditHome(props?: HomeProps) {
     const emptyPresentation: Presentation = {name: "", introduction: ""}
     const presentation = useRef(props?.presentation || emptyPresentation)
-    const getPresentation = ()=> presentation.current
+    const getPresentation = () => presentation.current
     const setPresentation = (p: Presentation) => {
         presentation.current = p
     }
@@ -64,7 +64,9 @@ export default function EditHome(props?: HomeProps) {
     const newStoryIdPrefix = "-"
     const newStories = useRef<(NewStory | null)[]>([])
     const getNewStories = () => newStories.current
-    const setNewStories = (ns: NewStory[]) => {newStories.current = ns}
+    const setNewStories = (ns: NewStory[]) => {
+        newStories.current = ns
+    }
     const removeNewStory = (id: string) => {
         getNewStories().splice(getIndexFromNewStoryId(id), 0, null)
     }
@@ -90,27 +92,22 @@ export default function EditHome(props?: HomeProps) {
     }
     const deleteStoriesId = useRef<string[]>([])
     const getDeleteStoriesId = () => deleteStoriesId.current
-    const setDeleteStoriesId = (ids: string[])=> {
+    const setDeleteStoriesId = (ids: string[]) => {
         deleteStoriesId.current = ids
     }
-    const setDeleteStoryId = (id: string) => {
+    const addDeleteStoryId = (id: string) => {
         getDeleteStoriesId().push(id)
     }
     const onDeleteStory = (id: string) => {
         if (isNewStory(id)) {
-            /*setNewStories((newStories) => {
-                const updatedNewStories = [...newStories]
-                updatedNewStories.splice(getIndexFromNewStoryId(id), 1)
-                return updatedNewStories
-            })*/
             removeNewStory(id)
         } else {
             removeSavedStory(id)
-            setDeleteStoryId(id)
+            addDeleteStoryId(id)
         }
     }
     const storyHtmlElementIdsPrefix = "story"
-    const getStoryHtmlElementIds = (storyId: string ) => {
+    const getStoryHtmlElementIds = (storyId: string) => {
         const htmlElementIds: Record<string, string> = {}
         for (const key in emptyStory) {
             htmlElementIds[key] = `${storyHtmlElementIdsPrefix}{${storyId}}${key}`
@@ -158,22 +155,23 @@ export default function EditHome(props?: HomeProps) {
 
     const [storageResultMessage, setStorageResultMessage] = useState("")
     const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
-        putHomeProps( {
+        putHomeProps({
             presentation: getPresentation(),
             stories: {new: getNotNullsNewStories(), update: stories, delete: getDeleteStoriesId()}
         }).then(({succeed, homeProps: {presentation, stories} = {}, errorMessage}) => {
-                let resultMessage
-                if (succeed) {
-                    resultMessage = "home props successfully stored"
-                    setPresentation(presentation || emptyPresentation)
-                    setStories(stories || [])
-                    setNewStories([])
-                    setDeleteStoriesId([])
-                } else {
-                    resultMessage = errorMessage || "home props could not be stored"
-                }
-                setStorageResultMessage(resultMessage)
-            })
+            let resultMessage
+            if (succeed) {
+                resultMessage = "home props successfully stored"
+                setPresentation(presentation || emptyPresentation)
+                //setStories(stories || [])
+                setSavedStories(stories || [])
+                setNewStories([])
+                setDeleteStoriesId([])
+            } else {
+                resultMessage = errorMessage || "home props could not be stored"
+            }
+            setStorageResultMessage(resultMessage)
+        })
     }
 
     const revalidateHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -202,45 +200,6 @@ export default function EditHome(props?: HomeProps) {
             <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation.current}/>
             <StoriesView editing stories={stories} getHtmlElementIds={getStoryHtmlElementIds}
                          createNewStory={createNewStory} onDeleteStory={onDeleteStory}/>
-            {/*<PresentationForm onSubmit={handleSavePresentation}>
-                <TextInput width={300} value={presentation.name}
-                           setValue={(value) => setPresentationProperty("name", value)}/>
-                <TextAreaInput height={400} width={1000} value={presentation.introduction}
-                               setValue={(value) => setPresentationProperty("introduction", value)}/>
-                <Button type={"submit"}> SAVE PRESENTATION </Button>
-                {editPresentationMessage}
-            </PresentationForm>*/}
-           {/* <StoryContainer>
-                <EditStoryForm onSubmit={handleSavedStory}>
-                    <EditStoryDataContainer>
-                        <TextInput width={300} value={selectedStory.title}
-                                   setValue={(value) => setStoryProperty("title", value)}/>
-                        <TextAreaWithImages height={350} width={700} value={selectedStory.body}
-                                            setValue={(value) => setStoryProperty("body", value)}
-                                            imageMaxSize={10} processNewImage={queueStoryImage}
-                                            processRemovedImage={removeStoryImage}/>
-                        {editStoryMessage}
-                    </EditStoryDataContainer>
-                    <EditStoryButtonsContainer>
-                        <Button type={"submit"}> {creatingStory ? "create" : "update"} </Button>
-                        {!creatingStory ?
-                            <>
-                                <Button onClick={handleNewStory}> new </Button>
-                                <Button onClick={handleDeleteStory}> delete </Button>
-                            </>
-                            : ""
-                        }
-                    </EditStoryButtonsContainer>
-
-                </EditStoryForm>
-                <StoryTable>
-                    <StoryTableTitle>Stories</StoryTableTitle>
-                    {stories.map((s) => (
-                        <StoryRow key={s.id} onClick={(e) => handleStorySelection(e, s)}>
-                            <StoryColumn> {s.title}</StoryColumn> </StoryRow>
-                    ))}
-                </StoryTable>
-            </StoryContainer>*/}
             <ButtonsContainer>
                 <Button onClick={storeHomeProps}> STORE </Button>
                 <Button onClick={revalidateHomeProps}> REVALIDATE </Button>
@@ -272,59 +231,3 @@ const OperationMessage = styled.text`
   font-size: 20px;
   color: #00008B;
     `
-const StoryContainer = styled.div`
-  align-items: left;
-  display: flex;
-  flex-direction: column;
-  background-color: #B0C4DE;
-  gap: 20px;
-  padding: 50px;
-`
-const EditStoryForm = styled.form`
-  align-items: center;
-  display: flex;
-  flex-direction: row;
-  background-color:;
-  gap: 15px;
-`
-const EditStoryDataContainer = styled.div`
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  background-color:;
-  gap: 15px;
-`
-const EditStoryButtonsContainer = styled.div`
-  align-items: left;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-`
-const StoryTable = styled.div`
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  background-color: #B0C4DE;
-  gap: 5px;
-`
-const StoryTableTitle = styled.text`
-  color: #4682B4;
-  text-decoration-color: #4682B4;
-  text-decoration-line: underline;
-  text-decoration-style: solid;
-  text-transform: uppercase;
-  font-weight: bold;
-  font-size: 20px;
-    `
-
-const StoryRow = styled.div`
-  align-items: left;
-  display: flex;
-  flex-direction: row;
-  cursor: pointer;
-  font-weight: bold;
-`
-const StoryColumn = styled.div`
-  border-style: solid;
-  border-color: #4682B4;
-`
