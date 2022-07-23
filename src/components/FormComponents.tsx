@@ -1,7 +1,6 @@
 import styled from "@emotion/styled"
 import {css} from "@emotion/react"
 import React, {ChangeEvent, useId, useRef, useState} from "react"
-import {Button} from "./Buttons"
 
 export const TextInput = ({
                               value,
@@ -57,17 +56,20 @@ const TextArea = styled.textarea<{ height?: number, width?: number }>`
 `
 
 type ImageSelectorProps = {
-    processNewImage: (file: File)=> void
+    processImage?: (imageDataUrl: string)=> void
     imageMaxSize: number
+    width: number
+    height: number
 }
 
-export const ImageSelector = ({processNewImage, imageMaxSize}: ImageSelectorProps) => {
+export const ImageSelector = ({processImage, imageMaxSize, width, height}: ImageSelectorProps) => {
     const id = useId()
     const inputFileRef = useRef<HTMLInputElement>(null)
 
     const [imageSizeErrorStr, setImageSizeErrorStr] = useState("")
+    const [imageUrl, setImageUrl] = useState("")
 
-    const onChooseImage = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const goChooseImage = (e: React.MouseEvent<HTMLImageElement>) => {
         setImageSizeErrorStr("")
         inputFileRef.current?.click()
     }
@@ -75,10 +77,19 @@ export const ImageSelector = ({processNewImage, imageMaxSize}: ImageSelectorProp
         const image = e.target.files?.item(0)
         if (image) {
             if (image.size / 10 ** 6 > imageMaxSize) {
-                e.preventDefault()
                 setImageSizeErrorStr(`image cannot exceed ${imageMaxSize} megabytes`)
             } else {
-                processNewImage(image)
+                const reader = new FileReader()
+                reader.onloadend = () => {
+                    const imageDataUrl = reader.result as string
+                    if(imageDataUrl) {
+                        setImageUrl(imageDataUrl)
+                        if(processImage) {
+                            processImage(imageDataUrl)
+                        }
+                    }
+                }
+                reader.readAsDataURL(image)
             }
         }
     }
@@ -87,43 +98,18 @@ export const ImageSelector = ({processNewImage, imageMaxSize}: ImageSelectorProp
         <ImageSelectorContainer>
             <input id={id + "input"} ref={inputFileRef} onChange={handleImageSelection} style={{display: "none"}}
                    type={"file"} accept={"image/*"}/>
-            <Button id={id + "button"} onClick={onChooseImage}> put image</Button>
+            <img onClick={goChooseImage} src={imageUrl}  width={width} height={height} style={{cursor: "pointer"}}/>
             <ImageSizeErrorLabel id={id + "label"}> {imageSizeErrorStr} </ImageSizeErrorLabel>
         </ImageSelectorContainer>
     )
 }
 const ImageSelectorContainer = styled.div`
   display: flex;
-  flex-direction: column;
-  background-color: #00008B;
 `
 const ImageSizeErrorLabel = styled.label`
   font-weight: bold;
   font-size: 15px;
   color: red;
-`
-type TextAreaWithImagesProps =
-    ImageSelectorProps & TextAreaInputProps & {
-    processRemovedImage: (image: File)=> void
-}
-
-export const TextAreaWithImages = ({processRemovedImage, ...rest}: TextAreaWithImagesProps) => {
-    const {processNewImage, imageMaxSize, ...textAreaProps} = rest
-
-    return (
-        <TextAreaWithImagesContainer>
-            <TextAreaInput {...textAreaProps}/>
-            <ImageSelector processNewImage={processNewImage} imageMaxSize={imageMaxSize}/>
-        </TextAreaWithImagesContainer>
-    )
-
-}
-
-const TextAreaWithImagesContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  background-color: #00008B;
 `
 
 

@@ -17,6 +17,7 @@ import PresentationView from "../../components/home/PresentationView"
 import StoriesView from "../../components/home/StoriesView"
 import {getContainedString} from "../../utils/StringFunctions"
 import {putHomeProps} from "../api/props/home"
+import {Loader} from "../../components/Loader"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -47,7 +48,7 @@ export default function EditHome(props?: HomeProps) {
     })()
 
     const emptyStory: Story = {id: "", title: "", body: ""}
-    const [stories, setStories] = useState(props?.stories || [])
+
     const savedStories = useRef<Story[]>(props?.stories || [])
     const getSavedStories = () => savedStories.current
     const setSavedStories = (ns: Story[]) => {
@@ -58,7 +59,7 @@ export default function EditHome(props?: HomeProps) {
         getSavedStories().splice(index, 1)
     }
     const updateSavedStory = (storyId: string, key: keyof NewStory, value: string) => {
-        const storyToUpdateIndex = stories.findIndex((s) => s.id === storyId)
+        const storyToUpdateIndex = getSavedStories().findIndex((s) => s.id === storyId)
         getSavedStories()[storyToUpdateIndex][key] = value
     }
     const newStoryIdPrefix = "-"
@@ -68,7 +69,7 @@ export default function EditHome(props?: HomeProps) {
         newStories.current = ns
     }
     const removeNewStory = (id: string) => {
-        getNewStories().splice(getIndexFromNewStoryId(id), 0, null)
+        getNewStories().splice(getIndexFromNewStoryId(id), 1, null)
     }
     const getNotNullsNewStories = () => {
         const isNoNull = (s: NewStory | null): s is NewStory => s !== null
@@ -98,13 +99,18 @@ export default function EditHome(props?: HomeProps) {
     const addDeleteStoryId = (id: string) => {
         getDeleteStoriesId().push(id)
     }
-    const onDeleteStory = (id: string) => {
+    const removeDeleteStoryId = (id: string) => {
+        getDeleteStoriesId().splice(getDeleteStoriesId().findIndex((id) => id === id), 1)
+    }
+    const deleteStory = (id: string) => {
         if (isNewStory(id)) {
             removeNewStory(id)
         } else {
-            removeSavedStory(id)
             addDeleteStoryId(id)
         }
+    }
+    const recoverStory = (id: string) => {
+        removeDeleteStoryId(id)
     }
     const storyHtmlElementIdsPrefix = "story"
     const getStoryHtmlElementIds = (storyId: string) => {
@@ -134,11 +140,12 @@ export default function EditHome(props?: HomeProps) {
         const observer = new MutationObserver(
             (mutationList, observer) => {
                 for (const mutation of mutationList) {
-                    const htmlElement = mutation.target.parentElement
+                    const htmlElement = mutation.target.ownerDocument?.activeElement
                     if (htmlElement) {
-                        console.table(mutation)
+                        console.log(mutation)
                         const htmlElementId = htmlElement.id
-                        const newPropertyValue = mutation.target.textContent as string
+                        const newPropertyValue = htmlElement.innerHTML as string
+                        console.log(newPropertyValue)
 
                         if (htmlElementId.startsWith(presentationHtmlElementIdsPrefix)) {
                             updatePresentation(htmlElementId, newPropertyValue)
@@ -148,22 +155,33 @@ export default function EditHome(props?: HomeProps) {
                     }
                 }
             })
-        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true})
+        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true,characterDataOldValue: true})
 
         return () => observer.disconnect()
     }, [])
 
+    const [loading, setLoading] = useState(false)
+    const prepareApiCall = (promise: Promise<any>) => {
+        setStorageResultMessage("")
+        setRevalidationResultMessage("")
+        setLoading(true)
+        promise.finally(() => setLoading(false))
+    }
+
     const [storageResultMessage, setStorageResultMessage] = useState("")
     const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
-        putHomeProps({
+        prepareApiCall(putHomeProps({
             presentation: getPresentation(),
-            stories: {new: getNotNullsNewStories(), update: stories, delete: getDeleteStoriesId()}
+            stories: {
+                update: getSavedStories().filter((s)=> !(getDeleteStoriesId().some((id)=> id === s.id))),
+                delete: getDeleteStoriesId(),
+                new: getNotNullsNewStories()
+            }
         }).then(({succeed, homeProps: {presentation, stories} = {}, errorMessage}) => {
             let resultMessage
             if (succeed) {
                 resultMessage = "home props successfully stored"
                 setPresentation(presentation || emptyPresentation)
-                //setStories(stories || [])
                 setSavedStories(stories || [])
                 setNewStories([])
                 setDeleteStoriesId([])
@@ -171,11 +189,11 @@ export default function EditHome(props?: HomeProps) {
                 resultMessage = errorMessage || "home props could not be stored"
             }
             setStorageResultMessage(resultMessage)
-        })
+        }).finally(() => setLoading(false)))
     }
 
     const revalidateHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
-        revalidatePages([RevalidationRouteId.HOME])
+        prepareApiCall(revalidatePages([RevalidationRouteId.HOME])
             .then(({
                        succeed,
                        revalidations,
@@ -191,18 +209,19 @@ export default function EditHome(props?: HomeProps) {
                         setRevalidationResultMessage(errorMessage || "there must be always an error message")
                     }
                 }
-            )
+            ))
     }
     const [revalidationResultMessage, setRevalidationResultMessage] = useState("")
 
     return (
         <Container ref={ref}>
+            <Loader show={loading}/>
             <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation.current}/>
-            <StoriesView editing stories={stories} getHtmlElementIds={getStoryHtmlElementIds}
-                         createNewStory={createNewStory} onDeleteStory={onDeleteStory}/>
+            <StoriesView editing stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
+                         createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}/>
             <ButtonsContainer>
-                <Button onClick={storeHomeProps}> STORE </Button>
-                <Button onClick={revalidateHomeProps}> REVALIDATE </Button>
+                <Button disabled={loading} onClick={storeHomeProps}> STORE </Button>
+                <Button disabled={loading} onClick={revalidateHomeProps}> REVALIDATE </Button>
             </ButtonsContainer>
             <OperationMessagesContainer>
                 <OperationMessage>{storageResultMessage}</OperationMessage>

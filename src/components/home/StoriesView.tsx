@@ -1,38 +1,59 @@
 import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../types/Home"
-import React, {useState} from "react"
+import React, {useEffect, useState} from "react"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import styled from "@emotion/styled"
-import {DeleteButton, PlusButton} from "../Buttons"
-import {css} from "@emotion/react";
+import {DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton} from "../Buttons"
 
 type StoryVisibility = {id: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
 type GetHtmlElementIds = (id: string) => StoryHTMLElementIds
 type GetNewStory = () => [string, NewStory]
-type OnDeleteStory = (id: string) => void
+type DeleteStory = (id: string) => void
+type RecoverStory = (id: string) => void
 type EditingProps = {
     editing: true
     createNewStory: GetNewStory
     getHtmlElementIds: GetHtmlElementIds
-    onDeleteStory : OnDeleteStory
+    deleteStory : DeleteStory
+    recoverStory : RecoverStory
 }
 type Props<M extends ViewMode> = {
     stories: Story[]
 } & (M extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
-export default function StoriesView<M extends ViewMode>({editing, stories,createNewStory, getHtmlElementIds, onDeleteStory}: Props<M>) {
-    const [storiesVisibility, setStoriesVisibility] = useState(stories.map<StoryVisibility>((s) => {
-        return {id: s.id, story: s, isOpen: false, toDelete: false}
+export default function StoriesView<M extends ViewMode>({editing, stories,createNewStory, getHtmlElementIds, deleteStory, recoverStory}: Props<M>) {
+    const [storiesVisibility, setStoriesVisibility] = useState<StoryVisibility[]>(stories.map((s) => {
+        return {id: s.id, story: s, toDelete: false, isOpen: false}
     }))
-    const handleAddNewStory = (e : React.MouseEvent) => {
+    useEffect(() => {
+            setStoriesVisibility((storiesVisibility) => {
+                const updatedStoriesVisibility = []
+                for (const sv of storiesVisibility) {
+                    if (!sv.toDelete) {
+                        const prevStory = sv.story
+                        const predicate = (s: Story) => "id" in prevStory ? prevStory.id === s.id : prevStory.title === s.title
+                        const story = stories.find(predicate)
+
+                        // always should found the story
+                        if (story) {
+                            updatedStoriesVisibility.push({...(({story,id,...sv}) => sv)(sv), story: story, id: story.id})
+                        }
+                    }
+                }
+                return updatedStoriesVisibility
+            })
+        },
+        [stories])
+
+    const handleAddNewStory = (e: React.MouseEvent) => {
+        const [id, newStory] = (createNewStory as GetNewStory)()
         setStoriesVisibility((sv) => {
-                const [id, newStory] = (createNewStory as GetNewStory)()
                 return [...sv, {id: id, story: newStory, isOpen: true, toDelete: false}]
             }
         )
     }
     const handleDeleteStory = (e: React.MouseEvent, id: string, index: number, isNew: boolean) => {
-        (onDeleteStory as OnDeleteStory)(id)
+        (deleteStory as DeleteStory)(id)
         setStoriesVisibility((sv) => {
             const updatedSv = [...sv]
             if (isNew) {
@@ -40,6 +61,14 @@ export default function StoriesView<M extends ViewMode>({editing, stories,create
             } else {
                 updatedSv[index].toDelete = true
             }
+            return updatedSv
+        })
+    }
+    const handleRecoverStory = (e: React.MouseEvent, id: string, index: number) => {
+        (recoverStory as RecoverStory)(id)
+        setStoriesVisibility((sv) => {
+            const updatedSv = [...sv]
+            updatedSv[index].toDelete = false
             return updatedSv
         })
     }
@@ -76,32 +105,34 @@ export default function StoriesView<M extends ViewMode>({editing, stories,create
         const {title,body} = story
         const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(id)
 
+        const contentEditable = editing && !toDelete
+
         const storyTitleView =
             <StoryTitleContainer>
-                <StoryTitle id={htmlIds.title} toDelete={toDelete} contentEditable={editing}>{title}</StoryTitle>
-                <StoryOpenCloseIcon onClick={(e => openOrCloseStory(index))}>{
-                    isOpen ? <BsChevronDoubleUp/>
-                        : <BsChevronDoubleDown/>
-                }</StoryOpenCloseIcon>
-                <DeleteButton size={20} onClick={(e)=> handleDeleteStory(e,id,index, !("id" in story))}/>
+                <StoryTitle id={htmlIds.title} toDelete={toDelete} contentEditable={contentEditable}>{title}</StoryTitle>
+                <OpenOrCloseStoryButton isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
+                <DeleteOrRecoverStoryButton isDelete={toDelete} size={20}
+                                            onClick={(e)=> toDelete
+                                                ? handleRecoverStory(e,id,index)
+                                                : handleDeleteStory(e,id,index, !("id" in story))}/>
             </StoryTitleContainer>
+
         return (
-            <StoryContainer key={id}>{
-                isOpen ? <StoryOpenContainer>
+            <StoryContainer key={id}>
+                {isOpen ? <StoryOpenContainer>
                             {storyTitleView}
-                            <StoryBody id={htmlIds.body} contentEditable={editing}>
-                                {body}
+                            <StoryBody id={htmlIds.body} contentEditable={contentEditable} dangerouslySetInnerHTML={{__html: body }}>
                             </StoryBody>
                         </StoryOpenContainer>
-                    : storyTitleView
-            }</StoryContainer>
+                    : storyTitleView}
+            </StoryContainer>
         )
     }
     return (
         <Container>
             <TitleContainer>
                 <Title>STORIES</Title> {editing &&
-            <PlusButton color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
+            <PlusButton id={"plus-button"} color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
             </TitleContainer>
             <ul>
                 {storiesVisibility
@@ -122,7 +153,7 @@ const Container = styled.div`
   background-color: #00008B;
   padding-top: 15px;
   padding-bottom: 15px;
-    `
+         `
 const TitleContainer = styled.div`
   display: flex;
   flex-direction: row;
@@ -135,7 +166,7 @@ const Title = styled.text`
   text-transform: uppercase;
   font-weight: bold;
   font-size: 20px;
-  border-radius: 15px;
+  border-radius: 5px;
   background-color: #778899;
   width: fit-content;
   padding: 5px;
@@ -146,14 +177,15 @@ const StoryContainer = styled.li`
   margin-top: 15px;
 `
 const StoryBody = styled.span`
-  color: #FFD700;
-  font-size: 22px;
-  font-weight: bold;
+  color: #90EE90;
+  font-size: 28px;
   font-family: "Lucida Console", "Courier New", monospace;
   border-style: solid;
   border-color: #778899;
-  padding: 10px;
+  border-width: thin;
+  padding: 6px;
   border-radius: 5px;
+  block-size: fit-content;
 `
 const StoryTitleContainer = styled.div`
   display: flex;
@@ -161,20 +193,23 @@ const StoryTitleContainer = styled.div`
   align-items: left;
   gap: 15px;
   color: #FFFFFF;
-  font-size: 25px;
   width: fit-content;
 `
 const StoryOpenCloseIcon = styled.div`
   cursor: pointer;
 `
-const StoryTitle = styled.span<{toDelete?: boolean}>`
-  font-size: 25px;
+const StoryTitle = styled.span<{ toDelete?: boolean }>`
+  font-size: 33px;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
   text-shadow: 2px 2px 5px #000000;
-  ${props => props.toDelete 
-    ? css`color: #A52A2A;` 
-    : ""} 
+  ${props =>
+    props.toDelete ? 
+        "text-decoration: line-through;"
+        + "text-decoration-color: red;"
+        + "text-decoration-style: wavy;"
+        : ""
+} 
 `
 const StoryOpenContainer = styled.div`
   display: flex;

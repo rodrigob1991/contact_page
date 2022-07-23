@@ -1,6 +1,8 @@
 import {Presentation, PresentationHTMLElementIds, ViewMode} from "../../types/Home"
 import styled from "@emotion/styled"
-import React from "react"
+import React, {useState} from "react"
+import Image from 'next/image'
+import {ImageSelector} from "../FormComponents";
 type EditingProps = {
     editing: true
     htmlElementIds: PresentationHTMLElementIds
@@ -14,11 +16,12 @@ export default function PresentationView<VM extends ViewMode>({
                                              presentation: {name, introduction},
                                              htmlElementIds
                                          }: Props<VM>) {
+    const [imageUrl, setImageUrl] = useState("")
+
     return (
         <PresentationContainer>
             <PresentationNameImageContainer>
-                {/*   <Image src="/yo.jpeg" width="100" height="100"/>*/}
-
+                <ImageSelector imageMaxSize={16} width={100} height={90}/>
                 <PresentationName id={htmlElementIds?.name} contentEditable={editing}>
                     {name}
                 </PresentationName>
@@ -47,12 +50,12 @@ const PresentationName = styled.span`
   text-decoration-style: solid;
   text-transform: uppercase;
   font-weight: bold;
-  font-size: 20px;
+  font-size: 25px;
   text-shadow: 2px 2px 5px #000000;
     `
 const PresentationIntroduction = styled.span`
   font-weight: bold;
-  font-size: 18px;
+  font-size: 21px;
   background-color: #778899;
   padding: 7px;
   border-radius: 15px;

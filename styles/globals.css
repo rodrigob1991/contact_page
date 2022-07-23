@@ -14,3 +14,27 @@ a {
 * {
   box-sizing: border-box;
 }
+
+.loader {
+  border: 16px solid #FFFFFF; /* Light grey */
+  border-top: 16px solid transparent;/* Blue */
+  border-bottom: 16px solid transparent;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+  border-radius: 50%;
+  width: 90px;
+  height: 90px;
+  animation: spin 1.4s ease infinite;
+  position: absolute;
+  left: 50%;
+  top: 30%;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

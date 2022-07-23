@@ -1,8 +1,8 @@
-import {PresentationWithoutId, SetHomeProps, Story, StoryWithoutId} from "../types/Home";
+import {Presentation, SetHomeProps, Story, NewStory} from "../types/Home"
 import {isEmptyString} from "../utils/StringFunctions"
 
 export class ApiParamsValidator {
-    static isValidPresentation = ({name, introduction}: PresentationWithoutId) => {
+    static isValidPresentation = ({name, introduction}: Presentation) => {
         return !isEmptyString(name)
             && !isEmptyString(introduction)
     }
@@ -11,7 +11,7 @@ export class ApiParamsValidator {
             && !isEmptyString(title)
             && !isEmptyString(body)
     }
-    static isValidNewStory = ({title, body}: StoryWithoutId) => {
+    static isValidNewStory = ({title, body}: NewStory) => {
         return !isEmptyString(title)
             && !isEmptyString(body)
     }
@@ -24,7 +24,16 @@ export class ApiParamsValidator {
         }
         return areValid
     }
-    static areValidNewStories = (stories: StoryWithoutId[]) => {
+    static areValidStoriesId = (storiesId: string[]) => {
+        let areValid = true
+        let index = 0
+        while (areValid && index < storiesId.length) {
+            areValid = !isEmptyString(storiesId[index])
+            index++
+        }
+        return areValid
+    }
+    static areValidNewStories = (stories: NewStory[]) => {
         let areValid = true
         let index = 0
         while (areValid && index < stories.length) {
@@ -34,7 +43,7 @@ export class ApiParamsValidator {
         return areValid
     }
 
-    static isValidSetStory = (story: StoryWithoutId | Story) => {
+    static isValidSetStory = (story: NewStory | Story) => {
         return "id" in story ? this.isValidStory(story) : this.isValidNewStory(story)
     }
 
@@ -45,7 +54,7 @@ export class ApiParamsValidator {
                                    }: SetHomeProps) => {
 
         return (!presentation || this.isValidPresentation(presentation)) &&
-            (!deleteStories || this.areValidStories(deleteStories)) &&
+            (!deleteStories || this.areValidStoriesId(deleteStories)) &&
             (!updateStories || this.areValidStories(updateStories)) &&
             (!newStories || this.areValidNewStories(newStories))
     }
