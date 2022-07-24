@@ -7,9 +7,9 @@ import Link from "next/link"
 import {TextAreaInput, TextInput} from "../components/FormComponents"
 import {Button} from "../components/Buttons"
 import {SucceedOperationMessage} from "../components/Labels"
-import {HomeProps} from "../types/Home";
-import PresentationView from "../components/home/PresentationView";
-import StoriesView from "../components/home/StoriesView";
+import {HomeProps} from "../types/Home"
+import PresentationView from "../components/home/PresentationView"
+import StoriesView from "../components/home/StoriesView"
 
 export const HOME_ROUTE = "/"
 
@@ -25,12 +25,6 @@ export async function getStaticProps() {
 }
 
 export default function Home({presentation, stories}: HomeProps) {
-    if (presentation) {
-        const strImage = presentation.image?.slice(0)
-        console.log(strImage)
-        presentation.image = "data:image/webp;base64," + strImage
-        console.table(presentation)
-    }
     const [showSendMessageModal, setShowSendMessageModal] = useState(false)
     const [fromEmail, setFromEmail] = useState("")
     const [subjectEmail, setSubjectEmail] = useState("")

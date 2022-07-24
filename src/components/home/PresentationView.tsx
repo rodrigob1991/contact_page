@@ -15,14 +15,14 @@ type Props<VM extends ViewMode> = {
 
 export default function PresentationView<VM extends ViewMode>({
                                              editing,
-                                             presentation: {name, introduction},
+                                             presentation: {name, introduction, image},
                                              htmlElementIds, setPresentationImage
                                          }: Props<VM>) {
 
     return (
         <PresentationContainer>
             <PresentationNameImageContainer>
-                <ImageSelector imageMaxSize={16} width={100} height={90} processImage={setPresentationImage}/>
+                <ImageSelector imageMaxSize={16} width={100} height={90} processImage={setPresentationImage} imageDataUrl={image}/>
                 <PresentationName id={htmlElementIds?.name} contentEditable={editing}>
                     {name}
                 </PresentationName>

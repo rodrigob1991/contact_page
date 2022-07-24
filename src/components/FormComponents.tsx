@@ -56,18 +56,19 @@ const TextArea = styled.textarea<{ height?: number, width?: number }>`
 `
 
 type ImageSelectorProps = {
+    imageDataUrl?: string
     processImage?: (imageDataUrl: string)=> void
     imageMaxSize: number
     width: number
     height: number
 }
 
-export const ImageSelector = ({processImage, imageMaxSize, width, height}: ImageSelectorProps) => {
+export const ImageSelector = ({processImage,imageDataUrl: imageDataUrlProp , imageMaxSize, width, height}: ImageSelectorProps) => {
     const id = useId()
     const inputFileRef = useRef<HTMLInputElement>(null)
 
     const [imageSizeErrorStr, setImageSizeErrorStr] = useState("")
-    const [imageDataUrl, setImageDataUrl] = useState("")
+    const [imageDataUrl, setImageDataUrl] = useState(imageDataUrlProp)
 
     const goChooseImage = (e: React.MouseEvent<HTMLImageElement>) => {
         setImageSizeErrorStr("")

@@ -7,8 +7,10 @@ type NormalizedHomeProps<T extends HomePropsArgs | null> = T extends HomePropsAr
 
 export class PropsStorageClient {
     private readonly prisma: PrismaClient
-    private readonly homePropsId = new ObjectID("111111111111111111111111").toJSON()
-    private readonly presentationId = new ObjectID("111111111111111111111111").toJSON()
+
+    private static readonly homePropsId = new ObjectID("111111111111111111111111").toJSON()
+    private static readonly presentationId = new ObjectID("111111111111111111111111").toJSON()
+    private static readonly imageUrlPrefix = "data:image/webp;base64"
 
     static readonly selectPresentation = {select: {name: true, introduction: true, image: true}}
     static readonly selectStory = {select: {id: true, title: true, body: true}}
@@ -37,7 +39,7 @@ export class PropsStorageClient {
     }
     static #normalizePresentation(dbArgs: PresentationArgs): Presentation {
         return (({image, ...r}) => {
-            return {image: PropsStorageClient.#getImageBase64Url(dbArgs.image), ...r}
+            return {image: PropsStorageClient.#getImageBase64(dbArgs.image), ...r}
         })(dbArgs)
     }
 
@@ -48,32 +50,34 @@ export class PropsStorageClient {
     }
 
     static #getImageBuffer(imageBase64: string | undefined) {
-        return imageBase64 ? Buffer.from(getContainedString(imageBase64, ","), "base64url") : null
+        return imageBase64 ? Buffer.from(getContainedString(imageBase64, ","), "base64") : null
     }
 
-    static #getImageBase64Url(imageBuffer: Buffer | null) {
-        return imageBuffer ? Buffer.from(imageBuffer).toString("base64url") : undefined
+    static #getImageBase64(imageBuffer: Buffer | null) {
+        return imageBuffer ? this.imageUrlPrefix + "," + Buffer.from(imageBuffer).toString("base64") : undefined
     }
 
     async getHomeProps(): Promise<HomeProps | undefined> {
         return this.prisma.props.findUnique({
-            where: {id: this.homePropsId},
+            where: {id: PropsStorageClient.homePropsId},
             ...PropsStorageClient.selectHomeProps
         }).then(PropsStorageClient.#normalizeHomeProps)
     }
 
     async setPresentation(p: Presentation): Promise<Presentation> {
+        const id = PropsStorageClient.presentationId
+        const homePropsId = PropsStorageClient.homePropsId
         const presentationArgs = PropsStorageClient.#getPresentationDbArgs(p)
         return this.prisma.presentation.upsert(
             {
-                where: {id: this.presentationId},
+                where: {id: id},
                 create: {
-                    id: this.presentationId,
+                    id: id,
                     ...presentationArgs,
                     props: {
                         connectOrCreate: {
-                            where: {id: this.homePropsId},
-                            create: {id: this.homePropsId}
+                            where: {id: homePropsId},
+                            create: {id: homePropsId}
                         }
                     }
                 },
@@ -83,6 +87,8 @@ export class PropsStorageClient {
         ).then(PropsStorageClient.#normalizePresentation)
     }
     async setStory(story: NewStory | Story) : Promise<Story> {
+        const homePropsId = PropsStorageClient.homePropsId
+
         if ("id" in story) {
             return this.prisma.story.update({
                 where: {id: story.id},
@@ -96,8 +102,8 @@ export class PropsStorageClient {
                         ...story,
                         props: {
                             connectOrCreate: {
-                                where: {id: this.homePropsId},
-                                create: {id: this.homePropsId}
+                                where: {id: homePropsId},
+                                create: {id: homePropsId}
                             }
                         }
                     },
@@ -119,7 +125,7 @@ export class PropsStorageClient {
            const presentationDbArgs = PropsStorageClient.#getPresentationDbArgs(presentation)
             createPresentation = {
                 create: {
-                    id: this.presentationId,
+                    id: PropsStorageClient.presentationId,
                     ...presentationDbArgs
                 }
             }
@@ -155,11 +161,12 @@ export class PropsStorageClient {
                 }
             }
         }
+        const homePropsId = PropsStorageClient.homePropsId
         return this.prisma.props.upsert(
             {
-                where: {id: this.homePropsId},
+                where: {id: homePropsId},
                 create: {
-                    id: this.homePropsId,
+                    id: homePropsId,
                     presentation: createPresentation,
                     stories: createManyStories
                 },
