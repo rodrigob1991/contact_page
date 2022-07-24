@@ -67,7 +67,7 @@ export const ImageSelector = ({processImage, imageMaxSize, width, height}: Image
     const inputFileRef = useRef<HTMLInputElement>(null)
 
     const [imageSizeErrorStr, setImageSizeErrorStr] = useState("")
-    const [imageUrl, setImageUrl] = useState("")
+    const [imageDataUrl, setImageDataUrl] = useState("")
 
     const goChooseImage = (e: React.MouseEvent<HTMLImageElement>) => {
         setImageSizeErrorStr("")
@@ -82,9 +82,10 @@ export const ImageSelector = ({processImage, imageMaxSize, width, height}: Image
                 const reader = new FileReader()
                 reader.onloadend = () => {
                     const imageDataUrl = reader.result as string
-                    if(imageDataUrl) {
-                        setImageUrl(imageDataUrl)
-                        if(processImage) {
+                    if (imageDataUrl) {
+                        console.log(imageDataUrl)
+                        setImageDataUrl(imageDataUrl)
+                        if (processImage) {
                             processImage(imageDataUrl)
                         }
                     }
@@ -98,7 +99,7 @@ export const ImageSelector = ({processImage, imageMaxSize, width, height}: Image
         <ImageSelectorContainer>
             <input id={id + "input"} ref={inputFileRef} onChange={handleImageSelection} style={{display: "none"}}
                    type={"file"} accept={"image/*"}/>
-            <img onClick={goChooseImage} src={imageUrl}  width={width} height={height} style={{cursor: "pointer"}}/>
+            <img onClick={goChooseImage} src={imageDataUrl} width={width} height={height} style={{cursor: "pointer"}}/>
             <ImageSizeErrorLabel id={id + "label"}> {imageSizeErrorStr} </ImageSizeErrorLabel>
         </ImageSelectorContainer>
     )

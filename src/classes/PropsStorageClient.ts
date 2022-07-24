@@ -1,6 +1,7 @@
 import {PrismaClient} from "@prisma/client"
-import {HomeProps, Presentation, SetHomeProps, Story, NewStory, HomePropsArgs} from "../types/Home"
+import {HomeProps, HomePropsArgs, NewStory, Presentation, PresentationArgs, SetHomeProps, Story} from "../types/Home"
 import {ObjectID} from "bson"
+import {getContainedString} from "../utils/StringFunctions";
 
 type NormalizedHomeProps<T extends HomePropsArgs | null> = T extends HomePropsArgs ? HomeProps : HomeProps | undefined
 
@@ -9,7 +10,7 @@ export class PropsStorageClient {
     private readonly homePropsId = new ObjectID("111111111111111111111111").toJSON()
     private readonly presentationId = new ObjectID("111111111111111111111111").toJSON()
 
-    static readonly selectPresentation = {select: {name: true, introduction: true}}
+    static readonly selectPresentation = {select: {name: true, introduction: true, image: true}}
     static readonly selectStory = {select: {id: true, title: true, body: true}}
     static readonly selectHomeProps = {
         select: {
@@ -27,12 +28,31 @@ export class PropsStorageClient {
         if (homeProps) {
             normalizedHomeProps = {}
             for (const [key, value] of Object.entries(homeProps)) {
-                normalizedHomeProps[key] = (value === null ? undefined : value)
+                normalizedHomeProps[key] = (value === null ? undefined : key === "presentation" ? PropsStorageClient.#normalizePresentation(value as PresentationArgs) : value)
             }
         } else {
             normalizedHomeProps = undefined
         }
         return normalizedHomeProps as NormalizedHomeProps<T>
+    }
+    static #normalizePresentation(dbArgs: PresentationArgs): Presentation {
+        return (({image, ...r}) => {
+            return {image: PropsStorageClient.#getImageBase64Url(dbArgs.image), ...r}
+        })(dbArgs)
+    }
+
+    static #getPresentationDbArgs(p: Presentation): PresentationArgs {
+        return (({image, ...r}) => {
+            return {image: PropsStorageClient.#getImageBuffer(p.image), ...r}
+        })(p)
+    }
+
+    static #getImageBuffer(imageBase64: string | undefined) {
+        return imageBase64 ? Buffer.from(getContainedString(imageBase64, ","), "base64url") : null
+    }
+
+    static #getImageBase64Url(imageBuffer: Buffer | null) {
+        return imageBuffer ? Buffer.from(imageBuffer).toString("base64url") : undefined
     }
 
     async getHomeProps(): Promise<HomeProps | undefined> {
@@ -42,13 +62,14 @@ export class PropsStorageClient {
         }).then(PropsStorageClient.#normalizeHomeProps)
     }
 
-    async setPresentation(presentation: Presentation): Promise<Presentation> {
+    async setPresentation(p: Presentation): Promise<Presentation> {
+        const presentationArgs = PropsStorageClient.#getPresentationDbArgs(p)
         return this.prisma.presentation.upsert(
             {
                 where: {id: this.presentationId},
                 create: {
                     id: this.presentationId,
-                    ...presentation,
+                    ...presentationArgs,
                     props: {
                         connectOrCreate: {
                             where: {id: this.homePropsId},
@@ -56,10 +77,10 @@ export class PropsStorageClient {
                         }
                     }
                 },
-                update: presentation,
+                update: presentationArgs,
                 ...PropsStorageClient.selectPresentation
             }
-        )
+        ).then(PropsStorageClient.#normalizePresentation)
     }
     async setStory(story: NewStory | Story) : Promise<Story> {
         if ("id" in story) {
@@ -92,21 +113,21 @@ export class PropsStorageClient {
                            presentation,
                            stories: {delete: deleteStories, new: newStories, update: updateStories} = {}
                        }: SetHomeProps) : Promise<HomeProps> {
-        console.table(updateStories)
         let createPresentation = undefined
         let upsertPresentation = undefined
         if (presentation) {
+           const presentationDbArgs = PropsStorageClient.#getPresentationDbArgs(presentation)
             createPresentation = {
                 create: {
                     id: this.presentationId,
-                    ...presentation
+                    ...presentationDbArgs
                 }
             }
             upsertPresentation = {
                 upsert: {
                     ...createPresentation,
                     update:
-                    presentation
+                    presentationDbArgs
                 }
             }
         }

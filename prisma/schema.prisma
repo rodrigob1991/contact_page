@@ -13,7 +13,7 @@ datasource db {
 model Props {
   id String @id @map("_id") @db.ObjectId
   presentation Presentation? @relation(fields: [presentationId], references: [id])
-  presentationId String @db.ObjectId
+  presentationId String @db.ObjectId @unique
   stories Story[]
 }
 
@@ -21,6 +21,7 @@ model Presentation {
   id String @id @map("_id") @db.ObjectId
   name String
   introduction String
+  image Bytes?
   props Props?
 }
 

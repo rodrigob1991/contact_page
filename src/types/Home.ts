@@ -20,8 +20,10 @@ export type NewStory = Omit<Story, keyof OmitStory>
 export type StoryHTMLElementIds = {[K in keyof NewStory as `${K}`] : NewStory[K]}
 
 const presentationArgs = Prisma.validator<Prisma.PresentationArgs>()(PropsStorageClient.selectPresentation)
-type PresentationArgs = Prisma.PresentationGetPayload<typeof presentationArgs>
-export type Presentation = PresentationArgs
-export type PresentationHTMLElementIds = {[K in keyof Presentation as `${K}`] : Presentation[K]}
+export type PresentationArgs = Prisma.PresentationGetPayload<typeof presentationArgs>
+type OmitPresentation = Pick<PresentationArgs, "image">
+export type PresentationWithoutImage = Omit<PresentationArgs, keyof OmitPresentation>
+export type Presentation = ChangePropertiesType<PresentationArgs, [["image", string | undefined]]>
+export type PresentationHTMLElementIds = {[K in keyof PresentationWithoutImage as `${K}`] : PresentationWithoutImage[K]}
 
 export type ViewMode =  "editing" | "reading"

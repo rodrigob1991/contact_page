@@ -25,6 +25,12 @@ export async function getStaticProps() {
 }
 
 export default function Home({presentation, stories}: HomeProps) {
+    if (presentation) {
+        const strImage = presentation.image?.slice(0)
+        console.log(strImage)
+        presentation.image = "data:image/webp;base64," + strImage
+        console.table(presentation)
+    }
     const [showSendMessageModal, setShowSendMessageModal] = useState(false)
     const [fromEmail, setFromEmail] = useState("")
     const [subjectEmail, setSubjectEmail] = useState("")
@@ -126,7 +132,7 @@ export default function Home({presentation, stories}: HomeProps) {
                   <MdForwardToInbox size={70} style={{cursor: "pointer", paddingLeft: 20, paddingTop: 25}} onClick={(e)=> setShowSendMessageModal(!showSendMessageModal)}/>
               </ContactLinksContainer>
           </Header>
-          <PresentationView presentation={presentation || {name:"", introduction: ""}}/>
+          <PresentationView presentation={presentation || {name:"", introduction: "", image: undefined}}/>
           <StoriesView stories={stories}/>
           {/*<PresentationContainer>
               <PresentationNameImageContainer>

@@ -1,11 +1,13 @@
 import {Presentation, PresentationHTMLElementIds, ViewMode} from "../../types/Home"
 import styled from "@emotion/styled"
-import React, {useState} from "react"
-import Image from 'next/image'
-import {ImageSelector} from "../FormComponents";
+import React from "react"
+import {ImageSelector} from "../FormComponents"
+
+
 type EditingProps = {
     editing: true
     htmlElementIds: PresentationHTMLElementIds
+    setPresentationImage: (imageDataUrl: string) => void
 }
 type Props<VM extends ViewMode> = {
     presentation: Presentation
@@ -14,14 +16,13 @@ type Props<VM extends ViewMode> = {
 export default function PresentationView<VM extends ViewMode>({
                                              editing,
                                              presentation: {name, introduction},
-                                             htmlElementIds
+                                             htmlElementIds, setPresentationImage
                                          }: Props<VM>) {
-    const [imageUrl, setImageUrl] = useState("")
 
     return (
         <PresentationContainer>
             <PresentationNameImageContainer>
-                <ImageSelector imageMaxSize={16} width={100} height={90}/>
+                <ImageSelector imageMaxSize={16} width={100} height={90} processImage={setPresentationImage}/>
                 <PresentationName id={htmlElementIds?.name} contentEditable={editing}>
                     {name}
                 </PresentationName>

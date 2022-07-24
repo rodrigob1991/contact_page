@@ -5,6 +5,7 @@ import {
     NewStory,
     Presentation,
     PresentationHTMLElementIds,
+    PresentationWithoutImage,
     Story,
     StoryHTMLElementIds
 } from "../../types/Home"
@@ -29,7 +30,7 @@ export async function getServerSideProps() {
 }
 
 export default function EditHome(props?: HomeProps) {
-    const emptyPresentation: Presentation = {name: "", introduction: ""}
+    const emptyPresentation: Presentation = {name: "", introduction: "", image: undefined}
     const presentation = useRef(props?.presentation || emptyPresentation)
     const getPresentation = () => presentation.current
     const setPresentation = (p: Presentation) => {
@@ -37,6 +38,9 @@ export default function EditHome(props?: HomeProps) {
     }
     const setPresentationProperty = (presentationKey: keyof Presentation, propertyValue: string) => {
         getPresentation()[presentationKey] = propertyValue
+    }
+    const setPresentationImage = (imageDataUrl: string) => {
+        setPresentationProperty("image", imageDataUrl)
     }
     const presentationHtmlElementIdsPrefix = "presentation"
     const presentationHtmlElementIds: PresentationHTMLElementIds = (() => {
@@ -125,7 +129,7 @@ export default function EditHome(props?: HomeProps) {
 
     useEffect(() => {
         const updatePresentation = (htmlElementId: string, newPropertyValue: string) => {
-            const key = getContainedString(htmlElementId, "-") as keyof Presentation
+            const key = getContainedString(htmlElementId, "-") as keyof PresentationWithoutImage
             setPresentationProperty(key, newPropertyValue)
         }
         const updateStory = (htmlElementId: string, newPropertyValue: string) => {
@@ -155,7 +159,7 @@ export default function EditHome(props?: HomeProps) {
                     }
                 }
             })
-        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true,characterDataOldValue: true})
+        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true})
 
         return () => observer.disconnect()
     }, [])
@@ -216,7 +220,7 @@ export default function EditHome(props?: HomeProps) {
     return (
         <Container ref={ref}>
             <Loader show={loading}/>
-            <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation.current}/>
+            <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation.current} setPresentationImage={setPresentationImage}/>
             <StoriesView editing stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
                          createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}/>
             <ButtonsContainer>
