@@ -92,9 +92,7 @@ export default function StoriesView<M extends ViewMode>({editing, stories,create
             <StoryContainer key={id}>{
                 isOpen ? <StoryOpenContainer>
                             {storyTitle}
-                            <StoryBody>
-                                {body}
-                            </StoryBody>
+                            <StoryBody dangerouslySetInnerHTML={{__html: body }}/>
                         </StoryOpenContainer>
                     : storyTitle
             }</StoryContainer>
@@ -121,8 +119,7 @@ export default function StoriesView<M extends ViewMode>({editing, stories,create
             <StoryContainer key={id}>
                 {isOpen ? <StoryOpenContainer>
                             {storyTitleView}
-                            <StoryBody id={htmlIds.body} contentEditable={contentEditable} dangerouslySetInnerHTML={{__html: body }}>
-                            </StoryBody>
+                            <StoryBody id={htmlIds.body} contentEditable={contentEditable} dangerouslySetInnerHTML={{__html: body }}/>
                         </StoryOpenContainer>
                     : storyTitleView}
             </StoryContainer>

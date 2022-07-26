@@ -1,13 +1,23 @@
 import styled from "@emotion/styled"
 import {css} from "@emotion/react"
-import React, {ChangeEvent, useId, useRef, useState} from "react"
+import React, {ChangeEvent, useEffect, useId, useRef, useState} from "react"
+import {IoMdClose} from "react-icons/io"
+import {Button} from "./Buttons"
+import {ResultMessage, ResultMessageProps} from "./Labels"
+
+type TextInputProps = {
+    value?: string
+    setValue: (value: string) => void
+    width?: number
+    placeholder?: string
+}
 
 export const TextInput = ({
                               value,
                               setValue,
                               width,
                               placeholder
-                          }: { value: string, setValue: (value: string) => void, width: number, placeholder?: string }) => {
+                          }: TextInputProps) => {
 
     return (
         <Input placeholder={placeholder} width={width} value={value} type={"text"}
@@ -15,8 +25,6 @@ export const TextInput = ({
     )
 }
 const Input = styled.input`
-    height:40px;
-    width:600px;
     font-size: 20px;
     ${props =>
     css`
@@ -26,10 +34,10 @@ const Input = styled.input`
 `
 
 type TextAreaInputProps = {
-    value: string
+    value?: string
     setValue: (value: string) => void
-    width: number
-    height: number
+    width?: number
+    height?: number
     placeholder?: string
 }
 
@@ -114,4 +122,106 @@ const ImageSizeErrorLabel = styled.label`
   color: red;
 `
 
+type InputType = "textAreaInput" | "textInput"
+type InputElementProps = {type: InputType, placeholder: string, height: number, width: number}
+type InputElementsProps = { [key: string]: InputElementProps }
+type InputValues<E extends InputElementsProps> = {
+    [K in keyof E]: (E[K]["type"] extends ("textInput" | "textAreaInput") ? string : never)
+}
+
+type FormModalProps<E extends InputElementsProps> = {
+    inputElementsProps: E
+    processSubmission: (values: InputValues<E>) => Promise<ResultMessageProps>
+    topPosition: number
+    leftPosition : number
+    buttonLabel : string
+}
+const useElementsValues = <E extends InputElementsProps>(inputElementsProps: E) : [JSX.Element, InputValues<E>]  => {
+    const elementsValues = useRef(
+        (() => {
+            const initElementsValues: Record<string, any> = {}
+            for (const key in inputElementsProps) {
+                initElementsValues[key] = undefined
+            }
+            return initElementsValues as InputValues<E>
+        })())
+    const setElementValue = (key: keyof InputValues<E>, value: any) => {
+        elementsValues.current[key] = value
+    }
+
+    const elementsRef = useRef(<></>)
+    useEffect(() => {
+        let elements = <></>
+        for (const [key, {type, ...rest}] of Object.entries(inputElementsProps)) {
+            let element
+            switch (type) {
+                case "textInput":
+                    element = <TextInput {...rest} setValue={(value) => setElementValue(key, value)}/>
+                    break
+                case "textAreaInput":
+                    element = <TextAreaInput {...rest} setValue={(value) => setElementValue(key, value)}/>
+                    break
+            }
+            elements = <>
+                {elements}
+                {element}
+            </>
+        }
+        elementsRef.current = elements
+    }, [])
+    return [elementsRef.current, elementsValues.current]
+}
+
+export const useFormModal = <E extends InputElementsProps>({
+                                                               inputElementsProps,
+                                                               processSubmission,
+                                                               topPosition,
+                                                               leftPosition,
+                                                               buttonLabel
+                                                           }: FormModalProps<E>) : [()=> void, JSX.Element] => {
+    const [Elements, elementsValues] = useElementsValues(inputElementsProps)
+    const [show, setShow] = useState(false)
+    const showModal = () => {
+        setShow(true)
+    }
+    const hideModal = () => {
+        setShow(false)
+    }
+    const [resultMessage, setResultMessage] = useState({succeed: false, message: ""})
+    const handleSubmission = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+
+        processSubmission(elementsValues).then(
+            (resultMessageProps)=> {
+                setResultMessage(resultMessageProps)
+            }
+        )
+    }
+
+    const Modal = <FormModalContainer onSubmit={handleSubmission} show={show} topPosition={topPosition}
+                            leftPosition={leftPosition}>
+                    <IoMdClose style={{cursor: "pointer", color: "#FFFFFF"}} onClick={(e) => hideModal()}/>
+                    {Elements}
+                    <Button backgroundColor={"#00008B"}>{buttonLabel}</Button>
+                    <ResultMessage {...resultMessage}/>
+                 </FormModalContainer>
+
+    return [showModal, Modal]
+}
+const FormModalContainer = styled.form<{ show: boolean, topPosition: number, leftPosition: number}>`
+  display: ${({show, topPosition, leftPosition}) => (show ? "flex" : "none") + ";"
+    + "top: " + topPosition + "%;"
+    + "left: " + leftPosition + "%;"}
+  flex-direction: column;
+  align-items: center;
+  z-index: 1; 
+  position: fixed;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  padding: 15px;
+  gap: 15px;
+  overflow: auto; 
+  background-color: rgb(0,0,0); 
+  background-color: rgba(0,0,0,0.4);
+ `
 

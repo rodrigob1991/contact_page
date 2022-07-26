@@ -2,6 +2,7 @@ import {Presentation, PresentationHTMLElementIds, ViewMode} from "../../types/Ho
 import styled from "@emotion/styled"
 import React from "react"
 import {ImageSelector} from "../FormComponents"
+import Image from "next/image"
 
 
 type EditingProps = {
@@ -15,21 +16,23 @@ type Props<VM extends ViewMode> = {
 
 export default function PresentationView<VM extends ViewMode>({
                                              editing,
-                                             presentation: {name, introduction, image},
+                                             presentation: {name, introduction, image: imageDataUrl},
                                              htmlElementIds, setPresentationImage
                                          }: Props<VM>) {
 
     return (
         <PresentationContainer>
-            <PresentationNameImageContainer>
-                <ImageSelector imageMaxSize={16} width={100} height={90} processImage={setPresentationImage} imageDataUrl={image}/>
+            <PresentationNameImageContainer>{
+                editing ? <ImageSelector imageMaxSize={16} width={100} height={90} processImage={setPresentationImage}
+                                         imageDataUrl={imageDataUrl}/>
+                    : <Image src={imageDataUrl as string} width={100} height={90}/>
+            }
                 <PresentationName id={htmlElementIds?.name} contentEditable={editing}>
                     {name}
                 </PresentationName>
             </PresentationNameImageContainer>
-            <PresentationIntroduction id={htmlElementIds?.introduction} contentEditable={editing}>
-                {introduction}
-            </PresentationIntroduction>
+            <PresentationIntroduction id={htmlElementIds?.introduction} contentEditable={editing}
+                                      dangerouslySetInnerHTML={{__html: introduction}}/>
         </PresentationContainer>
     )
 }
