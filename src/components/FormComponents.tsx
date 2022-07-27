@@ -9,6 +9,7 @@ type TextInputProps = {
     value?: string
     setValue: (value: string) => void
     width?: number
+    height?: number
     placeholder?: string
 }
 
@@ -16,11 +17,12 @@ export const TextInput = ({
                               value,
                               setValue,
                               width,
+                              height,
                               placeholder
                           }: TextInputProps) => {
 
     return (
-        <Input placeholder={placeholder} width={width} value={value} type={"text"}
+        <Input placeholder={placeholder} width={width} height={height} value={value} type={"text"}
                onChange={(e) => setValue(e.target.value)}/>
     )
 }
@@ -132,9 +134,8 @@ type InputValues<E extends InputElementsProps> = {
 type FormModalProps<E extends InputElementsProps> = {
     inputElementsProps: E
     processSubmission: (values: InputValues<E>) => Promise<ResultMessageProps>
-    topPosition: number
-    leftPosition : number
-    buttonLabel : string
+    position: {top: number, left: number}
+    buttonText : string
 }
 const useElementsValues = <E extends InputElementsProps>(inputElementsProps: E) : [JSX.Element, InputValues<E>]  => {
     const elementsValues = useRef(
@@ -175,9 +176,11 @@ const useElementsValues = <E extends InputElementsProps>(inputElementsProps: E) 
 export const useFormModal = <E extends InputElementsProps>({
                                                                inputElementsProps,
                                                                processSubmission,
-                                                               topPosition,
-                                                               leftPosition,
-                                                               buttonLabel
+                                                               position: {
+                                                                   top: topPosition,
+                                                                   left: leftPosition
+                                                               },
+                                                               buttonText
                                                            }: FormModalProps<E>) : [()=> void, JSX.Element] => {
     const [Elements, elementsValues] = useElementsValues(inputElementsProps)
     const [show, setShow] = useState(false)
@@ -202,7 +205,7 @@ export const useFormModal = <E extends InputElementsProps>({
                             leftPosition={leftPosition}>
                     <IoMdClose style={{cursor: "pointer", color: "#FFFFFF"}} onClick={(e) => hideModal()}/>
                     {Elements}
-                    <Button backgroundColor={"#00008B"}>{buttonLabel}</Button>
+                    <Button backgroundColor={"#00008B"}>{buttonText}</Button>
                     <ResultMessage {...resultMessage}/>
                  </FormModalContainer>
 

@@ -2,7 +2,7 @@ import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../types/Home"
 import React, {useEffect, useState} from "react"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import styled from "@emotion/styled"
-import {DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton} from "../Buttons"
+import {Button, DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton} from "../Buttons"
 
 type StoryVisibility = {id: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -10,18 +10,28 @@ type GetHtmlElementIds = (id: string) => StoryHTMLElementIds
 type GetNewStory = () => [string, NewStory]
 type DeleteStory = (id: string) => void
 type RecoverStory = (id: string) => void
+type AddHighlightText = (id: string) => void
 type EditingProps = {
     editing: true
     createNewStory: GetNewStory
     getHtmlElementIds: GetHtmlElementIds
     deleteStory : DeleteStory
     recoverStory : RecoverStory
+    addHighlightText : AddHighlightText
 }
 type Props<M extends ViewMode> = {
     stories: Story[]
 } & (M extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
-export default function StoriesView<M extends ViewMode>({editing, stories,createNewStory, getHtmlElementIds, deleteStory, recoverStory}: Props<M>) {
+export default function StoriesView<M extends ViewMode>({
+                                                            editing,
+                                                            stories,
+                                                            createNewStory,
+                                                            getHtmlElementIds,
+                                                            deleteStory,
+                                                            recoverStory,
+                                                            addHighlightText
+                                                        }: Props<M>) {
     const [storiesVisibility, setStoriesVisibility] = useState<StoryVisibility[]>(stories.map((s) => {
         return {id: s.id, story: s, toDelete: false, isOpen: false}
     }))
@@ -113,6 +123,7 @@ export default function StoriesView<M extends ViewMode>({editing, stories,create
                                             onClick={(e)=> toDelete
                                                 ? handleRecoverStory(e,id,index)
                                                 : handleDeleteStory(e,id,index, !("id" in story))}/>
+                <Button onClick={(e)=> {e.preventDefault(); (addHighlightText as AddHighlightText)(id)}}> ADD BLACK TEXT </Button>
             </StoryTitleContainer>
 
         return (
@@ -173,8 +184,9 @@ const StoryContainer = styled.li`
   padding-bottom: 15px;
   margin-top: 15px;
 `
-const StoryBody = styled.span`
-  color: #90EE90;
+const StoryBody = styled.div`
+  color: #FFFFFF;
+  background-color: #5F9EA0;
   font-size: 28px;
   font-family: "Lucida Console", "Courier New", monospace;
   border-style: solid;

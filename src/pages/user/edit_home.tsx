@@ -85,7 +85,7 @@ export default function EditHome(props?: HomeProps) {
         getNewStories()[index][key] = value
     }
     const createNewStory = (): [string, NewStory] => {
-        const newStory = {title: "title", body: "body"}
+        const newStory = {title: "title", body: "<div> body </div>"}
         const id = newStoryIdPrefix + (getNewStories().push(newStory) - 1)
         return [id, newStory]
     }
@@ -164,6 +164,25 @@ export default function EditHome(props?: HomeProps) {
         return () => observer.disconnect()
     }, [])
 
+    const addHighlightText = (storyId: string) => {
+        const storyElement = document.getElementById(`${storyHtmlElementIdsPrefix}{${storyId}}body`) as HTMLElement
+        //storyElement.innerHTML += "<div class='textHighlight'> </div>"
+        const childrens = storyElement.children
+        const firstChildren = childrens.item(0) as HTMLDivElement
+        firstChildren.insertAdjacentHTML("beforeend", "<span class='textHighlight'>&nbsp</span>")
+        const newSpan = firstChildren.children.item(0)  as HTMLSpanElement
+        const range = document.createRange()
+        const sel = window.getSelection() as Selection
+        range.setStart(newSpan, 1)
+
+        sel.removeAllRanges()
+        sel.addRange(range)
+
+
+        /*const text = document.createTextNode("<div class='textHighlight'> </div>")
+        storyElement.appendChild(text)*/
+    }
+
     const [loading, setLoading] = useState(false)
     const prepareApiCall = (promise: Promise<any>) => {
         setStorageResultMessage("")
@@ -222,7 +241,8 @@ export default function EditHome(props?: HomeProps) {
             <Loader show={loading}/>
             <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation.current} setPresentationImage={setPresentationImage}/>
             <StoriesView editing stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
-                         createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}/>
+                         createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}
+             addHighlightText={addHighlightText}/>
             <ButtonsContainer>
                 <Button disabled={loading} onClick={storeHomeProps}> STORE </Button>
                 <Button disabled={loading} onClick={revalidateHomeProps}> REVALIDATE </Button>
