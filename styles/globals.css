@@ -39,7 +39,14 @@ a {
   }
 }
 
-.textHighlight {
+.palletOption {
+  cursor: pointer;
+}
+.blackText {
   color: black;
+}
+.underlinedText {
+  color: brown;
+  text-underline: brown;
 }
 

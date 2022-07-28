@@ -3,6 +3,7 @@ import React, {useEffect, useState} from "react"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import styled from "@emotion/styled"
 import {Button, DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton} from "../Buttons"
+import {Pallet} from "../Pallet";
 
 type StoryVisibility = {id: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -87,6 +88,8 @@ export default function StoriesView<M extends ViewMode>({
         updatedStoriesVisibility[index].isOpen = !updatedStoriesVisibility[index].isOpen
         setStoriesVisibility(updatedStoriesVisibility)
     }
+    const [storyIdOnFocus, setStoryIdOnFocus] = useState<string | undefined>(undefined)
+
     const getStoryView = (storyVisibility: StoryVisibility, index: number) => {
         const {id, story : {title, body}, isOpen} = storyVisibility
 
@@ -123,14 +126,16 @@ export default function StoriesView<M extends ViewMode>({
                                             onClick={(e)=> toDelete
                                                 ? handleRecoverStory(e,id,index)
                                                 : handleDeleteStory(e,id,index, !("id" in story))}/>
-                <Button onClick={(e)=> {e.preventDefault(); (addHighlightText as AddHighlightText)(id)}}> ADD BLACK TEXT </Button>
+                <Pallet show={storyIdOnFocus === id}/>
             </StoryTitleContainer>
 
         return (
             <StoryContainer key={id}>
                 {isOpen ? <StoryOpenContainer>
                             {storyTitleView}
-                            <StoryBody id={htmlIds.body} contentEditable={contentEditable} dangerouslySetInnerHTML={{__html: body }}/>
+                        <StoryBody id={htmlIds.body} contentEditable={contentEditable}
+                                   dangerouslySetInnerHTML={{__html: body}}
+                                   onFocus={e => setStoryIdOnFocus(id)}/>
                         </StoryOpenContainer>
                     : storyTitleView}
             </StoryContainer>
