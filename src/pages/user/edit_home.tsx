@@ -159,7 +159,7 @@ export default function EditHome(props?: HomeProps) {
                     }
                 }
             })
-        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true})
+        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true, childList:true})
 
         return () => observer.disconnect()
     }, [])
