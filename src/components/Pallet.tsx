@@ -28,6 +28,25 @@ export const Pallet =({show}: Props)=> {
         }
         return texts
     }
+    const isDiv = (node: Node) => {
+        return node instanceof HTMLDivElement
+    }
+    const isSpan = (node: Node) => {
+        return node instanceof HTMLSpanElement
+    }
+    const hasLeftSibling = (node: Node) => {
+        let foundDiv = false
+        let foundLeftSibling = false
+        let actualNode = node
+
+        while (!foundDiv && !foundLeftSibling) {
+            foundLeftSibling = actualNode.previousSibling !== null
+            const parent = actualNode.parentNode as Node
+            foundDiv = isDiv(parent)
+            actualNode = parent
+        }
+        return foundLeftSibling
+    }
 
     const handleStyleSelection = (className: string) => {
         const createTextNode = (text: string) => document.createTextNode(text)
@@ -83,6 +102,7 @@ export const Pallet =({show}: Props)=> {
                     throw new Error("Could not enter in any case, maybe other cases have to be added")
             }*/
         } else {
+            // selection.anchorNode = range.startContainer
             const range = selection.getRangeAt(0)
 
             console.log(`anchorNode: ${anchorNode}
@@ -97,24 +117,32 @@ export const Pallet =({show}: Props)=> {
         . rangeStartOffSet: ${range.startOffset}`)
 
             const selectedFragment = range.cloneContents()
+            console.table(selectedFragment)
+            console.table(range.startContainer)
+            console.table(range.startContainer.parentElement)
+            console.log(range.startContainer === anchorNode)
             let newFragment = ""
 
             const startSelectedFragment = selectedFragment.firstChild
             const startOffSet = range.startOffset
             const startSelectedFragmentIsDiv = startSelectedFragment && startSelectedFragment.nodeType === 1 && (startSelectedFragment as Element).tagName.toLowerCase() === "div"
             // this is when the selection start over part of a div
-            if (startSelectedFragmentIsDiv && startOffSet > 0) {
+           /* if (startSelectedFragmentIsDiv && (startOffSet > 0 || hasLeftSibling(range.startContainer)) {
                 const startContainer = range.startContainer
                 const startContainerParent = startContainer.parentElement as HTMLElement
                 console.table(startContainer)
                 console.table(startContainerParent)
-                
 
-               /* const remainSameStyleText = createTextNode((startContainer.nodeValue as string).substring(0, startOffSet))
+                // <div> some text </div>
+                // <div> <span>some text</span> some other text </div>
+                // <div><span>text<span>text</span></span>text</div>
+
+
+                const remainSameStyleText = createTextNode((startContainer.nodeValue as string).substring(0, startOffSet))
                 const newStyledSpan = createSpan(getTexts(startSelectedFragment))
                 startContainerParent.replaceChild(remainSameStyleText, startContainer)
-                startContainerParent.appendChild(newStyledSpan)*/
-            }
+                startContainerParent.appendChild(newStyledSpan)
+            }*/
 
            /* const endSelectedFragment = selectedFragment.lastChild
             const endSelectedFragmentIsDiv = endSelectedFragment && (endSelectedFragment as Element).tagName.toLowerCase() === "div"
