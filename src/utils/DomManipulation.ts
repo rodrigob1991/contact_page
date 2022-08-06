@@ -1,9 +1,17 @@
+export const isText = (node: Node) => {
+    return node instanceof Text
+}
+export const isDiv = (node: Node) => {
+    return node instanceof HTMLDivElement
+}
+export const isSpan = (node: Node) => {
+    return node instanceof HTMLSpanElement
+}
 export const normalizeNode = (node: Node) => {
     for (const child in node.childNodes){
 
     }
 }
-
 export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "left", includeFromNode: boolean, removingTill: (parent: ParentNode) => boolean) => {
     let parent = fromNode.parentNode
     const siblingPropertyKey = side === "right" ? "nextSibling" : "previousSibling"
@@ -20,13 +28,14 @@ export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "lef
 
     do {
         while (sibling) {
+            console.table(sibling)
             const currentSibling = sibling
             sibling = currentSibling[siblingPropertyKey]
             currentSibling.remove()
         }
-    } while (!stopRemoving)
+    } while (!stopRemoving())
 }
-export const hasSibling = (node: Node, side: "right" | "left", seekTill?: (parent: ParentNode) => boolean) => {
+export const hasSiblingOrParentSibling = (node: Node, side: "right" | "left", seekTill?: (parent: ParentNode) => boolean) => {
     let continueSeeking = true
     let foundSibling = false
     let actualNode = node
@@ -36,20 +45,33 @@ export const hasSibling = (node: Node, side: "right" | "left", seekTill?: (paren
         const parent = actualNode.parentNode
         if (parent) {
             foundSibling = actualNode[siblingPropertyKey] !== null
-            continueSeeking = !foundSibling && (!seekTill || seekTill(parent))
+            continueSeeking = !foundSibling && (!seekTill || !seekTill(parent))
+            if (continueSeeking) {
+                actualNode = parent
+            }
         } else {
             continueSeeking = false
         }
     }
     return foundSibling
 }
-
-const getDivParent = (lookDivParentFrom: Text) => {
-    let parent = lookDivParentFrom.parentNode as HTMLElement
+export const lookUpDivParent = (node: Node) => {
+    let parent = node.parentNode
     while (true) {
-        if (isDiv(parent)) {
+        if (!parent || isDiv(parent)) {
             return parent as HTMLDivElement
         }
-        parent = parent.parentNode as HTMLElement
+        parent = parent.parentNode
     }
+}
+export const getTexts = (node: Node) => {
+    let texts = ""
+    if (node instanceof Text) {
+        texts += node.nodeValue || ""
+    } else {
+        for (const child of node.childNodes) {
+            texts += getTexts(child)
+        }
+    }
+    return texts
 }
