@@ -1,16 +1,21 @@
 export const isText = (node: Node) => {
     return node instanceof Text
 }
+export const isHtmlElement = (node: Node) => {
+    return node instanceof HTMLElement
+}
 export const isDiv = (node: Node) => {
     return node instanceof HTMLDivElement
 }
 export const isSpan = (node: Node) => {
     return node instanceof HTMLSpanElement
 }
-export const normalizeNode = (node: Node) => {
-    for (const child in node.childNodes){
-
-    }
+export const createTextNode = (text: string) => document.createTextNode(text)
+export const createSpan = (text: string, className: string) => {
+    const span = document.createElement("span")
+    span.className = className
+    span.appendChild(createTextNode(text))
+    return span
 }
 export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "left", includeFromNode: boolean, removingTill: (parent: ParentNode) => boolean) => {
     let parent = fromNode.parentNode
@@ -28,7 +33,6 @@ export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "lef
 
     do {
         while (sibling) {
-            console.table(sibling)
             const currentSibling = sibling
             sibling = currentSibling[siblingPropertyKey]
             currentSibling.remove()
@@ -74,4 +78,9 @@ export const getTexts = (node: Node) => {
         }
     }
     return texts
+}
+export const normalizeNode = (node: Node) => {
+    for (const child in node.childNodes){
+
+    }
 }

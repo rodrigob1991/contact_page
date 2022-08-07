@@ -191,11 +191,12 @@ const StoryContainer = styled.li`
 `
 const StoryBody = styled.div`
   color: #FFFFFF;
-  background-color: #5F9EA0;
+  background-color: #8FBC8F;
   font-size: 28px;
   font-family: "Lucida Console", "Courier New", monospace;
   border-style: solid;
   border-color: #778899;
+  font-weight: bold;
   border-width: thin;
   padding: 6px;
   border-radius: 5px;
