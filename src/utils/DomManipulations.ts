@@ -10,11 +10,21 @@ export const isDiv = (node: Node) => {
 export const isSpan = (node: Node) => {
     return node instanceof HTMLSpanElement
 }
+export const positionCaretOn = (node: Node) => {
+    const range = document.createRange()
+    const selection = document.getSelection() as Selection
+
+    const offSet = isText(node) ? (node.nodeValue as string).length : node.childNodes.length
+    range.setStart(node, offSet)
+
+    selection.removeAllRanges()
+    selection.addRange(range)
+}
 export const createTextNode = (text: string) => document.createTextNode(text)
 export const createSpan = (text: string, className: string) => {
     const span = document.createElement("span")
     span.className = className
-    span.appendChild(createTextNode(text))
+    span.innerHTML = text
     return span
 }
 export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "left", includeFromNode: boolean, removingTill: (parent: ParentNode) => boolean) => {

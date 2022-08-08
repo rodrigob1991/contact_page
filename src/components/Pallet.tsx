@@ -7,7 +7,7 @@ import {
     isDiv, isHtmlElement,
     isSpan,
     isText,
-    lookUpDivParent,
+    lookUpDivParent, positionCaretOn,
     removeNodesFromOneSide
 } from "../utils/DomManipulations"
 
@@ -20,47 +20,49 @@ export const Pallet =({show}: Props)=> {
     const blackTextClassName = "blackText"
     const underlinedClassName = "underlinedText"
 
-    const positionateCaretOn = (node: Node) => {
-        const range = document.createRange()
-        const sel = window.getSelection() as Selection
-        range.setStart(node, 1)
-
-        sel.removeAllRanges()
-        sel.addRange(range)
-    }
-    const handleCollapsedSelection = (className: string, anchor: Node, anchorOffSet: number) => {
+    const handleCollapsedSelection = (className: string, anchor: ChildNode, anchorOffSet: number) => {
         const anchorParent = anchor.parentElement as HTMLElement
         const anchorValue = anchor.nodeValue
         const anchorLength = anchorValue?.length
 
-    const span = createSpan("&nbsp", className)
+        const span = createSpan("&nbsp", className)
+
         switch (true) {
             case isHtmlElement(anchor):
+                console.log(1)
                 anchor.appendChild(span)
                 break
             case isText(anchor) && isDiv(anchorParent) && anchorOffSet === 0:
+                console.log(2)
                 anchorParent.insertAdjacentElement("afterbegin", span)
                 break
             case isText(anchor) && isDiv(anchorParent) && anchorOffSet === anchorLength:
-                anchorParent.insertAdjacentElement("beforeend", span)
+                console.log(3)
+                anchorParent.insertBefore(span, anchor.nextSibling)
                 break
             case isText(anchor) && isSpan(anchorParent) && anchorOffSet === 0:
+                console.log(4)
                 anchorParent.insertAdjacentElement("beforebegin", span)
                 break
             case isText(anchor) && isSpan(anchorParent) && anchorOffSet === anchorLength:
+                console.log(5)
                 anchorParent.insertAdjacentElement("afterend", span)
                 break
             case isText(anchor) && anchorOffSet !== anchorLength:
+                console.log(6)
                 const leftNewTextNode = createTextNode((anchorValue as string).substring(0, anchorOffSet))
                 const rightNewTextNode = createTextNode((anchorValue as string).substring(anchorOffSet))
-                anchorParent.replaceChildren(leftNewTextNode, span, rightNewTextNode)
+                anchor.after(leftNewTextNode, span, rightNewTextNode)
+                anchor.remove()
                 break
             default:
                 throw new Error("Could not enter in any case, maybe other cases have to be added")
         }
+        positionCaretOn(span)
     }
 
     const handleRangeSelection = (className: string, range: Range) => {
+        let nodeToPositionCaret
         const copySelectedFragment = range.cloneContents()
 
         // it seem that range.startContainer is always a text node
@@ -121,6 +123,7 @@ export const Pallet =({show}: Props)=> {
             copySelectedFragment.removeChild(endSelectedFragment)
 
             range.setEndBefore(rangeEndTextDivParent)
+            nodeToPositionCaret = newStyledSpan
         }
 
         let spanText = ""
@@ -128,53 +131,28 @@ export const Pallet =({show}: Props)=> {
             if (isText(node) || isSpan(node)) {
                 spanText += getTexts(node)
             } else if (node instanceof HTMLDivElement) {
-                node.replaceChildren(createSpan(getTexts(node), className))
+                const newStyledSpan = createSpan(getTexts(node), className)
+                node.replaceChildren(newStyledSpan)
+                nodeToPositionCaret = newStyledSpan
             } else {
                 throw new Error("should no enter in this else")
             }
         }
         if (!isEmptyString(spanText)) {
-            copySelectedFragment.replaceChildren(createSpan(spanText, className))
+            const newStyledSpan = createSpan(spanText, className)
+            copySelectedFragment.replaceChildren(newStyledSpan)
+            nodeToPositionCaret = newStyledSpan
         }
         range.deleteContents()
         range.insertNode(copySelectedFragment)
 
+        positionCaretOn(nodeToPositionCaret as HTMLSpanElement)
     }
     const handleStyleSelection = (className: string) => {
-            //const newElement = "<span class=" + className + ">&nbsp</span>"
-            /*const span = new HTMLSpanElement()
-            span.className = className
-            span.append("&nbsp")
-
-            switch (true) {
-                case anchorIsElement:
-                    anchorNode.appendChild(span)
-                    break
-                case anchorIsText && anchorParentIsDiv && anchorOffSet === 0:
-                    anchorParent.insertAdjacentElement("afterbegin", span)
-                    break
-                case anchorIsText && anchorParentIsDiv && anchorOffSet === anchorLength:
-                    anchorParent.insertAdjacentElement("beforeend", span)
-                    break
-                case anchorIsText && anchorParentIsSpan && anchorOffSet === 0:
-                    anchorParent.insertAdjacentElement("beforebegin", span)
-                    break
-                case anchorIsText && anchorParentIsSpan && anchorOffSet === anchorLength:
-                    anchorParent.insertAdjacentElement("afterend", span)
-                    break
-                case anchorIsText && anchorOffSet !== anchorLength:
-                    const anchorText = anchorNode.nodeValue as string
-                    const leftNewTextNode = new Text(anchorText.substring(0, anchorOffSet))
-                    const rightNewTextNode = new Text(anchorText.substring(anchorOffSet))
-                    anchorParent.replaceChildren(leftNewTextNode, span, rightNewTextNode)
-                    break
-                default:
-                    throw new Error("Could not enter in any case, maybe other cases have to be added")
-            }*/
         const selection = window.getSelection() as Selection
 
         if (selection.isCollapsed) {
-            handleCollapsedSelection(className, selection.anchorNode as Node, selection.anchorOffset)
+            handleCollapsedSelection(className, selection.anchorNode as ChildNode, selection.anchorOffset)
         } else {
             for (let i = 0; i < selection.rangeCount; i++) {
                 handleRangeSelection(className, selection.getRangeAt(i))
