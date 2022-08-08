@@ -42,11 +42,17 @@ a {
 .palletOption {
   cursor: pointer;
 }
-.blackText {
+.blackTextUnderline {
   color: black;
+  text-decoration: underline;
 }
-.underlinedText {
+.blackTextTitle {
+  color: black;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+.redText {
   color: brown;
-  text-underline: brown;
+  display:inline-block;
 }
 

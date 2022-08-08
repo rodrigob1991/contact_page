@@ -16,10 +16,6 @@ type Props = {
 }
 
 export const Pallet =({show}: Props)=> {
-    const palletOptionClassName = "palletOption"
-    const blackTextClassName = "blackText"
-    const underlinedClassName = "underlinedText"
-
     const handleCollapsedSelection = (className: string, anchor: ChildNode, anchorOffSet: number) => {
         const anchorParent = anchor.parentElement as HTMLElement
         const anchorValue = anchor.nodeValue
@@ -29,27 +25,21 @@ export const Pallet =({show}: Props)=> {
 
         switch (true) {
             case isHtmlElement(anchor):
-                console.log(1)
                 anchor.appendChild(span)
                 break
             case isText(anchor) && isDiv(anchorParent) && anchorOffSet === 0:
-                console.log(2)
                 anchorParent.insertAdjacentElement("afterbegin", span)
                 break
             case isText(anchor) && isDiv(anchorParent) && anchorOffSet === anchorLength:
-                console.log(3)
                 anchorParent.insertBefore(span, anchor.nextSibling)
                 break
             case isText(anchor) && isSpan(anchorParent) && anchorOffSet === 0:
-                console.log(4)
                 anchorParent.insertAdjacentElement("beforebegin", span)
                 break
             case isText(anchor) && isSpan(anchorParent) && anchorOffSet === anchorLength:
-                console.log(5)
                 anchorParent.insertAdjacentElement("afterend", span)
                 break
             case isText(anchor) && anchorOffSet !== anchorLength:
-                console.log(6)
                 const leftNewTextNode = createTextNode((anchorValue as string).substring(0, anchorOffSet))
                 const rightNewTextNode = createTextNode((anchorValue as string).substring(anchorOffSet))
                 anchor.after(leftNewTextNode, span, rightNewTextNode)
@@ -62,7 +52,7 @@ export const Pallet =({show}: Props)=> {
     }
 
     const handleRangeSelection = (className: string, range: Range) => {
-        let nodeToPositionCaret
+        let lastSpanToPositionCaret
         const copySelectedFragment = range.cloneContents()
 
         // it seem that range.startContainer is always a text node
@@ -71,7 +61,8 @@ export const Pallet =({show}: Props)=> {
         const startSelectedFragment = copySelectedFragment.firstChild
         const startSelectedFragmentIsDiv = startSelectedFragment && isDiv(startSelectedFragment)
         // this is when the selection start over part of a div
-        if (startSelectedFragmentIsDiv && (startOffSet > 0 || hasSiblingOrParentSibling(rangeStartText, "left", (p) => isDiv(p)))) {
+        const modifyStartRange = startSelectedFragmentIsDiv && (startOffSet > 0 || hasSiblingOrParentSibling(rangeStartText, "left", (p) => isDiv(p)))
+        if (modifyStartRange) {
             const rangeStartTextParent = rangeStartText.parentElement as HTMLElement
             const rangeStartTextDivParent = lookUpDivParent(rangeStartText)
 
@@ -101,7 +92,8 @@ export const Pallet =({show}: Props)=> {
         const endSelectedFragment = copySelectedFragment.lastChild
         const endSelectedFragmentIsDiv = endSelectedFragment && isDiv(endSelectedFragment)
         // this is when the selection end over part of a div
-        if (endSelectedFragmentIsDiv && (!isRangeEndTextAllSelected || hasSiblingOrParentSibling(rangeEndText, "right", (p)=> isDiv(p)))) {
+        const modifyEndRange = endSelectedFragmentIsDiv && (!isRangeEndTextAllSelected || hasSiblingOrParentSibling(rangeEndText, "right", (p)=> isDiv(p)))
+        if (modifyEndRange) {
             const rangeEndTextParent = rangeEndText.parentElement as HTMLElement
             const rangeEndTextDivParent = lookUpDivParent(rangeEndText)
 
@@ -123,30 +115,36 @@ export const Pallet =({show}: Props)=> {
             copySelectedFragment.removeChild(endSelectedFragment)
 
             range.setEndBefore(rangeEndTextDivParent)
-            nodeToPositionCaret = newStyledSpan
+            lastSpanToPositionCaret = newStyledSpan
         }
 
-        let spanText = ""
-        for (const node of copySelectedFragment.childNodes) {
-            if (isText(node) || isSpan(node)) {
-                spanText += getTexts(node)
-            } else if (node instanceof HTMLDivElement) {
-                const newStyledSpan = createSpan(getTexts(node), className)
-                node.replaceChildren(newStyledSpan)
-                nodeToPositionCaret = newStyledSpan
-            } else {
-                throw new Error("should no enter in this else")
+        if (!startSelectedFragmentIsDiv) {
+            let spanText = ""
+            copySelectedFragment.childNodes.forEach((n) => spanText += getTexts(n))
+            if (!isEmptyString(spanText)) {
+                const newStyledSpan = createSpan(spanText, className)
+                copySelectedFragment.replaceChildren(newStyledSpan)
+                lastSpanToPositionCaret = newStyledSpan
             }
-        }
-        if (!isEmptyString(spanText)) {
-            const newStyledSpan = createSpan(spanText, className)
-            copySelectedFragment.replaceChildren(newStyledSpan)
-            nodeToPositionCaret = newStyledSpan
+        } else {
+            copySelectedFragment.childNodes.forEach((n) => {
+                if (n instanceof HTMLDivElement) {
+                    const newStyledSpan = createSpan(getTexts(n), className)
+                    n.replaceChildren(newStyledSpan)
+                    if(!modifyEndRange){
+                        lastSpanToPositionCaret = n
+                    }
+                } else {
+                    throw new Error("I do not expect a node here not to be a div")
+                }
+            })
         }
         range.deleteContents()
         range.insertNode(copySelectedFragment)
 
-        positionCaretOn(nodeToPositionCaret as HTMLSpanElement)
+        if (lastSpanToPositionCaret) {
+            positionCaretOn(lastSpanToPositionCaret)
+        }
     }
     const handleStyleSelection = (className: string) => {
         const selection = window.getSelection() as Selection
@@ -159,18 +157,23 @@ export const Pallet =({show}: Props)=> {
             }
         }
     }
+
+    const stylesClasses = ["blackTextUnderline", "blackTextTitle", "redText"]
+    const styleOptionSeparator = <span style={{color: "#000000"}}> - </span>
+
     return (
         <Container show={show}>
-            <span className={palletOptionClassName + " " + blackTextClassName}
-                  onMouseDown={(e=> e.preventDefault())}
-                  onClick={(e) => handleStyleSelection(blackTextClassName)}> A </span>
-            <span style={{color: "#000000"}}> - </span>
-            <span className={palletOptionClassName + " " + underlinedClassName}
-                  onMouseDown={(e=> e.preventDefault())}
-                  onClick={(e) => handleStyleSelection(underlinedClassName)}> A </span>
+            {stylesClasses.map((styleClass, index) =>
+                <>
+                <span className={"palletOption " + styleClass}
+                      onMouseDown={(e => e.preventDefault())}
+                      onClick={(e) => handleStyleSelection(styleClass)}> a
+                </span>
+                    {index < stylesClasses.length - 1 ? styleOptionSeparator : ""}
+                </>
+            )}
         </Container>
     )
-
 }
 
 const Container = styled.div<{ show: boolean}>`
