@@ -1,13 +1,15 @@
 import styled from "@emotion/styled"
 import {isEmptyString} from "../utils/StringFunctions"
 import {
-    createSpan, createTextNode,
+    createSpan,
+    createTextNode,
     getTexts,
     hasSiblingOrParentSibling,
-    isDiv, isHtmlElement,
+    isDiv,
     isSpan,
     isText,
-    lookUpDivParent, positionCaretOn,
+    lookUpDivParent,
+    positionCaretOn,
     removeNodesFromOneSide
 } from "../utils/DomManipulations"
 
@@ -21,29 +23,55 @@ export const Pallet =({show}: Props)=> {
         const anchorValue = anchor.nodeValue
         const anchorLength = anchorValue?.length
 
-        const span = createSpan("&nbsp", className)
+        const isDefaultStyle = isEmptyString(className)
+        const isInsideText = isText(anchor) && isDiv(anchorParent) && anchorOffSet !== anchorLength
+        const isInsideTextInSpan = isText(anchor) && isSpan(anchorParent) && anchorOffSet !== anchorLength
+        const isTextStart = isText(anchor) && isDiv(anchorParent) && anchorOffSet === 0
+        const isTextEnd = isText(anchor) && isDiv(anchorParent) && anchorOffSet === anchorLength
+        const isTextStartInSpan = isText(anchor) && isSpan(anchorParent) && anchorOffSet === 0
+        const isTextEndInSpan = isText(anchor) && isSpan(anchorParent) && anchorOffSet === anchorLength
+
+        const span = createSpan("-", className)
 
         switch (true) {
-            case isHtmlElement(anchor):
-                anchor.appendChild(span)
+            case isDefaultStyle && (isTextStart || isInsideText || isTextEnd):
+                // do nothing.
                 break
-            case isText(anchor) && isDiv(anchorParent) && anchorOffSet === 0:
-                anchorParent.insertAdjacentElement("afterbegin", span)
+            case isDefaultStyle && isTextStartInSpan:
+
                 break
-            case isText(anchor) && isDiv(anchorParent) && anchorOffSet === anchorLength:
-                anchorParent.insertBefore(span, anchor.nextSibling)
+            case isDefaultStyle && isInsideTextInSpan:
+
                 break
-            case isText(anchor) && isSpan(anchorParent) && anchorOffSet === 0:
-                anchorParent.insertAdjacentElement("beforebegin", span)
+            case isDefaultStyle && isTextEndInSpan:
+
                 break
-            case isText(anchor) && isSpan(anchorParent) && anchorOffSet === anchorLength:
-                anchorParent.insertAdjacentElement("afterend", span)
-                break
-            case isText(anchor) && anchorOffSet !== anchorLength:
+            case isInsideText || isInsideTextInSpan:
+                console.log(6)
                 const leftNewTextNode = createTextNode((anchorValue as string).substring(0, anchorOffSet))
                 const rightNewTextNode = createTextNode((anchorValue as string).substring(anchorOffSet))
                 anchor.after(leftNewTextNode, span, rightNewTextNode)
                 anchor.remove()
+                break
+            case isDiv(anchor):
+                console.log(1)
+                anchor.appendChild(span)
+                break
+            case isTextStart:
+                console.log(2)
+                anchor.before(span)
+                break
+            case isSpan(anchor) || isTextEnd:
+                console.log(3)
+                anchor.after(span)
+                break
+            case isTextStartInSpan:
+                console.log(4)
+                anchorParent.before(span)
+                break
+            case isTextEndInSpan:
+                console.log(5)
+                anchorParent.after(span)
                 break
             default:
                 throw new Error("Could not enter in any case, maybe other cases have to be added")
@@ -158,7 +186,7 @@ export const Pallet =({show}: Props)=> {
         }
     }
 
-    const stylesClasses = ["blackTextUnderline", "blackTextTitle", "redText"]
+    const stylesClasses = ["","blackText", "blackTextUnderline", "redText", "blackTextTitle"]
     const styleOptionSeparator = <span style={{color: "#000000"}}> - </span>
 
     return (

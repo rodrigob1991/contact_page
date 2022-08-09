@@ -190,8 +190,8 @@ const StoryContainer = styled.li`
   margin-top: 15px;
 `
 const StoryBody = styled.div`
-  color: #F8F8FF;
-  background-color: #8FBC8F;
+  color: #696969;
+  background-color: #FFFFFF;
   font-size: 28px;
   font-family: "Lucida Console", "Courier New", monospace;
   border-color: #778899;

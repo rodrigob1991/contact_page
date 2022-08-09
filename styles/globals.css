@@ -40,7 +40,16 @@ a {
 }
 
 .palletOption {
+  color: #696969;
   cursor: pointer;
+}
+.defaultText {
+  color: black;
+  text-decoration: underline;
+}
+.blackText {
+  color: black;
+  font-weight: bold;
 }
 .blackTextUnderline {
   color: black;
@@ -53,6 +62,6 @@ a {
 }
 .redText {
   color: brown;
-  display:inline-block;
+  font-weight: bold;
 }
 
