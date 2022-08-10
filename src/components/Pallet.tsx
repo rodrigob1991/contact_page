@@ -19,7 +19,7 @@ type Props = {
 
 export const Pallet =({show}: Props)=> {
     const handleCollapsedSelection = (className: string, anchor: ChildNode, anchorOffSet: number) => {
-        const anchorParent = anchor.parentElement as HTMLElement
+        const anchorParent = anchor.parentElement as HTMLDivElement | HTMLSpanElement
         const anchorValue = anchor.nodeValue
         const anchorLength = anchorValue?.length
 
@@ -31,53 +31,71 @@ export const Pallet =({show}: Props)=> {
         const isTextStartInSpan = isText(anchor) && isSpan(anchorParent) && anchorOffSet === 0
         const isTextEndInSpan = isText(anchor) && isSpan(anchorParent) && anchorOffSet === anchorLength
 
-        const span = createSpan("-", className)
+        let defaultText
+        let newSpan
 
-        switch (true) {
-            case isDefaultStyle && (isTextStart || isInsideText || isTextEnd):
-                // do nothing.
-                break
-            case isDefaultStyle && isTextStartInSpan:
-
-                break
-            case isDefaultStyle && isInsideTextInSpan:
-
-                break
-            case isDefaultStyle && isTextEndInSpan:
-
-                break
-            case isInsideText || isInsideTextInSpan:
-                console.log(6)
-                const leftNewTextNode = createTextNode((anchorValue as string).substring(0, anchorOffSet))
-                const rightNewTextNode = createTextNode((anchorValue as string).substring(anchorOffSet))
-                anchor.after(leftNewTextNode, span, rightNewTextNode)
-                anchor.remove()
-                break
-            case isDiv(anchor):
-                console.log(1)
-                anchor.appendChild(span)
-                break
-            case isTextStart:
-                console.log(2)
-                anchor.before(span)
-                break
-            case isSpan(anchor) || isTextEnd:
-                console.log(3)
-                anchor.after(span)
-                break
-            case isTextStartInSpan:
-                console.log(4)
-                anchorParent.before(span)
-                break
-            case isTextEndInSpan:
-                console.log(5)
-                anchorParent.after(span)
-                break
-            default:
-                throw new Error("Could not enter in any case, maybe other cases have to be added")
+        if (isDefaultStyle && (isTextStart || isInsideText || isTextEnd)) {
+            // do nothing.
+        } else if (isDefaultStyle && isTextStartInSpan) {
+            defaultText = createTextNode("-")
+            anchorParent.before(defaultText)
+        } else if (isDefaultStyle && isInsideTextInSpan) {
+            const parentClassName = anchorParent.className
+            const text = anchorValue as string
+            const leftSpan = createSpan(text.substring(0, anchorOffSet), parentClassName)
+            const rightSpan = createSpan(text.substring(anchorOffSet), parentClassName)
+            defaultText = createTextNode("-")
+            anchorParent.after(leftSpan, defaultText, rightSpan)
+            anchorParent.remove()
+        } else if (isDefaultStyle && isTextEndInSpan) {
+            defaultText = createTextNode("-")
+            anchorParent.after(defaultText)
+        } else if (isInsideText || isInsideTextInSpan) {
+            console.log(6)
+            const leftText = createTextNode((anchorValue as string).substring(0, anchorOffSet))
+            const rightText = createTextNode((anchorValue as string).substring(anchorOffSet))
+            newSpan = createSpan("-", className)
+            anchor.after(leftText, newSpan, rightText)
+            anchor.remove()
+        } else if (isInsideTextInSpan) {
+            console.log(7)
+            const parentClassName = anchorParent.className
+            const text = anchorValue as string
+            const leftSpan = createSpan(text.substring(0, anchorOffSet), parentClassName)
+            const rightSpan = createSpan(text.substring(anchorOffSet), parentClassName)
+            newSpan = createSpan("-", className)
+            anchorParent.after(leftSpan, newSpan, rightSpan)
+            anchorParent.remove()
+        } else if (isDiv(anchor)) {
+            console.log(1)
+            newSpan = createSpan("-", className)
+            anchor.appendChild(newSpan)
+        } else if (isTextStart) {
+            console.log(2)
+            newSpan = createSpan("-", className)
+            anchor.before(newSpan)
+        } else if (isSpan(anchor) || isTextEnd) {
+            console.log(3)
+            newSpan = createSpan("-", className)
+            anchor.after(newSpan)
+        } else if (isTextStartInSpan) {
+            console.log(4)
+            newSpan = createSpan("-", className)
+            anchorParent.before(newSpan)
+        } else if (isTextEndInSpan) {
+            console.log(5)
+            newSpan = createSpan("-", className)
+            anchorParent.after(newSpan)
+        } else {
+            throw new Error("Could not enter in any case, maybe other cases have to be added")
         }
-        positionCaretOn(span)
+
+        if (defaultText)
+            positionCaretOn(defaultText)
+        else if (newSpan)
+            positionCaretOn(newSpan)
     }
+
 
     const handleRangeSelection = (className: string, range: Range) => {
         let lastSpanToPositionCaret
@@ -88,10 +106,9 @@ export const Pallet =({show}: Props)=> {
         const startOffSet = range.startOffset
         const startSelectedFragment = copySelectedFragment.firstChild
         const startSelectedFragmentIsDiv = startSelectedFragment && isDiv(startSelectedFragment)
-        // this is when the selection start over part of a div
         const modifyStartRange = startSelectedFragmentIsDiv && (startOffSet > 0 || hasSiblingOrParentSibling(rangeStartText, "left", (p) => isDiv(p)))
         if (modifyStartRange) {
-            const rangeStartTextParent = rangeStartText.parentElement as HTMLElement
+            const rangeStartTextParent = rangeStartText.parentElement as HTMLDivElement | HTMLSpanElement
             const rangeStartTextDivParent = lookUpDivParent(rangeStartText)
 
             const newStyledSpan = createSpan(getTexts(startSelectedFragment), className)
@@ -146,9 +163,10 @@ export const Pallet =({show}: Props)=> {
             lastSpanToPositionCaret = newStyledSpan
         }
 
+        // TODO : this create spans inside others spans.
+        //  Do the necessary to avoid this behavior.
         if (!startSelectedFragmentIsDiv) {
-            let spanText = ""
-            copySelectedFragment.childNodes.forEach((n) => spanText += getTexts(n))
+            const spanText = getTexts(copySelectedFragment)
             if (!isEmptyString(spanText)) {
                 const newStyledSpan = createSpan(spanText, className)
                 copySelectedFragment.replaceChildren(newStyledSpan)
