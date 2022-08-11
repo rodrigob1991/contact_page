@@ -15,7 +15,15 @@ a {
   box-sizing: border-box;
 }
 
-.loader {
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.spin-loader {
   border: 16px solid #FFFFFF; /* Light grey */
   border-top: 16px solid transparent;/* Blue */
   border-bottom: 16px solid transparent;
@@ -30,13 +38,54 @@ a {
   top: 30%;
 }
 
-@keyframes spin {
+.blocks-loader {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.blocks-loader div {
+  display: inline-block;
+  position: absolute;
+  left: 8px;
+  width: 16px;
+  background: #fff;
+  animation: blocks-loader 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
+}
+.blocks-loader div:nth-child(1) {
+  left: 8px;
+  animation-delay: -0.24s;
+}
+.blocks-loader div:nth-child(2) {
+  left: 32px;
+  animation-delay: -0.12s;
+}
+.blocks-loader div:nth-child(3) {
+  left: 56px;
+  animation-delay: 0;
+}
+@keyframes blocks-loader {
   0% {
-    transform: rotate(0deg);
+    top: 8px;
+    height: 64px;
   }
-  100% {
-    transform: rotate(360deg);
+  50%, 100% {
+    top: 24px;
+    height: 32px;
   }
+}
+
+input:invalid {
+  background-color: ivory;
+  border: none;
+  outline: 2px solid red;
+  border-radius: 5px;
+}
+textarea:invalid {
+  background-color: ivory;
+  border: none;
+  outline: 2px solid red;
+  border-radius: 5px;
 }
 
 .palletOption {

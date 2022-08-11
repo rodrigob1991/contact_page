@@ -1,28 +1,33 @@
 import styled from "@emotion/styled"
 import {css} from "@emotion/react"
-import React, {ChangeEvent, useEffect, useId, useRef, useState} from "react"
+import React, {
+    ChangeEvent,
+    InputHTMLAttributes,
+    TextareaHTMLAttributes,
+    useEffect,
+    useId,
+    useRef,
+    useState
+} from "react"
 import {IoMdClose} from "react-icons/io"
 import {Button} from "./Buttons"
 import {ResultMessage, ResultMessageProps} from "./Labels"
+import {BlocksLoader, SpinLoader} from "./Loaders";
 
 type TextInputProps = {
-    value?: string
     setValue: (value: string) => void
-    width?: number
-    height?: number
-    placeholder?: string
+    email?: boolean
 }
 
 export const TextInput = ({
-                              value,
                               setValue,
-                              width,
-                              height,
-                              placeholder
-                          }: TextInputProps) => {
+                              email,
+                              ...rest
+                          }: TextInputProps & InputHTMLAttributes<HTMLInputElement>) => {
 
     return (
-        <Input placeholder={placeholder} width={width} height={height} value={value} type={"text"}
+        <Input {...rest}
+               type={email ? "email" : "text"}
                onChange={(e) => setValue(e.target.value)}/>
     )
 }
@@ -36,22 +41,15 @@ const Input = styled.input`
 `
 
 type TextAreaInputProps = {
-    value?: string
     setValue: (value: string) => void
-    width?: number
-    height?: number
-    placeholder?: string
 }
 
 export const TextAreaInput = ({
-                                  value,
                                   setValue,
-                                  width,
-                                  height,
-                                  placeholder
-                              }: TextAreaInputProps) => {
+                                    ...rest
+                              }: TextAreaInputProps & TextareaHTMLAttributes<HTMLTextAreaElement>) => {
     return (
-        <TextArea placeholder={placeholder} width={width} height={height} value={value} onChange={(e) => setValue(e.target.value)}/>
+        <TextArea {...rest} onChange={(e) => setValue(e.target.value)}/>
     )
 }
 const TextArea = styled.textarea<{ height?: number, width?: number }>`
@@ -124,11 +122,11 @@ const ImageSizeErrorLabel = styled.label`
   color: red;
 `
 
-type InputType = "textAreaInput" | "textInput"
+type InputType = "textAreaInput" | "textInput" | "textInputEmail"
 type InputElementProps = {type: InputType, placeholder: string, height: number, width: number}
 type InputElementsProps = { [key: string]: InputElementProps }
 type InputValues<E extends InputElementsProps> = {
-    [K in keyof E]: (E[K]["type"] extends ("textInput" | "textAreaInput") ? string : never)
+    [K in keyof E]: (E[K]["type"] extends ("textInput" | "textAreaInput" | "textInputEmail") ? string : never)
 }
 
 type FormModalProps<E extends InputElementsProps> = {
@@ -158,6 +156,9 @@ const useElementsValues = <E extends InputElementsProps>(inputElementsProps: E) 
             switch (type) {
                 case "textInput":
                     element = <TextInput {...rest} setValue={(value) => setElementValue(key, value)}/>
+                    break
+                case "textInputEmail":
+                    element = <TextInput {...rest} email setValue={(value) => setElementValue(key, value)}/>
                     break
                 case "textAreaInput":
                     element = <TextAreaInput {...rest} setValue={(value) => setElementValue(key, value)}/>
@@ -190,21 +191,27 @@ export const useFormModal = <E extends InputElementsProps>({
     const hideModal = () => {
         setShow(false)
     }
+
+    const [loading, setLoading] = useState(false)
+
     const [resultMessage, setResultMessage] = useState({succeed: false, message: ""})
     const handleSubmission = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        setLoading(true)
 
-        processSubmission(elementsValues).then(
+        processSubmission(elementsValues)
+            .then(
             (resultMessageProps)=> {
                 setResultMessage(resultMessageProps)
-            }
-        )
+            })
+            .finally(()=>  setLoading(false))
     }
 
     const Modal = <FormModalContainer onSubmit={handleSubmission} show={show} topPosition={topPosition}
                             leftPosition={leftPosition}>
                     <IoMdClose style={{cursor: "pointer", color: "#FFFFFF"}} onClick={(e) => hideModal()}/>
                     {Elements}
+                    <BlocksLoader show={loading}/>
                     <Button backgroundColor={"#00008B"}>{buttonText}</Button>
                     <ResultMessage {...resultMessage}/>
                  </FormModalContainer>

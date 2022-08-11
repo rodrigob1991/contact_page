@@ -1,19 +1,19 @@
 import {Presentation, SetHomeProps, Story, NewStory} from "../types/Home"
-import {isEmptyString} from "../utils/StringFunctions"
+import {isEmpty} from "../utils/StringFunctions"
 
 export class ApiParamsValidator {
     static isValidPresentation = ({name, introduction}: Presentation) => {
-        return !isEmptyString(name)
-            && !isEmptyString(introduction)
+        return !isEmpty(name)
+            && !isEmpty(introduction)
     }
     static isValidStory = ({id, title, body}: Story) => {
-        return !isEmptyString(id)
-            && !isEmptyString(title)
-            && !isEmptyString(body)
+        return !isEmpty(id)
+            && !isEmpty(title)
+            && !isEmpty(body)
     }
     static isValidNewStory = ({title, body}: NewStory) => {
-        return !isEmptyString(title)
-            && !isEmptyString(body)
+        return !isEmpty(title)
+            && !isEmpty(body)
     }
     static areValidStories = (stories: Story[]) => {
         let areValid = true
@@ -28,7 +28,7 @@ export class ApiParamsValidator {
         let areValid = true
         let index = 0
         while (areValid && index < storiesId.length) {
-            areValid = !isEmptyString(storiesId[index])
+            areValid = !isEmpty(storiesId[index])
             index++
         }
         return areValid

@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import {isEmptyString} from "../utils/StringFunctions"
+import {isEmpty} from "../utils/StringFunctions"
 import {
     createSpan,
     createTextNode,
@@ -23,7 +23,7 @@ export const Pallet =({show}: Props)=> {
         const anchorValue = anchor.nodeValue
         const anchorLength = anchorValue?.length
 
-        const isDefaultStyle = isEmptyString(className)
+        const isDefaultStyle = isEmpty(className)
         const isInsideText = isText(anchor) && isDiv(anchorParent) && anchorOffSet !== anchorLength
         const isInsideTextInSpan = isText(anchor) && isSpan(anchorParent) && anchorOffSet !== anchorLength
         const isTextStart = isText(anchor) && isDiv(anchorParent) && anchorOffSet === 0
@@ -114,7 +114,7 @@ export const Pallet =({show}: Props)=> {
             const rangeStartTextDivParent = lookUpDivParent(rangeStartText)
 
             const texts = getTexts(startSelectedFragment)
-            const newSpanOrDefaultText = isEmptyString(className) ? createTextNode(texts) : createSpan(texts, className)
+            const newSpanOrDefaultText = isEmpty(className) ? createTextNode(texts) : createSpan(texts, className)
 
             let nodeToRemoveFrom
             let removeNodeToRemoveFrom
@@ -148,7 +148,7 @@ export const Pallet =({show}: Props)=> {
             const rangeEndTextDivParent = lookUpDivParent(rangeEndText)
 
             const texts = getTexts(endSelectedFragment)
-            const newSpanOrDefaultText = isEmptyString(className) ? createTextNode(texts) : createSpan(texts, className)
+            const newSpanOrDefaultText = isEmpty(className) ? createTextNode(texts) : createSpan(texts, className)
 
             let nodeToRemoveFrom
             let removeNodeToRemoveFrom
@@ -172,9 +172,9 @@ export const Pallet =({show}: Props)=> {
 
         if (!startSelectedFragmentIsDiv) {
             const texts = getTexts(copySelectedFragment)
-            if (!isEmptyString(texts)) {
+            if (!isEmpty(texts)) {
                 const children = []
-                const newSpanOrDefaultText = isEmptyString(className) ? createTextNode(texts) : createSpan(texts, className)
+                const newSpanOrDefaultText = isEmpty(className) ? createTextNode(texts) : createSpan(texts, className)
                 children[1] = newSpanOrDefaultText
                 // this is to avoid getting an span inside other span
                 if (copySelectedFragment.childNodes.length === 1

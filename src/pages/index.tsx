@@ -68,9 +68,9 @@ export default function Home({presentation, stories}: HomeProps) {
     const [showSendMessageModal, SendMessageModal] = useFormModal(
         {
             inputElementsProps: {
-                from: {type: "textInput", placeholder: "from", height: 40, width: 300},
+                from: {type: "textInputEmail", required: true, placeholder: "from", height: 40, width: 300},
                 subject: {type: "textInput", placeholder: "subject", height: 40, width: 300},
-                message: {type: "textAreaInput", placeholder: "message", height: 250, width: 300}
+                message: {type: "textAreaInput", required: true, placeholder: "message", height: 250, width: 300}
             },
             processSubmission : sendEmail,
             position: {left: 50, top: 40},

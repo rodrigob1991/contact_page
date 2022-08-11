@@ -18,7 +18,7 @@ import PresentationView from "../../components/home/PresentationView"
 import StoriesView from "../../components/home/StoriesView"
 import {getContainedString} from "../../utils/StringFunctions"
 import {putHomeProps} from "../api/props/home"
-import {Loader} from "../../components/Loader"
+import {SpinLoader} from "../../components/Loaders"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -238,7 +238,7 @@ export default function EditHome(props?: HomeProps) {
 
     return (
         <Container ref={ref}>
-            <Loader show={loading}/>
+            <SpinLoader show={loading}/>
             <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation.current} setPresentationImage={setPresentationImage}/>
             <StoriesView editing stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
                          createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}
