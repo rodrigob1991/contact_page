@@ -103,19 +103,23 @@ export const Pallet =({show}: Props)=> {
 
         // it seem that range.startContainer is always a text node
         const rangeStartText = range.startContainer as Text
+        const rangeStartTextValue = rangeStartText.nodeValue as string
+        const rangeStartTextParent = rangeStartText.parentElement as HTMLDivElement | HTMLSpanElement
         const startOffSet = range.startOffset
+        const firstCharRangeStartTextSelected = startOffSet === 0
         const startSelectedFragment = copySelectedFragment.firstChild
         const startSelectedFragmentIsDiv = startSelectedFragment && isDiv(startSelectedFragment)
-        const modifyStartRange = startSelectedFragmentIsDiv && (startOffSet > 0 || hasSiblingOrParentSibling(rangeStartText, "left", (p) => isDiv(p)))
+        const modifyStartRange = startSelectedFragmentIsDiv && (!firstCharRangeStartTextSelected || hasSiblingOrParentSibling(rangeStartText, "left", (p) => isDiv(p)))
         if (modifyStartRange) {
-            const rangeStartTextParent = rangeStartText.parentElement as HTMLDivElement | HTMLSpanElement
             const rangeStartTextDivParent = lookUpDivParent(rangeStartText)
 
-            const newStyledSpan = createSpan(getTexts(startSelectedFragment), className)
+            const texts = getTexts(startSelectedFragment)
+            const newSpanOrDefaultText = isEmptyString(className) ? createTextNode(texts) : createSpan(texts, className)
+
             let nodeToRemoveFrom
             let removeNodeToRemoveFrom
-            if (startOffSet > 0) {
-                const remainSameStyleText = createTextNode((rangeStartText.nodeValue as string).substring(0, startOffSet))
+            if (!firstCharRangeStartTextSelected) {
+                const remainSameStyleText = createTextNode((rangeStartTextValue).substring(0, startOffSet))
                 rangeStartTextParent.replaceChild(remainSameStyleText, rangeStartText)
                 nodeToRemoveFrom = remainSameStyleText
                 removeNodeToRemoveFrom = false
@@ -124,7 +128,7 @@ export const Pallet =({show}: Props)=> {
                 removeNodeToRemoveFrom = true
             }
             removeNodesFromOneSide(nodeToRemoveFrom, "right", removeNodeToRemoveFrom, (p) => isDiv(p))
-            rangeStartTextDivParent.appendChild(newStyledSpan)
+            rangeStartTextDivParent.appendChild(newSpanOrDefaultText)
 
             copySelectedFragment.removeChild(startSelectedFragment)
 
@@ -132,21 +136,24 @@ export const Pallet =({show}: Props)=> {
         }
 
         const rangeEndText = range.endContainer as Text
+        const rangeEndTextValue = rangeEndText.nodeValue as string
+        const rangeEndTextParent = rangeEndText.parentElement as HTMLSpanElement | HTMLDivElement
         const endOffSet = range.endOffset
-        const isRangeEndTextAllSelected = endOffSet === rangeEndText.length
+        const lastCharRangeEndTextSelected = endOffSet === rangeEndText.length
         const endSelectedFragment = copySelectedFragment.lastChild
         const endSelectedFragmentIsDiv = endSelectedFragment && isDiv(endSelectedFragment)
         // this is when the selection end over part of a div
-        const modifyEndRange = endSelectedFragmentIsDiv && (!isRangeEndTextAllSelected || hasSiblingOrParentSibling(rangeEndText, "right", (p)=> isDiv(p)))
+        const modifyEndRange = endSelectedFragmentIsDiv && (!lastCharRangeEndTextSelected || hasSiblingOrParentSibling(rangeEndText, "right", (p)=> isDiv(p)))
         if (modifyEndRange) {
-            const rangeEndTextParent = rangeEndText.parentElement as HTMLElement
             const rangeEndTextDivParent = lookUpDivParent(rangeEndText)
 
-            const newStyledSpan = createSpan(getTexts(endSelectedFragment), className)
+            const texts = getTexts(endSelectedFragment)
+            const newSpanOrDefaultText = isEmptyString(className) ? createTextNode(texts) : createSpan(texts, className)
+
             let nodeToRemoveFrom
             let removeNodeToRemoveFrom
-            if (!isRangeEndTextAllSelected) {
-                const remainSameStyleText = createTextNode((rangeEndText.nodeValue as string).substring(endOffSet))
+            if (!lastCharRangeEndTextSelected) {
+                const remainSameStyleText = createTextNode((rangeEndTextValue).substring(endOffSet))
                 rangeEndTextParent.replaceChild(remainSameStyleText, rangeEndText)
                 nodeToRemoveFrom = remainSameStyleText
                 removeNodeToRemoveFrom = false
@@ -155,29 +162,48 @@ export const Pallet =({show}: Props)=> {
                 removeNodeToRemoveFrom = true
             }
             removeNodesFromOneSide(nodeToRemoveFrom,"left", removeNodeToRemoveFrom, (p)=> isDiv(p))
-            rangeEndTextDivParent.insertBefore(newStyledSpan, rangeEndTextDivParent.firstChild)
+            rangeEndTextDivParent.insertBefore(newSpanOrDefaultText, rangeEndTextDivParent.firstChild)
 
             copySelectedFragment.removeChild(endSelectedFragment)
 
             range.setEndBefore(rangeEndTextDivParent)
-            lastSpanToPositionCaret = newStyledSpan
+            lastSpanToPositionCaret = newSpanOrDefaultText
         }
 
-        // TODO : this create spans inside others spans.
-        //  Do the necessary to avoid this behavior.
         if (!startSelectedFragmentIsDiv) {
-            const spanText = getTexts(copySelectedFragment)
-            if (!isEmptyString(spanText)) {
-                const newStyledSpan = createSpan(spanText, className)
-                copySelectedFragment.replaceChildren(newStyledSpan)
-                lastSpanToPositionCaret = newStyledSpan
+            const texts = getTexts(copySelectedFragment)
+            if (!isEmptyString(texts)) {
+                const children = []
+                const newSpanOrDefaultText = isEmptyString(className) ? createTextNode(texts) : createSpan(texts, className)
+                children[1] = newSpanOrDefaultText
+                // this is to avoid getting an span inside other span
+                if (copySelectedFragment.childNodes.length === 1
+                    && isText(copySelectedFragment.childNodes[0])
+                    && isSpan(rangeStartTextParent)) {
+                    if (firstCharRangeStartTextSelected || lastCharRangeEndTextSelected) {
+                        if (firstCharRangeStartTextSelected) {
+                            range.setStartBefore(rangeStartTextParent)
+                        }
+                        if (lastCharRangeEndTextSelected) {
+                            range.setEndAfter(rangeStartTextParent)
+                        }
+                    } else {
+                        children[0] = createSpan(rangeStartTextValue.substring(0, startOffSet), rangeStartTextParent.className)
+                        children[2] = createSpan(rangeEndTextValue.substring(endOffSet, rangeEndTextValue.length), rangeStartTextParent.className)
+
+                        range.setStartBefore(rangeStartTextParent)
+                        range.setEndAfter(rangeStartTextParent)
+                    }
+                }
+                copySelectedFragment.replaceChildren(...children.filter((c) => c))
+                lastSpanToPositionCaret = newSpanOrDefaultText
             }
         } else {
             copySelectedFragment.childNodes.forEach((n) => {
                 if (n instanceof HTMLDivElement) {
                     const newStyledSpan = createSpan(getTexts(n), className)
                     n.replaceChildren(newStyledSpan)
-                    if(!modifyEndRange){
+                    if (!modifyEndRange) {
                         lastSpanToPositionCaret = n
                     }
                 } else {
