@@ -231,7 +231,7 @@ export const Pallet =({show}: Props)=> {
     }
 
     const stylesClasses = ["","blackText", "blackTextUnderline", "redText", "blackTextTitle"]
-    const styleOptionSeparator = <span style={{color: "#000000"}}> - </span>
+    const styleOptionSeparator = <span style={{color: "#000000"}}>-</span>
 
     return (
         <Container show={show}>
@@ -239,7 +239,7 @@ export const Pallet =({show}: Props)=> {
                 <>
                 <span className={"palletOption " + styleClass}
                       onMouseDown={(e => e.preventDefault())}
-                      onClick={(e) => handleStyleSelection(styleClass)}> a
+                      onClick={(e) => handleStyleSelection(styleClass)}>a
                 </span>
                     {index < stylesClasses.length - 1 ? styleOptionSeparator : ""}
                 </>

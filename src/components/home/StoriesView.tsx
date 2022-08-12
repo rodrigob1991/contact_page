@@ -2,8 +2,9 @@ import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../types/Home"
 import React, {useEffect, useState} from "react"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import styled from "@emotion/styled"
-import {Button, DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton} from "../Buttons"
+import {Button, DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton, SeeOrUnseeButton} from "../Buttons"
 import {Pallet} from "../Pallet";
+import {EnumSelector} from "../FormComponents";
 
 type StoryVisibility = {id: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -128,11 +129,13 @@ export default function StoriesView<M extends ViewMode>({
 
         return (
             <StoryContainer key={id}>
+                <EnumSelector enums={["published", "unpublished"]}/>
                 {isOpen ? <StoryOpenContainer>
                             {storyTitleView}
-                        <StoryBody id={htmlIds.body} contentEditable={contentEditable}
-                                   dangerouslySetInnerHTML={{__html: body}}
-                                   onFocus={e => setStoryIdOnFocus(id)}/>
+                            <StoryBody id={htmlIds.body} contentEditable={contentEditable}
+                                       dangerouslySetInnerHTML={{__html: body}}
+                                       onFocus={e => setStoryIdOnFocus(id)}
+                                       onBlur={e => setStoryIdOnFocus(undefined)}/>
                         </StoryOpenContainer>
                     : storyTitleView}
             </StoryContainer>
@@ -210,6 +213,8 @@ const StoryTitleContainer = styled.div`
   color: #FFFFFF;
   width: fit-content;
 `
+const PublishUnpublishStory = styled.span<{isPublish: boolean}>`
+    `
 
 const StoryTitle = styled.span<{ toDelete?: boolean }>`
   font-size: 33px;
@@ -217,7 +222,7 @@ const StoryTitle = styled.span<{ toDelete?: boolean }>`
   font-family: Arial, Helvetica, sans-serif;
   color: #778899;
   text-shadow: 2px 2px 1px #000000;
-  ${props =>
+  ${props => 
     props.toDelete ? 
         "text-decoration: line-through;"
         + "text-decoration-color: red;"

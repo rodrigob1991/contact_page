@@ -62,6 +62,21 @@ const TextArea = styled.textarea<{ height?: number, width?: number }>`
       width:${props.width}px;
     `}
 `
+type EnumSelectorProps<E extends string> = {
+    enums: E[]
+}
+export const EnumSelector = <E extends string>({enums}: EnumSelectorProps<E>) => {
+    const id = useId()
+    const [value, setValue] = useState(enums[0])
+    return (
+        <>
+            <label htmlFor={id}> {value} </label>
+            <select id={id} onChange={(e)=> setValue(e.target.value as E)}>
+                {enums.map((e) => <option id={e} key={e}>{e}</option>)}
+            </select>
+        </>
+    )
+}
 
 type ImageSelectorProps = {
     imageDataUrl?: string

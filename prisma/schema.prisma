@@ -31,4 +31,10 @@ model Story {
   body String
   props Props @relation(fields: [propsId], references: [id])
   propsId String    @db.ObjectId
+  state StoryState @default(UNPUBLISHED)
+}
+
+enum StoryState {
+  PUBLISHED
+  UNPUBLISHED
 }
