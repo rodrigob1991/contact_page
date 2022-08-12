@@ -7,7 +7,7 @@ import {useFormModal} from "../components/FormComponents"
 import {HomeProps} from "../types/Home"
 import PresentationView from "../components/home/PresentationView"
 import StoriesView from "../components/home/StoriesView"
-import { Container } from "../components/home/Layout"
+import {Container, Footer} from "../components/home/Layout"
 
 export const HOME_ROUTE = "/"
 
@@ -98,12 +98,6 @@ export default function Home({presentation, stories}: HomeProps) {
       </Container>
   )
 }
-const Footer = styled.div`
-  display: flex;
-  flex-direction: column;
-  background-image: linear-gradient(#0000FF, #00008B);
-  height: 100%;
-    `
 const Header = styled.div`
   display: flex;
   flex-direction: row;

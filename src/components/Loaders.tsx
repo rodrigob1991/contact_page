@@ -10,7 +10,7 @@ export const SpinLoader = ({show}: Props) => {
 export const BlocksLoader = ({show}: Props) => {
     return (
         <div className={"blocks-loader"}
-             style={{display: show ? "block" : "none", height: 15, width: 15}}>
+             style={{display: show ? "block" : "none"}}>
             <div></div>
             <div></div>
             <div></div>

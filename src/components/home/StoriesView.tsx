@@ -96,10 +96,7 @@ export default function StoriesView<M extends ViewMode>({
         const storyTitle =
             <StoryTitleContainer>
                 <StoryTitle>{title}</StoryTitle>
-                <StoryOpenCloseIcon onClick={(e => openOrCloseStory(index))}>{
-                    isOpen ? <BsChevronDoubleUp/>
-                        : <BsChevronDoubleDown/>
-                }</StoryOpenCloseIcon>
+                <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
             </StoryTitleContainer>
         return (
             <StoryContainer key={id}>{
@@ -121,8 +118,8 @@ export default function StoriesView<M extends ViewMode>({
         const storyTitleView =
             <StoryTitleContainer>
                 <StoryTitle id={htmlIds.title} toDelete={toDelete} contentEditable={contentEditable}>{title}</StoryTitle>
-                <OpenOrCloseStoryButton isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
-                <DeleteOrRecoverStoryButton isDelete={toDelete} size={20}
+                <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
+                <DeleteOrRecoverStoryButton color={"#778899"} isDelete={toDelete} size={20}
                                             onClick={(e)=> toDelete
                                                 ? handleRecoverStory(e,id,index)
                                                 : handleDeleteStory(e,id,index, !("id" in story))}/>
@@ -145,7 +142,7 @@ export default function StoriesView<M extends ViewMode>({
         <Container>
             <TitleContainer>
                 <Title>STORIES</Title> {editing &&
-            <PlusButton id={"plus-button"} color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
+            <PlusButton id={"plus-button"} color={"#778899"} size={26} onClick={handleAddNewStory}/>}
             </TitleContainer>
             <ul>
                 {storiesVisibility
@@ -163,10 +160,14 @@ const Container = styled.div`
   flex-direction: column;
   padding-left: 90px;
   gap: 15px;
-  background-color: #00008B;
   padding-top: 15px;
   padding-bottom: 15px;
-         `
+  background-color: #fff;
+  background-image:
+  linear-gradient(90deg, transparent 79px, #abced4 79px, #abced4 81px, transparent 81px),
+  linear-gradient(#eee .1em, transparent .1em);
+  background-size: 100% 1.2em;
+`
 const TitleContainer = styled.div`
   display: flex;
   flex-direction: row;
@@ -209,14 +210,13 @@ const StoryTitleContainer = styled.div`
   color: #FFFFFF;
   width: fit-content;
 `
-const StoryOpenCloseIcon = styled.div`
-  cursor: pointer;
-`
+
 const StoryTitle = styled.span<{ toDelete?: boolean }>`
   font-size: 33px;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
-  text-shadow: 2px 2px 5px #000000;
+  color: #778899;
+  text-shadow: 2px 2px 1px #000000;
   ${props =>
     props.toDelete ? 
         "text-decoration: line-through;"

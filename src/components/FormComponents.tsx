@@ -12,7 +12,7 @@ import React, {
 import {IoMdClose} from "react-icons/io"
 import {Button} from "./Buttons"
 import {ResultMessage, ResultMessageProps} from "./Labels"
-import {BlocksLoader, SpinLoader} from "./Loaders";
+import {BlocksLoader} from "./Loaders";
 
 type TextInputProps = {
     setValue: (value: string) => void
@@ -184,6 +184,7 @@ export const useFormModal = <E extends InputElementsProps>({
                                                                buttonText
                                                            }: FormModalProps<E>) : [()=> void, JSX.Element] => {
     const [Elements, elementsValues] = useElementsValues(inputElementsProps)
+
     const [show, setShow] = useState(false)
     const showModal = () => {
         setShow(true)
@@ -194,9 +195,20 @@ export const useFormModal = <E extends InputElementsProps>({
 
     const [loading, setLoading] = useState(false)
 
-    const [resultMessage, setResultMessage] = useState({succeed: false, message: ""})
+    const emptyResultMessage = {succeed: false, message: ""}
+    const [resultMessage, setResultMessage] = useState(emptyResultMessage)
+    const cleanResultMessage = () => {
+        setResultMessage(emptyResultMessage)
+    }
+
+    const handleCloseModal = (e: React.MouseEvent<SVGElement>) => {
+        cleanResultMessage()
+        hideModal()
+    }
+
     const handleSubmission = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        cleanResultMessage()
         setLoading(true)
 
         processSubmission(elementsValues)
@@ -209,10 +221,10 @@ export const useFormModal = <E extends InputElementsProps>({
 
     const Modal = <FormModalContainer onSubmit={handleSubmission} show={show} topPosition={topPosition}
                             leftPosition={leftPosition}>
-                    <IoMdClose style={{cursor: "pointer", color: "#FFFFFF"}} onClick={(e) => hideModal()}/>
+                    <IoMdClose style={{cursor: "pointer", color: "#FFFFFF"}} onClick={handleCloseModal}/>
                     {Elements}
                     <BlocksLoader show={loading}/>
-                    <Button backgroundColor={"#00008B"}>{buttonText}</Button>
+                    <Button disabled={loading} backgroundColor={"#00008B"}>{buttonText}</Button>
                     <ResultMessage {...resultMessage}/>
                  </FormModalContainer>
 

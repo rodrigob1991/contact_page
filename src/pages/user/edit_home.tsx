@@ -13,7 +13,7 @@ import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../classes/PropsStorageClient"
 import {Button} from "../../components/Buttons"
-import {Container} from "../../components/home/Layout"
+import {Container, Footer} from "../../components/home/Layout"
 import PresentationView from "../../components/home/PresentationView"
 import StoriesView from "../../components/home/StoriesView"
 import {getContainedString} from "../../utils/StringFunctions"
@@ -243,14 +243,16 @@ export default function EditHome(props?: HomeProps) {
             <StoriesView editing stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
                          createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}
              addHighlightText={addHighlightText}/>
-            <ButtonsContainer>
-                <Button disabled={loading} onClick={storeHomeProps}> STORE </Button>
-                <Button disabled={loading} onClick={revalidateHomeProps}> REVALIDATE </Button>
-            </ButtonsContainer>
-            <OperationMessagesContainer>
-                <OperationMessage>{storageResultMessage}</OperationMessage>
-                <OperationMessage>{revalidationResultMessage}</OperationMessage>
-            </OperationMessagesContainer>
+            <Footer>
+                <ButtonsContainer>
+                    <Button disabled={loading} onClick={storeHomeProps}> STORE </Button>
+                    <Button disabled={loading} onClick={revalidateHomeProps}> REVALIDATE </Button>
+                </ButtonsContainer>
+                <OperationMessagesContainer>
+                    <OperationMessage>{storageResultMessage}</OperationMessage>
+                    <OperationMessage>{revalidationResultMessage}</OperationMessage>
+                </OperationMessagesContainer>
+            </Footer>
         </Container>
     )
 }
