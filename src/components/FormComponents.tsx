@@ -62,21 +62,69 @@ const TextArea = styled.textarea<{ height?: number, width?: number }>`
       width:${props.width}px;
     `}
 `
-type EnumSelectorProps<E extends string> = {
-    enums: E[]
+type OptionSelectorProps<E extends string> = {
+    options: E[]
+    fontSize?: number
+    color?: string
 }
-export const EnumSelector = <E extends string>({enums}: EnumSelectorProps<E>) => {
-    const id = useId()
-    const [value, setValue] = useState(enums[0])
+export const OptionSelector = <E extends string>({options, fontSize, color}: OptionSelectorProps<E>) => {
+    const styles = {fontSize: fontSize || 15, color: color || "black"}
+
+    const [selectedOption, setSelectedOption] = useState(options[0])
+    const [show, setShow] = useState(false)
+
+    const handleSelection = (option: E) => {
+        setSelectedOption(option)
+        setShow(false)
+    }
+    const handleOpenMenu = (e: React.MouseEvent<HTMLLabelElement>) => {
+        setShow(!show)
+    }
+
     return (
-        <>
-            <label htmlFor={id}> {value} </label>
-            <select id={id} onChange={(e)=> setValue(e.target.value as E)}>
-                {enums.map((e) => <option id={e} key={e}>{e}</option>)}
-            </select>
-        </>
+        <DropDown>
+            <DropDownLabel {...styles} onClick={handleOpenMenu}>{selectedOption}</DropDownLabel>
+            <DropDownMenu show={show}>
+               {options.map((o) => (<DropDownMenuOption key={o} {...styles} onClick={e => handleSelection(o)}> {o}
+                                       </DropDownMenuOption>)
+                )}
+            </DropDownMenu>
+        </DropDown>
     )
 }
+const DropDown = styled.div`
+  position: relative;
+`
+const DropDownLabel = styled.label<{fontSize: number}>`
+${({fontSize, color})=> 
+    `font-size: ${fontSize}px; 
+     color: ${color};`}
+  font-weight: bold;
+  cursor: pointer;
+`
+const DropDownMenuOption = styled.div<{fontSize: number}>`
+${({fontSize, color})=>
+    `font-size: ${fontSize}px; 
+     color: ${color};`}
+  font-weight: bold;
+  cursor: pointer;
+`
+const DropDownMenu = styled.div<{ show: boolean }>`
+  position: absolute;
+  gap: 50px;
+  left: 0;
+  top: calc(100% + .25rem);
+  background-color: white;
+  padding: .75rem;
+  border-radius: .25rem;
+  box-shadow: 0 2px 5px 0 rgba(0,0,0,.1);
+  ${({show}) => show ?
+    `display: block;
+    transform: translateY(0);` :
+    `display: none;
+    transform: translateY(-10px);`}
+  transition: display 150ms ease-in-out, transform 150ms ease-in-out;
+`
 
 type ImageSelectorProps = {
     imageDataUrl?: string

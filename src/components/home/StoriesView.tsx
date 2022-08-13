@@ -3,8 +3,8 @@ import React, {useEffect, useState} from "react"
 import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import styled from "@emotion/styled"
 import {Button, DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton, SeeOrUnseeButton} from "../Buttons"
-import {Pallet} from "../Pallet";
-import {EnumSelector} from "../FormComponents";
+import {Pallet} from "../Pallet"
+import {OptionSelector} from "../FormComponents"
 
 type StoryVisibility = {id: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -129,7 +129,7 @@ export default function StoriesView<M extends ViewMode>({
 
         return (
             <StoryContainer key={id}>
-                <EnumSelector enums={["published", "unpublished"]}/>
+                <OptionSelector color={"#778899"} fontSize={20} options={["published", "unpublished"]}/>
                 {isOpen ? <StoryOpenContainer>
                             {storyTitleView}
                             <StoryBody id={htmlIds.body} contentEditable={contentEditable}
@@ -213,9 +213,6 @@ const StoryTitleContainer = styled.div`
   color: #FFFFFF;
   width: fit-content;
 `
-const PublishUnpublishStory = styled.span<{isPublish: boolean}>`
-    `
-
 const StoryTitle = styled.span<{ toDelete?: boolean }>`
   font-size: 33px;
   font-weight: bold;
