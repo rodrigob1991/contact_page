@@ -12,7 +12,7 @@ import React, {
 import {IoMdClose} from "react-icons/io"
 import {Button} from "./Buttons"
 import {ResultMessage, ResultMessageProps} from "./Labels"
-import {BlocksLoader} from "./Loaders";
+import {BlocksLoader} from "./Loaders"
 
 type TextInputProps = {
     setValue: (value: string) => void
@@ -85,9 +85,9 @@ export const OptionSelector = <E extends string>({options, fontSize, color}: Opt
         <DropDown>
             <DropDownLabel {...styles} onClick={handleOpenMenu}>{selectedOption}</DropDownLabel>
             <DropDownMenu show={show}>
-               {options.map((o) => (<DropDownMenuOption key={o} {...styles} onClick={e => handleSelection(o)}> {o}
+               {options.map((o) => <DropDownMenuOption className={"selectorOption"} key={o} {...styles} onClick={e => handleSelection(o)}> {o}
                                        </DropDownMenuOption>)
-                )}
+                }
             </DropDownMenu>
         </DropDown>
     )
@@ -101,21 +101,25 @@ ${({fontSize, color})=>
      color: ${color};`}
   font-weight: bold;
   cursor: pointer;
+  z-index: -1;
 `
 const DropDownMenuOption = styled.div<{fontSize: number}>`
 ${({fontSize, color})=>
     `font-size: ${fontSize}px; 
      color: ${color};`}
   font-weight: bold;
+  padding: .45rem;
   cursor: pointer;
+  border-left: 2px solid;
+  border-right: 2px solid;
+  border-top: 2px solid;
 `
 const DropDownMenu = styled.div<{ show: boolean }>`
   position: absolute;
-  gap: 50px;
   left: 0;
   top: calc(100% + .25rem);
   background-color: white;
-  padding: .75rem;
+  z-index: 1;
   border-radius: .25rem;
   box-shadow: 0 2px 5px 0 rgba(0,0,0,.1);
   ${({show}) => show ?

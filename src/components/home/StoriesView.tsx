@@ -129,7 +129,7 @@ export default function StoriesView<M extends ViewMode>({
 
         return (
             <StoryContainer key={id}>
-                <OptionSelector color={"#778899"} fontSize={20} options={["published", "unpublished"]}/>
+                <OptionSelector color={"#778899"} fontSize={20} options={["published", "unpublished", "constructing"]}/>
                 {isOpen ? <StoryOpenContainer>
                             {storyTitleView}
                             <StoryBody id={htmlIds.body} contentEditable={contentEditable}

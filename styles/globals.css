@@ -112,3 +112,9 @@ textarea:invalid {
   font-weight: bold;
 }
 
+.selectorOption {
+}
+
+.selectorOption:last-child {
+  border-bottom: 2px solid;
+}
