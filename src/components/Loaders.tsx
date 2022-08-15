@@ -3,14 +3,13 @@ type Props = {
 }
 export const SpinLoader = ({show}: Props) => {
     return (
-        <div className={"spin-loader"} hidden={!show}/>
+        <div className={"spin-loader"} style={{display: show ? "block" : "none"}}/>
     )
 }
 
 export const BlocksLoader = ({show}: Props) => {
     return (
-        <div className={"blocks-loader"}
-             style={{display: show ? "block" : "none"}}>
+        <div className={"blocks-loader"} style={{display: show ? "block" : "none"}}>
             <div></div>
             <div></div>
             <div></div>

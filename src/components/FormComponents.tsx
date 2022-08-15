@@ -63,17 +63,20 @@ const TextArea = styled.textarea<{ height?: number, width?: number }>`
     `}
 `
 type OptionSelectorProps<E extends string> = {
+    id?: string
     options: E[]
+    initSelectedOption?: E
     fontSize?: number
     color?: string
 }
-export const OptionSelector = <E extends string>({options, fontSize, color}: OptionSelectorProps<E>) => {
+export const OptionSelector = <E extends string>({id, options, initSelectedOption, fontSize, color}: OptionSelectorProps<E>) => {
     const styles = {fontSize: fontSize || 15, color: color || "black"}
 
-    const [selectedOption, setSelectedOption] = useState(options[0])
+    const [selectedOption, setSelectedOption] = useState(initSelectedOption || options[0])
     const [show, setShow] = useState(false)
 
     const handleSelection = (option: E) => {
+
         setSelectedOption(option)
         setShow(false)
     }
@@ -83,7 +86,7 @@ export const OptionSelector = <E extends string>({options, fontSize, color}: Opt
 
     return (
         <DropDown>
-            <DropDownLabel {...styles} onClick={handleOpenMenu}>{selectedOption}</DropDownLabel>
+            <DropDownValue id={id} {...styles} onClick={handleOpenMenu}>{selectedOption}</DropDownValue>
             <DropDownMenu show={show}>
                {options.map((o) => <DropDownMenuOption className={"selectorOption"} key={o} {...styles} onClick={e => handleSelection(o)}> {o}
                                        </DropDownMenuOption>)
@@ -95,7 +98,7 @@ export const OptionSelector = <E extends string>({options, fontSize, color}: Opt
 const DropDown = styled.div`
   position: relative;
 `
-const DropDownLabel = styled.label<{fontSize: number}>`
+const DropDownValue = styled.span<{fontSize: number}>`
 ${({fontSize, color})=> 
     `font-size: ${fontSize}px; 
      color: ${color};`}

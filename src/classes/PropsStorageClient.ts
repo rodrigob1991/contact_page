@@ -1,4 +1,4 @@
-import {PrismaClient} from "@prisma/client"
+import {PrismaClient, StoryState} from "@prisma/client"
 import {HomeProps, HomePropsArgs, NewStory, Presentation, PresentationArgs, SetHomeProps, Story} from "../types/Home"
 import {ObjectID} from "bson"
 import {getContainedString} from "../utils/StringFunctions";
@@ -13,8 +13,15 @@ export class PropsStorageClient {
     private static readonly imageUrlPrefix = "data:image/webp;base64"
 
     static readonly selectPresentation = {select: {name: true, introduction: true, image: true}}
-    static readonly selectStory = {select: {id: true, title: true, body: true}}
+    static readonly selectStory = {select: {id: true, title: true, body: true, state: true}}
+    static readonly selectPublishedStory = {...this.selectStory, where: {state: StoryState.PUBLISHED}}
     static readonly selectHomeProps = {
+        select: {
+            stories: this.selectPublishedStory,
+            presentation: this.selectPresentation
+        }
+    }
+    static readonly selectEditHomeProps = {
         select: {
             stories: this.selectStory,
             presentation: this.selectPresentation
@@ -59,11 +66,16 @@ export class PropsStorageClient {
 
     async getHomeProps(): Promise<HomeProps | undefined> {
         return this.prisma.props.findUnique({
-            where: {id: PropsStorageClient.homePropsId},
-            ...PropsStorageClient.selectHomeProps
-        }).then(PropsStorageClient.#normalizeHomeProps)
+                where: {id: PropsStorageClient.homePropsId},
+                ...PropsStorageClient.selectHomeProps}
+        ).then(PropsStorageClient.#normalizeHomeProps)
     }
-
+    async getEditHomeProps(): Promise<HomeProps | undefined> {
+        return this.prisma.props.findUnique({
+                where: {id: PropsStorageClient.homePropsId},
+                ...PropsStorageClient.selectEditHomeProps}
+        ).then(PropsStorageClient.#normalizeHomeProps)
+    }
     async setPresentation(p: Presentation): Promise<Presentation> {
         const id = PropsStorageClient.presentationId
         const homePropsId = PropsStorageClient.homePropsId
@@ -178,7 +190,7 @@ export class PropsStorageClient {
                         ...deleteManyStories
                     }
                 },
-                ...PropsStorageClient.selectHomeProps
+                ...PropsStorageClient.selectEditHomeProps
             }
         ).then(PropsStorageClient.#normalizeHomeProps)
     }

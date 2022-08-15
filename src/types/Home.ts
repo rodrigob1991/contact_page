@@ -1,4 +1,4 @@
-import {Prisma} from '@prisma/client'
+import {Prisma, StoryState} from '@prisma/client'
 import {ChangePropertiesType} from "../utils/Types"
 import {PropsStorageClient} from "../classes/PropsStorageClient"
 
@@ -15,8 +15,10 @@ export type SetHomeProps = SetHomePropsPresentation & SetHomePropsStories
 const storyArgs = Prisma.validator<Prisma.StoryArgs>()(PropsStorageClient.selectStory)
 type StoryArgs = Prisma.StoryGetPayload<typeof storyArgs>
 export type Story = StoryArgs
+type t = Story["state"]
 type OmitStory = Pick<Story, "id">
 export type NewStory = Omit<Story, keyof OmitStory>
+export type NewStoryPropertiesType = NewStory[keyof NewStory]
 export type StoryHTMLElementIds = {[K in keyof NewStory as `${K}`] : NewStory[K]}
 
 const presentationArgs = Prisma.validator<Prisma.PresentationArgs>()(PropsStorageClient.selectPresentation)

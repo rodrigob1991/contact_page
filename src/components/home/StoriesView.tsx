@@ -1,10 +1,10 @@
 import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../types/Home"
 import React, {useEffect, useState} from "react"
-import {BsChevronDoubleDown, BsChevronDoubleUp} from "react-icons/bs"
 import styled from "@emotion/styled"
-import {Button, DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton, SeeOrUnseeButton} from "../Buttons"
+import {DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton} from "../Buttons"
 import {Pallet} from "../Pallet"
 import {OptionSelector} from "../FormComponents"
+import {StoryState} from "@prisma/client"
 
 type StoryVisibility = {id: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -129,7 +129,7 @@ export default function StoriesView<M extends ViewMode>({
 
         return (
             <StoryContainer key={id}>
-                <OptionSelector color={"#778899"} fontSize={20} options={["published", "unpublished", "constructing"]}/>
+                <OptionSelector id={htmlIds.state} color={"#778899"} fontSize={15} options={Object.values(StoryState)} initSelectedOption={story.state}/>
                 {isOpen ? <StoryOpenContainer>
                             {storyTitleView}
                             <StoryBody id={htmlIds.body} contentEditable={contentEditable}

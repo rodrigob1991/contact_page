@@ -3,6 +3,7 @@ import React, {useEffect, useRef, useState} from "react"
 import {
     HomeProps,
     NewStory,
+    NewStoryPropertiesType,
     Presentation,
     PresentationHTMLElementIds,
     PresentationWithoutImage,
@@ -19,14 +20,16 @@ import StoriesView from "../../components/home/StoriesView"
 import {getContainedString} from "../../utils/StringFunctions"
 import {putHomeProps} from "../api/props/home"
 import {SpinLoader} from "../../components/Loaders"
+import {StoryState} from "@prisma/client"
+import {lookUpParent} from "../../utils/DomManipulations"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
 export async function getServerSideProps() {
     const propsStorageClient = new PropsStorageClient()
-    const homeProps = await propsStorageClient.getHomeProps()
+    const props = await propsStorageClient.getEditHomeProps()
 
-    return {props: homeProps}
+    return {props: props}
 }
 
 export default function EditHome(props?: HomeProps) {
@@ -51,7 +54,7 @@ export default function EditHome(props?: HomeProps) {
         return htmlElementIds as PresentationHTMLElementIds
     })()
 
-    const emptyStory: Story = {id: "", title: "", body: ""}
+    const emptyStory: Story = {id: "", state : StoryState.UNPUBLISHED, title: "", body: ""}
 
     const savedStories = useRef<Story[]>(props?.stories || [])
     const getSavedStories = () => savedStories.current
@@ -62,8 +65,9 @@ export default function EditHome(props?: HomeProps) {
         const index = getSavedStories().findIndex((s) => s.id === id)
         getSavedStories().splice(index, 1)
     }
-    const updateSavedStory = (storyId: string, key: keyof NewStory, value: string) => {
+    const updateSavedStory = (storyId: string, key: keyof NewStory, value: NewStoryPropertiesType) => {
         const storyToUpdateIndex = getSavedStories().findIndex((s) => s.id === storyId)
+        // @ts-ignore
         getSavedStories()[storyToUpdateIndex][key] = value
     }
     const newStoryIdPrefix = "-"
@@ -79,13 +83,13 @@ export default function EditHome(props?: HomeProps) {
         const isNoNull = (s: NewStory | null): s is NewStory => s !== null
         return getNewStories().filter(isNoNull)
     }
-    const updateNewStory = (id: string, key: keyof NewStory, value: string) => {
+    const updateNewStory = (id: string, key: keyof NewStory, value: NewStoryPropertiesType) => {
         const index = getIndexFromNewStoryId(id)
         // @ts-ignore
         getNewStories()[index][key] = value
     }
     const createNewStory = (): [string, NewStory] => {
-        const newStory = {title: "title", body: "<div> body </div>"}
+        const newStory = {state: StoryState.UNPUBLISHED, title: "title", body: "<div> body </div>"}
         const id = newStoryIdPrefix + (getNewStories().push(newStory) - 1)
         return [id, newStory]
     }
@@ -144,8 +148,17 @@ export default function EditHome(props?: HomeProps) {
         const observer = new MutationObserver(
             (mutationList, observer) => {
                 for (const mutation of mutationList) {
-                    const htmlElement = mutation.target.ownerDocument?.activeElement
-                    if (htmlElement) {
+                    const seekParentTill = (p: ParentNode) => {
+                        let stop
+                        if (p instanceof HTMLDivElement || p instanceof HTMLSpanElement) {
+                            stop = p.id.startsWith(presentationHtmlElementIdsPrefix) || p.id.startsWith(storyHtmlElementIdsPrefix);
+                        } else {
+                            stop = true
+                        }
+                        return stop
+                    }
+                    const htmlElement = lookUpParent(mutation.target, seekParentTill)
+                    if (htmlElement && (htmlElement instanceof HTMLDivElement || htmlElement instanceof HTMLSpanElement)) {
                         console.log(mutation)
                         const htmlElementId = htmlElement.id
                         const newPropertyValue = htmlElement.innerHTML as string

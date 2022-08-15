@@ -29,9 +29,9 @@ model Story {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   title String
   body String
+  state StoryState @default(UNPUBLISHED)
   props Props @relation(fields: [propsId], references: [id])
   propsId String    @db.ObjectId
-  state StoryState @default(UNPUBLISHED)
 }
 
 enum StoryState {

@@ -112,6 +112,9 @@ export const Pallet =({show}: Props)=> {
         const modifyStartRange = startSelectedFragmentIsDiv && (!firstCharRangeStartTextSelected || hasSiblingOrParentSibling(rangeStartText, "left", (p) => isDiv(p)))
         if (modifyStartRange) {
             const rangeStartTextDivParent = lookUpDivParent(rangeStartText)
+            if (!rangeStartTextDivParent) {
+                throw new Error("range start must have a div parent up the hierarchy")
+            }
 
             const texts = getTexts(startSelectedFragment)
             const newSpanOrDefaultText = isEmpty(className) ? createTextNode(texts) : createSpan(texts, className)
@@ -146,6 +149,9 @@ export const Pallet =({show}: Props)=> {
         const modifyEndRange = endSelectedFragmentIsDiv && (!lastCharRangeEndTextSelected || hasSiblingOrParentSibling(rangeEndText, "right", (p)=> isDiv(p)))
         if (modifyEndRange) {
             const rangeEndTextDivParent = lookUpDivParent(rangeEndText)
+            if (!rangeEndTextDivParent) {
+                throw new Error("range end must have a div parent up the hierarchy")
+            }
 
             const texts = getTexts(endSelectedFragment)
             const newSpanOrDefaultText = isEmpty(className) ? createTextNode(texts) : createSpan(texts, className)
@@ -239,7 +245,8 @@ export const Pallet =({show}: Props)=> {
                 <>
                 <span className={"palletOption " + styleClass}
                       onMouseDown={(e => e.preventDefault())}
-                      onClick={(e) => handleStyleSelection(styleClass)}>a
+                      onClick={(e) => handleStyleSelection(styleClass)}>
+                    a
                 </span>
                     {index < stylesClasses.length - 1 ? styleOptionSeparator : ""}
                 </>

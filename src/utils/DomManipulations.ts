@@ -1,3 +1,5 @@
+type TillParent = (parent: ParentNode) => boolean
+
 export const isText = (node: Node) => {
     return node instanceof Text
 }
@@ -27,7 +29,7 @@ export const createSpan = (text: string, className: string) => {
     span.innerHTML = text
     return span
 }
-export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "left", includeFromNode: boolean, removingTill: (parent: ParentNode) => boolean) => {
+export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "left", includeFromNode: boolean, removingTill: TillParent) => {
     let parent = fromNode.parentNode
     const siblingPropertyKey = side === "right" ? "nextSibling" : "previousSibling"
     let sibling: ChildNode | null = includeFromNode ? fromNode : fromNode[siblingPropertyKey]
@@ -49,7 +51,7 @@ export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "lef
         }
     } while (!stopRemoving())
 }
-export const hasSiblingOrParentSibling = (node: Node, side: "right" | "left", seekTill?: (parent: ParentNode) => boolean) => {
+export const hasSiblingOrParentSibling = (node: Node, side: "right" | "left", seekTill?: TillParent) => {
     let continueSeeking = true
     let foundSibling = false
     let actualNode = node
@@ -70,13 +72,14 @@ export const hasSiblingOrParentSibling = (node: Node, side: "right" | "left", se
     return foundSibling
 }
 export const lookUpDivParent = (node: Node) => {
+    return lookUpParent(node, (p) => isDiv(p)) as null | HTMLDivElement
+}
+export const lookUpParent = (node: Node, seekTill: TillParent) => {
     let parent = node.parentNode
-    while (true) {
-        if (!parent || isDiv(parent)) {
-            return parent as HTMLDivElement
-        }
+    while (parent && !seekTill(parent)) {
         parent = parent.parentNode
     }
+    return parent
 }
 export const getTexts = (node: Node) => {
     let texts = ""

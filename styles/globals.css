@@ -24,8 +24,8 @@ a {
   }
 }
 .spin-loader {
-  border: 16px solid #FFFFFF; /* Light grey */
-  border-top: 16px solid transparent;/* Blue */
+  border: 16px solid #778899;
+  border-top: 16px solid transparent;
   border-bottom: 16px solid transparent;
   -webkit-background-clip: padding-box;
   background-clip: padding-box;
