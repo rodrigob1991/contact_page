@@ -90,31 +90,29 @@ textarea:invalid {
   color: #696969;
   cursor: pointer;
 }
-.defaultText {
-  color: black;
-  text-decoration: underline;
-}
-.blackText {
+.blackTextOption {
   color: black;
   font-weight: bold;
 }
-.blackTextUnderline {
+.blackUnderlineTextOption {
   color: black;
   text-decoration: underline;
 }
-.blackTextTitle {
+.blackTitleTextOption {
   color: black;
   text-transform: uppercase;
   font-weight: bold;
 }
-.redText {
+.redTextOption {
   color: brown;
   font-weight: bold;
+}
+.linkOption{
+  color: black;
 }
 
 .selectorOption {
 }
-
 .selectorOption:last-child {
   border-bottom: 2px solid;
 }

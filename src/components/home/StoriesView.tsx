@@ -124,7 +124,7 @@ export default function StoriesView<M extends ViewMode>({
                                             onClick={(e)=> toDelete
                                                 ? handleRecoverStory(e,id,index)
                                                 : handleDeleteStory(e,id,index, !("id" in story))}/>
-                <Pallet show={storyIdOnFocus === id}/>
+                <Pallet show={storyIdOnFocus === id} fontSize={bodyStoryFontSize}/>
             </StoryTitleContainer>
 
         return (
@@ -193,10 +193,11 @@ const StoryContainer = styled.li`
   padding-bottom: 15px;
   margin-top: 15px;
 `
+const bodyStoryFontSize = 28
 const StoryBody = styled.div`
   color: #696969;
   background-color: #FFFFFF;
-  font-size: 28px;
+  font-size: ${bodyStoryFontSize}px;
   font-family: "Lucida Console", "Courier New", monospace;
   border-color: #778899;
   border-width: thin;

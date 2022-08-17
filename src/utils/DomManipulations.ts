@@ -22,12 +22,19 @@ export const positionCaretOn = (node: Node) => {
     selection.removeAllRanges()
     selection.addRange(range)
 }
-export const createTextNode = (text: string) => document.createTextNode(text)
+export const createText = (text: string) => document.createTextNode(text)
 export const createSpan = (text: string, className: string) => {
     const span = document.createElement("span")
     span.className = className
     span.innerHTML = text
     return span
+}
+export const createAnchor = (text: string, className: string, href: string) => {
+    const a = document.createElement("a")
+    a.className = className
+    a.innerHTML = text
+    a.href = href
+    return a
 }
 export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "left", includeFromNode: boolean, removingTill: TillParent) => {
     let parent = fromNode.parentNode

@@ -17,18 +17,29 @@ import {BlocksLoader} from "./Loaders"
 type TextInputProps = {
     setValue: (value: string) => void
     email?: boolean
+    onEnter?: ()=> void
 }
 
 export const TextInput = ({
                               setValue,
                               email,
+                              onEnter,
                               ...rest
                           }: TextInputProps & InputHTMLAttributes<HTMLInputElement>) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        switch (e.key.toLowerCase()) {
+            case "enter" :
+                if (onEnter)
+                    onEnter()
+                break
+        }
+    }
 
     return (
         <Input {...rest}
                type={email ? "email" : "text"}
-               onChange={(e) => setValue(e.target.value)}/>
+               onChange={(e) => setValue(e.target.value)}
+               onKeyDown={handleKeyDown}/>
     )
 }
 const Input = styled.input`
