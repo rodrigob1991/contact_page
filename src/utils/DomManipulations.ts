@@ -14,7 +14,7 @@ export const isSpan = (node: Node) => {
 }
 export const positionCaretOn = (node: Node) => {
     const range = document.createRange()
-    const selection = document.getSelection() as Selection
+    const selection = window.getSelection() as Selection
 
     const offSet = isText(node) ? (node.nodeValue as string).length : node.childNodes.length
     range.setStart(node, offSet)

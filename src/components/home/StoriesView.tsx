@@ -12,14 +12,12 @@ type GetHtmlElementIds = (id: string) => StoryHTMLElementIds
 type GetNewStory = () => [string, NewStory]
 type DeleteStory = (id: string) => void
 type RecoverStory = (id: string) => void
-type AddHighlightText = (id: string) => void
 type EditingProps = {
     editing: true
     createNewStory: GetNewStory
     getHtmlElementIds: GetHtmlElementIds
     deleteStory : DeleteStory
     recoverStory : RecoverStory
-    addHighlightText : AddHighlightText
 }
 type Props<M extends ViewMode> = {
     stories: Story[]
@@ -31,8 +29,7 @@ export default function StoriesView<M extends ViewMode>({
                                                             createNewStory,
                                                             getHtmlElementIds,
                                                             deleteStory,
-                                                            recoverStory,
-                                                            addHighlightText
+                                                            recoverStory
                                                         }: Props<M>) {
     const [storiesVisibility, setStoriesVisibility] = useState<StoryVisibility[]>(stories.map((s) => {
         return {id: s.id, story: s, toDelete: false, isOpen: false}

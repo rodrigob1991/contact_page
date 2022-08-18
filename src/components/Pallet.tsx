@@ -13,7 +13,7 @@ import {
     positionCaretOn,
     removeNodesFromOneSide
 } from "../utils/DomManipulations"
-import {useState} from "react"
+import React, {useRef, useState} from "react"
 import {TextInput} from "./FormComponents"
 
 type Props = {
@@ -98,15 +98,14 @@ export const Pallet =({show, fontSize}: Props)=> {
             throw new Error("Could not enter in any case, maybe other cases have to be added")
         }
 
+        setLastNodeAdded(newNode)
       /*  if (defaultText)
             positionCaretOn(defaultText)
         else if (newSpan)
             positionCaretOn(newSpan)*/
-        positionCaretOn(newNode)
     }
 
     const handleRangeSelection = (getNewNode: GetOptionTargetNode, range: Range) => {
-        let lastSpanToPositionCaret
         const copySelectedFragment = range.cloneContents()
 
         // it seem that range.startContainer is always a text node
@@ -183,7 +182,7 @@ export const Pallet =({show, fontSize}: Props)=> {
             copySelectedFragment.removeChild(endSelectedFragment)
 
             range.setEndBefore(rangeEndTextDivParent)
-            lastSpanToPositionCaret = newNode
+            setLastNodeAdded(newNode)
         }
 
         if (!startSelectedFragmentIsDiv) {
@@ -212,7 +211,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                     }
                 }
                 copySelectedFragment.replaceChildren(...children.filter((c) => c))
-                lastSpanToPositionCaret = newNode
+                setLastNodeAdded(newNode)
             }
         } else {
             copySelectedFragment.childNodes.forEach((n) => {
@@ -220,7 +219,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                     const newNode = getNewNode(getTexts(n))
                     n.replaceChildren(newNode)
                     if (!modifyEndRange) {
-                        lastSpanToPositionCaret = n
+                        setLastNodeAdded(n)
                     }
                 } else {
                     throw new Error("I do not expect a node here not to be a div")
@@ -229,27 +228,6 @@ export const Pallet =({show, fontSize}: Props)=> {
         }
         range.deleteContents()
         range.insertNode(copySelectedFragment)
-
-        if (lastSpanToPositionCaret) {
-            positionCaretOn(lastSpanToPositionCaret)
-        }
-    }
-    /*const handleStyleSelection = (className: string) => {
-        const selection = window.getSelection() as Selection
-
-        if (selection.isCollapsed) {
-            handleCollapsedSelection(className, selection.anchorNode as ChildNode, selection.anchorOffset)
-        } else {
-            for (let i = 0; i < selection.rangeCount; i++) {
-                handleRangeSelection(className, selection.getRangeAt(i))
-            }
-        }
-    }*/
-    const [hRef, setHRef] = useState("")
-    const askHRefPropsInit = {show: false, topPosition: 0, leftPosition: 0}
-    const [askHRefProps, setAskHRefProps] = useState(askHRefPropsInit)
-    const handleCloseAskHRef = () => {
-        setAskHRefProps(askHRefPropsInit)
     }
 
     const handleClickPalletOption = (className: string) => {
@@ -265,7 +243,8 @@ export const Pallet =({show, fontSize}: Props)=> {
                 getNewNode = (t: string) => createText(t)
                 break
             case isLink:
-                getNewNode = (t: string) => createAnchor(t, className, "www.google.com")
+                console.log("is link")
+                getNewNode = (t: string) => createAnchor(t, className, "")
 
                 const rectRange =  selection.getRangeAt(0).getBoundingClientRect()
                 setAskHRefProps({show: true, topPosition: rectRange.top - fontSize, leftPosition: rectRange.left})
@@ -274,7 +253,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                 getNewNode = (t: string) => createSpan(t, className)
                 break
             default:
-                throw new Error("")
+                throw new Error("class name must fall in some case")
         }
 
         if (selection.isCollapsed) {
@@ -284,7 +263,33 @@ export const Pallet =({show, fontSize}: Props)=> {
                 handleRangeSelection(getNewNode, selection.getRangeAt(i))
             }
         }
+
+        if (isLink) {
+            console.log(refToAskHRefInput.current)
+            setTimeout(()=> refToAskHRefInput.current?.focus(), 100)
+        } else {
+            positionCaretOnLastNodeAdded()
+        }
     }
+
+    const [hRef, setHRef] = useState("")
+    const askHRefPropsInit = {show: false, topPosition: 0, leftPosition: 0}
+    const [askHRefProps, setAskHRefProps] = useState(askHRefPropsInit)
+    const handleCloseAskHRef = () => {
+        setAskHRefProps(askHRefPropsInit)
+    }
+
+    const refToLastNodeAdded = useRef<OptionTargetNode>()
+    const getLastNodeAdded = () => refToLastNodeAdded.current
+    const setLastNodeAdded = (n: OptionTargetNode) => refToLastNodeAdded.current = n
+    const positionCaretOnLastNodeAdded = () => {
+        const lastNodeAdded = getLastNodeAdded()
+        if (lastNodeAdded) {
+            positionCaretOn(lastNodeAdded)
+        }
+    }
+
+    const refToAskHRefInput = useRef<HTMLInputElement | null>(null)
 
     const palletOptionClass = "palletOption"
     const textClasses = ["","blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
@@ -316,6 +321,7 @@ export const Pallet =({show, fontSize}: Props)=> {
             </a>
             <AskHRef {...askHRefProps}>
                 <TextInput placeholder={"href"}
+                           ref={refToAskHRefInput}
                            width={150}
                            setValue={(v) => setHRef(v)}
                            onEnter={handleCloseAskHRef}/>

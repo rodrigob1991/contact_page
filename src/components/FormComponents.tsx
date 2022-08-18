@@ -2,7 +2,8 @@ import styled from "@emotion/styled"
 import {css} from "@emotion/react"
 import React, {
     ChangeEvent,
-    InputHTMLAttributes,
+    DetailedHTMLProps, forwardRef,
+    InputHTMLAttributes, Ref,
     TextareaHTMLAttributes,
     useEffect,
     useId,
@@ -17,15 +18,15 @@ import {BlocksLoader} from "./Loaders"
 type TextInputProps = {
     setValue: (value: string) => void
     email?: boolean
-    onEnter?: ()=> void
-}
+    onEnter?: () => void
+} & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>,HTMLInputElement>
 
-export const TextInput = ({
+export const TextInput = forwardRef(({
                               setValue,
                               email,
                               onEnter,
                               ...rest
-                          }: TextInputProps & InputHTMLAttributes<HTMLInputElement>) => {
+                          }: TextInputProps, ref : Ref<HTMLInputElement>) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         switch (e.key.toLowerCase()) {
             case "enter" :
@@ -36,12 +37,13 @@ export const TextInput = ({
     }
 
     return (
-        <Input {...rest}
-               type={email ? "email" : "text"}
+        <Input {...rest} type={email ? "email" : "text"} ref={ref}
                onChange={(e) => setValue(e.target.value)}
                onKeyDown={handleKeyDown}/>
     )
-}
+})
+TextInput.displayName = "TextInput"
+
 const Input = styled.input`
     font-size: 20px;
     ${props =>
@@ -53,12 +55,12 @@ const Input = styled.input`
 
 type TextAreaInputProps = {
     setValue: (value: string) => void
-}
+} & DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>
 
 export const TextAreaInput = ({
                                   setValue,
                                     ...rest
-                              }: TextAreaInputProps & TextareaHTMLAttributes<HTMLTextAreaElement>) => {
+                              }: TextAreaInputProps) => {
     return (
         <TextArea {...rest} onChange={(e) => setValue(e.target.value)}/>
     )
