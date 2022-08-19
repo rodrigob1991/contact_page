@@ -6,6 +6,7 @@ import {
     createText,
     getTexts,
     hasSiblingOrParentSibling,
+    isAnchor,
     isDiv,
     isSpan,
     isText,
@@ -32,77 +33,63 @@ export const Pallet =({show, fontSize}: Props)=> {
         const anchorLength = anchorValue?.length
 
         const isDefaultStyle = newNode instanceof Text
-        const isInsideText = isText(anchor) && isDiv(anchorParent) && anchorOffSet !== anchorLength
-        const isInsideTextInSpan = isText(anchor) && isSpan(anchorParent) && anchorOffSet !== anchorLength
-        const isTextStart = isText(anchor) && isDiv(anchorParent) && anchorOffSet === 0
-        const isTextEnd = isText(anchor) && isDiv(anchorParent) && anchorOffSet === anchorLength
-        const isTextStartInSpan = isText(anchor) && isSpan(anchorParent) && anchorOffSet === 0
-        const isTextEndInSpan = isText(anchor) && isSpan(anchorParent) && anchorOffSet === anchorLength
+        const isInside = anchorOffSet !== anchorLength
+        const isStart = anchorOffSet === 0
+        const isEnd = anchorOffSet === anchorLength
+        const isAnchorText = isText(anchor)
+        const isAnchorDiv = isDiv(anchor)
+        const isAnchorSpan = isSpan(anchor)
+        const isAnchorAnchor = isAnchor(anchor)
+        const isParentDiv = isDiv(anchorParent)
+        const isParentSpan = isSpan(anchorParent)
+        const isParentAnchor = isAnchor(anchorParent)
+        const isParentSpanOrAnchor = isParentSpan || isParentAnchor
 
-        /*let defaultText
-        let newSpan
-*/
-        if (isDefaultStyle && (isTextStart || isInsideText || isTextEnd)) {
+        const isTextStart = isAnchorText && isParentDiv && isStart
+        const isInsideText = isAnchorText && isParentDiv && isInside
+        const isTextEnd = isAnchorText && isParentDiv && isEnd
+        const isTextStartInSpanOrAnchor = isAnchorText && isParentSpanOrAnchor && isStart
+        const isInsideTextInSpanOrAnchor = isAnchorText && isParentSpanOrAnchor && isInside
+        const isTextEndInSpanOrAnchor = isAnchorText && isParentSpanOrAnchor && isEnd
+
+        if (isAnchorDiv || isAnchorSpan || isAnchorAnchor) {
+            throw new Error("i do not expect to enter here")
+        } else if (isDefaultStyle && (isTextStart || isInsideText || isTextEnd)) {
+            console.log(0)
             // do nothing.
-        } else if (isDefaultStyle && isTextStartInSpan) {
-           /* defaultText = createTextNode("-")*/
-            anchorParent.before(newNode)
-        } else if (isDefaultStyle && isInsideTextInSpan) {
-            const parentClassName = anchorParent.className
+        } else if (isTextStart) {
+            console.log(1)
+            anchor.before(newNode)
+        } else if (isInsideText) {
+            console.log(2)
             const text = anchorValue as string
-            const leftSpan = createSpan(text.substring(0, anchorOffSet), parentClassName)
-            const rightSpan = createSpan(text.substring(anchorOffSet), parentClassName)
-            // defaultText = createTextNode("-")
-            anchorParent.after(leftSpan, newNode, rightSpan)
-            anchorParent.remove()
-        } else if (isDefaultStyle && isTextEndInSpan) {
-            // defaultText = createTextNode("-")
-            anchorParent.after(newNode)
-        } else if (isInsideText || isInsideTextInSpan) {
-            console.log(6)
-            const leftText = createText((anchorValue as string).substring(0, anchorOffSet))
-            const rightText = createText((anchorValue as string).substring(anchorOffSet))
-            /*newSpan = createSpan("-", className)*/
+            const leftText = createText(text.substring(0, anchorOffSet))
+            const rightText = createText(text.substring(anchorOffSet))
             anchor.after(leftText, newNode, rightText)
             anchor.remove()
-        } else if (isInsideTextInSpan) {
-            console.log(7)
-            const parentClassName = anchorParent.className
-            const text = anchorValue as string
-            const leftSpan = createSpan(text.substring(0, anchorOffSet), parentClassName)
-            const rightSpan = createSpan(text.substring(anchorOffSet), parentClassName)
-            // newSpan = createSpan("-", className)
-            anchorParent.after(leftSpan, newNode, rightSpan)
-            anchorParent.remove()
-        } else if (isDiv(anchor)) {
-            console.log(1)
-            //newSpan = createSpan("-", className)
-            anchor.appendChild(newNode)
-        } else if (isTextStart) {
-            console.log(2)
-            //newSpan = createSpan("-", className)
-            anchor.before(newNode)
-        } else if (isSpan(anchor) || isTextEnd) {
+        } else if (isTextEnd) {
             console.log(3)
-            //newSpan = createSpan("-", className)
             anchor.after(newNode)
-        } else if (isTextStartInSpan) {
+        } else if (isTextStartInSpanOrAnchor) {
             console.log(4)
-            //newSpan = createSpan("-", className)
             anchorParent.before(newNode)
-        } else if (isTextEndInSpan) {
+        } else if (isInsideTextInSpanOrAnchor) {
             console.log(5)
-            //newSpan = createSpan("-", className)
+            const text = anchorValue as string
+            const leftSpanOrAnchor = anchorParent.cloneNode()
+            leftSpanOrAnchor.appendChild(createText(text.substring(0, anchorOffSet)))
+            const rightSpanOrAnchor = anchorParent.cloneNode()
+            rightSpanOrAnchor.appendChild(createText(text.substring(anchorOffSet)))
+            anchorParent.after(leftSpanOrAnchor, newNode, rightSpanOrAnchor)
+            anchorParent.remove()
+        } else if (isTextEndInSpanOrAnchor) {
+            console.log(6)
             anchorParent.after(newNode)
         } else {
             throw new Error("Could not enter in any case, maybe other cases have to be added")
         }
 
         setLastNodeAdded(newNode)
-      /*  if (defaultText)
-            positionCaretOn(defaultText)
-        else if (newSpan)
-            positionCaretOn(newSpan)*/
     }
 
     const handleRangeSelection = (getNewNode: GetOptionTargetNode, range: Range) => {
@@ -125,7 +112,6 @@ export const Pallet =({show, fontSize}: Props)=> {
 
             const texts = getTexts(startSelectedFragment)
             const newNode = getNewNode(texts)
-           // const newSpanOrDefaultText = isEmpty(className) ? createTextNode(texts) : createSpan(texts, className)
 
             let nodeToRemoveFrom
             let removeNodeToRemoveFrom
@@ -163,7 +149,6 @@ export const Pallet =({show, fontSize}: Props)=> {
 
             const texts = getTexts(endSelectedFragment)
             const newNode = getNewNode(texts)
-            //const newSpanOrDefaultText = isEmpty(className) ? createTextNode(texts) : createSpan(texts, className)
 
             let nodeToRemoveFrom
             let removeNodeToRemoveFrom
@@ -194,7 +179,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                 // this is to avoid getting an span inside other span
                 if (copySelectedFragment.childNodes.length === 1
                     && isText(copySelectedFragment.childNodes[0])
-                    && isSpan(rangeStartTextParent)) {
+                    && (isSpan(rangeStartTextParent) || isAnchor(rangeStartTextParent))) {
                     if (firstCharRangeStartTextSelected || lastCharRangeEndTextSelected) {
                         if (firstCharRangeStartTextSelected) {
                             range.setStartBefore(rangeStartTextParent)
@@ -203,8 +188,12 @@ export const Pallet =({show, fontSize}: Props)=> {
                             range.setEndAfter(rangeStartTextParent)
                         }
                     } else {
-                        children[0] = createSpan(rangeStartTextValue.substring(0, startOffSet), rangeStartTextParent.className)
-                        children[2] = createSpan(rangeEndTextValue.substring(endOffSet, rangeEndTextValue.length), rangeStartTextParent.className)
+                        const leftSpanOrAnchor = rangeStartTextParent.cloneNode()
+                        leftSpanOrAnchor.appendChild(createText(rangeStartTextValue.substring(0, startOffSet)))
+                        children[0] = leftSpanOrAnchor
+                        const rightSpanOrAnchor = rangeStartTextParent.cloneNode()
+                        rightSpanOrAnchor.appendChild(createText(rangeEndTextValue.substring(endOffSet, rangeEndTextValue.length)))
+                        children[2] = rightSpanOrAnchor
 
                         range.setStartBefore(rangeStartTextParent)
                         range.setEndAfter(rangeStartTextParent)
@@ -243,7 +232,6 @@ export const Pallet =({show, fontSize}: Props)=> {
                 getNewNode = (t: string) => createText(t)
                 break
             case isLink:
-                console.log("is link")
                 getNewNode = (t: string) => createAnchor(t, className, "")
 
                 const rectRange =  selection.getRangeAt(0).getBoundingClientRect()
@@ -265,7 +253,6 @@ export const Pallet =({show, fontSize}: Props)=> {
         }
 
         if (isLink) {
-            console.log(refToAskHRefInput.current)
             setTimeout(()=> refToAskHRefInput.current?.focus(), 100)
         } else {
             positionCaretOnLastNodeAdded()
@@ -277,6 +264,7 @@ export const Pallet =({show, fontSize}: Props)=> {
     const [askHRefProps, setAskHRefProps] = useState(askHRefPropsInit)
     const handleCloseAskHRef = () => {
         setAskHRefProps(askHRefPropsInit)
+        positionCaretOnLastNodeAdded()
     }
 
     const refToLastNodeAdded = useRef<OptionTargetNode>()

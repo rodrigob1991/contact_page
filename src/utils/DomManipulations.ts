@@ -12,12 +12,15 @@ export const isDiv = (node: Node) => {
 export const isSpan = (node: Node) => {
     return node instanceof HTMLSpanElement
 }
+export const isAnchor = (node: Node) => {
+    return node instanceof HTMLAnchorElement
+}
 export const positionCaretOn = (node: Node) => {
     const range = document.createRange()
     const selection = window.getSelection() as Selection
 
-    const offSet = isText(node) ? (node.nodeValue as string).length : node.childNodes.length
-    range.setStart(node, offSet)
+    //const offSet = isText(node) ? (node.nodeValue as string).length : node.childNodes.length
+    range.setStartAfter(node)
 
     selection.removeAllRanges()
     selection.addRange(range)
