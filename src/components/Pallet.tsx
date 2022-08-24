@@ -8,11 +8,9 @@ import {
     hasSiblingOrParentSibling,
     isAnchor,
     isDiv,
-    isHtmlElement,
     isSpan,
     isText,
     lookUpDivParent,
-    lookUpParent,
     positionCaretOn,
     removeNodesFromOneSide
 } from "../utils/DomManipulations"
@@ -24,11 +22,10 @@ type Props = {
     fontSize: number
 }
 type OptionTargetNode = Text | HTMLSpanElement | HTMLAnchorElement
-type GetOptionTargetNode = (text: string)=> OptionTargetNode
+type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
 
 export const Pallet =({show, fontSize}: Props)=> {
-    const handleCollapsedSelection = (getNewNode: GetOptionTargetNode, anchor: ChildNode, anchorOffSet: number) => {
-        const newNode = getNewNode("-")
+    const handleCollapsedSelection = (newNode: OptionTargetNode, anchor: ChildNode, anchorOffSet: number) => {
 
         const anchorParent = anchor.parentElement as HTMLDivElement | HTMLSpanElement
         const anchorValue = anchor.nodeValue
@@ -90,8 +87,6 @@ export const Pallet =({show, fontSize}: Props)=> {
         } else {
             throw new Error("Could not enter in any case, maybe other cases have to be added")
         }
-
-        setLastNodeAdded(newNode)
     }
 
     const handleRangeSelection = (getNewNode: GetOptionTargetNode, range: Range) => {
@@ -113,7 +108,7 @@ export const Pallet =({show, fontSize}: Props)=> {
             }
 
             const texts = getTexts(startSelectedFragment)
-            const newNode = getNewNode(texts)
+            const newNode = getNewNode(texts, false)
 
             let nodeToRemoveFrom
             let removeNodeToRemoveFrom
@@ -150,7 +145,7 @@ export const Pallet =({show, fontSize}: Props)=> {
             }
 
             const texts = getTexts(endSelectedFragment)
-            const newNode = getNewNode(texts)
+            const newNode = getNewNode(texts, true)
 
             let nodeToRemoveFrom
             let removeNodeToRemoveFrom
@@ -169,15 +164,13 @@ export const Pallet =({show, fontSize}: Props)=> {
             copySelectedFragment.removeChild(endSelectedFragment)
 
             range.setEndBefore(rangeEndTextDivParent)
-            setLastNodeAdded(newNode)
         }
 
         if (!startSelectedFragmentIsDiv) {
             const texts = getTexts(copySelectedFragment)
             if (!isEmpty(texts)) {
                 const children = []
-                const newNode = getNewNode(texts)
-                children[1] = newNode
+                children[1] = getNewNode(texts, true)
                 // this is to avoid getting an span inside other span
                 if (copySelectedFragment.childNodes.length === 1
                     && isText(copySelectedFragment.childNodes[0])
@@ -202,16 +195,13 @@ export const Pallet =({show, fontSize}: Props)=> {
                     }
                 }
                 copySelectedFragment.replaceChildren(...children.filter((c) => c))
-                setLastNodeAdded(newNode)
             }
         } else {
-            copySelectedFragment.childNodes.forEach((n) => {
+            const divs = copySelectedFragment.childNodes
+            divs.forEach((n,i) => {
                 if (n instanceof HTMLDivElement) {
-                    const newNode = getNewNode(getTexts(n))
+                    const newNode = getNewNode(getTexts(n), !modifyEndRange && (i + 1 === divs.length))
                     n.replaceChildren(newNode)
-                    if (!modifyEndRange) {
-                        setLastNodeAdded(n)
-                    }
                 } else {
                     throw new Error("I do not expect a node here not to be a div")
                 }
@@ -223,32 +213,36 @@ export const Pallet =({show, fontSize}: Props)=> {
 
     const handleClickPalletOption = (className: string) => {
         const selection = window.getSelection() as Selection
-        setEditingElement((lookUpParent(selection.anchorNode as ParentNode, (p)=> isHtmlElement(p)) as HTMLElement).parentElement as HTMLElement)
 
         const isDefaultText = isEmpty(className)
         const isLink = className === linkClass
         const isSpan = textClasses.includes(className)
 
         let getNewNode: GetOptionTargetNode
+        const getId = (isLast: boolean) => {
+            return isLast ? {id: lastNodeAddedId} : {}
+        }
+        // the id will be set to empty after set caret on node
+        const elementProps = {className: className, tabIndex: -1}
         switch (true) {
             case isDefaultText:
-                getNewNode = (t: string) => createText(t)
+                getNewNode = (t) => createText(t)
                 break
             case isLink:
-                getNewNode = (t: string) => createAnchor({className: className, innerHTML: t, href: "", tabIndex: -1})
+                getNewNode = (t, isLast) => createAnchor({...getId(isLast), innerHTML: t, ...elementProps})
 
-                const rectRange =  selection.getRangeAt(0).getBoundingClientRect()
-                setAskHRefProps({show: true, topPosition: rectRange.top - fontSize, leftPosition: rectRange.left})
+                const rectRange = selection.getRangeAt(0).getBoundingClientRect()
+                setAskHrefProps({show: true, topPosition: rectRange.top - fontSize, leftPosition: rectRange.left})
                 break
             case isSpan:
-                getNewNode = (t: string) => createSpan({className: className, innerHTML: t, tabIndex: -1})
+                getNewNode = (t, isLast) => createSpan({...getId(isLast), innerHTML: t, ...elementProps})
                 break
             default:
                 throw new Error("class name must fall in some case")
         }
 
         if (selection.isCollapsed) {
-            handleCollapsedSelection(getNewNode, selection.anchorNode as ChildNode, selection.anchorOffset)
+            handleCollapsedSelection(getNewNode("-", true), selection.anchorNode as ChildNode, selection.anchorOffset)
         } else {
             for (let i = 0; i < selection.rangeCount; i++) {
                 handleRangeSelection(getNewNode, selection.getRangeAt(i))
@@ -262,45 +256,26 @@ export const Pallet =({show, fontSize}: Props)=> {
         }
     }
 
-    const [hRef, setHRef] = useState("")
-    const askHRefPropsInit = {show: false, topPosition: 0, leftPosition: 0}
-    const [askHRefProps, setAskHRefProps] = useState(askHRefPropsInit)
+    const lastNodeAddedId = "lastNodeAdded"
+    const getLastNodeAdded = () => document.querySelector("#" + lastNodeAddedId)
+
+    const [href, setHref] = useState("")
+    const askHrefPropsInit = {show: false, topPosition: 0, leftPosition: 0}
+    const [askHrefProps, setAskHrefProps] = useState(askHrefPropsInit)
     const handleCloseAskHRef = () => {
-        // @ts-ignore
-        getEditingElement().onfocus = () => {
-            // positionCaretOnLastNodeAdded()
-            const selection = document.getSelection() as Selection
-            let ns = selection.anchorNode?.nextSibling
-            let found = false
-            while (!found) {
-                if (ns instanceof HTMLAnchorElement) {
-                    selection.selectAllChildren(ns)
-                    selection.collapseToEnd()
-                    console.table(selection)
-                    found = true
-                } else {
-                    ns = ns?.nextSibling
-                }
-            }
-        }
-        getEditingElement()?.focus()
-        /*  // @ts-ignore
-          getLastNodeAdded().focus()
-          positionCaretOnLastNodeAdded()*/
-        setAskHRefProps(askHRefPropsInit)
+        positionCaretOnLastNodeAdded()
+        setAskHrefProps(askHrefPropsInit)
     }
 
-    const refToEditingElement = useRef<HTMLElement>()
-    const getEditingElement = () => refToEditingElement.current
-    const setEditingElement = (e: HTMLElement) => refToEditingElement.current = e
-
-    const refToLastNodeAdded = useRef<OptionTargetNode>()
-    const getLastNodeAdded = () => refToLastNodeAdded.current
-    const setLastNodeAdded = (n: OptionTargetNode) => refToLastNodeAdded.current = n
     const positionCaretOnLastNodeAdded = () => {
         const lastNodeAdded = getLastNodeAdded()
         if (lastNodeAdded) {
             positionCaretOn(lastNodeAdded)
+            lastNodeAdded.id = ""
+            if (lastNodeAdded instanceof HTMLAnchorElement) {
+                lastNodeAdded.href = href
+                setHref("")
+            }
         }
     }
 
@@ -319,7 +294,7 @@ export const Pallet =({show, fontSize}: Props)=> {
     }
 
     return (
-        <Container show={show || askHRefProps.show}>
+        <Container show={show || askHrefProps.show}>
             {textClasses.map((textClass, index) =>
                 <>
                 <span className={formOptionClass(textClass)}
@@ -335,11 +310,12 @@ export const Pallet =({show, fontSize}: Props)=> {
                onClick={(e)=> handleClickPalletOption(linkClass)}>
                 Link
             </a>
-            <AskHRef {...askHRefProps}>
+            <AskHRef {...askHrefProps}>
                 <TextInput placeholder={"href"}
                            ref={refToAskHRefInput}
                            width={150}
-                           setValue={(v) => setHRef(v)}
+                           value={href}
+                           setValue={(v) => setHref(v)}
                            onEnter={handleCloseAskHRef}/>
             </AskHRef>
         </Container>

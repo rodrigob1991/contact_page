@@ -22,7 +22,6 @@ export const positionCaretOn = (node: Node) => {
     if (selection) {
         selection.selectAllChildren(node)
         selection.collapseToEnd()
-        console.table(selection)
     }
 }
 export const createText = (text: string) => document.createTextNode(text)
