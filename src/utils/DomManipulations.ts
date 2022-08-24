@@ -1,3 +1,5 @@
+import {ExtractWritableProps} from "./Types"
+
 type TillParent = (parent: ParentNode) => boolean
 
 export const isText = (node: Node) => {
@@ -16,27 +18,35 @@ export const isAnchor = (node: Node) => {
     return node instanceof HTMLAnchorElement
 }
 export const positionCaretOn = (node: Node) => {
-    const range = document.createRange()
-    const selection = window.getSelection() as Selection
-
-    //const offSet = isText(node) ? (node.nodeValue as string).length : node.childNodes.length
-    range.setStartAfter(node)
-
-    selection.removeAllRanges()
-    selection.addRange(range)
+    const selection = document.getSelection()
+    if (selection) {
+        selection.selectAllChildren(node)
+        selection.collapseToEnd()
+        console.table(selection)
+    }
 }
 export const createText = (text: string) => document.createTextNode(text)
-export const createSpan = (text: string, className: string) => {
-    const span = document.createElement("span")
-    span.className = className
-    span.innerHTML = text
-    return span
+
+type SpanProps = Partial<ExtractWritableProps<HTMLSpanElement>>
+export const createSpan = (props: SpanProps) => {
+    const s = document.createElement("span")
+    for (const [k, v] of Object.entries(props)) {
+        // @ts-ignore
+        s[k] = v
+    }
+    return s
 }
-export const createAnchor = (text: string, className: string, href: string) => {
+
+// this type contains the methods that must not be set. I did not found a way to get rid of methods types.
+// compiler cannot differencing between methods and function field
+type AnchorProps = Partial<ExtractWritableProps<HTMLAnchorElement>>
+export const createAnchor = (props: AnchorProps) => {
+    //tabindex = "-1"
     const a = document.createElement("a")
-    a.className = className
-    a.innerHTML = text
-    a.href = href
+    for (const [k, v] of Object.entries(props)) {
+        // @ts-ignore
+        a[k] = v
+    }
     return a
 }
 export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "left", includeFromNode: boolean, removingTill: TillParent) => {

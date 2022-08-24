@@ -32,6 +32,7 @@ export const TextInput = forwardRef(({
             case "enter" :
                 if (onEnter)
                     onEnter()
+                e.preventDefault()
                 break
         }
     }
@@ -39,7 +40,8 @@ export const TextInput = forwardRef(({
     return (
         <Input {...rest} type={email ? "email" : "text"} ref={ref}
                onChange={(e) => setValue(e.target.value)}
-               onKeyDown={handleKeyDown}/>
+               onKeyDown={handleKeyDown}
+        />
     )
 })
 TextInput.displayName = "TextInput"

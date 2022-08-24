@@ -15,3 +15,18 @@ type SeekNewType<SearchKey, NewTypes extends [string, any][]> =
                     : never
             : never
         : undefined
+
+type PickIfEquals<X, Y, A=X, B=never> =
+    (<T>() => T extends X ? 1 : 2) extends
+        (<T>() => T extends Y ? 1 : 2) ? A : B
+
+export type ExtractWritableProps<R extends Record<string, any>> = {
+    [K in keyof R as PickIfEquals<{ [Q in K]: R[K] }, { -readonly [Q in K]: R[K] }, K>]: R[K]
+}
+type ExtractMethod<O> = {
+    [K in keyof O as (K extends ")" ? never : K)] : O[K]
+}
+
+type ReadonlyKeys<T> = {
+    [P in keyof T]-?: PickIfEquals<{ [Q in P]: T[P] }, { -readonly [Q in P]: T[P] }, never, P>
+}[keyof T]

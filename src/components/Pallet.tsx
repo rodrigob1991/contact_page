@@ -8,9 +8,11 @@ import {
     hasSiblingOrParentSibling,
     isAnchor,
     isDiv,
+    isHtmlElement,
     isSpan,
     isText,
     lookUpDivParent,
+    lookUpParent,
     positionCaretOn,
     removeNodesFromOneSide
 } from "../utils/DomManipulations"
@@ -221,6 +223,7 @@ export const Pallet =({show, fontSize}: Props)=> {
 
     const handleClickPalletOption = (className: string) => {
         const selection = window.getSelection() as Selection
+        setEditingElement((lookUpParent(selection.anchorNode as ParentNode, (p)=> isHtmlElement(p)) as HTMLElement).parentElement as HTMLElement)
 
         const isDefaultText = isEmpty(className)
         const isLink = className === linkClass
@@ -232,13 +235,13 @@ export const Pallet =({show, fontSize}: Props)=> {
                 getNewNode = (t: string) => createText(t)
                 break
             case isLink:
-                getNewNode = (t: string) => createAnchor(t, className, "")
+                getNewNode = (t: string) => createAnchor({className: className, innerHTML: t, href: "", tabIndex: -1})
 
                 const rectRange =  selection.getRangeAt(0).getBoundingClientRect()
                 setAskHRefProps({show: true, topPosition: rectRange.top - fontSize, leftPosition: rectRange.left})
                 break
             case isSpan:
-                getNewNode = (t: string) => createSpan(t, className)
+                getNewNode = (t: string) => createSpan({className: className, innerHTML: t, tabIndex: -1})
                 break
             default:
                 throw new Error("class name must fall in some case")
@@ -253,7 +256,7 @@ export const Pallet =({show, fontSize}: Props)=> {
         }
 
         if (isLink) {
-            setTimeout(()=> refToAskHRefInput.current?.focus(), 100)
+            setTimeout(()=> focusAskHRefInput(), 100)
         } else {
             positionCaretOnLastNodeAdded()
         }
@@ -263,9 +266,33 @@ export const Pallet =({show, fontSize}: Props)=> {
     const askHRefPropsInit = {show: false, topPosition: 0, leftPosition: 0}
     const [askHRefProps, setAskHRefProps] = useState(askHRefPropsInit)
     const handleCloseAskHRef = () => {
+        // @ts-ignore
+        getEditingElement().onfocus = () => {
+            // positionCaretOnLastNodeAdded()
+            const selection = document.getSelection() as Selection
+            let ns = selection.anchorNode?.nextSibling
+            let found = false
+            while (!found) {
+                if (ns instanceof HTMLAnchorElement) {
+                    selection.selectAllChildren(ns)
+                    selection.collapseToEnd()
+                    console.table(selection)
+                    found = true
+                } else {
+                    ns = ns?.nextSibling
+                }
+            }
+        }
+        getEditingElement()?.focus()
+        /*  // @ts-ignore
+          getLastNodeAdded().focus()
+          positionCaretOnLastNodeAdded()*/
         setAskHRefProps(askHRefPropsInit)
-        positionCaretOnLastNodeAdded()
     }
+
+    const refToEditingElement = useRef<HTMLElement>()
+    const getEditingElement = () => refToEditingElement.current
+    const setEditingElement = (e: HTMLElement) => refToEditingElement.current = e
 
     const refToLastNodeAdded = useRef<OptionTargetNode>()
     const getLastNodeAdded = () => refToLastNodeAdded.current
@@ -278,6 +305,7 @@ export const Pallet =({show, fontSize}: Props)=> {
     }
 
     const refToAskHRefInput = useRef<HTMLInputElement | null>(null)
+    const focusAskHRefInput = () => refToAskHRefInput.current?.focus()
 
     const palletOptionClass = "palletOption"
     const textClasses = ["","blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
@@ -304,7 +332,7 @@ export const Pallet =({show, fontSize}: Props)=> {
             )}
             <a className={formOptionClass(linkClass)}
                onMouseDown={handleMouseDown}
-               onClick={()=> handleClickPalletOption(linkClass)}>
+               onClick={(e)=> handleClickPalletOption(linkClass)}>
                 Link
             </a>
             <AskHRef {...askHRefProps}>
@@ -330,7 +358,7 @@ const Container = styled.div<{ show: boolean}>`
   background-color: #FFFFFF;
  `
 const AskHRef = styled.div<{ show: boolean, topPosition: number, leftPosition: number }>`
- display: ${({show, topPosition, leftPosition}) => (show ? "flex" : "none") + ";"
+  display: ${({show, topPosition, leftPosition}) => (show ? "flex" : "none") + ";"
     + "top: " + topPosition + "px;"
     + "left: " + leftPosition + "px;"}
   z-index: 1;
