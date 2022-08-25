@@ -152,6 +152,8 @@ export default function EditHome(props?: HomeProps) {
                         let stop
                         if (p instanceof HTMLDivElement || p instanceof HTMLSpanElement) {
                             stop = p.id.startsWith(presentationHtmlElementIdsPrefix) || p.id.startsWith(storyHtmlElementIdsPrefix);
+                        } else if (p instanceof HTMLAnchorElement) {
+                            stop = false
                         } else {
                             stop = true
                         }
@@ -159,7 +161,6 @@ export default function EditHome(props?: HomeProps) {
                     }
                     const htmlElement = lookUpParent(mutation.target, seekParentTill)
                     if (htmlElement && (htmlElement instanceof HTMLDivElement || htmlElement instanceof HTMLSpanElement)) {
-                        console.log(mutation)
                         const htmlElementId = htmlElement.id
                         const newPropertyValue = htmlElement.innerHTML as string
                         console.log(newPropertyValue)

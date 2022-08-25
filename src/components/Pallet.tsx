@@ -16,12 +16,14 @@ import {
 } from "../utils/DomManipulations"
 import React, {useRef, useState} from "react"
 import {TextInput} from "./FormComponents"
+import {FcPicture} from "react-icons/all";
 
 type Props = {
     show: boolean
     fontSize: number
 }
-type OptionTargetNode = Text | HTMLSpanElement | HTMLAnchorElement
+type OptionTargetElement = HTMLSpanElement | HTMLAnchorElement
+type OptionTargetNode = Text | OptionTargetElement
 type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
 
 export const Pallet =({show, fontSize}: Props)=> {
@@ -31,7 +33,7 @@ export const Pallet =({show, fontSize}: Props)=> {
         const anchorValue = anchor.nodeValue
         const anchorLength = anchorValue?.length
 
-        const isDefaultStyle = newNode instanceof Text
+        const isDefaultStyle = isText(newNode)
         const isInside = anchorOffSet !== anchorLength
         const isStart = anchorOffSet === 0
         const isEnd = anchorOffSet === anchorLength
@@ -54,26 +56,20 @@ export const Pallet =({show, fontSize}: Props)=> {
         if (isAnchorDiv || isAnchorSpan || isAnchorAnchor) {
             throw new Error("i do not expect to enter here")
         } else if (isDefaultStyle && (isTextStart || isInsideText || isTextEnd)) {
-            console.log(0)
             // do nothing.
         } else if (isTextStart) {
-            console.log(1)
             anchor.before(newNode)
         } else if (isInsideText) {
-            console.log(2)
             const text = anchorValue as string
             const leftText = createText(text.substring(0, anchorOffSet))
             const rightText = createText(text.substring(anchorOffSet))
             anchor.after(leftText, newNode, rightText)
             anchor.remove()
         } else if (isTextEnd) {
-            console.log(3)
             anchor.after(newNode)
         } else if (isTextStartInSpanOrAnchor) {
-            console.log(4)
             anchorParent.before(newNode)
         } else if (isInsideTextInSpanOrAnchor) {
-            console.log(5)
             const text = anchorValue as string
             const leftSpanOrAnchor = anchorParent.cloneNode()
             leftSpanOrAnchor.appendChild(createText(text.substring(0, anchorOffSet)))
@@ -82,7 +78,6 @@ export const Pallet =({show, fontSize}: Props)=> {
             anchorParent.after(leftSpanOrAnchor, newNode, rightSpanOrAnchor)
             anchorParent.remove()
         } else if (isTextEndInSpanOrAnchor) {
-            console.log(6)
             anchorParent.after(newNode)
         } else {
             throw new Error("Could not enter in any case, maybe other cases have to be added")
@@ -219,14 +214,19 @@ export const Pallet =({show, fontSize}: Props)=> {
         const isSpan = textClasses.includes(className)
 
         let getNewNode: GetOptionTargetNode
+        let defaultTextToPositionCaret: Text | undefined
         const getId = (isLast: boolean) => {
-            return isLast ? {id: lastNodeAddedId} : {}
+            return isLast ? {id: lastElementAddedId} : {}
         }
         // the id will be set to empty after set caret on node
         const elementProps = {className: className, tabIndex: -1}
         switch (true) {
             case isDefaultText:
-                getNewNode = (t) => createText(t)
+                getNewNode = (t) => {
+                    const defaultText = createText(t)
+                    defaultTextToPositionCaret = defaultText
+                    return defaultText
+                }
                 break
             case isLink:
                 getNewNode = (t, isLast) => createAnchor({...getId(isLast), innerHTML: t, ...elementProps})
@@ -250,14 +250,14 @@ export const Pallet =({show, fontSize}: Props)=> {
         }
 
         if (isLink) {
-            setTimeout(()=> focusAskHRefInput(), 100)
+            setTimeout(() => focusAskHRefInput(), 100)
         } else {
-            positionCaretOnLastNodeAdded()
+            positionCaretOnLastNodeAdded(defaultTextToPositionCaret)
         }
     }
 
-    const lastNodeAddedId = "lastNodeAdded"
-    const getLastNodeAdded = () => document.querySelector("#" + lastNodeAddedId)
+    const lastElementAddedId = "lastElementAdded"
+    const getLastElementAdded = () => document.querySelector("#" + lastElementAddedId) as OptionTargetElement | null
 
     const [href, setHref] = useState("")
     const askHrefPropsInit = {show: false, topPosition: 0, leftPosition: 0}
@@ -267,14 +267,18 @@ export const Pallet =({show, fontSize}: Props)=> {
         setAskHrefProps(askHrefPropsInit)
     }
 
-    const positionCaretOnLastNodeAdded = () => {
-        const lastNodeAdded = getLastNodeAdded()
+    const positionCaretOnLastNodeAdded = (text?: Text) => {
+        let lastNodeAdded = text ? text : getLastElementAdded()
+        console.table(lastNodeAdded)
+
         if (lastNodeAdded) {
             positionCaretOn(lastNodeAdded)
-            lastNodeAdded.id = ""
-            if (lastNodeAdded instanceof HTMLAnchorElement) {
-                lastNodeAdded.href = href
-                setHref("")
+            if (lastNodeAdded instanceof HTMLElement) {
+                lastNodeAdded.id = ""
+                if (lastNodeAdded instanceof HTMLAnchorElement) {
+                    lastNodeAdded.href = href
+                    setHref("")
+                }
             }
         }
     }
@@ -310,6 +314,8 @@ export const Pallet =({show, fontSize}: Props)=> {
                onClick={(e)=> handleClickPalletOption(linkClass)}>
                 Link
             </a>
+            {styleOptionSeparator}
+            <FcPicture size={25}/>
             <AskHRef {...askHrefProps}>
                 <TextInput placeholder={"href"}
                            ref={refToAskHRefInput}

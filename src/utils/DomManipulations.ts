@@ -20,8 +20,16 @@ export const isAnchor = (node: Node) => {
 export const positionCaretOn = (node: Node) => {
     const selection = document.getSelection()
     if (selection) {
-        selection.selectAllChildren(node)
-        selection.collapseToEnd()
+        let offset
+        switch (node.nodeType) {
+            case 3:
+                offset = (node.nodeValue as string).length
+                break
+            case 1:
+                offset = node.childNodes.length
+                break
+        }
+        selection.collapse(node, offset)
     }
 }
 export const createText = (text: string) => document.createTextNode(text)
