@@ -17,6 +17,9 @@ export const isSpan = (node: Node) => {
 export const isAnchor = (node: Node) => {
     return node instanceof HTMLAnchorElement
 }
+export const isImage = (node: Node) => {
+    return node instanceof HTMLImageElement
+}
 export const positionCaretOn = (node: Node) => {
     const selection = document.getSelection()
     if (selection) {
@@ -32,8 +35,11 @@ export const positionCaretOn = (node: Node) => {
         selection.collapse(node, offset)
     }
 }
+
 export const createText = (text: string) => document.createTextNode(text)
 
+// this type contains the methods that must not be set. I did not found a way to get rid of methods types.
+// compiler cannot differencing between methods and function field
 type SpanProps = Partial<ExtractWritableProps<HTMLSpanElement>>
 export const createSpan = (props: SpanProps) => {
     const s = document.createElement("span")
@@ -43,12 +49,8 @@ export const createSpan = (props: SpanProps) => {
     }
     return s
 }
-
-// this type contains the methods that must not be set. I did not found a way to get rid of methods types.
-// compiler cannot differencing between methods and function field
 type AnchorProps = Partial<ExtractWritableProps<HTMLAnchorElement>>
 export const createAnchor = (props: AnchorProps) => {
-    //tabindex = "-1"
     const a = document.createElement("a")
     for (const [k, v] of Object.entries(props)) {
         // @ts-ignore
@@ -56,6 +58,16 @@ export const createAnchor = (props: AnchorProps) => {
     }
     return a
 }
+type ImageProps = Partial<ExtractWritableProps<HTMLImageElement>>
+export const createImage = (props: ImageProps) => {
+    const img = document.createElement("img")
+    for (const [k, v] of Object.entries(props)) {
+        // @ts-ignore
+        img[k] = v
+    }
+    return img
+}
+
 export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "left", includeFromNode: boolean, removingTill: TillParent) => {
     let parent = fromNode.parentNode
     const siblingPropertyKey = side === "right" ? "nextSibling" : "previousSibling"

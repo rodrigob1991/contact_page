@@ -156,12 +156,12 @@ type ImageSelectorProps = {
     height: number
 }
 
-export const ImageSelector = ({processImage,imageDataUrl: imageDataUrlProp , imageMaxSize, width, height}: ImageSelectorProps) => {
+export const ImageSelector = ({processImage,imageDataUrl: imageDataUrlInit , imageMaxSize, width, height}: ImageSelectorProps) => {
     const id = useId()
     const inputFileRef = useRef<HTMLInputElement>(null)
 
     const [imageSizeErrorStr, setImageSizeErrorStr] = useState("")
-    const [imageDataUrl, setImageDataUrl] = useState(imageDataUrlProp)
+    const [imageDataUrl, setImageDataUrl] = useState(imageDataUrlInit)
 
     const goChooseImage = (e: React.MouseEvent<HTMLImageElement>) => {
         setImageSizeErrorStr("")

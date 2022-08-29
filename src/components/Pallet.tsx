@@ -2,6 +2,7 @@ import styled from "@emotion/styled"
 import {isEmpty} from "../utils/StringFunctions"
 import {
     createAnchor,
+    createImage,
     createSpan,
     createText,
     getTexts,
@@ -14,33 +15,34 @@ import {
     positionCaretOn,
     removeNodesFromOneSide
 } from "../utils/DomManipulations"
-import React, {useRef, useState} from "react"
+import React, {ChangeEvent, useRef, useState} from "react"
 import {TextInput} from "./FormComponents"
-import {FcPicture} from "react-icons/all";
+import {FcPicture} from "react-icons/fc"
 
 type Props = {
     show: boolean
     fontSize: number
 }
-type OptionTargetElement = HTMLSpanElement | HTMLAnchorElement
+type OptionType = "defaultText" | "span" | "link" | "image"
+type OptionTargetElement = HTMLSpanElement | HTMLAnchorElement | HTMLImageElement
 type OptionTargetNode = Text | OptionTargetElement
 type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
 
-export const Pallet =({show, fontSize}: Props)=> {
-    const handleCollapsedSelection = (newNode: OptionTargetNode, anchor: ChildNode, anchorOffSet: number) => {
+const handleMouseDown = (e: React.MouseEvent<Element>) => {
+    e.preventDefault()
+}
 
-        const anchorParent = anchor.parentElement as HTMLDivElement | HTMLSpanElement
-        const anchorValue = anchor.nodeValue
+export const Pallet =({show, fontSize}: Props)=> {
+    const handleCollapsedSelection = (optionType: OptionType, newNode: OptionTargetNode, anchor: ChildNode, anchorOffSet: number) => {
+
+        const anchorParent = anchor.parentElement as HTMLDivElement | OptionTargetElement
+        const anchorValue = anchor.nodeValue as string
         const anchorLength = anchorValue?.length
 
-        const isDefaultStyle = isText(newNode)
         const isInside = anchorOffSet !== anchorLength
         const isStart = anchorOffSet === 0
         const isEnd = anchorOffSet === anchorLength
         const isAnchorText = isText(anchor)
-        const isAnchorDiv = isDiv(anchor)
-        const isAnchorSpan = isSpan(anchor)
-        const isAnchorAnchor = isAnchor(anchor)
         const isParentDiv = isDiv(anchorParent)
         const isParentSpan = isSpan(anchorParent)
         const isParentAnchor = isAnchor(anchorParent)
@@ -53,38 +55,49 @@ export const Pallet =({show, fontSize}: Props)=> {
         const isInsideTextInSpanOrAnchor = isAnchorText && isParentSpanOrAnchor && isInside
         const isTextEndInSpanOrAnchor = isAnchorText && isParentSpanOrAnchor && isEnd
 
-        if (isAnchorDiv || isAnchorSpan || isAnchorAnchor) {
-            throw new Error("i do not expect to enter here")
-        } else if (isDefaultStyle && (isTextStart || isInsideText || isTextEnd)) {
-            // do nothing.
-        } else if (isTextStart) {
-            anchor.before(newNode)
-        } else if (isInsideText) {
-            const text = anchorValue as string
-            const leftText = createText(text.substring(0, anchorOffSet))
-            const rightText = createText(text.substring(anchorOffSet))
-            anchor.after(leftText, newNode, rightText)
-            anchor.remove()
-        } else if (isTextEnd) {
-            anchor.after(newNode)
-        } else if (isTextStartInSpanOrAnchor) {
-            anchorParent.before(newNode)
-        } else if (isInsideTextInSpanOrAnchor) {
-            const text = anchorValue as string
-            const leftSpanOrAnchor = anchorParent.cloneNode()
-            leftSpanOrAnchor.appendChild(createText(text.substring(0, anchorOffSet)))
-            const rightSpanOrAnchor = anchorParent.cloneNode()
-            rightSpanOrAnchor.appendChild(createText(text.substring(anchorOffSet)))
-            anchorParent.after(leftSpanOrAnchor, newNode, rightSpanOrAnchor)
-            anchorParent.remove()
-        } else if (isTextEndInSpanOrAnchor) {
-            anchorParent.after(newNode)
-        } else {
-            throw new Error("Could not enter in any case, maybe other cases have to be added")
+        switch (true) {
+            case (!isAnchorText):
+                anchor.after(newNode)
+            case (optionType === "defaultText" && (isTextStart || isInsideText || isTextEnd)):
+                // do nothing.
+                break
+            case (isTextStart):
+                anchor.before(newNode)
+                break
+            case (isInsideText):
+                const leftText = createText(anchorValue.substring(0, anchorOffSet))
+                const rightText = createText(anchorValue.substring(anchorOffSet))
+                anchor.after(leftText, newNode, rightText)
+                anchor.remove()
+                break
+            case (isTextEnd):
+                anchor.after(newNode)
+                break
+            case (isTextStartInSpanOrAnchor):
+                anchorParent.before(newNode)
+                break
+            case (isInsideTextInSpanOrAnchor):
+                const leftSpanOrAnchor = anchorParent.cloneNode()
+                leftSpanOrAnchor.appendChild(createText(anchorValue.substring(0, anchorOffSet)))
+                const rightSpanOrAnchor = anchorParent.cloneNode()
+                rightSpanOrAnchor.appendChild(createText(anchorValue.substring(anchorOffSet)))
+                anchorParent.after(leftSpanOrAnchor, newNode, rightSpanOrAnchor)
+                anchorParent.remove()
+                break
+            case (isTextEndInSpanOrAnchor):
+                anchorParent.after(newNode)
+                break
+            default:
+                throw new Error("Could not enter in any case, maybe other cases have to be added")
         }
     }
 
-    const handleRangeSelection = (getNewNode: GetOptionTargetNode, range: Range) => {
+    const handleRangeSelection = (optionType: OptionType, getNewNode: GetOptionTargetNode, range: Range) => {
+        if (optionType === "image") {
+            // for now i don't  insert images when select ranges
+            return
+        }
+
         const copySelectedFragment = range.cloneContents()
 
         // it seem that range.startContainer is always a text node
@@ -206,12 +219,8 @@ export const Pallet =({show, fontSize}: Props)=> {
         range.insertNode(copySelectedFragment)
     }
 
-    const handleClickPalletOption = (className: string) => {
+    const handleClickPalletOption = (optionType : OptionType, className?: string, imageSrc?: string) => {
         const selection = window.getSelection() as Selection
-
-        const isDefaultText = isEmpty(className)
-        const isLink = className === linkClass
-        const isSpan = textClasses.includes(className)
 
         let getNewNode: GetOptionTargetNode
         let defaultTextToPositionCaret: Text | undefined
@@ -220,36 +229,39 @@ export const Pallet =({show, fontSize}: Props)=> {
         }
         // the id will be set to empty after set caret on node
         const elementProps = {className: className, tabIndex: -1}
-        switch (true) {
-            case isDefaultText:
+
+        switch (optionType) {
+            case "defaultText":
                 getNewNode = (t) => {
                     const defaultText = createText(t)
                     defaultTextToPositionCaret = defaultText
                     return defaultText
                 }
                 break
-            case isLink:
+            case "span":
+                getNewNode = (t, isLast) => createSpan({...getId(isLast), innerHTML: t, ...elementProps})
+                break
+            case "link":
                 getNewNode = (t, isLast) => createAnchor({...getId(isLast), innerHTML: t, ...elementProps})
 
                 const rectRange = selection.getRangeAt(0).getBoundingClientRect()
                 setAskHrefProps({show: true, topPosition: rectRange.top - fontSize, leftPosition: rectRange.left})
                 break
-            case isSpan:
-                getNewNode = (t, isLast) => createSpan({...getId(isLast), innerHTML: t, ...elementProps})
+            case "image":
+                getNewNode = (t, isLast) => createImage({src: imageSrc})
                 break
-            default:
-                throw new Error("class name must fall in some case")
         }
 
         if (selection.isCollapsed) {
-            handleCollapsedSelection(getNewNode("-", true), selection.anchorNode as ChildNode, selection.anchorOffset)
+            handleCollapsedSelection(optionType, getNewNode("-", true), selection.anchorNode as ChildNode, selection.anchorOffset)
         } else {
             for (let i = 0; i < selection.rangeCount; i++) {
-                handleRangeSelection(getNewNode, selection.getRangeAt(i))
+                handleRangeSelection(optionType, getNewNode, selection.getRangeAt(i))
             }
         }
 
-        if (isLink) {
+        if (optionType === "link") {
+            // to wait till the dom get updated
             setTimeout(() => focusAskHRefInput(), 100)
         } else {
             positionCaretOnLastNodeAdded(defaultTextToPositionCaret)
@@ -269,7 +281,6 @@ export const Pallet =({show, fontSize}: Props)=> {
 
     const positionCaretOnLastNodeAdded = (text?: Text) => {
         let lastNodeAdded = text ? text : getLastElementAdded()
-        console.table(lastNodeAdded)
 
         if (lastNodeAdded) {
             positionCaretOn(lastNodeAdded)
@@ -287,35 +298,38 @@ export const Pallet =({show, fontSize}: Props)=> {
     const focusAskHRefInput = () => refToAskHRefInput.current?.focus()
 
     const palletOptionClass = "palletOption"
-    const textClasses = ["","blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
+    const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
     const linkClass = "linkOption"
-    const formOptionClass = (className: string) =>  palletOptionClass + " " + className
+    const getOptionClass = (className?: string) =>  className ? palletOptionClass + " " + className : palletOptionClass
 
-    const styleOptionSeparator = <span style={{color: "#000000"}}>-</span>
-
-    const handleMouseDown = (e: React.MouseEvent<HTMLElement>) => {
-        e.preventDefault()
-    }
+    const optionSeparator = <span style={{color: "#000000"}}>-</span>
 
     return (
         <Container show={show || askHrefProps.show}>
-            {textClasses.map((textClass, index) =>
+            <span className={getOptionClass()}
+                  onMouseDown={handleMouseDown}
+                  onClick={(e) => handleClickPalletOption("defaultText")}>
+                a
+            </span>
+            {optionSeparator}
+            {spanClasses.map((spanClass, index) =>
                 <>
-                <span className={formOptionClass(textClass)}
+                <span className={getOptionClass(spanClass)}
                       onMouseDown={handleMouseDown}
-                      onClick={(e) => handleClickPalletOption(textClass)}>
+                      onClick={(e) => handleClickPalletOption("span", spanClass)}>
                     a
                 </span>
-                    {styleOptionSeparator}
+                    {optionSeparator}
                 </>
             )}
-            <a className={formOptionClass(linkClass)}
+            <a className={getOptionClass(linkClass)}
                onMouseDown={handleMouseDown}
-               onClick={(e)=> handleClickPalletOption(linkClass)}>
+               onClick={(e)=> handleClickPalletOption("link", linkClass)}>
                 Link
             </a>
-            {styleOptionSeparator}
-            <FcPicture size={25}/>
+            {optionSeparator}
+            <ImagePalletOption processImage={(imageSrc) => handleClickPalletOption("image", undefined, imageSrc)}/>
+
             <AskHRef {...askHrefProps}>
                 <TextInput placeholder={"href"}
                            ref={refToAskHRefInput}
@@ -348,3 +362,36 @@ const AskHRef = styled.div<{ show: boolean, topPosition: number, leftPosition: n
   border-style: solid;
   border-color: #000000;
 `
+const ImagePalletOption = ({processImage}: { processImage: (imageSrc: string) => void }) => {
+    const inputFileRef = useRef<HTMLInputElement>(null)
+
+    const handleClick = (e:  React.MouseEvent<SVGElement>) => {
+        (inputFileRef.current as HTMLInputElement).click()
+    }
+
+    const handleImageSelection = (e: ChangeEvent<HTMLInputElement>) => {
+        const image = e.target.files?.item(0)
+        if (image) {
+            if (image.size / 10 ** 6 > 20) {
+            } else {
+                const reader = new FileReader()
+                reader.onloadend = () => {
+                    const imageDataUrl = reader.result as string
+                    if (imageDataUrl) {
+                        console.log(imageDataUrl)
+                       processImage(imageDataUrl)
+                    }
+                }
+                reader.readAsDataURL(image)
+            }
+        }
+    }
+
+    return (
+        <>
+            <input ref={inputFileRef} onChange={handleImageSelection} style={{display: "none"}}
+                   type={"file"} accept={"image/*"}/>
+            <FcPicture onMouseDown={(e)=> e.preventDefault()} size={25} onClick={handleClick} style={{cursor: "pointer"}}/>
+        </>
+    )
+}

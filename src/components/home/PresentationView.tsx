@@ -22,11 +22,11 @@ export default function PresentationView<VM extends ViewMode>({
 
     return (
         <PresentationContainer>
-            <PresentationNameImageContainer>{
-                editing ? <ImageSelector imageMaxSize={16} width={100} height={90} processImage={setPresentationImage}
+            <PresentationNameImageContainer>
+                {editing ? <ImageSelector imageMaxSize={16} width={100} height={90} processImage={setPresentationImage}
                                          imageDataUrl={imageDataUrl}/>
-                    : <Image src={imageDataUrl as string} width={100} height={90}/>
-            }
+                        : <Image src={imageDataUrl as string} layout={"responsive"} width={100} height={90}
+                             sizes="(min-width: 75em) 33vw,(min-width: 48em) 50vw,100vw"/>}
                 <PresentationName id={htmlElementIds?.name} contentEditable={editing}>
                     {name}
                 </PresentationName>
