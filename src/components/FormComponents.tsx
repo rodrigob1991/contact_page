@@ -20,7 +20,6 @@ type TextInputProps = {
     email?: boolean
     onEnter?: () => void
 } & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>,HTMLInputElement>
-
 export const TextInput = forwardRef(({
                               setValue,
                               email,
@@ -45,6 +44,34 @@ export const TextInput = forwardRef(({
     )
 })
 TextInput.displayName = "TextInput"
+
+type NumberInputProps = {
+    setValue: (value: number) => void
+    onEnter?: () => void
+} & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>,HTMLInputElement>
+export const NumberInput = forwardRef(({
+                                         setValue,
+                                         onEnter,
+                                         ...rest
+                                     }: NumberInputProps, ref : Ref<HTMLInputElement>) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        switch (e.key.toLowerCase()) {
+            case "enter" :
+                if (onEnter)
+                    onEnter()
+                e.preventDefault()
+                break
+        }
+    }
+
+    return (
+        <Input {...rest} type={"number"} ref={ref}
+               onChange={(e) => setValue(e.target.value)}
+               onKeyDown={handleKeyDown}
+        />
+    )
+})
+NumberInput.displayName = "NumberInput"
 
 const Input = styled.input`
     font-size: 20px;
