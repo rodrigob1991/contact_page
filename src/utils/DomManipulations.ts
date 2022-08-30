@@ -59,11 +59,13 @@ export const createAnchor = (props: AnchorProps) => {
     return a
 }
 type ImageProps = Partial<ExtractWritableProps<HTMLImageElement>>
-export const createImage = (props: ImageProps) => {
+export const createImage = (props?: ImageProps) => {
     const img = document.createElement("img")
-    for (const [k, v] of Object.entries(props)) {
-        // @ts-ignore
-        img[k] = v
+    if (props) {
+        for (const [k, v] of Object.entries(props)) {
+            // @ts-ignore
+            img[k] = v
+        }
     }
     return img
 }

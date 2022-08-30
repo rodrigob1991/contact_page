@@ -18,7 +18,6 @@ import {
 import React, {ChangeEvent, useEffect, useRef, useState} from "react"
 import {NumberInput, TextInput} from "./FormComponents"
 import {FcPicture} from "react-icons/fc"
-import {Button} from "./Buttons"
 
 type Props = {
     show: boolean
@@ -31,11 +30,7 @@ type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
 
 const lastElementAddedId = "lastElementAdded"
 const getLastElementAdded = () => {
-    const lastElementAdded = document.querySelector("#" + lastElementAddedId) as OptionTargetElement | null
-    if (lastElementAdded) {
-        lastElementAdded.id = ""
-    }
-    return lastElementAdded
+    return document.querySelector("#" + lastElementAddedId) as OptionTargetElement | null
 }
 
 const handleMouseDown = (e: React.MouseEvent<Element>) => {
@@ -228,36 +223,67 @@ const handleRangeSelection = (optionType: OptionType, getNewNode: GetOptionTarge
 
 type AskHref = (top: number, left: number) => void
 type FocusAskHRefInput = () => void
-const handleClickPalletOption = (optionType: OptionType, className?: string, askHref?: AskHref, focusAskHRefInput?: FocusAskHRefInput, imageProps?: ImageProps) => {
+const handleClickPalletOption = (optionType: OptionType, className?: string, askHref?: AskHref, focusAskHRefInput?: FocusAskHRefInput,askImageProps?: AskImagePropsType) => {
     const selection = window.getSelection() as Selection
 
+    const rectRange = selection.getRangeAt(0).getBoundingClientRect();
+
     let getNewNode: GetOptionTargetNode
-    let defaultTextToPositionCaret: Text | undefined
-    // the id will be set to empty after set caret on node
-    const getId = (isLast: boolean) => {
-        return isLast ? {id: lastElementAddedId} : {}
-    }
+    let onFinally: () => void
+
     const elementProps = {className: className, tabIndex: -1}
 
     switch (optionType) {
         case "defaultText":
-            getNewNode = (t) => {
+            let lastDefaultText: Text
+            getNewNode = (t, isLast) => {
                 const defaultText = createText(t)
-                defaultTextToPositionCaret = defaultText
+                if (isLast) {
+                    lastDefaultText = defaultText
+                }
                 return defaultText
+            }
+            onFinally = () => {
+                positionCaretOn(lastDefaultText)
             }
             break
         case "span":
-            getNewNode = (t, isLast) => createSpan({...getId(isLast), innerHTML: t, ...elementProps})
+            let lastSpan: HTMLSpanElement
+            getNewNode = (t, isLast) => {
+                const span = createSpan({innerHTML: t, ...elementProps})
+                if (isLast) {
+                    lastSpan = span
+                }
+                return span
+            }
+            onFinally = () => {
+                lastSpan.id = ""
+                positionCaretOn(lastSpan)
+            }
             break
         case "link":
-            getNewNode = (t, isLast) => createAnchor({...getId(isLast), innerHTML: t, ...elementProps})
-
-            const rectRange = selection.getRangeAt(0).getBoundingClientRect();
-            (askHref as AskHref)(rectRange.top, rectRange.left)
+            (askHref as AskHref)(rectRange.top, rectRange.left);
+            getNewNode = (t, isLast) => {
+                const link = createAnchor({innerHTML: t, ...elementProps})
+                if (isLast) {
+                    link.id = lastElementAddedId
+                }
+                return link
+            }
+            onFinally = () => {
+                (focusAskHRefInput as FocusAskHRefInput)()
+            }
             break
         case "image":
-            getNewNode = (t, isLast) => createImage(imageProps as ImageProps)
+            (askImageProps as AskImagePropsType)(rectRange.top, rectRange.left)
+            let image: HTMLImageElement
+            getNewNode = (t, isLast) => {
+                image = createImage({id: lastElementAddedId, ...elementProps})
+                return image
+            }
+            onFinally = () => {
+                //positionCaretOn(image)
+            }
             break
     }
 
@@ -268,15 +294,8 @@ const handleClickPalletOption = (optionType: OptionType, className?: string, ask
             handleRangeSelection(optionType, getNewNode, selection.getRangeAt(i))
         }
     }
-
-    if (optionType === "link") {
-        // to wait till the dom get updated
-        setTimeout(() => (focusAskHRefInput as FocusAskHRefInput)(), 100)
-    } else if (optionType === "defaultText") {
-        positionCaretOn(defaultTextToPositionCaret as Text)
-    } else if (optionType === "span") {
-        positionCaretOn(getLastElementAdded() as HTMLSpanElement)
-    }
+    // to give time to update the DOM
+    setTimeout(onFinally, 100)
 }
 
 export const Pallet =({show, fontSize}: Props)=> {
@@ -286,6 +305,7 @@ export const Pallet =({show, fontSize}: Props)=> {
     const handleCloseAskHRef = () => {
         const lastLinkAdded = getLastElementAdded() as HTMLAnchorElement
         positionCaretOn(lastLinkAdded)
+        lastLinkAdded.id = ""
         lastLinkAdded.href = href
         setHref("")
         setAskHrefProps(askHrefPropsInit)
@@ -293,9 +313,24 @@ export const Pallet =({show, fontSize}: Props)=> {
     const askHref = (top: number, left: number) => {
         setAskHrefProps({show: true, top: top - fontSize, left: left})
     }
-
     const refToAskHRefInput = useRef<HTMLInputElement | null>(null)
     const focusAskHRefInput = () => refToAskHRefInput.current?.focus()
+
+    const askImagePropsPropsInit = {show: false, top: 0, left: 0, src: ""}
+    const [askImagePropsProps, setAskImagePropsProps] = useState(askImagePropsPropsInit)
+    const askImageProps = (top: number, left: number) => {
+        setAskImagePropsProps({show: true, src: "", top: top, left: left})
+    }
+    const onAcceptAskImageProps = (imageProps: ImageProps) => {
+        const lastImageAdded = getLastElementAdded() as HTMLImageElement
+        for (let [key, value] of Object.entries(imageProps)) {
+            // @ts-ignore
+            lastImageAdded[key] = value
+        }
+        positionCaretOn(lastImageAdded)
+        setAskImagePropsProps(askImagePropsPropsInit)
+    }
+
 
     const palletOptionClass = "palletOption"
     const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
@@ -305,7 +340,7 @@ export const Pallet =({show, fontSize}: Props)=> {
     const optionSeparator = <span style={{color: "#000000"}}>-</span>
 
     return (
-        <Container show={show || askHrefProps.show}>
+        <Container show={show || askHrefProps.show || askImagePropsProps.show}>
             <span className={getOptionClass()}
                   onMouseDown={handleMouseDown}
                   onClick={(e) => handleClickPalletOption("defaultText")}>
@@ -328,7 +363,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                 Link
             </a>
             {optionSeparator}
-            <ImagePalletOption/>
+            <ImagePalletOption askImagePropsProps={askImagePropsProps} askImageProps={askImageProps} onAcceptAskImageProps={onAcceptAskImageProps}/>
 
             <AskContainer {...askHrefProps}>
                 <TextInput placeholder={"href"}
@@ -363,17 +398,18 @@ const AskContainer = styled.div<{ show: boolean, top: number, left: number }>`
   border-style: solid;
   border-color: #000000;
 `
-const ImagePalletOption = () => {
-    const askImagePropsPropsInit = {show: false, src: ""}
-    const [askImagePropsProps, setAskImagePropsProps] = useState(askImagePropsPropsInit)
-    const onAcceptAskImageProps = (imageProps: ImageProps) => {
-        handleClickPalletOption("image", undefined, undefined, undefined, imageProps)
-        setAskImagePropsProps(askImagePropsPropsInit)
-    }
-
+type AskImagePropsProps = { show: boolean, top: number, left: number, src: string }
+type AskImagePropsType = (top: number, left: number) => void
+type ImagePalletOptionProps = {
+    askImagePropsProps: AskImagePropsProps
+    askImageProps: AskImagePropsType
+    onAcceptAskImageProps: (imageProps: ImageProps) => void
+}
+const ImagePalletOption = ({askImageProps, askImagePropsProps, onAcceptAskImageProps}: ImagePalletOptionProps) => {
     const inputFileRef = useRef<HTMLInputElement>(null)
 
-    const handleClick = (e:  React.MouseEvent<SVGElement>) => {
+    const handleClick = (e: React.MouseEvent<SVGElement>) => {
+        handleClickPalletOption("image", undefined, undefined, undefined,askImageProps);
         (inputFileRef.current as HTMLInputElement).click()
     }
 
@@ -386,7 +422,7 @@ const ImagePalletOption = () => {
                 reader.onloadend = () => {
                     const imageDataUrl = reader.result as string
                     if (imageDataUrl) {
-                        setAskImagePropsProps({show: true, src: imageDataUrl})
+                       // askImageProps(imageDataUrl)
                     }
                 }
                 reader.readAsDataURL(image)
@@ -398,18 +434,20 @@ const ImagePalletOption = () => {
         <>
             <input ref={inputFileRef} onChange={handleImageSelection} style={{display: "none"}}
                    type={"file"} accept={"image/*"}/>
-            <FcPicture onMouseDown={(e)=> e.preventDefault()} size={25} onClick={handleClick} style={{cursor: "pointer"}}/>
+            <FcPicture onMouseDown={handleMouseDown} size={25} onClick={handleClick} style={{cursor: "pointer"}}/>
             <AskImageProps onAccept={onAcceptAskImageProps} {...askImagePropsProps}/>
         </>
     )
 }
 type ImageProps = { src: string, height?: number, width?: number }
-const AskImageProps = ({show, onAccept, ...imagePropsInit}: { show: boolean, onAccept: (im: ImageProps) => void } & ImageProps) => {
-    const [position, setPosition] = useState({top: 0, left: 0})
+const AskImageProps = ({show, onAccept, top, left, ...imagePropsInit}: { show: boolean, onAccept: (im: ImageProps) => void } & ImageProps & AskImagePropsProps) => {
+    const [position, setPosition] = useState({top: top, left: left})
+    const refToHeightInput = useRef<HTMLInputElement | null>(null)
     useEffect(() => {
         if (show) {
-            const rectRange = (window.getSelection() as Selection).getRangeAt(0).getBoundingClientRect()
-            setPosition({top: rectRange.top, left: rectRange.left})
+            /*const rectRange = (window.getSelection() as Selection).getRangeAt(0).getBoundingClientRect()
+            setPosition({top: rectRange.top, left: rectRange.left})*/
+            //refToHeightInput.current?.focus()
         }
     }, [show])
 
@@ -424,7 +462,7 @@ const AskImageProps = ({show, onAccept, ...imagePropsInit}: { show: boolean, onA
 
     return (
         <AskContainer show={show} {...position}>
-            <NumberInput width={100} value={imageProps.height} setValue={(v) => setImageProp(v, "height")} placeholder={"height"}
+            <NumberInput ref={refToHeightInput} width={100} value={imageProps.height} setValue={(v) => setImageProp(v, "height")} placeholder={"height"}
                          onEnter={() => onAccept(imageProps)}/>
             <NumberInput width={100} value={imageProps.width} setValue={(v) => setImageProp(v, "width")} placeholder={"width"}
                          onEnter={() => onAccept(imageProps)}/>
