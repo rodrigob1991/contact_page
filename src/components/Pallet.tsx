@@ -1,7 +1,8 @@
 import styled from "@emotion/styled"
 import {isEmpty} from "../utils/StringFunctions"
 import {
-    createAnchor, createDiv,
+    createAnchor,
+    createDiv,
     createImage,
     createSpan,
     createText,
@@ -15,7 +16,7 @@ import {
     positionCaretOn,
     removeNodesFromOneSide
 } from "../utils/DomManipulations"
-import React, {ChangeEvent, useEffect, useRef, useState} from "react"
+import React, {useEffect, useRef, useState} from "react"
 import {ImageSelector, NumberInput, TextInput} from "./FormComponents"
 import {FcPicture} from "react-icons/fc"
 
@@ -230,10 +231,12 @@ export const Pallet =({show, fontSize}: Props)=> {
         range.insertNode(copySelectedFragment)
     }
 
-    const handleClickPalletOption = (optionType: OptionType, className?: string, imageProps?: ImageProps) => {
+    const handleClickPalletOption = (optionType: OptionType, className?: string) => {
         const selection = window.getSelection() as Selection
+        const anchorNode = selection.anchorNode as ChildNode
+        const anchorOffset = selection.anchorOffset
 
-        // use to ask href of links and dimensions of images
+        // use to ask href of links and p props of images
         const {top: topRectangle,left: leftRectangle} = selection.getRangeAt(0).getBoundingClientRect()
 
         let getNewNode: GetOptionTargetNode
@@ -276,22 +279,23 @@ export const Pallet =({show, fontSize}: Props)=> {
                 onFinally = () => { focusAskHRefInput() }
                 break
             case "image":
-                //askImageProps(topRectangle, leftRectangle)
-                getNewNode = (t, isLast) => {
+                refToInsertImage.current = (ip) => {
                     const div = createDiv({contentEditable: "false"})
-                    const image = createImage({id: lastElementAddedId, ...elementProps, ...imageProps})
+                    const image = createImage(ip)
                     image.setAttribute("onclick", `{
                         window.modifyImageElement(this)
                     }`)
                     div.append(image)
-                    return div
+                    handleCollapsedSelection(optionType, div, anchorNode, anchorOffset)
                 }
-                onFinally = () => {}
-                break
+
+                setPositionAskImageProps({top: topRectangle, left: leftRectangle})
+                setShowAskImageProps(true)
+                return
         }
 
         if (selection.isCollapsed) {
-            handleCollapsedSelection(optionType, getNewNode("-", true), selection.anchorNode as ChildNode, selection.anchorOffset)
+            handleCollapsedSelection(optionType, getNewNode("-", true), anchorNode, anchorOffset)
         } else {
             for (let i = 0; i < selection.rangeCount; i++) {
                 handleRangeSelection(optionType, getNewNode, selection.getRangeAt(i))
@@ -321,12 +325,6 @@ export const Pallet =({show, fontSize}: Props)=> {
     const [showAskImageProps, setShowAskImageProps] = useState(false)
     const [positionAskImageProps, setPositionAskImageProps] = useState({top: 0, left: 0})
 
-    const handleClickImageOption = (e: React.MouseEvent<SVGElement>) => {
-        const rect = (window.getSelection() as Selection).getRangeAt(0).getBoundingClientRect()
-
-        setShowAskImageProps(true)
-        setPositionAskImageProps({top: rect.top, left: rect.left})
-    }
     const modifyImageElement = (img: HTMLImageElement) => {
         const imgRect = img.getBoundingClientRect()
         setShowAskImageProps(true)
@@ -336,20 +334,16 @@ export const Pallet =({show, fontSize}: Props)=> {
         window.modifyImageElement = modifyImageElement
     }, [])
 
-   /* const refToLastImageSrc = useRef<string>()
-    const setLastImageSrc = (src: string) => {
-        refToLastImageSrc.current = src
-    }*/
+    type InsertImage = (im: ImageProps) => void
+    const refToInsertImage = useRef<InsertImage>()
 
-    const onAcceptAskImageProps = (imageProps: ImageProps) => {
-        /*const lastImageAdded = getLastElementAdded() as HTMLImageElement
-        lastImageAdded.src = refToLastImageSrc.current as string
-        for (const [key, value] of Object.entries(imageDimensions)) {
-            // @ts-ignore
-            lastImageAdded[key] = value
-        }*/
-        handleClickPalletOption("image", undefined, imageProps)
+    const onAcceptAskImageProps = (ip: ImageProps) => {
+        (refToInsertImage.current as InsertImage)(ip)
+
         setPositionAskImageProps({top: 0, left: 0})
+        setShowAskImageProps(false)
+    }
+    const onCancelAskImageProps = () => {
         setShowAskImageProps(false)
     }
 
@@ -384,13 +378,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                 Link
             </a>
             {optionSeparator}
-            <FcPicture onMouseDown={handleMouseDown} size={25} onClick={handleClickImageOption} style={{cursor: "pointer"}}/>
-          {/*  <ImagePalletOption handleClickImagePalletOption={() => {handleClickPalletOption("image")}}
-                               setLastImageSrc={setLastImageSrc}
-                               askImagePropsProps={{
-                                   show: showAskImageProps,
-                                   position: positionAskImageProps,
-                                   onAccept: onAcceptAskImageProps}}/>*/}
+            <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e)=> handleClickPalletOption("image")} style={{cursor: "pointer"}}/>
 
             <AskContainer {...askHrefProps}>
                 <TextInput placeholder={"href"}
@@ -400,7 +388,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                            setValue={(v) => setHref(v)}
                            onEnter={handleCloseAskHRef}/>
             </AskContainer>
-            <AskImageProps show={showAskImageProps} position={positionAskImageProps} onAccept={onAcceptAskImageProps}/>
+            <AskImageProps show={showAskImageProps} position={positionAskImageProps} onAccept={onAcceptAskImageProps} onCancel={onCancelAskImageProps}/>
         </Container>
     )
 }
@@ -416,10 +404,11 @@ const Container = styled.div<{ show: boolean}>`
   border-color: #778899;
   background-color: #FFFFFF;
  `
-const AskContainer = styled.div<{ show: boolean, top: number, left: number }>`
-  display: ${({show, top, left}) => (show ? "flex" : "none") + ";"
+const AskContainer = styled.div<{ show: boolean, top: number, left: number, maxWidth?: number}>`
+  display: ${({show, top, left, maxWidth}) => (show ? "flex" : "none") + ";"
     + "top: " + top+ "px;"
-    + "left: " + left + "px;"}
+    + "left: " + left + "px;"
+    + (maxWidth ? "max-width: " + maxWidth + "px;" : "")}
   flex-direction: column;
   z-index: 1;
   position: absolute;
@@ -427,48 +416,9 @@ const AskContainer = styled.div<{ show: boolean, top: number, left: number }>`
   border-color: #000000;
   background-color: white;
 `
-type ImagePalletOptionProps = {
-    handleClickImagePalletOption: ()=> void
-    setLastImageSrc: (src: string)=> void
-    askImagePropsProps: AskImagePropsProps
-}
-/*const ImagePalletOption = ({handleClickImagePalletOption, setLastImageSrc, askImagePropsProps}: ImagePalletOptionProps) => {
-    const inputFileRef = useRef<HTMLInputElement>(null)
-
-    /!*const handleClick = (e: React.MouseEvent<SVGElement>) => {
-        handleClickImagePalletOption();
-        (inputFileRef.current as HTMLInputElement).click()
-    }
-*!/
-   /!* const handleImageSelection = (e: ChangeEvent<HTMLInputElement>) => {
-        const image = e.target.files?.item(0)
-        if (image) {
-            if (image.size / 10 ** 6 > 20) {
-            } else {
-                const reader = new FileReader()
-                reader.onloadend = () => {
-                    const imageDataUrl = reader.result as string
-                    if (imageDataUrl) {
-                        setLastImageSrc(imageDataUrl)
-                    }
-                }
-                reader.readAsDataURL(image)
-            }
-        }
-    }*!/
-
-    return (
-        <>
-           {/!* <input ref={inputFileRef} onChange={handleImageSelection} style={{display: "none"}}
-                   type={"file"} accept={"image/!*"}/>*!/}
-
-            <AskImageProps  {...askImagePropsProps}/>
-        </>
-    )
-}*/
-type AskImagePropsProps = { show: boolean, position: { top: number, left: number }, imageProps?: ImageProps, onAccept: (im: ImageProps) => void }
+type AskImagePropsProps = { show: boolean, position: { top: number, left: number }, imageProps?: ImageProps, onAccept: (im: ImageProps) => void, onCancel: ()=> void }
 type ImageProps = {src: string, height: number, width: number }
-const AskImageProps = ({show, onAccept, position: {top, left}, imageProps: imagePropsInit}: AskImagePropsProps) => {
+const AskImageProps = ({show, onAccept, onCancel, position: {top, left}, imageProps: imagePropsInit}: AskImagePropsProps) => {
     const refToHeightInput = useRef<HTMLInputElement | null>(null)
     useEffect(() => {
         if (show) {
@@ -496,17 +446,25 @@ const AskImageProps = ({show, onAccept, position: {top, left}, imageProps: image
         onAccept(imageProps)
         setImageProps(imagePropsDefault)
     }
+    const handleOnClickCancel = (e: React.MouseEvent<HTMLButtonElement>) => {
+        setImageProps(imagePropsDefault)
+        onCancel()
+    }
 
     return (
-        <AskContainer id={"href"} show={show} top={top} left={left}>
-            <div style={{display: "flex", flexDirection: "row"}}>
-                <ImageSelector processImage={processImage} label={<label style={{color: "black", fontSize: 20, cursor: "pointer"}}>src</label>} imageMaxSize={10}/>{imageName}
-            </div>
-            <NumberInput ref={refToHeightInput} width={100} value={imagePropsInit?.height}
+        <AskContainer  show={show} top={top} left={left} maxWidth={150}>
+            <NumberInput ref={refToHeightInput} value={imagePropsInit?.height}
                          setValue={(v) => setImageProp(v, "height")} placeholder={"height"}/>
-            <NumberInput width={100} value={imagePropsInit?.width} setValue={(v) => setImageProp(v, "width")}
+            <NumberInput value={imagePropsInit?.width} setValue={(v) => setImageProp(v, "width")}
                          placeholder={"width"}/>
-            <button onClick={handleOnClickAccept}>accept</button>
+            <div style={{color: "grey", display: "flex", flexDirection: "row"}}>
+                <ImageSelector processImage={processImage} label={<span style={{fontSize: 20, cursor: "pointer"}}>src: </span>} imageMaxSize={10}/>
+                <span style={{fontSize: 20, display: "inline-block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace:"nowrap"}}>{imageName}</span>
+            </div>
+            <div style={{display: "flex", flexDirection: "row"}}>
+                <button style={{width: "50%"}} onClick={handleOnClickAccept}>accept</button>
+                <button style={{width: "50%"}} onClick={handleOnClickCancel}>cancel</button>
+            </div>
         </AskContainer>
     )
 }
