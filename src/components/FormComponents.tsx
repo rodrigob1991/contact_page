@@ -2,8 +2,10 @@ import styled from "@emotion/styled"
 import {css} from "@emotion/react"
 import React, {
     ChangeEvent,
-    DetailedHTMLProps, forwardRef,
-    InputHTMLAttributes, Ref,
+    DetailedHTMLProps,
+    forwardRef,
+    InputHTMLAttributes,
+    Ref,
     TextareaHTMLAttributes,
     useEffect,
     useId,
@@ -66,7 +68,7 @@ export const NumberInput = forwardRef(({
 
     return (
         <Input {...rest} type={"number"} ref={ref}
-               onChange={(e) => setValue(e.target.value)}
+               onChange={(e) => setValue(Number(e.target.value))}
                onKeyDown={handleKeyDown}
         />
     )
@@ -176,6 +178,53 @@ const DropDownMenu = styled.div<{ show: boolean }>`
 `
 
 type ImageSelectorProps = {
+    processImage: (name: string, dataUrl: string) => void
+    label: JSX.Element
+    imageMaxSize: number
+}
+export const ImageSelector = ({processImage, label, imageMaxSize}: ImageSelectorProps) => {
+    const inputFileRef = useRef<HTMLInputElement>(null)
+
+    const [imageSizeErrorStr, setImageSizeErrorStr] = useState("")
+
+    const goChooseImage = (e: React.MouseEvent<HTMLImageElement>) => {
+        setImageSizeErrorStr("")
+        inputFileRef.current?.click()
+    }
+    const handleImageSelection = (e: ChangeEvent<HTMLInputElement>) => {
+        const image = e.target.files?.item(0)
+        if (image) {
+            if (image.size / 10 ** 6 > imageMaxSize) {
+                setImageSizeErrorStr(`image cannot exceed ${imageMaxSize} megabytes`)
+            } else {
+                const reader = new FileReader()
+                reader.onloadend = () => {
+                    const imageDataUrl = reader.result as string
+                    if (imageDataUrl) {
+                        if (processImage) {
+                            processImage(image.name, imageDataUrl)
+                        }
+                    }
+                }
+                reader.readAsDataURL(image)
+            }
+        }
+    }
+
+    return (
+        <div>
+            <input ref={inputFileRef} onChange={handleImageSelection} style={{display: "none"}}
+                   type={"file"} accept={"image/*"}/>
+            <div onClick={goChooseImage}>
+                {label}
+            </div>
+            <ImageSizeErrorLabel> {imageSizeErrorStr} </ImageSizeErrorLabel>
+        </div>
+    )
+}
+
+
+type ImageViewSelectorProps = {
     imageDataUrl?: string
     processImage?: (imageDataUrl: string)=> void
     imageMaxSize: number
@@ -183,7 +232,7 @@ type ImageSelectorProps = {
     height: number
 }
 
-export const ImageSelector = ({processImage,imageDataUrl: imageDataUrlInit , imageMaxSize, width, height}: ImageSelectorProps) => {
+export const ImageViewSelector = ({processImage,imageDataUrl: imageDataUrlInit , imageMaxSize, width, height}: ImageViewSelectorProps) => {
     const id = useId()
     const inputFileRef = useRef<HTMLInputElement>(null)
 

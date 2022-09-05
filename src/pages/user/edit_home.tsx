@@ -173,7 +173,7 @@ export default function EditHome(props?: HomeProps) {
                     }
                 }
             })
-        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true, childList:true, attributeFilter: ["href", "src"]})
+        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true, childList:true, attributeFilter: ["href", "src", "onclick"]})
 
         return () => observer.disconnect()
     }, [])

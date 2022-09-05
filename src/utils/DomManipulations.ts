@@ -40,21 +40,37 @@ export const createText = (text: string) => document.createTextNode(text)
 
 // this type contains the methods that must not be set. I did not found a way to get rid of methods types.
 // compiler cannot differencing between methods and function field
+
+type DivProps = Partial<ExtractWritableProps<HTMLDivElement>>
+export const createDiv = (props?: DivProps) => {
+    const d = document.createElement("div")
+    if (props) {
+        for (const [k, v] of Object.entries(props)) {
+            // @ts-ignore
+            d[k] = v
+        }
+    }
+    return d
+}
 type SpanProps = Partial<ExtractWritableProps<HTMLSpanElement>>
-export const createSpan = (props: SpanProps) => {
+export const createSpan = (props?: SpanProps) => {
     const s = document.createElement("span")
-    for (const [k, v] of Object.entries(props)) {
-        // @ts-ignore
-        s[k] = v
+    if (props) {
+        for (const [k, v] of Object.entries(props)) {
+            // @ts-ignore
+            s[k] = v
+        }
     }
     return s
 }
 type AnchorProps = Partial<ExtractWritableProps<HTMLAnchorElement>>
-export const createAnchor = (props: AnchorProps) => {
+export const createAnchor = (props?: AnchorProps) => {
     const a = document.createElement("a")
-    for (const [k, v] of Object.entries(props)) {
-        // @ts-ignore
-        a[k] = v
+    if (props) {
+        for (const [k, v] of Object.entries(props)) {
+            // @ts-ignore
+            a[k] = v
+        }
     }
     return a
 }
