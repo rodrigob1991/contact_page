@@ -268,7 +268,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                 onFinally = () => { lastSpan.id = ""; positionCaretOn(lastSpan) }
                 break
             case "link":
-                askHref(topRectangle, leftRectangle)
+                askHRef(topRectangle, leftRectangle)
                 getNewNode = (t, isLast) => {
                     const link = createAnchor({innerHTML: t, ...elementProps})
                     if (isLast) {
@@ -279,7 +279,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                 onFinally = () => { focusAskHRefInput() }
                 break
             case "image":
-                refToInsertImage.current = (ip) => {
+                setInsertOrModifyImage((ip) => {
                     const div = createDiv({contentEditable: "false"})
                     const image = createImage(ip)
                     image.setAttribute("onclick", `{
@@ -287,7 +287,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                     }`)
                     div.append(image)
                     handleCollapsedSelection(optionType, div, anchorNode, anchorOffset)
-                }
+                })
 
                 setPositionAskImageProps({top: topRectangle, left: leftRectangle})
                 setShowAskImageProps(true)
@@ -305,45 +305,64 @@ export const Pallet =({show, fontSize}: Props)=> {
         setTimeout(onFinally, 100)
     }
 
-    const [href, setHref] = useState("")
-    const askHrefPropsInit = {show: false, top: 0, left: 0}
-    const [askHrefProps, setAskHrefProps] = useState(askHrefPropsInit)
+    const initPosition = {top: 0, left: 0}
+
+    const [hRef, setHRef] = useState("")
+    const [showAskHRef, setShowAskHRef] = useState(false)
+    const [positionAskHRef, setPositionAskHRef] = useState(initPosition)
     const handleCloseAskHRef = () => {
         const lastLinkAdded = getLastElementAdded() as HTMLAnchorElement
         positionCaretOn(lastLinkAdded)
         lastLinkAdded.id = ""
-        lastLinkAdded.href = href
-        setHref("")
-        setAskHrefProps(askHrefPropsInit)
+        lastLinkAdded.href = hRef
+        setHRef("")
+        setPositionAskHRef(initPosition)
+        setShowAskHRef(false)
     }
-    const askHref = (top: number, left: number) => {
-        setAskHrefProps({show: true, top: top - fontSize, left: left})
+    const askHRef = (top: number, left: number) => {
+        setPositionAskHRef({top: top - fontSize, left: left})
+        setShowAskHRef(true)
     }
     const refToAskHRefInput = useRef<HTMLInputElement | null>(null)
     const focusAskHRefInput = () => refToAskHRefInput.current?.focus()
 
     const [showAskImageProps, setShowAskImageProps] = useState(false)
-    const [positionAskImageProps, setPositionAskImageProps] = useState({top: 0, left: 0})
+    const [positionAskImageProps, setPositionAskImageProps] = useState(initPosition)
+    const [imageSelectedProps, setImageSelectedProps] = useState<ImageProps>()
 
     const modifyImageElement = (img: HTMLImageElement) => {
+        setInsertOrModifyImage(({height,width, src}) => {
+            img.height = height
+            img.width = width
+            img.src = src
+        })
+
+        setImageSelectedProps({height: img.height, width: img.width, src: img.src})
         const imgRect = img.getBoundingClientRect()
-        setShowAskImageProps(true)
         setPositionAskImageProps({top: imgRect.top, left: imgRect.left})
+        setShowAskImageProps(true)
     }
     useEffect(() => {
         window.modifyImageElement = modifyImageElement
     }, [])
 
-    type InsertImage = (im: ImageProps) => void
-    const refToInsertImage = useRef<InsertImage>()
+    type InsertOrModifyImage = (ip: ImageProps) => void
+    const refToInsertOrModifyImage = useRef<InsertOrModifyImage>()
+    const insertOrModifyImage = (ip: ImageProps) => {
+        (refToInsertOrModifyImage.current as InsertOrModifyImage)(ip)
+    }
+    const setInsertOrModifyImage = (insertOrModify: InsertOrModifyImage) => {
+        refToInsertOrModifyImage.current = insertOrModify
+    }
 
     const onAcceptAskImageProps = (ip: ImageProps) => {
-        (refToInsertImage.current as InsertImage)(ip)
+        insertOrModifyImage(ip)
 
-        setPositionAskImageProps({top: 0, left: 0})
+        setPositionAskImageProps(initPosition)
         setShowAskImageProps(false)
     }
     const onCancelAskImageProps = () => {
+        setPositionAskImageProps(initPosition)
         setShowAskImageProps(false)
     }
 
@@ -355,7 +374,7 @@ export const Pallet =({show, fontSize}: Props)=> {
     const optionSeparator = <span style={{color: "#000000"}}>-</span>
 
     return (
-        <Container show={show || askHrefProps.show || showAskImageProps}>
+        <Container show={show || showAskHRef || showAskImageProps}>
             <span className={getOptionClass()}
                   onMouseDown={handleMouseDown}
                   onClick={(e) => handleClickPalletOption("defaultText")}>
@@ -379,16 +398,8 @@ export const Pallet =({show, fontSize}: Props)=> {
             </a>
             {optionSeparator}
             <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e)=> handleClickPalletOption("image")} style={{cursor: "pointer"}}/>
-
-            <AskContainer {...askHrefProps}>
-                <TextInput placeholder={"href"}
-                           ref={refToAskHRefInput}
-                           width={150}
-                           value={href}
-                           setValue={(v) => setHref(v)}
-                           onEnter={handleCloseAskHRef}/>
-            </AskContainer>
-            <AskImageProps show={showAskImageProps} position={positionAskImageProps} onAccept={onAcceptAskImageProps} onCancel={onCancelAskImageProps}/>
+            <AskHRef show={showAskHRef} position={positionAskHRef} hRef={hRef} setHRef={setHRef} refToInput={refToAskHRefInput} handleCloseAskHRef={handleCloseAskHRef}/>
+            <AskImageProps show={showAskImageProps} position={positionAskImageProps} onAccept={onAcceptAskImageProps} onCancel={onCancelAskImageProps} imageProps={imageSelectedProps}/>
         </Container>
     )
 }
@@ -404,21 +415,31 @@ const Container = styled.div<{ show: boolean}>`
   border-color: #778899;
   background-color: #FFFFFF;
  `
-const AskContainer = styled.div<{ show: boolean, top: number, left: number, maxWidth?: number}>`
-  display: ${({show, top, left, maxWidth}) => (show ? "flex" : "none") + ";"
-    + "top: " + top+ "px;"
-    + "left: " + left + "px;"
-    + (maxWidth ? "max-width: " + maxWidth + "px;" : "")}
-  flex-direction: column;
-  z-index: 1;
-  position: absolute;
-  border-style: solid;
-  border-color: #000000;
-  background-color: white;
-`
-type AskImagePropsProps = { show: boolean, position: { top: number, left: number }, imageProps?: ImageProps, onAccept: (im: ImageProps) => void, onCancel: ()=> void }
+type AskHRefProps = AskContainerProps & {
+    handleCloseAskHRef: ()=> void
+    refToInput:  React.MutableRefObject<HTMLInputElement | null>
+    hRef: string
+    setHRef: (hRef: string)=> void
+}
+const AskHRef = ({show, position, refToInput, hRef, setHRef, handleCloseAskHRef}: AskHRefProps) => {
+    return (
+        <AskContainer show={show} position={position}>
+            <TextInput placeholder={"href"}
+                       ref={refToInput}
+                       width={150}
+                       value={hRef}
+                       setValue={setHRef}
+                       onEnter={handleCloseAskHRef}/>
+        </AskContainer>
+    )
+}
 type ImageProps = {src: string, height: number, width: number }
-const AskImageProps = ({show, onAccept, onCancel, position: {top, left}, imageProps: imagePropsInit}: AskImagePropsProps) => {
+type AskImagePropsProps = AskContainerProps & {
+    imageProps?: ImageProps
+    onAccept: (im: ImageProps) => void
+    onCancel: ()=> void
+}
+const AskImageProps = ({show, onAccept, onCancel, position, imageProps: imagePropsInit}: AskImagePropsProps) => {
     const refToHeightInput = useRef<HTMLInputElement | null>(null)
     useEffect(() => {
         if (show) {
@@ -428,6 +449,8 @@ const AskImageProps = ({show, onAccept, onCancel, position: {top, left}, imagePr
 
     const imagePropsDefault = {src: "", height: 0, width: 0}
     const [imageProps, setImageProps] = useState(imagePropsInit || imagePropsDefault)
+    console.table(imagePropsInit)
+    console.table(imageProps)
     const setImageProp = (value: string | number, key: keyof ImageProps) => {
         setImageProps((ip) => {
             const newImageProps = {...ip}
@@ -452,10 +475,10 @@ const AskImageProps = ({show, onAccept, onCancel, position: {top, left}, imagePr
     }
 
     return (
-        <AskContainer  show={show} top={top} left={left} maxWidth={150}>
-            <NumberInput ref={refToHeightInput} value={imagePropsInit?.height}
+        <AskContainer  show={show} position={position} maxWidth={150}>
+            <NumberInput ref={refToHeightInput} value={imageProps.height}
                          setValue={(v) => setImageProp(v, "height")} placeholder={"height"}/>
-            <NumberInput value={imagePropsInit?.width} setValue={(v) => setImageProp(v, "width")}
+            <NumberInput value={imageProps.width} setValue={(v) => setImageProp(v, "width")}
                          placeholder={"width"}/>
             <div style={{color: "grey", display: "flex", flexDirection: "row"}}>
                 <ImageSelector processImage={processImage} label={<span style={{fontSize: 20, cursor: "pointer"}}>src: </span>} imageMaxSize={10}/>
@@ -468,3 +491,16 @@ const AskImageProps = ({show, onAccept, onCancel, position: {top, left}, imagePr
         </AskContainer>
     )
 }
+type AskContainerProps = { show: boolean, position: { top: number, left: number }, maxWidth?: number}
+const AskContainer = styled.div<AskContainerProps>`
+  display: ${({show, position:{top, left}, maxWidth}) => (show ? "flex" : "none") + ";"
+    + "top: " + top+ "px;"
+    + "left: " + left + "px;"
+    + (maxWidth ? "max-width: " + maxWidth + "px;" : "")}
+  flex-direction: column;
+  z-index: 1;
+  position: absolute;
+  border-style: solid;
+  border-color: #000000;
+  background-color: white;
+`
