@@ -1,14 +1,22 @@
 import {useState} from "react"
+import {AnyPropertiesCombination} from "./Types"
 
-export type UpdateProperty<R extends Record<string, any>> = (key: keyof R, value: R[typeof key]) => void
-export const useRecordState = <R extends Record<string, any>>(r: R): [R, (r: R) => void, UpdateProperty<R>] => {
+export const useRecordState = <R extends Record<string, any>>(r: R) => {
     const [state, setState] = useState(r)
-    const setProperty = <K extends keyof R>(key: K, value: R[K]) => {
+    const setDefaultState = () => {
+        setState(r)
+    }
+
+    const setSubSet = (subset: AnyPropertiesCombination<R>) => {
         setState((state) => {
             const newState = {...state}
-            newState[key] = value
+            for (const key in subset) {
+                // @ts-ignore
+                newState[key] = subset[key]
+            }
             return newState
         })
     }
-    return [state, setState, setProperty]
+
+    return {state: state, setDefaultState: setDefaultState, setState: setSubSet}
 }

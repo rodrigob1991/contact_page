@@ -1,8 +1,8 @@
 import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
-import {Story, StoryWithoutId} from "../../../../types/Home"
+import {NewStory, Story} from "../../../../types/Home"
 import {AuthResponseBody} from "../../_middleware"
-import {isEmptyString} from "../../../../utils/StringFunctions"
+import {isEmpty} from "../../../../utils/StringFunctions"
 import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
 
 const STORY_API_ROUTE = "/api/props/home/story"
@@ -17,7 +17,7 @@ type DeleteResponseBody = {
     message: string
 }
 
-export const putStory = async (story: StoryWithoutId | Story) => {
+export const putStory = async (story: NewStory | Story) => {
     const result: { succeed: boolean, story?: Story, errorMessage?: string } = {succeed: false}
 
     try {
@@ -91,7 +91,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     switch (request.method) {
         case "PUT" :
-            const story: StoryWithoutId | Story = params
+            const story: NewStory | Story = params
             if (!story || !ApiParamsValidator.isValidSetStory(story)) {
                 httpCode = 400
                 body = {errorMessage: "invalid data"}
@@ -109,7 +109,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
             break
         case "DELETE" :
             const storyId: string = params
-            if (isEmptyString(storyId)) {
+            if (isEmpty(storyId)) {
                 httpCode = 400
                 body = {message: "missing story id"}
             } else {

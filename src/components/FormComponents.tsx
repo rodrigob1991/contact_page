@@ -8,7 +8,6 @@ import React, {
     Ref,
     TextareaHTMLAttributes,
     useEffect,
-    useId,
     useRef,
     useState
 } from "react"
@@ -212,7 +211,7 @@ export const ImageSelector = ({processImage, label, imageMaxSize}: ImageSelector
     }
 
     return (
-        <div>
+        <div tabIndex={0} style={{cursor: "pointer"}}>
             <input ref={inputFileRef} onChange={handleImageSelection} style={{display: "none"}}
                    type={"file"} accept={"image/*"}/>
             <div onClick={goChooseImage}>
@@ -233,44 +232,12 @@ type ImageViewSelectorProps = {
 }
 
 export const ImageViewSelector = ({processImage,imageDataUrl: imageDataUrlInit , imageMaxSize, width, height}: ImageViewSelectorProps) => {
-    const id = useId()
-    const inputFileRef = useRef<HTMLInputElement>(null)
-
-    const [imageSizeErrorStr, setImageSizeErrorStr] = useState("")
     const [imageDataUrl, setImageDataUrl] = useState(imageDataUrlInit)
-
-    const goChooseImage = (e: React.MouseEvent<HTMLImageElement>) => {
-        setImageSizeErrorStr("")
-        inputFileRef.current?.click()
-    }
-    const handleImageSelection = (e: ChangeEvent<HTMLInputElement>) => {
-        const image = e.target.files?.item(0)
-        if (image) {
-            if (image.size / 10 ** 6 > imageMaxSize) {
-                setImageSizeErrorStr(`image cannot exceed ${imageMaxSize} megabytes`)
-            } else {
-                const reader = new FileReader()
-                reader.onloadend = () => {
-                    const imageDataUrl = reader.result as string
-                    if (imageDataUrl) {
-                        console.log(imageDataUrl)
-                        setImageDataUrl(imageDataUrl)
-                        if (processImage) {
-                            processImage(imageDataUrl)
-                        }
-                    }
-                }
-                reader.readAsDataURL(image)
-            }
-        }
-    }
 
     return (
         <ImageSelectorContainer>
-            <input id={id + "input"} ref={inputFileRef} onChange={handleImageSelection} style={{display: "none"}}
-                   type={"file"} accept={"image/*"}/>
-            <img onClick={goChooseImage} src={imageDataUrl} width={width} height={height} style={{cursor: "pointer"}}/>
-            <ImageSizeErrorLabel id={id + "label"}> {imageSizeErrorStr} </ImageSizeErrorLabel>
+            <ImageSelector processImage={(name, src)=> {setImageDataUrl(src);if (processImage) {processImage(src)}}}
+                           label={<img src={imageDataUrl} width={width} height={height}/>} imageMaxSize={imageMaxSize}/>
         </ImageSelectorContainer>
     )
 }

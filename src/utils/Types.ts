@@ -30,3 +30,7 @@ type ExtractMethod<O> = {
 type ReadonlyKeys<T> = {
     [P in keyof T]-?: PickIfEquals<{ [Q in P]: T[P] }, { -readonly [Q in P]: T[P] }, never, P>
 }[keyof T]
+
+export  type AnyPropertiesCombination<R extends Record<string, any>> = {
+    [K in keyof R]: { [key in K]: R[K] }
+}[keyof R]

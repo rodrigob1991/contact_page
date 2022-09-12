@@ -238,7 +238,7 @@ export const Pallet =({show, fontSize}: Props)=> {
         const anchorOffset = selection.anchorOffset
 
         // use to ask href of links and p props of images
-        const {top: topRectangle,left: leftRectangle} = selection.getRangeAt(0).getBoundingClientRect()
+        const {top: rectTop,left: rectLeft} = selection.getRangeAt(0).getBoundingClientRect()
 
         let getNewNode: GetOptionTargetNode
         let onFinally: () => void
@@ -269,7 +269,6 @@ export const Pallet =({show, fontSize}: Props)=> {
                 onFinally = () => { lastSpan.id = ""; positionCaretOn(lastSpan) }
                 break
             case "link":
-                askHRef(topRectangle, leftRectangle)
                 getNewNode = (t, isLast) => {
                     const link = createAnchor({innerHTML: t, ...elementProps})
                     if (isLast) {
@@ -277,7 +276,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                     }
                     return link
                 }
-                onFinally = () => { focusAskHRefInput() }
+                onFinally = () => { askHRef(rectTop, rectLeft) }
                 break
             case "image":
                 setInsertOrModifyImage((ip) => {
@@ -290,8 +289,8 @@ export const Pallet =({show, fontSize}: Props)=> {
                     handleCollapsedSelection(optionType, div, anchorNode, anchorOffset)
                 })
 
-                setPositionAskImageProps({top: topRectangle, left: leftRectangle})
-                setShowAskImageProps(true)
+                askImageProps(rectTop, rectLeft)
+
                 return
         }
 
@@ -306,39 +305,23 @@ export const Pallet =({show, fontSize}: Props)=> {
         setTimeout(onFinally, 100)
     }
 
-    const initPosition = {top: 0, left: 0}
-
-   /* const [hRef, setHRef] = useState("")*/
-    /*const [showAskHRef, setShowAskHRef] = useState(false)
-    const [positionAskHRef, setPositionAskHRef] = useState(initPosition)*/
     const processHRef = (hRef: string) => {
         const lastLinkAdded = getLastElementAdded() as HTMLAnchorElement
         positionCaretOn(lastLinkAdded)
         lastLinkAdded.id = ""
         lastLinkAdded.href = hRef
     }
-    const [askHRef, askHRefIsShowing, focusAskHRefInput, AskHRef] = useAskHRef({processHRef: processHRef})
-
-    const [showAskImageProps, setShowAskImageProps] = useState(false)
-    const [positionAskImageProps, setPositionAskImageProps] = useState(initPosition)
-    const [imageSelectedProps, setImageSelectedProps] = useState<ImageProps>()
-    const reinstantiateAskImageProps = () => {
-        setImageSelectedProps(undefined)
-        setPositionAskImageProps(initPosition)
-        setShowAskImageProps(false)
-    }
+    const [askHRef, askHRefIsShowing, AskHRef] = useAskHRef({processHRef: processHRef})
 
     const modifyImageElement = (img: HTMLImageElement) => {
-        setInsertOrModifyImage(({height,width, src}) => {
+        setInsertOrModifyImage(({name, src, height,width}) => {
+            img.id = name
+            img.src = src
             img.height = height
             img.width = width
-            img.src = src
         })
-
-        setImageSelectedProps({height: img.height, width: img.width, src: img.src})
         const imgRect = img.getBoundingClientRect()
-        setPositionAskImageProps({top: imgRect.top, left: imgRect.left})
-        setShowAskImageProps(true)
+        askImageProps(imgRect.top, imgRect.left, {name: img.id, src: img.src, height: img.height, width: img.width})
     }
     useEffect(() => {
         window.modifyImageElement = modifyImageElement
@@ -353,14 +336,7 @@ export const Pallet =({show, fontSize}: Props)=> {
         refToInsertOrModifyImage.current = insertOrModify
     }
 
-
-    const onAcceptAskImageProps = (ip: ImageProps) => {
-        insertOrModifyImage(ip)
-        reinstantiateAskImageProps()
-    }
-    const onCancelAskImageProps = () => {
-        reinstantiateAskImageProps()
-    }
+    const [askImageProps, askImagePropsIsShowing, AskImageProps] = useAskImageProps({insertOrModifyImage: insertOrModifyImage})
 
     const palletOptionClass = "palletOption"
     const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
@@ -370,7 +346,7 @@ export const Pallet =({show, fontSize}: Props)=> {
     const optionSeparator = <span style={{color: "#000000"}}>-</span>
 
     return (
-        <Container show={show || askHRefIsShowing() || showAskImageProps}>
+        <Container show={show || askHRefIsShowing() || askImagePropsIsShowing()}>
             <span className={getOptionClass()}
                   onMouseDown={handleMouseDown}
                   onClick={(e) => handleClickPalletOption("defaultText")}>
@@ -395,7 +371,7 @@ export const Pallet =({show, fontSize}: Props)=> {
             {optionSeparator}
             <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e)=> handleClickPalletOption("image")} style={{cursor: "pointer"}}/>
             {AskHRef}
-            <AskImageProps show={showAskImageProps} position={positionAskImageProps} onAccept={onAcceptAskImageProps} onCancel={onCancelAskImageProps} imageProps={imageSelectedProps}/>
+            {AskImageProps}
         </Container>
     )
 }
@@ -411,10 +387,10 @@ const Container = styled.div<{ show: boolean}>`
   border-color: #778899;
   background-color: #FFFFFF;
  `
-type AskHRefProps = {
+type UseAskHRefProps = {
     processHRef: (hRef: string)=> void
 }
-const useAskHRef = ({processHRef}: AskHRefProps): [Ask, IsShowing, () => void, JSX.Element] => {
+const useAskHRef = ({processHRef}: UseAskHRefProps): [Ask, IsShowing, JSX.Element] => {
     const [hRef, setHRef] = useState("")
 
     const refToInput = useRef<HTMLInputElement | null>(null)
@@ -427,74 +403,71 @@ const useAskHRef = ({processHRef}: AskHRefProps): [Ask, IsShowing, () => void, J
     }
 
     const [ask, hide, isShowing, Ask] = useAsk({
-        element: <TextInput placeholder={"href"}
-                            ref={refToInput}
-                            width={150}
-                            value={hRef}
-                            setValue={setHRef}
-                            onEnter={handleOnEnter}/>
+        childElement: <TextInput placeholder={"href"}
+                                 ref={refToInput}
+                                 width={150}
+                                 value={hRef}
+                                 setValue={setHRef}
+                                 onEnter={handleOnEnter}/>,
+        onShow: focusInput
     })
-    return [ask, isShowing, focusInput, Ask]
+    return [ask, isShowing, Ask]
 }
 
-type ImageProps = {src: string, height: number, width: number }
-type AskImagePropsProps = AskContainerProps & {
-    imageProps?: ImageProps
-    onAccept: (im: ImageProps) => void
-    onCancel: ()=> void
+type ImageProps = { name: string, src: string, height: number, width: number }
+type UseAskImagePropsProps = {
+    insertOrModifyImage: (ip: ImageProps) => void
 }
-const AskImageProps = ({show, onAccept, onCancel, position, imageProps: imagePropsInit}: AskImagePropsProps) => {
-    const refToHeightInput = useRef<HTMLInputElement | null>(null)
-    useEffect(() => {
-        if (show) {
-            if (imagePropsInit) {
-                setImageProps(imagePropsInit)
-            }
-            (refToHeightInput.current as HTMLInputElement).focus()
+const useAskImageProps = ({insertOrModifyImage}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps)=> void, IsShowing, JSX.Element] => {
+    const {state: imageProps, setState: setImageProp, setDefaultState: setImagePropsDefault} = useRecordState({name: "", src: "", height: 0, width: 0})
+
+    const askImageProps = (top: number, left: number, ip?: ImageProps) => {
+        if (ip) {
+            setImageProp(ip)
         }
-    }, [show])
-
-    const imagePropsDefault = {src: "", height: 0, width: 0}
-    const [imageProps, setImageProps] = useState(imagePropsDefault)
-    const setImageProp = (value: string | number, key: keyof ImageProps) => {
-        setImageProps((ip) => {
-            const newImageProps = {...ip}
-            newImageProps[key] = value
-            return newImageProps
-        })
+        ask(top, left)
     }
-    const [imageName, setImageName] = useState("")
 
     const processImage = (name: string, dataUrl: string) => {
-        setImageName(name)
-        setImageProp(dataUrl, "src")
+        setImageProp({name: name, src: dataUrl})
     }
 
     const handleOnClickAccept = (e: React.MouseEvent<HTMLButtonElement>) => {
-        onAccept(imageProps)
-        setImageProps(imagePropsDefault)
+        insertOrModifyImage(imageProps)
+        setImagePropsDefault()
+        hide()
     }
     const handleOnClickCancel = (e: React.MouseEvent<HTMLButtonElement>) => {
-        setImageProps(imagePropsDefault)
-        onCancel()
+        setImagePropsDefault()
+        hide()
     }
 
-    return (
-        <AskContainer  show={show} position={position} maxWidth={150}>
-            <NumberInput ref={refToHeightInput} value={imageProps.height}
-                         setValue={(v) => setImageProp(v, "height")} placeholder={"height"}/>
-            <NumberInput value={imageProps.width} setValue={(v) => setImageProp(v, "width")}
-                         placeholder={"width"}/>
-            <div style={{color: "grey", display: "flex", flexDirection: "row"}}>
-                <ImageSelector processImage={processImage} label={<span style={{fontSize: 20, cursor: "pointer"}}>src: </span>} imageMaxSize={10}/>
-                <span style={{fontSize: 20, display: "inline-block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace:"nowrap"}}>{imageName}</span>
-            </div>
-            <div style={{display: "flex", flexDirection: "row"}}>
-                <button style={{width: "50%"}} onClick={handleOnClickAccept}>accept</button>
-                <button style={{width: "50%"}} onClick={handleOnClickCancel}>cancel</button>
-            </div>
-        </AskContainer>
-    )
+    const refToHeightInput = useRef<HTMLInputElement | null>(null)
+    const focusHeightInput = ()=> refToHeightInput.current?.focus()
+
+    const [ask, hide, isShowing, Ask] = useAsk({
+        childElement: <><NumberInput ref={refToHeightInput} value={imageProps.height}
+                                     setValue={(v) => setImageProp({height: v})} placeholder={"height"}/>
+                        <NumberInput value={imageProps.width} setValue={(v) => setImageProp({width: v})}
+                                     placeholder={"width"}/>
+                        <div style={{color: "grey", display: "flex", flexDirection: "row"}}>
+                            <ImageSelector processImage={processImage}
+                                           label={<span style={{fontSize: 20}}>src: </span>} imageMaxSize={10}/>
+                            <span style={{
+                                fontSize: 20,
+                                display: "inline-block",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap"
+                            }}>{imageProps.name}</span>
+                        </div>
+                        <div style={{display: "flex", flexDirection: "row"}}>
+                            <button style={{width: "50%"}} onClick={handleOnClickAccept}>accept</button>
+                            <button style={{width: "50%"}} onClick={handleOnClickCancel}>cancel</button>
+                        </div></>,
+        onShow: focusHeightInput
+    })
+    return [askImageProps, isShowing, Ask]
 }
 type AskContainerProps = { show: boolean, position: { top: number, left: number }, maxWidth?: number}
 const AskContainer = styled.div<AskContainerProps>`
@@ -511,25 +484,29 @@ const AskContainer = styled.div<AskContainerProps>`
 `
 type Ask = (top: number, left: number) => void
 type Hide = () => void
-type IsShowing = ()=> boolean
+type IsShowing = () => boolean
 type UseAskProps = {
-    element: JSX.Element
+    childElement: JSX.Element
+    onShow: ()=> void
     maxWidth?: number
 }
-const useAsk = ({element, maxWidth}: UseAskProps): [Ask, Hide, IsShowing , JSX.Element] => {
+const useAsk = ({childElement, onShow, maxWidth}: UseAskProps): [Ask, Hide, IsShowing , JSX.Element] => {
     const askInitialStates = {show: false, position: {top: 0, left: 0}}
-    const [states, setStates, setState] = useRecordState(askInitialStates)
+    const {state, setState, setDefaultState: hide} = useRecordState(askInitialStates)
     const ask = (top: number, left: number) => {
-        setStates({show: true, position: {top: top, left: left}})
+        setState({show: true, position: {top: top, left: left}})
     }
-    const hide = () => {
-        setStates(askInitialStates)
-    }
-    const isShowing = () => states.show
+    useEffect(() => {
+        if (state.show) {
+            onShow()
+        }
+    }, [state.show])
+
+    const isShowing = () => state.show
 
     const Element = (
-        <AskContainer {...states} maxWidth={maxWidth}>
-            {element}
+        <AskContainer {...state} maxWidth={maxWidth}>
+            {childElement}
         </AskContainer>
     )
     return [ask, hide, isShowing, Element]

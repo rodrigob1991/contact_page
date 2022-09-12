@@ -1,20 +1,20 @@
 import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
-import {PresentationWithoutId} from "../../../../types/Home"
 import {AuthResponseBody} from "../../_middleware"
-import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator";
+import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
+import {Presentation} from "../../../../types/Home";
 
 const PRESENTATION_API_ROUTE = "/api/props/home/presentation"
 
 const URL = process.env.NEXT_PUBLIC_BASE_URL + PRESENTATION_API_ROUTE
 
 type PutResponseBody = {
-    presentation?: PresentationWithoutId
+    presentation?: Presentation
     errorMessage?: string
 }
 
-export const putPresentation = async (presentation: PresentationWithoutId) => {
-    const result: { succeed: boolean, presentation?: PresentationWithoutId, errorMessage?: string } = {succeed: false}
+export const putPresentation = async (presentation: Presentation) => {
+    const result: { succeed: boolean, presentation?: Presentation, errorMessage?: string } = {succeed: false}
 
     try {
         const response = await fetch(URL, {
@@ -55,7 +55,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     switch (request.method) {
         case "PUT" :
-            const presentation: PresentationWithoutId = params
+            const presentation: Presentation = params
             if (!presentation || !ApiParamsValidator.isValidPresentation(presentation)) {
                 httpCode = 400
                 body = {errorMessage: "invalid params"}
