@@ -314,14 +314,14 @@ export const Pallet =({show, fontSize}: Props)=> {
     const [askHRef, askHRefIsShowing, AskHRef] = useAskHRef({processHRef: processHRef})
 
     const modifyImageElement = (img: HTMLImageElement) => {
-        setInsertOrModifyImage(({name, src, height,width}) => {
-            img.id = name
+        setInsertOrModifyImage(({id, src, height,width}) => {
+            img.id = id
             img.src = src
             img.height = height
             img.width = width
         })
         const imgRect = img.getBoundingClientRect()
-        askImageProps(imgRect.top, imgRect.left, {name: img.id, src: img.src, height: img.height, width: img.width})
+        askImageProps(imgRect.top, imgRect.left, {id: img.id, src: img.src, height: img.height, width: img.width})
     }
     useEffect(() => {
         window.modifyImageElement = modifyImageElement
@@ -414,22 +414,26 @@ const useAskHRef = ({processHRef}: UseAskHRefProps): [Ask, IsShowing, JSX.Elemen
     return [ask, isShowing, Ask]
 }
 
-type ImageProps = { name: string, src: string, height: number, width: number }
+type ImageProps = { id: string, src: string, height: number, width: number }
 type UseAskImagePropsProps = {
     insertOrModifyImage: (ip: ImageProps) => void
 }
 const useAskImageProps = ({insertOrModifyImage}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps)=> void, IsShowing, JSX.Element] => {
-    const {state: imageProps, setState: setImageProp, setDefaultState: setImagePropsDefault} = useRecordState({name: "", src: "", height: 0, width: 0})
+    const {state: imageProps, setState: setImageProp, setDefaultState: setImagePropsDefault} = useRecordState({id: "", src: "", height: 0, width: 0})
+    const {height, width, id, src} = imageProps
+
+    const [modifying, setModifying] = useState(false)
 
     const askImageProps = (top: number, left: number, ip?: ImageProps) => {
         if (ip) {
+            setModifying(true)
             setImageProp(ip)
         }
         ask(top, left)
     }
 
-    const processImage = (name: string, dataUrl: string) => {
-        setImageProp({name: name, src: dataUrl})
+    const processImage = (id: string, dataUrl: string) => {
+        setImageProp({id: id, src: dataUrl})
     }
 
     const handleOnClickAccept = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -445,27 +449,44 @@ const useAskImageProps = ({insertOrModifyImage}: UseAskImagePropsProps): [(top: 
     const refToHeightInput = useRef<HTMLInputElement | null>(null)
     const focusHeightInput = ()=> refToHeightInput.current?.focus()
 
+    const getWrapFormOption = (e: JSX.Element) =>
+        <div style={{color: "grey", display: "flex", flexDirection: "row"}}>
+            {e}
+        </div>
+    const getFormOptionLabel = (str: string) =>
+        <span style={{fontSize: 20, width: 70}}>{str}:</span>
+
     const [ask, hide, isShowing, Ask] = useAsk({
-        childElement: <><NumberInput ref={refToHeightInput} value={imageProps.height}
-                                     setValue={(v) => setImageProp({height: v})} placeholder={"height"}/>
-                        <NumberInput value={imageProps.width} setValue={(v) => setImageProp({width: v})}
-                                     placeholder={"width"}/>
-                        <div style={{color: "grey", display: "flex", flexDirection: "row"}}>
-                            <ImageSelector processImage={processImage}
-                                           label={<span style={{fontSize: 20}}>src: </span>} imageMaxSize={10}/>
-                            <span style={{
-                                fontSize: 20,
-                                display: "inline-block",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap"
-                            }}>{imageProps.name}</span>
-                        </div>
+        childElement:   <>
+                        {getWrapFormOption(
+                            <>
+                                {getFormOptionLabel("height")}
+                                <NumberInput style={{ width: "60%"}} ref={refToHeightInput} value={height} setValue={(v) => setImageProp({height: v})}/>
+                            </>)
+                        }
+                        {getWrapFormOption(
+                            <>
+                                {getFormOptionLabel("width")}
+                                <NumberInput style={{ width: "60%"}} value={width} setValue={(v) => setImageProp({width: v})}/>
+                            </>)
+                        }
+                        {getWrapFormOption(
+                            <>
+                                <ImageSelector processImage={processImage}
+                                               label={getFormOptionLabel("src")} imageMaxSize={10}/>
+                                <span style={{
+                                    fontSize: 20, display: "inline-block", overflow: "hidden",
+                                    textOverflow: "ellipsis", whiteSpace: "nowrap"
+                                }}>{id}</span>
+                            </>
+                        )}
                         <div style={{display: "flex", flexDirection: "row"}}>
                             <button style={{width: "50%"}} onClick={handleOnClickAccept}>accept</button>
                             <button style={{width: "50%"}} onClick={handleOnClickCancel}>cancel</button>
-                        </div></>,
-        onShow: focusHeightInput
+                        </div>
+                        </>,
+        onShow: focusHeightInput,
+        maxWidth: 190
     })
     return [askImageProps, isShowing, Ask]
 }

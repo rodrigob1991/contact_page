@@ -76,11 +76,6 @@ NumberInput.displayName = "NumberInput"
 
 const Input = styled.input`
     font-size: 20px;
-    ${props =>
-    css`
-      height:${props.height}px;
-      width:${props.width}px;
-    `}
 `
 
 type TextAreaInputProps = {
