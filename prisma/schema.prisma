@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -31,7 +28,7 @@ model Story {
   body String
   state StoryState @default(UNPUBLISHED)
   props Props @relation(fields: [propsId], references: [id])
-  propsId String    @db.ObjectId
+  propsId String @db.ObjectId
 }
 
 enum StoryState {

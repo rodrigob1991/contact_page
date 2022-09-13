@@ -5,6 +5,7 @@ import {DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton} from "..
 import {Pallet} from "../Pallet"
 import {OptionSelector} from "../FormComponents"
 import {StoryState} from "@prisma/client"
+import Image from 'next/image'
 
 type StoryVisibility = {id: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -42,11 +43,10 @@ export default function StoriesView<M extends ViewMode>({
                         const prevStory = sv.story
                         const predicate = (s: Story) => "id" in prevStory ? prevStory.id === s.id : prevStory.title === s.title
                         const story = stories.find(predicate)
-
-                        // always should found the story
-                        if (story) {
-                            updatedStoriesVisibility.push({...(({story,id,...sv}) => sv)(sv), story: story, id: story.id})
+                        if(!story){
+                            throw new Error("always must the story exist")
                         }
+                        updatedStoriesVisibility.push({...(({story,id,...sv}) => sv)(sv), story: story, id: story.id})
                     }
                 }
                 return updatedStoriesVisibility
@@ -88,22 +88,46 @@ export default function StoriesView<M extends ViewMode>({
     }
     const [storyIdOnFocus, setStoryIdOnFocus] = useState<string | undefined>(undefined)
 
+    const convertBodyFromHtmlToJsx = (body: string) => {
+        let jsx = <></>
+        const html = new DOMParser().parseFromString(body, "text/html").children
+        for (const div of html) {
+            let jsxDivChildren = <></>
+            for (const divChild of div.childNodes) {
+                let jsxDivChild
+                if (divChild instanceof Text) {
+                    jsxDivChild = divChild.nodeValue
+                } else if (divChild instanceof HTMLSpanElement) {
+                    jsxDivChild = <span className={divChild.className}>{(divChild.firstChild as Text).nodeValue}</span>
+                } else if (divChild instanceof HTMLAnchorElement) {
+                    jsxDivChild = <a className={divChild.className} href={divChild.href}>{(divChild.firstChild as Text).nodeValue}</a>
+                } else if (divChild instanceof HTMLImageElement) {
+                    jsxDivChild = <Image src={divChild.src} layout={"responsive"} height={divChild.height} width={divChild.width}/>
+                } else {
+                    throw new Error("div child of type " + divChild.nodeType + " must have enter some if")
+                }
+                jsxDivChildren = <>{jsxDivChildren} {jsxDivChild}</>
+            }
+            jsx = <>{jsx}<div>{jsxDivChildren}</div></>
+        }
+        return jsx
+    }
+
     const getStoryView = (storyVisibility: StoryVisibility, index: number) => {
         const {id, story : {title, body}, isOpen} = storyVisibility
 
-        const storyTitle =
-            <StoryTitleContainer>
-                <StoryTitle>{title}</StoryTitle>
-                <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
-            </StoryTitleContainer>
+        const storyTitle = <StoryTitleContainer>
+                                <StoryTitle>{title}</StoryTitle>
+                                <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
+                            </StoryTitleContainer>
         return (
-            <StoryContainer key={id}>{
-                isOpen ? <StoryOpenContainer>
+            <StoryContainer key={id}>
+                {isOpen ? <StoryOpenContainer>
                             {storyTitle}
-                            <StoryBody dangerouslySetInnerHTML={{__html: body }}/>
-                        </StoryOpenContainer>
-                    : storyTitle
-            }</StoryContainer>
+                            <StoryBody>{convertBodyFromHtmlToJsx(body)}</StoryBody>
+                          </StoryOpenContainer>
+                        : storyTitle}
+            </StoryContainer>
         )
     }
     const getEditableStoryView = (storyVisibility: StoryVisibility, index: number) => {
