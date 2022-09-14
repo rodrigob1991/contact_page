@@ -116,3 +116,9 @@ textarea:invalid {
 .selectorOption:last-child {
   border-bottom: 2px solid;
 }
+
+div[disabled]
+{
+  pointer-events: none;
+  opacity: 0.7;
+}

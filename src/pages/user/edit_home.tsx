@@ -151,8 +151,8 @@ export default function EditHome(props?: HomeProps) {
                     const seekParentTill = (p: ParentNode) => {
                         let stop
                         if (p instanceof HTMLDivElement || p instanceof HTMLSpanElement) {
-                            stop = p.id.startsWith(presentationHtmlElementIdsPrefix) || p.id.startsWith(storyHtmlElementIdsPrefix);
-                        } else if (p instanceof HTMLAnchorElement) {
+                            stop = p.id.startsWith(presentationHtmlElementIdsPrefix) || p.id.startsWith(storyHtmlElementIdsPrefix)
+                        } else if (p instanceof HTMLAnchorElement || p instanceof HTMLImageElement) {
                             stop = false
                         } else {
                             stop = true
@@ -160,6 +160,7 @@ export default function EditHome(props?: HomeProps) {
                         return stop
                     }
                     const htmlElement = lookUpParent(mutation.target, seekParentTill)
+                    console.table(htmlElement)
                     if (htmlElement && (htmlElement instanceof HTMLDivElement || htmlElement instanceof HTMLSpanElement)) {
                         const htmlElementId = htmlElement.id
                         const newPropertyValue = htmlElement.innerHTML as string

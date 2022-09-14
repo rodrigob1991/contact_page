@@ -1,7 +1,7 @@
 import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../types/Home"
 import React, {useEffect, useState} from "react"
 import styled from "@emotion/styled"
-import {DeleteOrRecoverStoryButton, OpenOrCloseStoryButton, PlusButton} from "../Buttons"
+import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../Buttons"
 import {Pallet} from "../Pallet"
 import {OptionSelector} from "../FormComponents"
 import {StoryState} from "@prisma/client"
@@ -61,7 +61,7 @@ export default function StoriesView<M extends ViewMode>({
             }
         )
     }
-    const handleDeleteStory = (e: React.MouseEvent, id: string, index: number, isNew: boolean) => {
+    const handleDeleteStory = (id: string, index: number, isNew: boolean) => {
         (deleteStory as DeleteStory)(id)
         setStoriesVisibility((sv) => {
             const updatedSv = [...sv]
@@ -73,7 +73,7 @@ export default function StoriesView<M extends ViewMode>({
             return updatedSv
         })
     }
-    const handleRecoverStory = (e: React.MouseEvent, id: string, index: number) => {
+    const handleRecoverStory = (id: string, index: number) => {
         (recoverStory as RecoverStory)(id)
         setStoriesVisibility((sv) => {
             const updatedSv = [...sv]
@@ -90,7 +90,7 @@ export default function StoriesView<M extends ViewMode>({
 
     const convertBodyFromHtmlToJsx = (body: string) => {
         let jsx = <></>
-        const html = new DOMParser().parseFromString(body, "text/html").children
+        const html = new DOMParser().parseFromString(body, "text/html").body.children
         for (const div of html) {
             let jsxDivChildren = <></>
             for (const divChild of div.childNodes) {
@@ -98,11 +98,13 @@ export default function StoriesView<M extends ViewMode>({
                 if (divChild instanceof Text) {
                     jsxDivChild = divChild.nodeValue
                 } else if (divChild instanceof HTMLSpanElement) {
-                    jsxDivChild = <span className={divChild.className}>{(divChild.firstChild as Text).nodeValue}</span>
+                    jsxDivChild = <span className={divChild.className}>{divChild.firstChild?.nodeValue}</span>
                 } else if (divChild instanceof HTMLAnchorElement) {
-                    jsxDivChild = <a className={divChild.className} href={divChild.href}>{(divChild.firstChild as Text).nodeValue}</a>
+                    jsxDivChild = <a className={divChild.className} href={divChild.href}>{divChild.firstChild?.nodeValue}</a>
                 } else if (divChild instanceof HTMLImageElement) {
                     jsxDivChild = <Image src={divChild.src} layout={"responsive"} height={divChild.height} width={divChild.width}/>
+                }else if (divChild instanceof HTMLBRElement) {
+                    // for now ignore this case
                 } else {
                     throw new Error("div child of type " + divChild.nodeType + " must have enter some if")
                 }
@@ -141,10 +143,9 @@ export default function StoriesView<M extends ViewMode>({
             <StoryTitleContainer>
                 <StoryTitle id={htmlIds.title} toDelete={toDelete} contentEditable={contentEditable}>{title}</StoryTitle>
                 <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
-                <DeleteOrRecoverStoryButton color={"#778899"} isDelete={toDelete} size={20}
-                                            onClick={(e)=> toDelete
-                                                ? handleRecoverStory(e,id,index)
-                                                : handleDeleteStory(e,id,index, !("id" in story))}/>
+                <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
+                                       handleDelete={() => {handleDeleteStory(id, index, !("id" in story))}}
+                                       handleRecover={() => {handleRecoverStory(id, index)}}/>
                 <Pallet show={storyIdOnFocus === id} fontSize={bodyStoryFontSize}/>
             </StoryTitleContainer>
 

@@ -175,8 +175,9 @@ type ImageSelectorProps = {
     processImage: (name: string, dataUrl: string) => void
     label: JSX.Element
     imageMaxSize: number
+    disabled?: boolean
 }
-export const ImageSelector = ({processImage, label, imageMaxSize}: ImageSelectorProps) => {
+export const ImageSelector = ({processImage, label, imageMaxSize, disabled = false}: ImageSelectorProps) => {
     const inputFileRef = useRef<HTMLInputElement>(null)
 
     const [imageSizeErrorStr, setImageSizeErrorStr] = useState("")
@@ -209,7 +210,9 @@ export const ImageSelector = ({processImage, label, imageMaxSize}: ImageSelector
         <div tabIndex={0} style={{cursor: "pointer"}}>
             <input ref={inputFileRef} onChange={handleImageSelection} style={{display: "none"}}
                    type={"file"} accept={"image/*"}/>
-            <div onClick={goChooseImage}>
+            <div onClick={goChooseImage}
+                // @ts-ignore
+                 disabled={disabled}>
                 {label}
             </div>
             <ImageSizeErrorLabel> {imageSizeErrorStr} </ImageSizeErrorLabel>

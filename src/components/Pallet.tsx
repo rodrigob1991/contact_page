@@ -2,7 +2,6 @@ import styled from "@emotion/styled"
 import {isEmpty} from "../utils/StringFunctions"
 import {
     createAnchor,
-    createDiv,
     createImage,
     createSpan,
     createText,
@@ -20,6 +19,7 @@ import React, {useEffect, useRef, useState} from "react"
 import {ImageSelector, NumberInput, TextInput} from "./FormComponents"
 import {FcPicture} from "react-icons/fc"
 import {useRecordState} from "../utils/Hooks";
+import {DeleteOrRecoverButton} from "./Buttons";
 
 type Props = {
     show: boolean
@@ -280,17 +280,16 @@ export const Pallet =({show, fontSize}: Props)=> {
                 break
             case "image":
                 setInsertOrModifyImage((ip) => {
-                    const div = createDiv({contentEditable: "false"})
+                    //const div = createDiv({contentEditable: "false"})
                     const image = createImage(ip)
                     image.setAttribute("onclick", `{
                         window.modifyImageElement(this)
                     }`)
-                    div.append(image)
-                    handleCollapsedSelection(optionType, div, anchorNode, anchorOffset)
+                    //div.append(image)
+                    handleCollapsedSelection(optionType, image, anchorNode, anchorOffset)
                 })
 
                 askImageProps(rectTop, rectLeft)
-
                 return
         }
 
@@ -320,6 +319,10 @@ export const Pallet =({show, fontSize}: Props)=> {
             img.height = height
             img.width = width
         })
+        setRemoveImage(() => {
+            (img.parentElement as HTMLDivElement).remove()
+        })
+
         const imgRect = img.getBoundingClientRect()
         askImageProps(imgRect.top, imgRect.left, {id: img.id, src: img.src, height: img.height, width: img.width})
     }
@@ -336,7 +339,16 @@ export const Pallet =({show, fontSize}: Props)=> {
         refToInsertOrModifyImage.current = insertOrModify
     }
 
-    const [askImageProps, askImagePropsIsShowing, AskImageProps] = useAskImageProps({insertOrModifyImage: insertOrModifyImage})
+    type RemoveImage = () => void
+    const refToRemoveImage = useRef<RemoveImage>()
+    const removeImage = () => {
+        (refToRemoveImage.current as RemoveImage)()
+    }
+    const setRemoveImage = (remove: RemoveImage) => {
+        refToRemoveImage.current = remove
+    }
+
+    const [askImageProps, askImagePropsIsShowing, AskImageProps] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage})
 
     const palletOptionClass = "palletOption"
     const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
@@ -417,8 +429,9 @@ const useAskHRef = ({processHRef}: UseAskHRefProps): [Ask, IsShowing, JSX.Elemen
 type ImageProps = { id: string, src: string, height: number, width: number }
 type UseAskImagePropsProps = {
     insertOrModifyImage: (ip: ImageProps) => void
+    removeImage: ()=> void
 }
-const useAskImageProps = ({insertOrModifyImage}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps)=> void, IsShowing, JSX.Element] => {
+const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps)=> void, IsShowing, JSX.Element] => {
     const {state: imageProps, setState: setImageProp, setDefaultState: setImagePropsDefault} = useRecordState({id: "", src: "", height: 0, width: 0})
     const {height, width, id, src} = imageProps
 
@@ -436,14 +449,30 @@ const useAskImageProps = ({insertOrModifyImage}: UseAskImagePropsProps): [(top: 
         setImageProp({id: id, src: dataUrl})
     }
 
-    const handleOnClickAccept = (e: React.MouseEvent<HTMLButtonElement>) => {
-        insertOrModifyImage(imageProps)
+    const close = () => {
         setImagePropsDefault()
+        setRemove(false)
+        setModifying(false)
         hide()
     }
+    const handleOnClickAccept = (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (remove) {
+            removeImage()
+        } else {
+            insertOrModifyImage(imageProps)
+            close()
+        }
+    }
     const handleOnClickCancel = (e: React.MouseEvent<HTMLButtonElement>) => {
-        setImagePropsDefault()
-        hide()
+        close()
+    }
+
+    const [remove, setRemove] = useState(false)
+    const handleRemove = () => {
+        setRemove(true)
+    }
+    const handleRecover = () => {
+        setRemove(false)
     }
 
     const refToHeightInput = useRef<HTMLInputElement | null>(null)
@@ -461,18 +490,18 @@ const useAskImageProps = ({insertOrModifyImage}: UseAskImagePropsProps): [(top: 
                         {getWrapFormOption(
                             <>
                                 {getFormOptionLabel("height")}
-                                <NumberInput style={{ width: "60%"}} ref={refToHeightInput} value={height} setValue={(v) => setImageProp({height: v})}/>
+                                <NumberInput disabled={remove} style={{ width: "60%"}} ref={refToHeightInput} value={height} setValue={(v) => setImageProp({height: v})}/>
                             </>)
                         }
                         {getWrapFormOption(
                             <>
                                 {getFormOptionLabel("width")}
-                                <NumberInput style={{ width: "60%"}} value={width} setValue={(v) => setImageProp({width: v})}/>
+                                <NumberInput disabled={remove} style={{ width: "60%"}} value={width} setValue={(v) => setImageProp({width: v})}/>
                             </>)
                         }
                         {getWrapFormOption(
                             <>
-                                <ImageSelector processImage={processImage}
+                                <ImageSelector disabled={remove} processImage={processImage}
                                                label={getFormOptionLabel("src")} imageMaxSize={10}/>
                                 <span style={{
                                     fontSize: 20, display: "inline-block", overflow: "hidden",
@@ -480,6 +509,7 @@ const useAskImageProps = ({insertOrModifyImage}: UseAskImagePropsProps): [(top: 
                                 }}>{id}</span>
                             </>
                         )}
+                        {modifying && <DeleteOrRecoverButton handleRecover={()=> {handleRecover()}} handleDelete={()=> {handleRemove()}} color={"black"}/>}
                         <div style={{display: "flex", flexDirection: "row"}}>
                             <button style={{width: "50%"}} onClick={handleOnClickAccept}>accept</button>
                             <button style={{width: "50%"}} onClick={handleOnClickCancel}>cancel</button>

@@ -1,9 +1,8 @@
 import styled from "@emotion/styled"
 import {FaPlus, FaTrashRestore} from "react-icons/fa"
 import {BsChevronDoubleDown, BsChevronDoubleUp, BsEyeFill, BsEyeSlashFill, BsFillTrashFill} from "react-icons/bs"
-import React, {SVGAttributes} from "react";
-import {jsx} from "@emotion/react";
-import {IconBaseProps, IconType} from "react-icons";
+import React, {useState} from "react";
+import {IconBaseProps} from "react-icons";
 
 
 export const Button = styled.button<{ backgroundColor?: string }>`
@@ -28,7 +27,7 @@ export const DeleteButton = ({
         <BsFillTrashFill style={{cursor: "pointer"}} {...props}/>
     )
 }
-export const RecoveryButton = ({
+export const RecoverButton = ({
                                    ...props
                                }: IconBaseProps) => {
     return (
@@ -44,13 +43,26 @@ export const OpenOrCloseStoryButton = ({
             : <BsChevronDoubleDown {...rest} style={{cursor: "pointer"}}/>
     )
 }
-export const DeleteOrRecoverStoryButton = ({
-                                               isDelete,
-                                               ...rest
-                                           }: { isDelete: boolean } & IconBaseProps) => {
+export const DeleteOrRecoverButton = ({
+                                          initShowDelete,
+                                          handleDelete,
+                                          handleRecover,
+                                          ...rest
+                                      }: { initShowDelete?: boolean, handleDelete: () => void ,handleRecover: () => void } & IconBaseProps) => {
+    const [showDelete, setShowDelete] = useState<boolean>(initShowDelete || true)
+
+    const handleOnClickRecover = (e: React.MouseEvent<SVGElement>) => {
+        setShowDelete(true)
+        handleRecover()
+    }
+    const handleOnClickDelete = (e: React.MouseEvent<SVGElement>) => {
+        setShowDelete(false)
+        handleDelete()
+    }
+
     return (
-        isDelete ? <RecoveryButton {...rest}/>
-            : <DeleteButton {...rest}/>
+        showDelete ? <DeleteButton {...rest} onClick={handleOnClickDelete}/>
+            : <RecoverButton {...rest} onClick={handleOnClickRecover}/>
     )
 }
 export const SeeOrUnseeButton = ({
