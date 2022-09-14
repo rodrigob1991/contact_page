@@ -1,7 +1,7 @@
 import styled from "@emotion/styled"
-import {isEmpty} from "../utils/StringFunctions"
+import {getContainedString, isEmpty} from "../utils/StringFunctions"
 import {
-    createAnchor,
+    createAnchor, createDiv,
     createImage,
     createSpan,
     createText,
@@ -18,8 +18,8 @@ import {
 import React, {useEffect, useRef, useState} from "react"
 import {ImageSelector, NumberInput, TextInput} from "./FormComponents"
 import {FcPicture} from "react-icons/fc"
-import {useRecordState} from "../utils/Hooks";
-import {DeleteOrRecoverButton} from "./Buttons";
+import {useRecordState} from "../utils/Hooks"
+import {DeleteOrRecoverButton} from "./Buttons"
 
 type Props = {
     show: boolean
@@ -280,13 +280,13 @@ export const Pallet =({show, fontSize}: Props)=> {
                 break
             case "image":
                 setInsertOrModifyImage((ip) => {
-                    //const div = createDiv({contentEditable: "false"})
+                    const div = createDiv({contentEditable: "false"})
                     const image = createImage(ip)
                     image.setAttribute("onclick", `{
                         window.modifyImageElement(this)
                     }`)
-                    //div.append(image)
-                    handleCollapsedSelection(optionType, image, anchorNode, anchorOffset)
+                    div.append(image)
+                    handleCollapsedSelection(optionType, div, anchorNode, anchorOffset)
                 })
 
                 askImageProps(rectTop, rectLeft)
@@ -313,18 +313,20 @@ export const Pallet =({show, fontSize}: Props)=> {
     const [askHRef, askHRefIsShowing, AskHRef] = useAskHRef({processHRef: processHRef})
 
     const modifyImageElement = (img: HTMLImageElement) => {
-        setInsertOrModifyImage(({id, src, height,width}) => {
+        const divParent = img.parentElement as HTMLDivElement
+        setInsertOrModifyImage(({id, src, height,width, left}) => {
             img.id = id
             img.src = src
             img.height = height
             img.width = width
+            divParent.style.paddingLeft = left + "px"
         })
         setRemoveImage(() => {
             (img.parentElement as HTMLDivElement).remove()
         })
 
         const imgRect = img.getBoundingClientRect()
-        askImageProps(imgRect.top, imgRect.left, {id: img.id, src: img.src, height: img.height, width: img.width})
+        askImageProps(imgRect.top, imgRect.left, {id: img.id, src: img.src, height: img.height, width: img.width, left: parseInt(getContainedString(divParent.style.paddingLeft, undefined, "px"))})
     }
     useEffect(() => {
         window.modifyImageElement = modifyImageElement
@@ -426,14 +428,15 @@ const useAskHRef = ({processHRef}: UseAskHRefProps): [Ask, IsShowing, JSX.Elemen
     return [ask, isShowing, Ask]
 }
 
-type ImageProps = { id: string, src: string, height: number, width: number }
+type ImageProps = { image: {id: string, src: string, height: number, width: number}, parent: {left: number}}
 type UseAskImagePropsProps = {
     insertOrModifyImage: (ip: ImageProps) => void
     removeImage: ()=> void
 }
 const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps)=> void, IsShowing, JSX.Element] => {
-    const {state: imageProps, setState: setImageProp, setDefaultState: setImagePropsDefault} = useRecordState({id: "", src: "", height: 0, width: 0})
-    const {height, width, id, src} = imageProps
+    const {state: imageProps, setState: setImageProp, setDefaultState: setImagePropsDefault} = useRecordState({image: {id: "", src: "", height: 0, width: 0}, parent: {left: 0}})
+    const {height, width, id, src} = imageProps.image
+    const {left} = imageProps.parent
 
     const [modifying, setModifying] = useState(false)
 
@@ -446,7 +449,7 @@ const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsPr
     }
 
     const processImage = (id: string, dataUrl: string) => {
-        setImageProp({id: id, src: dataUrl})
+        setImageProp({image: {id: id, src: dataUrl}})
     }
 
     const close = () => {
@@ -460,8 +463,8 @@ const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsPr
             removeImage()
         } else {
             insertOrModifyImage(imageProps)
-            close()
         }
+        close()
     }
     const handleOnClickCancel = (e: React.MouseEvent<HTMLButtonElement>) => {
         close()
@@ -479,42 +482,47 @@ const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsPr
     const focusHeightInput = ()=> refToHeightInput.current?.focus()
 
     const getWrapFormOption = (e: JSX.Element) =>
-        <div style={{color: "grey", display: "flex", flexDirection: "row"}}>
+        <div style={{color: "grey", display: "flex", flexDirection: "row", paddingBottom: 2, paddingTop: 2, borderBottomStyle: "solid", borderWidth: "thin"}}>
             {e}
         </div>
     const getFormOptionLabel = (str: string) =>
         <span style={{fontSize: 20, width: 70}}>{str}:</span>
 
     const [ask, hide, isShowing, Ask] = useAsk({
-        childElement:   <>
-                        {getWrapFormOption(
-                            <>
-                                {getFormOptionLabel("height")}
-                                <NumberInput disabled={remove} style={{ width: "60%"}} ref={refToHeightInput} value={height} setValue={(v) => setImageProp({height: v})}/>
-                            </>)
+        childElement:   <div style={{padding: 5}}>
+                        {getWrapFormOption(<>
+                                           {getFormOptionLabel("height")}
+                                           <NumberInput disabled={remove} style={{ width: "60%"}} ref={refToHeightInput} value={height} setValue={(v) => setImageProp({height: v})}/>
+                                           </>)
                         }
-                        {getWrapFormOption(
-                            <>
-                                {getFormOptionLabel("width")}
-                                <NumberInput disabled={remove} style={{ width: "60%"}} value={width} setValue={(v) => setImageProp({width: v})}/>
-                            </>)
+                        {getWrapFormOption(<>
+                                           {getFormOptionLabel("width")}
+                                           <NumberInput disabled={remove} style={{ width: "60%"}} value={width} setValue={(v) => setImageProp({width: v})}/>
+                                           </>)
                         }
-                        {getWrapFormOption(
-                            <>
-                                <ImageSelector disabled={remove} processImage={processImage}
+                        {getWrapFormOption(<>
+                            {getFormOptionLabel("left")}
+                            <NumberInput disabled={remove} style={{ width: "60%"}} value={left} setValue={(v) => setImageProp({left: v})}/>
+                        </>)
+                        }
+                        {getWrapFormOption(<>
+                                           <ImageSelector disabled={remove} processImage={processImage}
                                                label={getFormOptionLabel("src")} imageMaxSize={10}/>
-                                <span style={{
-                                    fontSize: 20, display: "inline-block", overflow: "hidden",
-                                    textOverflow: "ellipsis", whiteSpace: "nowrap"
-                                }}>{id}</span>
-                            </>
-                        )}
-                        {modifying && <DeleteOrRecoverButton handleRecover={()=> {handleRecover()}} handleDelete={()=> {handleRemove()}} color={"black"}/>}
-                        <div style={{display: "flex", flexDirection: "row"}}>
+                                           <span style={{
+                                               fontSize: 20, display: "inline-block", overflow: "hidden",
+                                               textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
+                                               {id}</span>
+                                           </>)
+                        }
+                        {modifying && <div style={{display: "flex", justifyContent: "center", padding: 5}}>
+                                      <DeleteOrRecoverButton handleRecover={()=> {handleRecover()}} handleDelete={()=> {handleRemove()}} color={"gray"}/>
+                                      </div>
+                        }
+                        <div style={{display: "flex"}}>
                             <button style={{width: "50%"}} onClick={handleOnClickAccept}>accept</button>
                             <button style={{width: "50%"}} onClick={handleOnClickCancel}>cancel</button>
                         </div>
-                        </>,
+                        </div>,
         onShow: focusHeightInput,
         maxWidth: 190
     })
@@ -527,6 +535,7 @@ const AskContainer = styled.div<AskContainerProps>`
     + "left: " + left + "px;"
     + (maxWidth ? "max-width: " + maxWidth + "px;" : "")}
   flex-direction: column;
+  align-items: center;
   z-index: 1;
   position: absolute;
   border-style: solid;

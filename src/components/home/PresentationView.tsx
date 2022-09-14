@@ -63,6 +63,8 @@ const PresentationIntroduction = styled.span`
   background-color: #778899;
   padding: 7px;
   border-radius: 15px;
+  border-style: solid;
+  border-color: #FFFFFF;
   color: #FFFFFF;
   text-shadow: 2px 2px 5px #000000;
     `

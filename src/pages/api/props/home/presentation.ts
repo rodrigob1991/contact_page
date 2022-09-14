@@ -2,7 +2,7 @@ import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
 import {AuthResponseBody} from "../../_middleware"
 import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
-import {Presentation} from "../../../../types/Home";
+import {Presentation} from "../../../../types/Home"
 
 const PRESENTATION_API_ROUTE = "/api/props/home/presentation"
 

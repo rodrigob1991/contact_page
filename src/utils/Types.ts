@@ -34,3 +34,6 @@ type ReadonlyKeys<T> = {
 export  type AnyPropertiesCombination<R extends Record<string, any>> = {
     [K in keyof R]: { [key in K]: R[K] }
 }[keyof R]
+export type AnyPropertiesCombinationRecursive<R extends Record<string, any>> = {
+    [K in keyof R]: { [key in K]: R[K] extends Record<string, any> ? AnyPropertiesCombinationRecursive<R[K]> : R[K]}
+}[keyof R]
