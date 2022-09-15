@@ -1,27 +1,28 @@
 import {useState} from "react"
 import {AnyPropertiesCombinationRecursive} from "./Types"
+import {isRecord} from "./TypesChecks"
 
 export const useRecordState = <R extends Record<string, any>>(r: R) => {
     const [state, setState] = useState(r)
     const setDefaultState = () => {
         setState(r)
     }
-    const setPropertiesRecursively = <ST extends Record<string, any>, T extends ST>(r: T, subset: ST) => {
+
+    const setPropertiesRecursively = <T extends Record<string, any>>(r: T, subset: AnyPropertiesCombinationRecursive<T>) => {
         for (const key in subset) {
             const value = subset[key]
-            if (value) {
+            if (isRecord(value)) {
                 setPropertiesRecursively(r[key], value)
             } else {
+                // @ts-ignore
                 r[key] = value
             }
         }
     }
-    setPropertiesRecursively({hola: "", pedro: 24}, {hola: "4"})
-
     const setSubSet = (subset: AnyPropertiesCombinationRecursive<R>) => {
         setState((state) => {
             const newState = {...state}
-            setPropertiesRecursivly(newState, subset)
+            setPropertiesRecursively(newState, subset)
             return newState
         })
     }

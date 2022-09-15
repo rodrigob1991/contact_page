@@ -102,7 +102,7 @@ export default function StoriesView<M extends ViewMode>({
                 } else if (divChild instanceof HTMLAnchorElement) {
                     jsxDivChild = <a className={divChild.className} href={divChild.href}>{divChild.firstChild?.nodeValue}</a>
                 } else if (divChild instanceof HTMLImageElement) {
-                    jsxDivChild = <Image src={divChild.src} layout={"responsive"} height={divChild.height} width={divChild.width}/>
+                    jsxDivChild = <Image src={divChild.src} layout={"fixed"} height={divChild.height} width={divChild.width}/>
                 }else if (divChild instanceof HTMLBRElement) {
                     // for now ignore this case
                 } else {

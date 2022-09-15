@@ -1,7 +1,8 @@
 import styled from "@emotion/styled"
 import {getContainedString, isEmpty} from "../utils/StringFunctions"
 import {
-    createAnchor, createDiv,
+    createAnchor,
+    createDiv,
     createImage,
     createSpan,
     createText,
@@ -280,8 +281,8 @@ export const Pallet =({show, fontSize}: Props)=> {
                 break
             case "image":
                 setInsertOrModifyImage((ip) => {
-                    const div = createDiv({contentEditable: "false"})
-                    const image = createImage(ip)
+                    const div = createDiv({props: {contentEditable: "false"}, styles: {paddingLeft: ip.parent.left + "px"}})
+                    const image = createImage(ip.image)
                     image.setAttribute("onclick", `{
                         window.modifyImageElement(this)
                     }`)
@@ -314,7 +315,7 @@ export const Pallet =({show, fontSize}: Props)=> {
 
     const modifyImageElement = (img: HTMLImageElement) => {
         const divParent = img.parentElement as HTMLDivElement
-        setInsertOrModifyImage(({id, src, height,width, left}) => {
+        setInsertOrModifyImage(({image:{id, src, height,width}, parent:{left}}) => {
             img.id = id
             img.src = src
             img.height = height
@@ -326,7 +327,7 @@ export const Pallet =({show, fontSize}: Props)=> {
         })
 
         const imgRect = img.getBoundingClientRect()
-        askImageProps(imgRect.top, imgRect.left, {id: img.id, src: img.src, height: img.height, width: img.width, left: parseInt(getContainedString(divParent.style.paddingLeft, undefined, "px"))})
+        askImageProps(imgRect.top, imgRect.left, {image:{id: img.id, src: img.src, height: img.height, width: img.width}, parent:{left: parseInt(getContainedString(divParent.style.paddingLeft, undefined, "px"))}})
     }
     useEffect(() => {
         window.modifyImageElement = modifyImageElement
@@ -492,17 +493,17 @@ const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsPr
         childElement:   <div style={{padding: 5}}>
                         {getWrapFormOption(<>
                                            {getFormOptionLabel("height")}
-                                           <NumberInput disabled={remove} style={{ width: "60%"}} ref={refToHeightInput} value={height} setValue={(v) => setImageProp({height: v})}/>
+                                           <NumberInput disabled={remove} style={{ width: "60%"}} ref={refToHeightInput} value={height} setValue={(v) => setImageProp({image:{height: v}})}/>
                                            </>)
                         }
                         {getWrapFormOption(<>
                                            {getFormOptionLabel("width")}
-                                           <NumberInput disabled={remove} style={{ width: "60%"}} value={width} setValue={(v) => setImageProp({width: v})}/>
+                                           <NumberInput disabled={remove} style={{ width: "60%"}} value={width} setValue={(v) => setImageProp({image:{width: v}})}/>
                                            </>)
                         }
                         {getWrapFormOption(<>
                             {getFormOptionLabel("left")}
-                            <NumberInput disabled={remove} style={{ width: "60%"}} value={left} setValue={(v) => setImageProp({left: v})}/>
+                            <NumberInput disabled={remove} style={{ width: "60%"}} value={left} setValue={(v) => setImageProp({parent:{left: v}})}/>
                         </>)
                         }
                         {getWrapFormOption(<>
