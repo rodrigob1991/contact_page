@@ -280,7 +280,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                 onFinally = () => { askHRef(rectTop, rectLeft) }
                 break
             case "image":
-                setInsertOrModifyImage((ip) => {
+                updateInsertOrModifyImage((ip) => {
                     const div = createDiv({props: {contentEditable: "false"}, styles: {paddingLeft: ip.parent.left + "px"}})
                     const image = createImage(ip.image)
                     image.setAttribute("onclick", `{
@@ -315,14 +315,14 @@ export const Pallet =({show, fontSize}: Props)=> {
 
     const modifyImageElement = (img: HTMLImageElement) => {
         const divParent = img.parentElement as HTMLDivElement
-        setInsertOrModifyImage(({image:{id, src, height,width}, parent:{left}}) => {
+        updateInsertOrModifyImage(({image:{id, src, height,width}, parent:{left}}) => {
             img.id = id
             img.src = src
             img.height = height
             img.width = width
             divParent.style.paddingLeft = left + "px"
         })
-        setRemoveImage(() => {
+        updateRemoveImage(() => {
             (img.parentElement as HTMLDivElement).remove()
         })
 
@@ -333,23 +333,10 @@ export const Pallet =({show, fontSize}: Props)=> {
         window.modifyImageElement = modifyImageElement
     }, [])
 
-    type InsertOrModifyImage = (ip: ImageProps) => void
-    const refToInsertOrModifyImage = useRef<InsertOrModifyImage>()
-    const insertOrModifyImage = (ip: ImageProps) => {
-        (refToInsertOrModifyImage.current as InsertOrModifyImage)(ip)
-    }
-    const setInsertOrModifyImage = (insertOrModify: InsertOrModifyImage) => {
-        refToInsertOrModifyImage.current = insertOrModify
-    }
-
-    type RemoveImage = () => void
-    const refToRemoveImage = useRef<RemoveImage>()
-    const removeImage = () => {
-        (refToRemoveImage.current as RemoveImage)()
-    }
-    const setRemoveImage = (remove: RemoveImage) => {
-        refToRemoveImage.current = remove
-    }
+    const [insertOrModifyImage, setInsertOrModifyImage] = useState<InsertOrModifyImage>((ip)=> {})
+    const updateInsertOrModifyImage = (fun: InsertOrModifyImage)=> { setInsertOrModifyImage((f: InsertOrModifyImage)=> fun) }
+    const [removeImage, setRemoveImage] = useState<RemoveImage>(() => {})
+    const updateRemoveImage = (fun: RemoveImage) => { setRemoveImage(() => fun) }
 
     const [askImageProps, askImagePropsIsShowing, AskImageProps] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage})
 
@@ -430,9 +417,11 @@ const useAskHRef = ({processHRef}: UseAskHRefProps): [Ask, IsShowing, JSX.Elemen
 }
 
 type ImageProps = { image: {id: string, src: string, height: number, width: number}, parent: {left: number}}
+type InsertOrModifyImage = (ip: ImageProps) => void
+type RemoveImage = () => void
 type UseAskImagePropsProps = {
-    insertOrModifyImage: (ip: ImageProps) => void
-    removeImage: ()=> void
+    insertOrModifyImage: InsertOrModifyImage
+    removeImage: RemoveImage
 }
 const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps)=> void, IsShowing, JSX.Element] => {
     const {state: imageProps, setState: setImageProp, setDefaultState: setImagePropsDefault} = useRecordState({image: {id: "", src: "", height: 0, width: 0}, parent: {left: 0}})
@@ -539,6 +528,7 @@ const AskContainer = styled.div<AskContainerProps>`
   align-items: center;
   z-index: 1;
   position: absolute;
+  cursor: move;
   border-style: solid;
   border-color: #000000;
   background-color: white;

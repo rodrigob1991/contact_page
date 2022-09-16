@@ -21,7 +21,7 @@ import {getContainedString} from "../../utils/StringFunctions"
 import {putHomeProps} from "../api/props/home"
 import {SpinLoader} from "../../components/Loaders"
 import {StoryState} from "@prisma/client"
-import {lookUpParent} from "../../utils/DomManipulations"
+import {isAnchor, isDiv, isImage, isSpan, lookUpParent} from "../../utils/DomManipulations"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -145,36 +145,36 @@ export default function EditHome(props?: HomeProps) {
                 updateSavedStory(storyId, key, newPropertyValue)
             }
         }
+
+        const isTargetElement = (node: Node) => (node instanceof HTMLDivElement || node instanceof HTMLSpanElement) && (node.id.startsWith(presentationHtmlElementIdsPrefix) || node.id.startsWith(storyHtmlElementIdsPrefix))
+
         const observer = new MutationObserver(
             (mutationList, observer) => {
                 for (const mutation of mutationList) {
-                    const seekParentTill = (p: ParentNode) => {
-                        let stop
-                        if (p instanceof HTMLDivElement || p instanceof HTMLSpanElement) {
-                            stop = p.id.startsWith(presentationHtmlElementIdsPrefix) || p.id.startsWith(storyHtmlElementIdsPrefix)
-                        } else if (p instanceof HTMLAnchorElement || p instanceof HTMLImageElement) {
-                            stop = false
-                        } else {
-                            stop = true
-                        }
-                        return stop
-                    }
-                    const htmlElement = lookUpParent(mutation.target, seekParentTill)
-                    console.table(htmlElement)
-                    if (htmlElement && (htmlElement instanceof HTMLDivElement || htmlElement instanceof HTMLSpanElement)) {
-                        const htmlElementId = htmlElement.id
-                        const newPropertyValue = htmlElement.innerHTML as string
-                        console.log(newPropertyValue)
+                    const targetMutation = mutation.target
+                    const targetElement = isTargetElement(targetMutation) ?
+                        targetMutation :
+                        lookUpParent(mutation.target, (p: ParentNode) => {
+                            let stop
+                            if (isTargetElement(p)) {
+                                stop = true
+                            } else stop = !(isSpan(p) || isDiv(p) || isAnchor(p) || isImage(p))
+                            return stop
+                        })
+                    console.table(mutation.target)
+                    if (targetElement && isTargetElement(targetElement)) {
+                        const {id, innerHTML} = targetElement as HTMLElement
+                        console.log(innerHTML)
 
-                        if (htmlElementId.startsWith(presentationHtmlElementIdsPrefix)) {
-                            updatePresentation(htmlElementId, newPropertyValue)
-                        } else if (htmlElementId.startsWith(storyHtmlElementIdsPrefix)) {
-                            updateStory(htmlElementId, newPropertyValue)
+                        if (id.startsWith(presentationHtmlElementIdsPrefix)) {
+                            updatePresentation(id, innerHTML)
+                        } else {
+                            updateStory(id, innerHTML)
                         }
                     }
                 }
             })
-        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true, childList:true, attributeFilter: ["href", "src", "onclick"]})
+        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true, childList:true, attributeFilter: ["href", "src"]})
 
         return () => observer.disconnect()
     }, [])
