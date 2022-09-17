@@ -92,25 +92,31 @@ export default function StoriesView<M extends ViewMode>({
         let jsx = <></>
         const html = new DOMParser().parseFromString(body, "text/html").body.children
         for (const div of html) {
-            let jsxDivChildren = <></>
-            for (const divChild of div.childNodes) {
-                let jsxDivChild
-                if (divChild instanceof Text) {
-                    jsxDivChild = divChild.nodeValue
-                } else if (divChild instanceof HTMLSpanElement) {
-                    jsxDivChild = <span className={divChild.className}>{divChild.firstChild?.nodeValue}</span>
-                } else if (divChild instanceof HTMLAnchorElement) {
-                    jsxDivChild = <a className={divChild.className} href={divChild.href}>{divChild.firstChild?.nodeValue}</a>
-                } else if (divChild instanceof HTMLImageElement) {
-                    jsxDivChild = <Image src={divChild.src} layout={"fixed"} height={divChild.height} width={divChild.width}/>
-                }else if (divChild instanceof HTMLBRElement) {
-                    // for now ignore this case
-                } else {
-                    throw new Error("div child of type " + divChild.nodeType + " must have enter some if")
+            if(div instanceof HTMLDivElement) {
+                let jsxDivChildren = <></>
+                for (const divChild of div.childNodes) {
+                    let jsxDivChild
+                    if (divChild instanceof Text) {
+                        jsxDivChild = divChild.nodeValue
+                    } else if (divChild instanceof HTMLSpanElement) {
+                        jsxDivChild = <span className={divChild.className}>{divChild.firstChild?.nodeValue}</span>
+                    } else if (divChild instanceof HTMLAnchorElement) {
+                        jsxDivChild = <a className={divChild.className} href={divChild.href}>{divChild.firstChild?.nodeValue}</a>
+                    } else if (divChild instanceof HTMLImageElement) {
+                        jsxDivChild = <div style={{paddingLeft: div.style.paddingLeft}}><Image src={divChild.src} layout={"intrinsic"}
+                                                                              height={divChild.height}
+                                                                              width={divChild.width}/></div>
+                    } else if (divChild instanceof HTMLBRElement) {
+                        // for now ignore this case
+                    } else {
+                        throw new Error("div child of type " + divChild.nodeType + " must have enter some if")
+                    }
+                    jsxDivChildren = <>{jsxDivChildren} {jsxDivChild}</>
                 }
-                jsxDivChildren = <>{jsxDivChildren} {jsxDivChild}</>
+                jsx = <>{jsx}<div>{jsxDivChildren}</div></>
+            } else {
+                throw new Error("Only divs must appears here")
             }
-            jsx = <>{jsx}<div>{jsxDivChildren}</div></>
         }
         return jsx
     }

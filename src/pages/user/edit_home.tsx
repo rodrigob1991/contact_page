@@ -152,16 +152,16 @@ export default function EditHome(props?: HomeProps) {
             (mutationList, observer) => {
                 for (const mutation of mutationList) {
                     const targetMutation = mutation.target
-                    const targetElement = isTargetElement(targetMutation) ?
-                        targetMutation :
+                    const targetElement = isTargetElement(targetMutation) ? targetMutation :
                         lookUpParent(mutation.target, (p: ParentNode) => {
                             let stop
                             if (isTargetElement(p)) {
                                 stop = true
-                            } else stop = !(isSpan(p) || isDiv(p) || isAnchor(p) || isImage(p))
+                            } else {
+                                stop = !(isSpan(p) || isDiv(p) || isAnchor(p) || isImage(p))
+                            }
                             return stop
                         })
-                    console.table(mutation.target)
                     if (targetElement && isTargetElement(targetElement)) {
                         const {id, innerHTML} = targetElement as HTMLElement
                         console.log(innerHTML)
