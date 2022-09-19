@@ -1,5 +1,5 @@
 import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../types/Home"
-import React, {useEffect, useState} from "react"
+import React, {useEffect, useRef, useState} from "react"
 import styled from "@emotion/styled"
 import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../Buttons"
 import {Pallet} from "../Pallet"
@@ -86,7 +86,15 @@ export default function StoriesView<M extends ViewMode>({
         updatedStoriesVisibility[index].isOpen = !updatedStoriesVisibility[index].isOpen
         setStoriesVisibility(updatedStoriesVisibility)
     }
-    const [storyIdOnFocus, setStoryIdOnFocus] = useState<string | undefined>(undefined)
+
+    const [editingStoryId, setEditingStoryId] = useState("")
+    const isEditingStory = (id: string) => {
+        return editingStoryId === id
+    }
+    const refToIsAsking = useRef(false)
+    const isAsking = (asking: boolean) => {
+        refToIsAsking.current = asking
+    }
 
     const convertBodyFromHtmlToJsx = (body: string) => {
         let jsx = <></>
@@ -144,6 +152,14 @@ export default function StoriesView<M extends ViewMode>({
         const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(id)
 
         const contentEditable = editing && !toDelete
+        const handleOnFocusBody = (e: React.FocusEvent) => {
+            setEditingStoryId(id)
+        }
+        const handleOnBlurBody = (e: React.FocusEvent) => {
+            if (!refToIsAsking.current) {
+                setEditingStoryId("")
+            }
+        }
 
         const storyTitleView =
             <StoryTitleContainer>
@@ -152,7 +168,7 @@ export default function StoriesView<M extends ViewMode>({
                 <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
                                        handleDelete={() => {handleDeleteStory(id, index, !("id" in story))}}
                                        handleRecover={() => {handleRecoverStory(id, index)}}/>
-                <Pallet show={storyIdOnFocus === id} fontSize={bodyStoryFontSize}/>
+                <Pallet show={isEditingStory(id)} isAsking={isAsking} fontSize={bodyStoryFontSize}/>
             </StoryTitleContainer>
 
         return (
@@ -162,8 +178,9 @@ export default function StoriesView<M extends ViewMode>({
                             {storyTitleView}
                             <StoryBody id={htmlIds.body} contentEditable={contentEditable}
                                        dangerouslySetInnerHTML={{__html: body}}
-                                       onFocus={e => setStoryIdOnFocus(id)}
-                                       onBlur={e => setStoryIdOnFocus(undefined)}/>
+                                       onFocus={handleOnFocusBody}
+                                       onBlur={handleOnBlurBody}
+                                       />
                         </StoryOpenContainer>
                     : storyTitleView}
             </StoryContainer>

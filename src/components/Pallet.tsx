@@ -23,7 +23,8 @@ import {useRecordState} from "../utils/Hooks"
 import {DeleteOrRecoverButton} from "./Buttons"
 
 type Props = {
-    show: boolean
+    show?: boolean
+    isAsking?: (asking: boolean) => void
     fontSize: number
 }
 type OptionType = "defaultText" | "span" | "link" | "image"
@@ -31,14 +32,24 @@ type OptionTargetElement = HTMLSpanElement | HTMLAnchorElement | HTMLImageElemen
 type OptionTargetNode = Text | OptionTargetElement
 type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
 
-const handleMouseDown = (e: React.MouseEvent<Element>) => {
-    e.preventDefault()
-}
-
-export const Pallet =({show, fontSize}: Props)=> {
+export const Pallet = ({show=true, isAsking, fontSize}: Props) => {
+    const isAskingTrue = () => {
+        if (isAsking) {
+            isAsking(true)
+        }
+    }
+    const isAskingFalse = () => {
+        if (isAsking) {
+            isAsking(false)
+        }
+    }
     const lastElementAddedId = "lastElementAdded"
     const getLastElementAdded = () => {
         return document.querySelector("#" + lastElementAddedId) as OptionTargetElement | null
+    }
+
+    const handleMouseDown = (e: React.MouseEvent<Element>) => {
+        e.preventDefault()
     }
 
     const handleCollapsedSelection = (optionType: OptionType, newNode: OptionTargetNode, anchor: ChildNode, anchorOffSet: number) => {
@@ -277,7 +288,10 @@ export const Pallet =({show, fontSize}: Props)=> {
                     }
                     return link
                 }
-                onFinally = () => { askHRef(rectTop, rectLeft) }
+                onFinally = () => {
+                    isAskingTrue()
+                    askHRef(rectTop, rectLeft)
+                }
                 break
             case "image":
                 updateInsertOrModifyImage((ip) => {
@@ -289,7 +303,7 @@ export const Pallet =({show, fontSize}: Props)=> {
                     div.append(image)
                     handleCollapsedSelection(optionType, div, anchorNode, anchorOffset)
                 })
-
+                isAskingTrue()
                 askImageProps(rectTop, rectLeft)
                 return
         }
@@ -311,7 +325,7 @@ export const Pallet =({show, fontSize}: Props)=> {
         lastLinkAdded.id = ""
         lastLinkAdded.href = hRef
     }
-    const [askHRef, askHRefIsShowing, AskHRef] = useAskHRef({processHRef: processHRef})
+    const [askHRef, askHRefIsShowing, AskHRef] = useAskHRef({processHRef: processHRef, isAskingFalse: isAskingFalse})
 
     const modifyImageElement = (img: HTMLImageElement) => {
         const divParent = img.parentElement as HTMLDivElement
@@ -326,6 +340,7 @@ export const Pallet =({show, fontSize}: Props)=> {
             (img.parentElement as HTMLDivElement).remove()
         })
 
+        isAskingTrue()
         const imgRect = img.getBoundingClientRect()
         askImageProps(imgRect.top, imgRect.left, {image:{id: img.id, src: img.src, height: img.height, width: img.width}, parent:{left: parseInt(getContainedString(divParent.style.paddingLeft, undefined, "px"))}})
     }
@@ -338,7 +353,7 @@ export const Pallet =({show, fontSize}: Props)=> {
     const [removeImage, setRemoveImage] = useState<RemoveImage>(() => {})
     const updateRemoveImage = (fun: RemoveImage) => { setRemoveImage(() => fun) }
 
-    const [askImageProps, askImagePropsIsShowing, AskImageProps] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage})
+    const [askImageProps, askImagePropsIsShowing, AskImageProps] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage, isAskingFalse: isAskingFalse})
 
     const palletOptionClass = "palletOption"
     const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
@@ -391,14 +406,16 @@ const Container = styled.div<{ show: boolean}>`
  `
 type UseAskHRefProps = {
     processHRef: (hRef: string)=> void
+    isAskingFalse: ()=> void
 }
-const useAskHRef = ({processHRef}: UseAskHRefProps): [Ask, IsShowing, JSX.Element] => {
+const useAskHRef = ({processHRef, isAskingFalse}: UseAskHRefProps): [Ask, IsShowing, JSX.Element] => {
     const [hRef, setHRef] = useState("")
 
     const refToInput = useRef<HTMLInputElement | null>(null)
     const focusInput = () => refToInput.current?.focus()
 
     const handleOnEnter = () => {
+        isAskingFalse()
         processHRef(hRef)
         setHRef("")
         hide()
@@ -422,8 +439,9 @@ type RemoveImage = () => void
 type UseAskImagePropsProps = {
     insertOrModifyImage: InsertOrModifyImage
     removeImage: RemoveImage
+    isAskingFalse: ()=> void
 }
-const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps)=> void, IsShowing, JSX.Element] => {
+const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps)=> void, IsShowing, JSX.Element] => {
     const {state: imageProps, setState: setImageProp, setDefaultState: setImagePropsDefault} = useRecordState({image: {id: "", src: "", height: 0, width: 0}, parent: {left: 0}})
     const {height, width, id, src} = imageProps.image
     const {left} = imageProps.parent
@@ -443,6 +461,7 @@ const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsPr
     }
 
     const close = () => {
+        isAskingFalse()
         setImagePropsDefault()
         setRemove(false)
         setModifying(false)
@@ -472,7 +491,7 @@ const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsPr
     const focusHeightInput = ()=> refToHeightInput.current?.focus()
 
     const getWrapFormOption = (e: JSX.Element) =>
-        <div style={{color: "grey", display: "flex", flexDirection: "row", paddingBottom: 2, paddingTop: 2, borderBottomStyle: "solid", borderWidth: "thin"}}>
+        <div style={{color: "grey", display: "flex", flexDirection: "row", paddingBottom: 2, paddingTop: 2, borderBottomStyle: "solid", borderWidth: "thin",width: "150px"}}>
             {e}
         </div>
     const getFormOptionLabel = (str: string) =>
@@ -514,7 +533,7 @@ const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsPr
                         </div>
                         </div>,
         onShow: focusHeightInput,
-        maxWidth: 190
+        maxWidth: 290
     })
     return [askImageProps, isShowing, Ask]
 }
