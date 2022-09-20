@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import {useFormModal} from "../components/FormComponents"
 import {HomeProps} from "../types/Home"
-import PresentationView from "../components/home/PresentationView"
+import PresentationView from "../components/home/presentation/PresentationView"
 import StoriesView from "../components/home/StoriesView"
 import {Container, Footer} from "../components/home/Layout"
 
