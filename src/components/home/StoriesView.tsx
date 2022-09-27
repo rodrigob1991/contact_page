@@ -7,7 +7,7 @@ import {OptionSelector} from "../FormComponents"
 import {StoryState} from "@prisma/client"
 import Image from 'next/image'
 
-type StoryVisibility = {id: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
+type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
 type GetHtmlElementIds = (id: string) => StoryHTMLElementIds
 type GetNewStory = () => [string, NewStory]
@@ -31,65 +31,64 @@ export default function StoriesView<M extends ViewMode>({
                                                             getHtmlElementIds,
                                                             deleteStory,
                                                             recoverStory
+
                                                         }: Props<M>) {
-    const [storiesVisibility, setStoriesVisibility] = useState<StoryVisibility[]>(stories.map((s) => {
-        return {id: s.id, story: s, toDelete: false, isOpen: false}
+    // idHtml is use to identify the html element. Can be story id or index of new stories array
+    const [storiesViewStates, setStoriesViewStates] = useState<StoryViewStates[]>(stories.map((s) => {
+        return {idHtml: s.id, story: s, toDelete: false, isOpen: false}
     }))
+    // this effect is for maintain the previous states when saving stories
     useEffect(() => {
-            setStoriesVisibility((storiesVisibility) => {
-                const updatedStoriesVisibility = []
-                for (const sv of storiesVisibility) {
-                    if (!sv.toDelete) {
-                        const prevStory = sv.story
+            setStoriesViewStates((storiesViewStates) => {
+                const updatedStoriesViewStates = []
+                for (const svs of storiesViewStates) {
+                    if (!svs.toDelete) {
+                        const prevStory = svs.story
                         const predicate = (s: Story) => "id" in prevStory ? prevStory.id === s.id : prevStory.title === s.title
                         const story = stories.find(predicate)
                         if(!story){
                             throw new Error("always must the story exist")
                         }
-                        updatedStoriesVisibility.push({...(({story,id,...sv}) => sv)(sv), story: story, id: story.id})
+                        updatedStoriesViewStates.push({...(({story,idHtml,...rest}) => rest)(svs), story: story, idHtml: story.id})
                     }
                 }
-                return updatedStoriesVisibility
+                return updatedStoriesViewStates
             })
         },
         [stories])
 
     const handleAddNewStory = (e: React.MouseEvent) => {
-        const [id, newStory] = (createNewStory as GetNewStory)()
-        setStoriesVisibility((sv) => {
-                return [...sv, {id: id, story: newStory, isOpen: true, toDelete: false}]
+        const [idHtml, newStory] = (createNewStory as GetNewStory)()
+        setStoriesViewStates((svs) => {
+                return [...svs, {idHtml: idHtml, story: newStory, isOpen: true, toDelete: false}]
             }
         )
     }
-    const handleDeleteStory = (id: string, index: number, isNew: boolean) => {
-        (deleteStory as DeleteStory)(id)
-        setStoriesVisibility((sv) => {
-            const updatedSv = [...sv]
-            if (isNew) {
-                updatedSv.splice(index, 1)
-            } else {
-                updatedSv[index].toDelete = true
-            }
-            return updatedSv
-        })
+    const handleDeleteStory = (idHtml: string, index: number, isNew: boolean) => {
+        (deleteStory as DeleteStory)(idHtml)
+        const updatedStoriesViewStates = [...storiesViewStates]
+        if (isNew) {
+            updatedStoriesViewStates.splice(index, 1)
+        } else {
+            updatedStoriesViewStates[index].toDelete = true
+        }
+        setStoriesViewStates(updatedStoriesViewStates)
     }
-    const handleRecoverStory = (id: string, index: number) => {
-        (recoverStory as RecoverStory)(id)
-        setStoriesVisibility((sv) => {
-            const updatedSv = [...sv]
-            updatedSv[index].toDelete = false
-            return updatedSv
-        })
+    const handleRecoverStory = (idHtml: string, index: number) => {
+        (recoverStory as RecoverStory)(idHtml)
+        const updatedStoriesViewStates = [...storiesViewStates]
+        updatedStoriesViewStates[index].toDelete = false
+        setStoriesViewStates(updatedStoriesViewStates)
     }
     const openOrCloseStory = (index: number) => {
-        const updatedStoriesVisibility = [...storiesVisibility]
-        updatedStoriesVisibility[index].isOpen = !updatedStoriesVisibility[index].isOpen
-        setStoriesVisibility(updatedStoriesVisibility)
+        const updatedStoriesViewStates = [...storiesViewStates]
+        updatedStoriesViewStates[index].isOpen = !updatedStoriesViewStates[index].isOpen
+        setStoriesViewStates(updatedStoriesViewStates)
     }
 
-    const [editingStoryId, setEditingStoryId] = useState("")
-    const isEditingStory = (id: string) => {
-        return editingStoryId === id
+    const [editingStoryIdHtml, setEditingStoryIdHtml] = useState("")
+    const isEditingStory = (idHtml: string) => {
+        return editingStoryIdHtml === idHtml
     }
     const refToIsAsking = useRef(false)
     const isAsking = (asking: boolean) => {
@@ -129,15 +128,15 @@ export default function StoriesView<M extends ViewMode>({
         return jsx
     }
 
-    const getStoryView = (storyVisibility: StoryVisibility, index: number) => {
-        const {id, story : {title, body}, isOpen} = storyVisibility
+    const getStoryView = (storyVisibility: StoryViewStates, index: number) => {
+        const {story : {title, body}, isOpen} = storyVisibility
 
         const storyTitle = <StoryTitleContainer>
                                 <StoryTitle>{title}</StoryTitle>
                                 <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
                             </StoryTitleContainer>
         return (
-            <StoryContainer key={id}>
+            <StoryContainer key={title}>
                 {isOpen ? <StoryOpenContainer>
                             {storyTitle}
                             <StoryBody>{convertBodyFromHtmlToJsx(body)}</StoryBody>
@@ -146,18 +145,18 @@ export default function StoriesView<M extends ViewMode>({
             </StoryContainer>
         )
     }
-    const getEditableStoryView = (storyVisibility: StoryVisibility, index: number) => {
-        const {id, story, isOpen, toDelete} = storyVisibility
+    const getEditableStoryView = (storyVisibility: StoryViewStates, index: number) => {
+        const {idHtml, story, isOpen, toDelete} = storyVisibility
         const {title,body} = story
-        const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(id)
+        const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
         const contentEditable = editing && !toDelete
         const handleOnFocusBody = (e: React.FocusEvent) => {
-            setEditingStoryId(id)
+            setEditingStoryIdHtml(idHtml)
         }
         const handleOnBlurBody = (e: React.FocusEvent) => {
             if (!refToIsAsking.current) {
-                setEditingStoryId("")
+                setEditingStoryIdHtml("")
             }
         }
 
@@ -166,13 +165,13 @@ export default function StoriesView<M extends ViewMode>({
                 <StoryTitle id={htmlIds.title} toDelete={toDelete} contentEditable={contentEditable}>{title}</StoryTitle>
                 <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
                 <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
-                                       handleDelete={() => {handleDeleteStory(id, index, !("id" in story))}}
-                                       handleRecover={() => {handleRecoverStory(id, index)}}/>
-                <Pallet show={isEditingStory(id)} isAsking={isAsking} fontSize={bodyStoryFontSize}/>
+                                       handleDelete={() => {handleDeleteStory(idHtml, index, !("id" in story))}}
+                                       handleRecover={() => {handleRecoverStory(idHtml, index)}}/>
+                <Pallet show={isEditingStory(idHtml)} isAsking={isAsking} fontSize={bodyStoryFontSize}/>
             </StoryTitleContainer>
 
         return (
-            <StoryContainer key={id}>
+            <StoryContainer key={idHtml}>
                 <OptionSelector id={htmlIds.state} color={"#778899"} fontSize={15} options={Object.values(StoryState)} initSelectedOption={story.state}/>
                 {isOpen ? <StoryOpenContainer>
                             {storyTitleView}
@@ -193,9 +192,9 @@ export default function StoriesView<M extends ViewMode>({
             <PlusButton id={"plus-button"} color={"#778899"} size={26} onClick={handleAddNewStory}/>}
             </TitleContainer>
             <ul>
-                {storiesVisibility
-                    .map((sv, index) =>
-                        editing ? getEditableStoryView(sv, index) : getStoryView(sv, index)
+                {storiesViewStates
+                    .map((s, index) =>
+                        editing ? getEditableStoryView(s, index) : getStoryView(s, index)
                     )
                 }
             </ul>

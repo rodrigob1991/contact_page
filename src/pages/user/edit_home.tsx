@@ -3,10 +3,10 @@ import React, {useEffect, useRef, useState} from "react"
 import {
     HomeProps,
     NewStory,
-    NewStoryPropertiesType,
     Presentation,
-    PresentationHTMLElementIds,
-    PresentationWithoutImage,
+    PresentationHTMLElementIds, PresentationHTMLElementIdsKey,
+    PresentationPropertiesType,
+    PresentationWithoutImage, Skill,
     Story,
     StoryHTMLElementIds
 } from "../../types/Home"
@@ -33,13 +33,13 @@ export async function getServerSideProps() {
 }
 
 export default function EditHome(props?: HomeProps) {
-    const emptyPresentation: Presentation = {name: "", introduction: "", image: undefined}
+    const emptyPresentation: Presentation = {name: "", introduction: "", skills: [], image: undefined}
     const presentation = useRef(props?.presentation || emptyPresentation)
     const getPresentation = () => presentation.current
     const setPresentation = (p: Presentation) => {
         presentation.current = p
     }
-    const setPresentationProperty = (presentationKey: keyof Presentation, propertyValue: string) => {
+    const setPresentationProperty = <K extends keyof Presentation>(presentationKey: K, propertyValue: Presentation[K]) => {
         getPresentation()[presentationKey] = propertyValue
     }
     const setPresentationImage = (imageDataUrl: string) => {
@@ -47,12 +47,28 @@ export default function EditHome(props?: HomeProps) {
     }
     const presentationHtmlElementIdsPrefix = "presentation"
     const presentationHtmlElementIds: PresentationHTMLElementIds = (() => {
-        const htmlElementIds: Record<string, string> = {}
+        const htmlElementIds: Record<string, PresentationPropertiesType> = {}
         for (const key in emptyPresentation) {
             htmlElementIds[key] = presentationHtmlElementIdsPrefix + "-" + key
         }
         return htmlElementIds as PresentationHTMLElementIds
     })()
+    const getPresentationHtmlElementIds = (key: PresentationHTMLElementIdsKey) => {
+        let htmlElementId
+        switch (key) {
+            case "introduction":
+            case "name" :
+                htmlElementId = presentationHtmlElementIdsPrefix + "-" + key
+                break
+            case "skills":
+                for (const key in emptySkill) {
+                    htmlElementId[key] = presentationHtmlElementIdsPrefix + "-" + key
+                }
+
+        }
+        return htmlElementId
+    }
+    const emptySkill: Skill = {id: "", name: "", rate: 0}
 
     const emptyStory: Story = {id: "", state : StoryState.UNPUBLISHED, title: "", body: ""}
 
@@ -65,9 +81,8 @@ export default function EditHome(props?: HomeProps) {
         const index = getSavedStories().findIndex((s) => s.id === id)
         getSavedStories().splice(index, 1)
     }
-    const updateSavedStory = (storyId: string, key: keyof NewStory, value: NewStoryPropertiesType) => {
+    const updateSavedStory = <K extends keyof NewStory>(storyId: string, key: K, value: Story[K]) => {
         const storyToUpdateIndex = getSavedStories().findIndex((s) => s.id === storyId)
-        // @ts-ignore
         getSavedStories()[storyToUpdateIndex][key] = value
     }
     const newStoryIdPrefix = "-"
@@ -83,10 +98,9 @@ export default function EditHome(props?: HomeProps) {
         const isNoNull = (s: NewStory | null): s is NewStory => s !== null
         return getNewStories().filter(isNoNull)
     }
-    const updateNewStory = (id: string, key: keyof NewStory, value: NewStoryPropertiesType) => {
-        const index = getIndexFromNewStoryId(id)
-        // @ts-ignore
-        getNewStories()[index][key] = value
+    const updateNewStory = <K extends keyof NewStory>(id: string, key: K, value: NewStory[K]) => {
+        const index = getIndexFromNewStoryId(id);
+        (getNewStories()[index] as NewStory)[key] = value
     }
     const createNewStory = (): [string, NewStory] => {
         const newStory = {state: StoryState.UNPUBLISHED, title: "title", body: "<div> body </div>"}

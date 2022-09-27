@@ -3,28 +3,26 @@ import styled from "@emotion/styled"
 import React from "react"
 import {ImageViewSelector} from "../../FormComponents"
 import Image from "next/image"
-import {Graph} from "./Graph";
+import SkillsChart, {CreateSkill} from "./SkillsChart"
 
 
 type EditingProps = {
     editing: true
     htmlElementIds: PresentationHTMLElementIds
     setPresentationImage: (imageDataUrl: string) => void
-}
+} &
 type Props<VM extends ViewMode> = {
     presentation: Presentation
 } & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
 export default function PresentationView<VM extends ViewMode>({
                                              editing,
-                                             presentation: {name, introduction, image: imageDataUrl},
-                                             htmlElementIds, setPresentationImage
+                                             presentation: {name, introduction, skills, image: imageDataUrl},
+                                             htmlElementIds, setPresentationImage, createSkill
                                          }: Props<VM>) {
-
     return (
         <Container>
-            <Graph title={"technologies"} elements={[{name: "java", rate: 50}, {name: "typescript", rate: 60},{name: "css", rate: 30}]}
-                   maxWidth={450}/>
+            {editing ? <SkillsChart editing createSkill={createSkill as CreateSkill}  skills={skills} width={250} /> : <SkillsChart skills={skills} width={250}/>}
             <InnerContainer>
             <NameImageContainer>
                 {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processImage={setPresentationImage}
