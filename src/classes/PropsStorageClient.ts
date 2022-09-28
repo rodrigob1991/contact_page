@@ -171,8 +171,7 @@ export class PropsStorageClient {
                     id: PropsStorageClient.homePropsId,
                     ...createPresentation,
                     ...createManyStories
-                }
-                ,
+                },
                 ...PropsStorageClient.selectEditHomeProps
             }
         ).then(this.#getNormalizeHomeProps)
@@ -220,7 +219,6 @@ export class PropsStorageClient {
             return {image: this.#getImageBase64(dbArgs.image), ...r}
         })(dbArgs)
     }
-
     #getPresentationWithImageBuffer<P extends { image?: string | undefined }>(p: P) {
         return (({image, ...r}) => {
             return {image: this.#getImageBuffer(image), ...r}
