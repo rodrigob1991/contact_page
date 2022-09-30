@@ -1,21 +1,12 @@
 import styled from "@emotion/styled"
 import React, {useEffect, useRef, useState} from "react"
-import {
-    HomeProps,
-    NewStory,
-    Presentation,
-    PresentationHTMLElementIds, PresentationHTMLElementIdsKey,
-    PresentationPropertiesType,
-    PresentationWithoutImage, Skill,
-    Story,
-    StoryHTMLElementIds
-} from "../../types/Home"
+import {HomeProps, NewStory, Presentation, PresentationWithoutImage, Story, StoryHTMLElementIds} from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../classes/PropsStorageClient"
 import {Button} from "../../components/Buttons"
 import {Container, Footer} from "../../components/home/Layout"
-import PresentationView from "../../components/home/presentation/PresentationView"
+import PresentationView, {GetHtmlElementId as GetPresentationHtmlElementId} from "../../components/home/presentation/PresentationView"
 import StoriesView from "../../components/home/StoriesView"
 import {getContainedString} from "../../utils/StringFunctions"
 import {putHomeProps} from "../api/props/home"
@@ -33,6 +24,8 @@ export async function getServerSideProps() {
 }
 
 export default function EditHome(props?: HomeProps) {
+    const isCreateHomeProps = props === undefined
+
     const emptyPresentation: Presentation = {name: "", introduction: "", skills: [], image: undefined}
     const presentation = useRef(props?.presentation || emptyPresentation)
     const getPresentation = () => presentation.current
@@ -45,30 +38,38 @@ export default function EditHome(props?: HomeProps) {
     const setPresentationImage = (imageDataUrl: string) => {
         setPresentationProperty("image", imageDataUrl)
     }
-    const presentationHtmlElementIdsPrefix = "presentation"
-    const presentationHtmlElementIds: PresentationHTMLElementIds = (() => {
+
+    const createSkill = () => {
+
+    }
+    const deleteSkill = () => {
+
+    }
+
+    const presentationHtmlElementIdPrefix = "presentation"
+    const skillHtmlElementIdPrefix = presentationHtmlElementIdPrefix + "-" + "skills"
+   /* const presentationHtmlElementIds: PresentationHTMLElementIds = (() => {
         const htmlElementIds: Record<string, PresentationPropertiesType> = {}
         for (const key in emptyPresentation) {
             htmlElementIds[key] = presentationHtmlElementIdsPrefix + "-" + key
         }
         return htmlElementIds as PresentationHTMLElementIds
-    })()
-    const getPresentationHtmlElementIds = (key: PresentationHTMLElementIdsKey) => {
+    })()*/
+    const getPresentationHtmlElementId: GetPresentationHtmlElementId = (key, skillId) => {
         let htmlElementId
         switch (key) {
             case "introduction":
             case "name" :
-                htmlElementId = presentationHtmlElementIdsPrefix + "-" + key
+                htmlElementId = presentationHtmlElementIdPrefix + "-" + key
                 break
             case "skills":
-                for (const key in emptySkill) {
-                    htmlElementId[key] = presentationHtmlElementIdsPrefix + "-" + key
-                }
-
+                htmlElementId = `${skillHtmlElementIdPrefix}{${skillId}}`
+                break
+            default:
+                throw new Error("typescript should realize that all the cases are cover")
         }
         return htmlElementId
     }
-    const emptySkill: Skill = {id: "", name: "", rate: 0}
 
     const emptyStory: Story = {id: "", state : StoryState.UNPUBLISHED, title: "", body: ""}
 
@@ -134,11 +135,11 @@ export default function EditHome(props?: HomeProps) {
     const recoverStory = (id: string) => {
         removeDeleteStoryId(id)
     }
-    const storyHtmlElementIdsPrefix = "story"
+    const storyHtmlElementIdPrefix = "story"
     const getStoryHtmlElementIds = (storyId: string) => {
         const htmlElementIds: Record<string, string> = {}
         for (const key in emptyStory) {
-            htmlElementIds[key] = `${storyHtmlElementIdsPrefix}{${storyId}}${key}`
+            htmlElementIds[key] = `${storyHtmlElementIdPrefix}{${storyId}}${key}`
         }
         return htmlElementIds as StoryHTMLElementIds
     }
@@ -160,7 +161,7 @@ export default function EditHome(props?: HomeProps) {
             }
         }
 
-        const isTargetElement = (node: Node) => (node instanceof HTMLDivElement || node instanceof HTMLSpanElement) && (node.id.startsWith(presentationHtmlElementIdsPrefix) || node.id.startsWith(storyHtmlElementIdsPrefix))
+        const isTargetElement = (node: Node) => (node instanceof HTMLDivElement || node instanceof HTMLSpanElement) && (node.id.startsWith(presentationHtmlElementIdPrefix) || node.id.startsWith(storyHtmlElementIdPrefix))
 
         const observer = new MutationObserver(
             (mutationList, observer) => {
@@ -180,7 +181,7 @@ export default function EditHome(props?: HomeProps) {
                         const {id, innerHTML} = targetElement as HTMLElement
                         console.log(innerHTML)
 
-                        if (id.startsWith(presentationHtmlElementIdsPrefix)) {
+                        if (id.startsWith(presentationHtmlElementIdPrefix)) {
                             updatePresentation(id, innerHTML)
                         } else {
                             updateStory(id, innerHTML)
@@ -249,7 +250,7 @@ export default function EditHome(props?: HomeProps) {
     return (
         <Container ref={ref}>
             <SpinLoader show={loading}/>
-            <PresentationView editing htmlElementIds={presentationHtmlElementIds} presentation={presentation.current} setPresentationImage={setPresentationImage}/>
+            <PresentationView editing getHtmlElementId={getPresentationHtmlElementId} presentation={presentation.current} setPresentationImage={setPresentationImage}/>
             <StoriesView editing stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
                          createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}/>
             <Footer>

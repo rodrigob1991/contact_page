@@ -2,27 +2,25 @@ import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
 import {AuthResponseBody} from "../../_middleware"
 import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
-import {Presentation} from "../../../../types/Home"
+import {CreatePresentationArgs, Presentation, UpdatePresentationArgs} from "../../../../types/Home"
 
 const PRESENTATION_API_ROUTE = "/api/props/home/presentation"
 
 const URL = process.env.NEXT_PUBLIC_BASE_URL + PRESENTATION_API_ROUTE
 
-type PutResponseBody = {
-    presentation?: Presentation
-    errorMessage?: string
-}
+type ResponseBody = { presentation?: Presentation, errorMessage?: string }
+type ProcessResponseResult = { succeed: boolean} & ResponseBody
 
-export const putPresentation = async (presentation: Presentation) => {
-    const result: { succeed: boolean, presentation?: Presentation, errorMessage?: string } = {succeed: false}
+export const setPresentation = async (body: CreatePresentationArgs | UpdatePresentationArgs, method: "POST" | "PATCH") => {
+    const result: ProcessResponseResult = {succeed: false}
 
     try {
         const response = await fetch(URL, {
-            method: "PUT",
+            method: method,
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(presentation),
+            body: JSON.stringify(body),
         })
 
         result.succeed = response.ok
@@ -31,11 +29,11 @@ export const putPresentation = async (presentation: Presentation) => {
             const authBody: AuthResponseBody = await response.json()
             result.errorMessage = authBody
         } else {
-            const putBody: PutResponseBody = await response.json()
+            const responseBody: ResponseBody = await response.json()
             if (response.ok) {
-                result.presentation = putBody.presentation
+                result.presentation = responseBody.presentation
             } else {
-                result.errorMessage = putBody.errorMessage
+                result.errorMessage = responseBody.errorMessage
             }
         }
     } catch (e) {
@@ -44,29 +42,50 @@ export const putPresentation = async (presentation: Presentation) => {
 
     return result
 }
+export const postPresentation = async (body: CreatePresentationArgs) => {
+    return setPresentation(body, "POST")
+}
+export const patchPresentation = async (body: UpdatePresentationArgs) => {
+    return setPresentation(body, "PATCH")
+}
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
-    const params = request.body
+    const requestBody = request.body
 
     let httpCode: number
-    let body: PutResponseBody
+    let body: ResponseBody
 
     const propsStorageClient = new PropsStorageClient()
 
     switch (request.method) {
-        case "PUT" :
-            const presentation: Presentation = params
-            if (!presentation || !ApiParamsValidator.isValidPresentation(presentation)) {
+        case "POST" :
+            if (!requestBody || !ApiParamsValidator.isValidCreatePresentation(requestBody)) {
                 httpCode = 400
-                body = {errorMessage: "invalid params"}
+                body = {errorMessage: "invalid create presentation params"}
             } else {
                 try {
-                    const savedPresentation = await propsStorageClient.setPresentation(presentation)
+                    const createdPresentation = await propsStorageClient.setPresentation(requestBody)
                     httpCode = 200
-                    body = {presentation: savedPresentation}
+                    body = {presentation: createdPresentation}
                 } catch (e) {
                     httpCode = 500
-                    body = {errorMessage: "could not saved the presentation"}
+                    body = {errorMessage: "could not create the presentation"}
+                    console.error(e)
+                }
+            }
+            break
+        case "PATCH" :
+            if (!requestBody || !ApiParamsValidator.isValidUpdatePresentation(requestBody)) {
+                httpCode = 400
+                body = {errorMessage: "invalid update presentation params"}
+            } else {
+                try {
+                    const updatedPresentation = await propsStorageClient.setPresentation(requestBody)
+                    httpCode = 200
+                    body = {presentation: updatedPresentation}
+                } catch (e) {
+                    httpCode = 500
+                    body = {errorMessage: "could not update the presentation"}
                     console.error(e)
                 }
             }

@@ -1,6 +1,6 @@
 import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../classes/PropsStorageClient"
-import {HomeProps, SetHomeProps} from "../../../types/Home"
+import {CreateHomePropsArgs, HomeProps, UpdateHomePropsArgs} from "../../../types/Home"
 import {AuthResponseBody} from "../_middleware"
 import {ApiParamsValidator} from "../../../classes/ApiParamsValidator"
 
@@ -8,21 +8,19 @@ const HOME_PROPS_API_ROUTE = "/api/props/home"
 
 const URL = process.env.NEXT_PUBLIC_BASE_URL + HOME_PROPS_API_ROUTE
 
-type PutResponseBody = {
-    homeProps?: HomeProps
-    errorMessage?: string
-}
+type ResponseBody = { homeProps?: HomeProps, errorMessage?: string }
+type ProcessResponseResult = { succeed: boolean} & ResponseBody
 
-export const putHomeProps = async (homeProps: SetHomeProps) => {
-    const result: { succeed: boolean, homeProps?: HomeProps, errorMessage?: string } = {succeed: false}
+const setHomeProps = async (body: CreateHomePropsArgs | UpdateHomePropsArgs, method: "POST" | "PATCH") => {
+    const result: ProcessResponseResult = {succeed: false}
 
     try {
         const response = await fetch(URL, {
-            method: "PUT",
+            method: method,
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(homeProps),
+            body: JSON.stringify(body),
         })
 
         result.succeed = response.ok
@@ -31,11 +29,11 @@ export const putHomeProps = async (homeProps: SetHomeProps) => {
             const authBody: AuthResponseBody = await response.json()
             result.errorMessage = authBody
         } else {
-            const putBody: PutResponseBody = await response.json()
+            const responseBody: ResponseBody = await response.json()
             if (response.ok) {
-                result.homeProps = putBody.homeProps
+                result.homeProps = responseBody.homeProps
             } else {
-                result.errorMessage = putBody.errorMessage
+                result.errorMessage = responseBody.errorMessage
             }
         }
     } catch (e) {
@@ -44,27 +42,50 @@ export const putHomeProps = async (homeProps: SetHomeProps) => {
 
     return result
 }
+export const postHomeProps = (body: CreateHomePropsArgs) => {
+    return setHomeProps(body, "POST")
+}
+export const patchHomeProps = (body: UpdateHomePropsArgs) => {
+    return setHomeProps(body, "PATCH")
+}
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
+    const requestBody = request.body
+
     let httpCode: number
-    let body: PutResponseBody
+    let body: ResponseBody
 
     const propsStorageClient = new PropsStorageClient()
 
     switch (request.method) {
-        case "PUT" :
-            const params: SetHomeProps = request.body
-            if (!ApiParamsValidator.areValidSetHomeProps(params)) {
+        case "POST" :
+            if (!requestBody || !ApiParamsValidator.areValidCreateHomePropsArgs(requestBody)) {
                 httpCode = 400
-                body = {errorMessage: "invalid data"}
+                body = {errorMessage: "invalid create home props request body"}
             } else {
                 try {
-                    const homeProps = await propsStorageClient.setHomeProps(params)
+                    const createdHomeProps = await propsStorageClient.createHomeProps(requestBody)
                     httpCode = 200
-                    body = {homeProps: homeProps}
+                    body = {homeProps: createdHomeProps}
                 } catch (e) {
                     httpCode = 500
-                    body = {errorMessage: "could not saved home props"}
+                    body = {errorMessage: "could not create home props"}
+                    console.error(e)
+                }
+            }
+            break
+        case "PUT" :
+            if (!requestBody || !ApiParamsValidator.areValidUpdateHomePropsArgs(requestBody)) {
+                httpCode = 400
+                body = {errorMessage: "invalid update home props request body"}
+            } else {
+                try {
+                    const updatedHomeProps = await propsStorageClient.updateHomeProps(requestBody)
+                    httpCode = 200
+                    body = {homeProps: updatedHomeProps}
+                } catch (e) {
+                    httpCode = 500
+                    body = {errorMessage: "could not update home props"}
                     console.error(e)
                 }
             }

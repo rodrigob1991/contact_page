@@ -1,25 +1,25 @@
 import styled from "@emotion/styled"
 import {PlusButton} from "../../Buttons"
 import React, {useEffect, useState} from "react"
-import {Skill, NewSkill, SkillHTMLElementIds, ViewMode} from "../../../types/Home"
+import {NewSkill, Skill, ViewMode} from "../../../types/Home"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
 export type CreateSkill = () => [string, NewSkill]
 export type DeleteSkill = () => void
-export type GetHtmlElementIds = () => SkillHTMLElementIds
+export type GetHtmlElementId = (skillId: string) => string
 export type EditingProps = {
     editing: true
     createSkill: CreateSkill
     deleteSkill : DeleteSkill
-    getHtmlElementIds: GetHtmlElementIds
+    getHtmlElementId: GetHtmlElementId
 }
 type Props<VM extends ViewMode> = {
     skills: Skill[]
     width: number
 } & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
-export default function SkillsChart<VM extends ViewMode>({skills, width, editing, createSkill, deleteSkill, getHtmlElementIds}: Props<VM>) {
+export default function SkillsChart<VM extends ViewMode>({skills, width, editing, createSkill, deleteSkill, getHtmlElementId}: Props<VM>) {
     const [skillsViewStates, setSkillsViewStates] = useState<SkillViewState[]>(skills.map((s) => {
         return {idHtml: s.id, skill: s}
     }))
@@ -44,15 +44,20 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
         const [idHtml, newSkill] = (createSkill as CreateSkill)()
         setSkillsViewStates([...skillsViewStates, {idHtml: idHtml, skill: newSkill}])
     }
+
+    const getStoriesView = () => skillsViewStates.map(({skill: {name, rate}}) =>
+        <SkillView key={name} width={rate}> {name} </SkillView>)
+
+    const getEditableStoriesView = () => skillsViewStates.map(({idHtml, skill: {name, rate}}) =>
+        <SkillView id={(getHtmlElementId as GetHtmlElementId)(idHtml)} key={name} resize width={rate}> {name} </SkillView>)
+
     return (
         <Container width={width}>
             <TitleContainer>
             <label style={{ fontWeight: "bold", fontSize: "20px"}}>skills</label>
             {editing && <PlusButton size={15} onClick={handleCreateSkill}/>}
             </TitleContainer>
-            {skills.map((s) =>
-                <SkillView key={s.name} width={s.rate}> {s.name} </SkillView>)
-            }
+            {editing ? getEditableStoriesView() : getStoriesView()}
         </Container>
     )
 }
@@ -69,7 +74,7 @@ const TitleContainer = styled.div`
   color: white;
   gap: 5px;
 `
-const SkillView = styled.div<{width: number}>`
+const SkillView = styled.div<{width: number, resize?: boolean}>`
   display: flex;
   resize: horizontal;
   background-color: white;
@@ -78,6 +83,7 @@ const SkillView = styled.div<{width: number}>`
   height: 20px;
   font-weight: bold;
   border-radius: 3px;
-  ${({width})=> 
-    `width: ${width}%;`}
+  ${({width, resize})=> 
+    `width: ${width}%;
+    ${resize ? "resize: horizontal;" : ""}`}
  `

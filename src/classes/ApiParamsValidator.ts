@@ -97,7 +97,7 @@ export class ApiParamsValidator {
         return (presentation && this.isValidCreatePresentation(presentation))
             && (!newStories || this.areValidNewStories(newStories))
     }
-    static areValidUpdateHomeProps = ({
+    static areValidUpdateHomePropsArgs = ({
                                           presentation,
                                           stories:
                                               {new: newStories, update: updateStories, delete: deleteStories}

@@ -28,20 +28,18 @@ export type UpdateHomePropsArgs =
     { [K in keyof HomePropsPresentation]: UpdatePresentationArgs }
     & UpdateHomePropsStoriesArgs
 
-
 const storyArgs = Prisma.validator<Prisma.StoryArgs>()(PropsStorageClient.selectStory)
 type StoryArgs = Prisma.StoryGetPayload<typeof storyArgs>
 export type Story = StoryArgs
 export type NewStory = Omit<Story, keyof Pick<Story, "id">>
 export type NewStoryPropertiesType = NewStory[keyof NewStory]
-export type StoryHTMLElementIds = {[K in keyof NewStory as `${K}`] : NewStory[K]}
+export type StoryHTMLElementIds = {[K in keyof NewStory as `${K}`] : string}
 
 const skillArgs = Prisma.validator<Prisma.SkillArgs>()(PropsStorageClient.selectSkill)
 type SkillArgs = Prisma.SkillGetPayload<typeof skillArgs>
 export type Skill = SkillArgs
 export type NewSkill = Omit<Skill, keyof Pick<Skill, "id">>
 export type NewSkillPropertiesType = NewSkill[keyof NewSkill]
-export type SkillHTMLElementIds = {[K in keyof NewSkill as `${K}`] : NewSkill[K]}
 
 const presentationArgs = Prisma.validator<Prisma.PresentationArgs>()(PropsStorageClient.selectPresentation)
 export type PresentationArgs = Prisma.PresentationGetPayload<typeof presentationArgs>
@@ -50,7 +48,7 @@ export type PresentationWithoutImage = Omit<PresentationArgs, keyof Pick<Present
 export type PresentationWithoutSkills = Omit<Presentation, keyof Pick<Presentation, "skills">>
 export type PresentationPropertiesType = Presentation[keyof Presentation]
 export type PresentationHTMLElementIdsKey = keyof PresentationWithoutImage
-export type PresentationHTMLElementIds = {[K in keyof PresentationWithoutImage as `${K}`] : PresentationWithoutImage[K]}
+export type PresentationHTMLElementIds = {[K in keyof PresentationWithoutImage as `${K}`] : string}
 
 export type ViewMode =  "editing" | "reading"
 
