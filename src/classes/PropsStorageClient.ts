@@ -61,7 +61,7 @@ export class PropsStorageClient {
                 where: {id: PropsStorageClient.homePropsId},
                 ...PropsStorageClient.selectHomeProps
             }
-        ).then(this.#getNormalizeHomeProps)
+        ).then((homeProps) => this.#getNormalizeHomeProps(homeProps))
     }
 
     async getEditHomeProps(): Promise<HomeProps | undefined> {
@@ -69,7 +69,7 @@ export class PropsStorageClient {
                 where: {id: PropsStorageClient.homePropsId},
                 ...PropsStorageClient.selectEditHomeProps
             }
-        ).then(this.#getNormalizeHomeProps)
+        ).then((homeProps) => this.#getNormalizeHomeProps(homeProps))
     }
 
     async setPresentation<O extends DbOperation>({
@@ -120,7 +120,7 @@ export class PropsStorageClient {
             )
         }
 
-        return promise.then(this.#getNormalizePresentation)
+        return promise.then((p) => this.#getNormalizePresentation(p))
     }
 
     async setStory(story: NewStory | Story): Promise<Story> {
@@ -174,7 +174,7 @@ export class PropsStorageClient {
                 },
                 ...PropsStorageClient.selectEditHomeProps
             }
-        ).then(this.#getNormalizeHomeProps)
+        ).then((homeProps) => this.#getNormalizeHomeProps(homeProps))
     }
     async updateHomeProps({
                            presentation: {
@@ -197,7 +197,7 @@ export class PropsStorageClient {
                 },
                 ...PropsStorageClient.selectEditHomeProps
             }
-        ).then(this.#getNormalizeHomeProps)
+        ).then((homeProps)=> this.#getNormalizeHomeProps(homeProps))
     }
 
     #getNormalizeHomeProps<T extends HomePropsArgs | null>(homeProps: T): NormalizedHomeProps<T> {

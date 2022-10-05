@@ -1,8 +1,8 @@
 import styled from "@emotion/styled"
 import {FaPlus, FaTrashRestore} from "react-icons/fa"
 import {BsChevronDoubleDown, BsChevronDoubleUp, BsEyeFill, BsEyeSlashFill, BsFillTrashFill} from "react-icons/bs"
-import React, {useState} from "react";
-import {IconBaseProps} from "react-icons";
+import React, {useState} from "react"
+import {IconBaseProps} from "react-icons"
 
 
 export const Button = styled.button<{ backgroundColor?: string }>`
@@ -49,7 +49,7 @@ export const DeleteOrRecoverButton = ({
                                           handleRecover,
                                           ...rest
                                       }: { initShowDelete?: boolean, handleDelete: () => void ,handleRecover: () => void } & IconBaseProps) => {
-    const [showDelete, setShowDelete] = useState<boolean>(initShowDelete || true)
+    const [showDelete, setShowDelete] = useState<boolean>(initShowDelete ?? true)
 
     const handleOnClickRecover = (e: React.MouseEvent<SVGElement>) => {
         setShowDelete(true)

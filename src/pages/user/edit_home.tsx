@@ -1,18 +1,29 @@
 import styled from "@emotion/styled"
 import React, {useEffect, useRef, useState} from "react"
-import {HomeProps, NewStory, Presentation, PresentationWithoutImage, Story, StoryHTMLElementIds} from "../../types/Home"
+import {
+    HomeProps,
+    NewSkill,
+    NewStory,
+    Presentation,
+    PresentationWithoutImage,
+    Skill,
+    Story,
+    StoryHTMLElementIds
+} from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../classes/PropsStorageClient"
 import {Button} from "../../components/Buttons"
 import {Container, Footer} from "../../components/home/Layout"
 import PresentationView, {GetHtmlElementId as GetPresentationHtmlElementId} from "../../components/home/presentation/PresentationView"
-import StoriesView from "../../components/home/StoriesView"
+import StoriesView from "../../components/home/stories/StoriesView"
 import {getContainedString} from "../../utils/StringFunctions"
-import {putHomeProps} from "../api/props/home"
+import {patchHomeProps, postHomeProps} from "../api/props/home"
 import {SpinLoader} from "../../components/Loaders"
 import {StoryState} from "@prisma/client"
-import {isAnchor, isDiv, isImage, isSpan, lookUpParent} from "../../utils/DomManipulations"
+import {AnyPropertiesCombination} from "../../utils/Types"
+import {lookUpParent} from "../../utils/DomManipulations"
+import {containerStyles as skillsChartContainerStyles} from "../../components/home/presentation/SkillsChart"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
@@ -23,47 +34,78 @@ export async function getServerSideProps() {
     return {props: props}
 }
 
+export type Observe = (element: HTMLElement, observeWhat: AnyPropertiesCombination<{ mutation: MutationObserverInit | "default", resize: ResizeObserverOptions | "default" }>) => void
+
 export default function EditHome(props?: HomeProps) {
     const isCreateHomeProps = props === undefined
 
+    const newEntityIdPrefix = "-"
+    const isNewEntity = (id: string) => {
+        return id.startsWith(newEntityIdPrefix)
+    }
+    const getIndexFromNewEntityId = (id: string) => {
+        return parseInt(getContainedString(id, newEntityIdPrefix))
+    }
+
     const emptyPresentation: Presentation = {name: "", introduction: "", skills: [], image: undefined}
-    const presentation = useRef(props?.presentation || emptyPresentation)
-    const getPresentation = () => presentation.current
+    const refToPresentation = useRef<Presentation>(props?.presentation || emptyPresentation)
+    const getPresentation = () => refToPresentation.current
     const setPresentation = (p: Presentation) => {
-        presentation.current = p
+        refToPresentation.current = p
     }
-    const setPresentationProperty = <K extends keyof Presentation>(presentationKey: K, propertyValue: Presentation[K]) => {
-        getPresentation()[presentationKey] = propertyValue
+    const mutatePresentation = <K extends keyof Presentation>(key: K, value: Presentation[K]) => {
+        getPresentation()[key] = value
     }
-    const setPresentationImage = (imageDataUrl: string) => {
-        setPresentationProperty("image", imageDataUrl)
+    const mutatePresentationImage = (imageDataUrl: string) => {
+        mutatePresentation("image", imageDataUrl)
     }
 
-    const createSkill = () => {
-
+    const mutateNewSkill = <K extends keyof NewSkill>(id: string, key: K, value: NewSkill[K]) => {
+        (getNewSkills()[getIndexFromNewEntityId(id)] as NewSkill)[key] = value
     }
-    const deleteSkill = () => {
-
+    const mutateSavedSkill = <K extends keyof Skill>(id: string, key: K, value: Skill[K]) => {
+        getPresentation().skills[getPresentation().skills.findIndex((s) => s.id === id)][key] = value
     }
+    const refToNewSkills = useRef<(NewSkill | null)[]>([])
+    const getNewSkills = () => refToNewSkills.current
+    const setNewSkills = (ns: NewSkill[]) => {
+        refToNewSkills.current = ns
+    }
+    const getNotNullsNewSkills = () => {
+        const isNoNull = (s: NewSkill | null): s is NewSkill => s !== null
+        return getNewSkills().filter(isNoNull)
+    }
+    const createNewSkill = (): [string, NewSkill] => {
+        const newSkill = {name: "new skill", rate: 50}
+        const id = newEntityIdPrefix + (getNewSkills().push(newSkill) - 1)
+        return [id, newSkill]
+    }
+    const refToDeleteSkillsIds = useRef<string[]>([])
+    const getDeleteSkillsIds = () => refToDeleteSkillsIds.current
+    const setDeleteSkillsIds = (ids: string[]) => {
+        refToDeleteSkillsIds.current = ids
+    }
+    const addDeleteSkillsId = (id: string) => {
+        getDeleteSkillsIds().push(id)
+    }
+    const deleteSkill = (id: string) => {
+        if (isNewEntity(id)) {
+            getNewSkills().splice(getIndexFromNewEntityId(id), 1, null)
+        } else {
+            addDeleteSkillsId(id)
+        }
+    }
+    const getUpdateSkills = () => getPresentation().skills.filter((s) => !(getDeleteSkillsIds().some((id) => id === s.id)))
 
     const presentationHtmlElementIdPrefix = "presentation"
-    const skillHtmlElementIdPrefix = presentationHtmlElementIdPrefix + "-" + "skills"
-   /* const presentationHtmlElementIds: PresentationHTMLElementIds = (() => {
-        const htmlElementIds: Record<string, PresentationPropertiesType> = {}
-        for (const key in emptyPresentation) {
-            htmlElementIds[key] = presentationHtmlElementIdsPrefix + "-" + key
-        }
-        return htmlElementIds as PresentationHTMLElementIds
-    })()*/
     const getPresentationHtmlElementId: GetPresentationHtmlElementId = (key, skillId) => {
-        let htmlElementId
+        let htmlElementId = presentationHtmlElementIdPrefix + "-" + key
         switch (key) {
             case "introduction":
             case "name" :
-                htmlElementId = presentationHtmlElementIdPrefix + "-" + key
                 break
             case "skills":
-                htmlElementId = `${skillHtmlElementIdPrefix}{${skillId}}`
+                htmlElementId += `{${skillId}}`
                 break
             default:
                 throw new Error("typescript should realize that all the cases are cover")
@@ -73,68 +115,62 @@ export default function EditHome(props?: HomeProps) {
 
     const emptyStory: Story = {id: "", state : StoryState.UNPUBLISHED, title: "", body: ""}
 
-    const savedStories = useRef<Story[]>(props?.stories || [])
-    const getSavedStories = () => savedStories.current
+    const refToSavedStories = useRef<Story[]>(props?.stories || [])
+    const getSavedStories = () => refToSavedStories.current
     const setSavedStories = (ns: Story[]) => {
-        savedStories.current = ns
+        refToSavedStories.current = ns
     }
-    const removeSavedStory = (id: string) => {
-        const index = getSavedStories().findIndex((s) => s.id === id)
-        getSavedStories().splice(index, 1)
-    }
-    const updateSavedStory = <K extends keyof NewStory>(storyId: string, key: K, value: Story[K]) => {
+    const mutateSavedStory = <K extends keyof NewStory>(storyId: string, key: K, value: Story[K]) => {
         const storyToUpdateIndex = getSavedStories().findIndex((s) => s.id === storyId)
         getSavedStories()[storyToUpdateIndex][key] = value
     }
-    const newStoryIdPrefix = "-"
+
     const newStories = useRef<(NewStory | null)[]>([])
     const getNewStories = () => newStories.current
     const setNewStories = (ns: NewStory[]) => {
         newStories.current = ns
     }
-    const removeNewStory = (id: string) => {
-        getNewStories().splice(getIndexFromNewStoryId(id), 1, null)
-    }
     const getNotNullsNewStories = () => {
         const isNoNull = (s: NewStory | null): s is NewStory => s !== null
         return getNewStories().filter(isNoNull)
     }
-    const updateNewStory = <K extends keyof NewStory>(id: string, key: K, value: NewStory[K]) => {
-        const index = getIndexFromNewStoryId(id);
-        (getNewStories()[index] as NewStory)[key] = value
-    }
     const createNewStory = (): [string, NewStory] => {
         const newStory = {state: StoryState.UNPUBLISHED, title: "title", body: "<div> body </div>"}
-        const id = newStoryIdPrefix + (getNewStories().push(newStory) - 1)
+        const id = newEntityIdPrefix + (getNewStories().push(newStory) - 1)
         return [id, newStory]
     }
-    const isNewStory = (id: string) => {
-        return id.startsWith(newStoryIdPrefix)
+    const mutateNewStory = <K extends keyof NewStory>(id: string, key: K, value: NewStory[K]) => {
+        const index = getIndexFromNewEntityId(id);
+        (getNewStories()[index] as NewStory)[key] = value
     }
-    const getIndexFromNewStoryId = (id: string) => {
-        return parseInt(getContainedString(id, newStoryIdPrefix))
+    const deleteNewStory = (id: string) => {
+        getNewStories().splice(getIndexFromNewEntityId(id), 1, null)
     }
-    const deleteStoriesId = useRef<string[]>([])
-    const getDeleteStoriesId = () => deleteStoriesId.current
-    const setDeleteStoriesId = (ids: string[]) => {
-        deleteStoriesId.current = ids
+
+    const refToDeleteStoriesIds = useRef<string[]>([])
+    const getDeleteStoriesIds = () => refToDeleteStoriesIds.current
+    const setDeleteStoriesIds = (ids: string[]) => {
+        refToDeleteStoriesIds.current = ids
     }
     const addDeleteStoryId = (id: string) => {
-        getDeleteStoriesId().push(id)
+        getDeleteStoriesIds().push(id)
     }
-    const removeDeleteStoryId = (id: string) => {
-        getDeleteStoriesId().splice(getDeleteStoriesId().findIndex((id) => id === id), 1)
+    const deleteDeleteStoryId = (id: string) => {
+        getDeleteStoriesIds().splice(getDeleteStoriesIds().findIndex((id) => id === id), 1)
     }
     const deleteStory = (id: string) => {
-        if (isNewStory(id)) {
-            removeNewStory(id)
+        if (isNewEntity(id)) {
+            deleteNewStory(id)
         } else {
             addDeleteStoryId(id)
         }
     }
     const recoverStory = (id: string) => {
-        removeDeleteStoryId(id)
+        deleteDeleteStoryId(id)
     }
+    const getUpdateStories = () =>
+        getSavedStories().filter((s) => !(getDeleteStoriesIds().some((id) => id === s.id)))
+
     const storyHtmlElementIdPrefix = "story"
     const getStoryHtmlElementIds = (storyId: string) => {
         const htmlElementIds: Record<string, string> = {}
@@ -144,54 +180,88 @@ export default function EditHome(props?: HomeProps) {
         return htmlElementIds as StoryHTMLElementIds
     }
 
-    const ref = useRef<HTMLDivElement>(null)
+    const refToMutationObserverTarget = useRef<HTMLDivElement>(null)
+
+    const [observe, setObserve] = useState<Observe>(()=> ()=> {})
 
     useEffect(() => {
-        const updatePresentation = (htmlElementId: string, newPropertyValue: string) => {
-            const key = getContainedString(htmlElementId, "-") as keyof PresentationWithoutImage
-            setPresentationProperty(key, newPropertyValue)
+        const handleMutateOrResizeSkillHTMLElement = <K extends keyof NewSkill>(htmlElementId: string, key: K,  newPropertyValue: Skill[K]) => {
+            const skillId = getContainedString(htmlElementId, "{", "}")
+            if (isNewEntity(skillId)) {
+                mutateNewSkill(skillId, key, newPropertyValue)
+            } else {
+                mutateSavedSkill(skillId, key, newPropertyValue)
+            }
         }
-        const updateStory = (htmlElementId: string, newPropertyValue: string) => {
+        const handleMutatePresentationHTMLElement = (htmlElementId: string, newPropertyValue: string) => {
+            const key = getContainedString(htmlElementId, "-") as keyof PresentationWithoutImage
+            if (key === "skills") {
+                handleMutateOrResizeSkillHTMLElement(htmlElementId,"name",  newPropertyValue)
+            } else {
+                mutatePresentation(key, newPropertyValue)
+            }
+        }
+        const handleMutateStoryHTMLElement = (htmlElementId: string, newPropertyValue: string) => {
             const storyId = getContainedString(htmlElementId, "{", "}")
             const key = getContainedString(htmlElementId, "}") as keyof NewStory
-            if (isNewStory(storyId)) {
-                updateNewStory(storyId, key, newPropertyValue)
+            if (isNewEntity(storyId)) {
+                mutateNewStory(storyId, key, newPropertyValue)
             } else {
-                updateSavedStory(storyId, key, newPropertyValue)
+                mutateSavedStory(storyId, key, newPropertyValue)
             }
         }
 
-        const isTargetElement = (node: Node) => (node instanceof HTMLDivElement || node instanceof HTMLSpanElement) && (node.id.startsWith(presentationHtmlElementIdPrefix) || node.id.startsWith(storyHtmlElementIdPrefix))
-
-        const observer = new MutationObserver(
-            (mutationList, observer) => {
-                for (const mutation of mutationList) {
+        const mutationObserver = new MutationObserver(
+            (mutations, observer) => {
+                const isTargetElement = (node: Node) => node instanceof HTMLElement && (node.id.startsWith(presentationHtmlElementIdPrefix) || node.id.startsWith(storyHtmlElementIdPrefix))
+                for (const mutation of mutations) {
                     const targetMutation = mutation.target
-                    const targetElement = isTargetElement(targetMutation) ? targetMutation :
-                        lookUpParent(mutation.target, (p: ParentNode) => {
-                            let stop
-                            if (isTargetElement(p)) {
-                                stop = true
-                            } else {
-                                stop = !(isSpan(p) || isDiv(p) || isAnchor(p) || isImage(p))
-                            }
-                            return stop
-                        })
-                    if (targetElement && isTargetElement(targetElement)) {
-                        const {id, innerHTML} = targetElement as HTMLElement
-                        console.log(innerHTML)
+                    const targetElement = isTargetElement(targetMutation) ? targetMutation
+                        : lookUpParent(targetMutation, (p: ParentNode) => isTargetElement(p))
 
-                        if (id.startsWith(presentationHtmlElementIdPrefix)) {
-                            updatePresentation(id, innerHTML)
-                        } else {
-                            updateStory(id, innerHTML)
-                        }
+                    if (!targetElement || !isTargetElement(targetElement)) {
+                        throw Error("this should not happen")
+                    }
+
+                    const {id, innerHTML} = targetElement as HTMLElement
+                    console.log(innerHTML)
+
+                    if (id.startsWith(presentationHtmlElementIdPrefix)) {
+                        handleMutatePresentationHTMLElement(id, innerHTML)
+                    } else {
+                        handleMutateStoryHTMLElement(id, innerHTML)
                     }
                 }
             })
-        observer.observe(ref.current as HTMLElement, {characterData: true, subtree: true, childList:true, attributeFilter: ["href", "src"]})
 
-        return () => observer.disconnect()
+        const resizeObserver = new ResizeObserver((resizes, observer) => {
+            for (const resize of resizes) {
+                const {id} = resize.target as HTMLElement
+                const newRate = (resize.contentBoxSize[0].inlineSize + skillsChartContainerStyles.padding) * 100 / skillsChartContainerStyles.width
+                handleMutateOrResizeSkillHTMLElement(id,"rate", newRate)
+                console.table(resize)
+            }
+
+        })
+        const observe: Observe = (element, observeWhat) => {
+            if ("mutation" in observeWhat) {
+                const options = observeWhat.mutation
+                mutationObserver.observe(element, options === "default" ? {
+                    characterData: true,
+                    subtree: true
+                } : options)
+            }
+            if ("resize" in observeWhat) {
+                const options = observeWhat.resize
+                resizeObserver.observe(element, options === "default" ? {box: "border-box"} : options)
+            }
+        }
+        setObserve((current: Observe) => observe)
+
+        return () => {
+            mutationObserver.disconnect()
+            resizeObserver.disconnect()
+        }
     }, [])
 
     const [loading, setLoading] = useState(false)
@@ -204,21 +274,30 @@ export default function EditHome(props?: HomeProps) {
 
     const [storageResultMessage, setStorageResultMessage] = useState("")
     const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
-        prepareApiCall(putHomeProps({
-            presentation: getPresentation(),
-            stories: {
-                update: getSavedStories().filter((s)=> !(getDeleteStoriesId().some((id)=> id === s.id))),
-                delete: getDeleteStoriesId(),
-                new: getNotNullsNewStories()
-            }
+        prepareApiCall(isCreateHomeProps ?
+                               postHomeProps({
+                                   presentation: { ...getPresentation(), skills: {new: getNotNullsNewSkills()}},
+                                   stories: {new: getNotNullsNewStories()}
+                                }) :
+                                patchHomeProps({
+                                    presentation: { ...getPresentation(),
+                                                  skills: {new: getNotNullsNewSkills(), update: getUpdateSkills(), delete: getDeleteSkillsIds()}
+                                    },
+                                    stories: {
+                                        update: getUpdateStories(),
+                                        delete: getDeleteStoriesIds(),
+                                        new: getNotNullsNewStories()
+                                }
         }).then(({succeed, homeProps: {presentation, stories} = {}, errorMessage}) => {
             let resultMessage
             if (succeed) {
                 resultMessage = "home props successfully stored"
                 setPresentation(presentation || emptyPresentation)
+                setNewSkills([])
+                setDeleteSkillsIds([])
                 setSavedStories(stories || [])
                 setNewStories([])
-                setDeleteStoriesId([])
+                setDeleteStoriesIds([])
             } else {
                 resultMessage = errorMessage || "home props could not be stored"
             }
@@ -248,10 +327,11 @@ export default function EditHome(props?: HomeProps) {
     const [revalidationResultMessage, setRevalidationResultMessage] = useState("")
 
     return (
-        <Container ref={ref}>
+        <Container ref={refToMutationObserverTarget}>
             <SpinLoader show={loading}/>
-            <PresentationView editing getHtmlElementId={getPresentationHtmlElementId} presentation={presentation.current} setPresentationImage={setPresentationImage}/>
-            <StoriesView editing stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
+            <PresentationView editing observe={observe} getHtmlElementId={getPresentationHtmlElementId} presentation={getPresentation()} mutatePresentationImage={mutatePresentationImage}
+                              createSkill={createNewSkill} deleteSkill={deleteSkill}/>
+            <StoriesView editing observe={observe} stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
                          createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}/>
             <Footer>
                 <ButtonsContainer>

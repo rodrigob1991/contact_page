@@ -102,12 +102,13 @@ const TextArea = styled.textarea<{ height?: number, width?: number }>`
 `
 type OptionSelectorProps<E extends string> = {
     id?: string
+    processRefToValueHtmlElement?: (e: HTMLElement) => void
     options: E[]
     initSelectedOption?: E
     fontSize?: number
     color?: string
 }
-export const OptionSelector = <E extends string>({id, options, initSelectedOption, fontSize, color}: OptionSelectorProps<E>) => {
+export const OptionSelector = <E extends string>({id, processRefToValueHtmlElement, options, initSelectedOption, fontSize, color}: OptionSelectorProps<E>) => {
     const styles = {fontSize: fontSize || 15, color: color || "black"}
 
     const [selectedOption, setSelectedOption] = useState(initSelectedOption || options[0])
@@ -124,7 +125,7 @@ export const OptionSelector = <E extends string>({id, options, initSelectedOptio
 
     return (
         <DropDown>
-            <DropDownValue id={id} {...styles} onClick={handleOpenMenu}>{selectedOption}</DropDownValue>
+            <DropDownValue id={id} ref={processRefToValueHtmlElement ? r => {if(r) processRefToValueHtmlElement(r) } : undefined} {...styles} onClick={handleOpenMenu}>{selectedOption}</DropDownValue>
             <DropDownMenu show={show}>
                {options.map((o) => <DropDownMenuOption className={"selectorOption"} key={o} {...styles} onClick={e => handleSelection(o)}> {o}
                                        </DropDownMenuOption>)

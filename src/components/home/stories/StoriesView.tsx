@@ -1,13 +1,14 @@
-import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../types/Home"
+import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../../types/Home"
 import React, {useEffect, useRef, useState} from "react"
 import styled from "@emotion/styled"
-import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../Buttons"
-import {Pallet} from "../Pallet"
-import {OptionSelector} from "../FormComponents"
+import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../../Buttons"
+import {Pallet} from "../../Pallet"
+import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
 import Image from 'next/image'
+import {Observe} from "../../../pages/user/edit_home";
 
-type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
+export type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
 type GetHtmlElementIds = (id: string) => StoryHTMLElementIds
 type GetNewStory = () => [string, NewStory]
@@ -15,6 +16,7 @@ type DeleteStory = (id: string) => void
 type RecoverStory = (id: string) => void
 type EditingProps = {
     editing: true
+    observe: Observe
     createNewStory: GetNewStory
     getHtmlElementIds: GetHtmlElementIds
     deleteStory : DeleteStory
@@ -26,6 +28,7 @@ type Props<M extends ViewMode> = {
 
 export default function StoriesView<M extends ViewMode>({
                                                             editing,
+                                                            observe,
                                                             stories,
                                                             createNewStory,
                                                             getHtmlElementIds,
@@ -129,19 +132,16 @@ export default function StoriesView<M extends ViewMode>({
     }
 
     const getStoryView = (storyVisibility: StoryViewStates, index: number) => {
-        const {story : {title, body}, isOpen} = storyVisibility
+        const {story: {title, body}, isOpen} = storyVisibility
 
-        const storyTitle = <StoryTitleContainer>
-                                <StoryTitle>{title}</StoryTitle>
-                                <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
-                            </StoryTitleContainer>
         return (
             <StoryContainer key={title}>
-                {isOpen ? <StoryOpenContainer>
-                            {storyTitle}
-                            <StoryBody>{convertBodyFromHtmlToJsx(body)}</StoryBody>
-                          </StoryOpenContainer>
-                        : storyTitle}
+                <StoryTitleContainer>
+                    <StoryTitle>{title}</StoryTitle>
+                    <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen}
+                                            onClick={(e => openOrCloseStory(index))}/>
+                </StoryTitleContainer>
+                {isOpen && <StoryBody>{convertBodyFromHtmlToJsx(body)}</StoryBody>}
             </StoryContainer>
         )
     }
@@ -150,7 +150,6 @@ export default function StoriesView<M extends ViewMode>({
         const {title,body} = story
         const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
-        const contentEditable = editing && !toDelete
         const handleOnFocusBody = (e: React.FocusEvent) => {
             setEditingStoryIdHtml(idHtml)
         }
@@ -160,31 +159,33 @@ export default function StoriesView<M extends ViewMode>({
             }
         }
 
-        const storyTitleView =
-            <StoryTitleContainer>
-                <StoryTitle id={htmlIds.title} toDelete={toDelete} contentEditable={contentEditable}>{title}</StoryTitle>
-                <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
-                <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
-                                       handleDelete={() => {handleDeleteStory(idHtml, index, !("id" in story))}}
-                                       handleRecover={() => {handleRecoverStory(idHtml, index)}}/>
-                <Pallet show={isEditingStory(idHtml)} isAsking={isAsking} fontSize={bodyStoryFontSize}/>
-            </StoryTitleContainer>
-
         return (
             <StoryContainer key={idHtml}>
-                <OptionSelector id={htmlIds.state} color={"#778899"} fontSize={15} options={Object.values(StoryState)} initSelectedOption={story.state}/>
-                {isOpen ? <StoryOpenContainer>
-                            {storyTitleView}
-                            <StoryBody id={htmlIds.body} contentEditable={contentEditable}
-                                       dangerouslySetInnerHTML={{__html: body}}
-                                       onFocus={handleOnFocusBody}
-                                       onBlur={handleOnBlurBody}
-                                       />
-                        </StoryOpenContainer>
-                    : storyTitleView}
+                <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r)=> (observe as Observe)(r, {mutation: "default"})} color={"#778899"} fontSize={15} options={Object.values(StoryState)}
+                                initSelectedOption={story.state}/>
+                <StoryTitleContainer>
+                    <StoryTitle id={htmlIds.title} ref={r => {if(r) (observe as Observe)(r, {mutation: "default"})}} toDelete={toDelete} contentEditable={!toDelete}>{title}</StoryTitle>
+                    <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen}
+                                            onClick={(e => openOrCloseStory(index))}/>
+                    <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
+                                           handleDelete={() => {
+                                               handleDeleteStory(idHtml, index, !("id" in story))
+                                           }}
+                                           handleRecover={() => {
+                                               handleRecoverStory(idHtml, index)
+                                           }}/>
+                    <Pallet show={isEditingStory(idHtml)} isAsking={isAsking} fontSize={bodyStoryFontSize}/>
+                </StoryTitleContainer>
+                {isOpen && <StoryBody id={htmlIds.body} contentEditable={!toDelete}
+                                      ref={r => {if(r) (observe as Observe)(r, {mutation: "default"})}}
+                                      dangerouslySetInnerHTML={{__html: body}}
+                                      onFocus={handleOnFocusBody}
+                                      onBlur={handleOnBlurBody}
+                />}
             </StoryContainer>
         )
     }
+
     return (
         <Container>
             <TitleContainer>
@@ -271,10 +272,4 @@ const StoryTitle = styled.span<{ toDelete?: boolean }>`
         + "text-decoration-style: wavy;"
         : ""
 } 
-`
-const StoryOpenContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  gap: 15px;
 `

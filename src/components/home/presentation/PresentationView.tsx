@@ -4,14 +4,16 @@ import React from "react"
 import {ImageViewSelector} from "../../FormComponents"
 import Image from "next/image"
 import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
+import {Observe} from "../../../pages/user/edit_home"
 
 export type GetHtmlElementId = <K extends PresentationHTMLElementIdsKey>(key: K, skillId: (K extends "skills" ? string : undefined)) =>  string
 type EditingProps = {
     editing: true
     getHtmlElementId: GetHtmlElementId
-    setPresentationImage: (imageDataUrl: string) => void
+    mutatePresentationImage: (imageDataUrl: string) => void
     createSkill: CreateSkill
     deleteSkill : DeleteSkill
+    observe: Observe
 }
 type Props<VM extends ViewMode> = {
     presentation: Presentation
@@ -20,18 +22,18 @@ type Props<VM extends ViewMode> = {
 export default function PresentationView<VM extends ViewMode>({
                                              editing,
                                              presentation: {name, introduction, skills, image: imageDataUrl},
-                                             getHtmlElementId, setPresentationImage, createSkill, deleteSkill
+                                             getHtmlElementId, mutatePresentationImage, createSkill, deleteSkill, observe
                                          }: Props<VM>) {
     let nameHtmlId
     let introductionHtmlId
     let getSkillHtmlId
     let skillsChart
-    if (editing && getHtmlElementId && createSkill && deleteSkill) {
+    if (editing && getHtmlElementId && createSkill && deleteSkill && observe) {
         nameHtmlId = getHtmlElementId("name", undefined)
         introductionHtmlId = getHtmlElementId("introduction", undefined)
         getSkillHtmlId = (skillId: string) => getHtmlElementId("skills", skillId)
         skillsChart = <SkillsChart editing skills={skills} width={250} createSkill={createSkill} deleteSkill={deleteSkill}
-                         getHtmlElementId={getSkillHtmlId}/>
+                         getHtmlElementId={getSkillHtmlId} observe={observe}/>
     } else {
         skillsChart = <SkillsChart skills={skills} width={250}/>
     }
@@ -41,14 +43,14 @@ export default function PresentationView<VM extends ViewMode>({
             {skillsChart}
             <InnerContainer>
             <NameImageContainer>
-                {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processImage={setPresentationImage}
+                {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processImage={mutatePresentationImage}
                                          imageDataUrl={imageDataUrl}/>
                         : <Image src={imageDataUrl as string} width={100} height={90} layout={"intrinsic"}/>}
-                <Name id={nameHtmlId} contentEditable={editing}>
+                <Name id={nameHtmlId} contentEditable={editing} ref={ editing ? r => {if (r) (observe as Observe)(r, {mutation: "default"})} : undefined}>
                     {name}
                 </Name>
             </NameImageContainer>
-            <Introduction id={introductionHtmlId} contentEditable={editing}
+            <Introduction id={introductionHtmlId} contentEditable={editing} ref={ editing ? r => {if(r) (observe as Observe)(r, {mutation: "default"})} : undefined}
                                       dangerouslySetInnerHTML={{__html: introduction}}/>
             </InnerContainer>
         </Container>
