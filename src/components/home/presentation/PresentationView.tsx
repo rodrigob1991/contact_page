@@ -59,6 +59,7 @@ export default function PresentationView<VM extends ViewMode>({
 
 const Container = styled.div`
   display: flex;
+  justify-content: center;
   padding: 20px;
   gap: 80px;
   background-image: linear-gradient(#00008B,#0000FF);

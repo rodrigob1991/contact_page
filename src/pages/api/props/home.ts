@@ -74,7 +74,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
                 }
             }
             break
-        case "PUT" :
+        case "PATCH" :
             if (!requestBody || !ApiParamsValidator.areValidUpdateHomePropsArgs(requestBody)) {
                 httpCode = 400
                 body = {errorMessage: "invalid update home props request body"}

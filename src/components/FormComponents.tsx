@@ -228,15 +228,34 @@ type ImageViewSelectorProps = {
     imageMaxSize: number
     width: number
     height: number
+    description?: string
+    style?: React.CSSProperties
 }
 
-export const ImageViewSelector = ({processImage,imageDataUrl: imageDataUrlInit , imageMaxSize, width, height}: ImageViewSelectorProps) => {
+export const ImageViewSelector = ({processImage,imageDataUrl: imageDataUrlInit , imageMaxSize, width, height, description, style}: ImageViewSelectorProps) => {
     const [imageDataUrl, setImageDataUrl] = useState(imageDataUrlInit)
+
+    const [hoveringImage, setHoveringImage] = useState(false)
+    const [hoveringDescription, setHoveringDescription] = useState(false)
+    const handleOnMouseEnter = () => {
+        setHoveringImage(true)
+    }
+    const handleOnMouseLeave = () => {
+        setHoveringImage(false)
+    }
+    const handleOnMouseEnterDescription = () => {
+        setHoveringDescription(true)
+    }
+    const handleOnMouseLeaveDescription = () => {
+        setHoveringDescription(false)
+    }
 
     return (
         <ImageSelectorContainer>
-            <ImageSelector processImage={(name, src)=> {setImageDataUrl(src);if (processImage) {processImage(src)}}}
-                           label={<img src={imageDataUrl} width={width} height={height}/>} imageMaxSize={imageMaxSize}/>
+            <ImageSelector processImage={(name, src)=> {setImageDataUrl(src); if (processImage) {processImage(src)}}}
+                           label={<>{description && <ImageDescription onMouseEnter={handleOnMouseEnterDescription} onMouseLeave={handleOnMouseLeaveDescription} show={hoveringImage || hoveringDescription}>{description}</ImageDescription>}
+                               <img onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave} src={imageDataUrl} style={style} width={width} height={height}/>
+                           </>} imageMaxSize={imageMaxSize}/>
         </ImageSelectorContainer>
     )
 }
@@ -247,6 +266,19 @@ const ImageSizeErrorLabel = styled.label`
   font-weight: bold;
   font-size: 15px;
   color: red;
+`
+const ImageDescription = styled.div<{show: boolean}>`
+  display: ${({show})=> show ? "block" : "none"};
+  position: absolute;
+  z-index: 1;
+  background-color: white;
+  color: #778899;
+  font-weight: bold;
+  font-size: 10px;
+  border-style: solid;
+  border-color: #778899;
+  border-width: thin;
+  padding: 1.5px;
 `
 
 type InputType = "textAreaInput" | "textInput" | "textInputEmail"

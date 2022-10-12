@@ -3,6 +3,8 @@ import {PlusButton} from "../../Buttons"
 import React, {useEffect, useState} from "react"
 import {NewSkill, Skill, ViewMode} from "../../../types/Home"
 import {Observe} from "../../../pages/user/edit_home";
+import {ImageViewSelector, TextInput} from "../../FormComponents";
+import {useAsk} from "../../../utils/Hooks";
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
@@ -21,9 +23,10 @@ type Props<VM extends ViewMode> = {
     width: number
 } & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
-export const containerStyles = {padding: 7, width: 250}
+export const containerStyles = {padding: 7, height: 200}
 
-export default function SkillsChart<VM extends ViewMode>({skills, width, editing, createSkill, deleteSkill, getHtmlElementId, observe}: Props<VM>) {
+export default function SkillsChart<VM extends ViewMode>({skills, editing, createSkill, deleteSkill, getHtmlElementId, observe}: Props<VM>) {
+    console.table(skills)
     const [skillsViewStates, setSkillsViewStates] = useState<SkillViewState[]>(skills.map((s) => {
         return {idHtml: s.id, skill: s}
     }))
@@ -48,28 +51,62 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
         const [idHtml, newSkill] = (createSkill as CreateSkill)()
         setSkillsViewStates([...skillsViewStates, {idHtml: idHtml, skill: newSkill}])
     }
+    const handleOnClickSkill = (e: React.MouseEvent<HTMLDivElement>, skillId: string, index: number) => {
+        switch (e.detail) {
+            case 2:
+                (deleteSkill as DeleteSkill)(skillId)
+                setSkillsViewStates(
+                    (current) => {
+                        const next = [...current]
+                        next.splice(index, 1)
+                        return next
+                    })
+                break
+        }
+    }
+
+    const getHslColor = (rate: number) => {
+        const hue = rate*120/100
+        const saturation = 80
+        const lightness = 55
+
+        return `hsl(${hue},${saturation}%,${lightness}%)`
+    }
+
 
     const getStoriesView = () => skillsViewStates.map(({skill: {name, rate}}) =>
-        <SkillView key={name} width={rate}> {name} </SkillView>)
+        <SkillView key={name} height={rate} hslColor={getHslColor(rate)}> {name} </SkillView>)
 
-    const getEditableStoriesView = () => skillsViewStates.map(({idHtml, skill: {name, rate}}) =>
-        <SkillView ref={r => {if(r) (observe as Observe)(r, {mutation: "default",resize: "default"})}} id={(getHtmlElementId as GetHtmlElementId)(idHtml)} key={name} contentEditable resize={true} width={rate}> {name} </SkillView>)
+    const [ask, hide, isAsking, Element] = useAsk({child: <TextInput placeholder={"href"}
+                                                                            ref={refToInput}
+                                                                            width={150}
+                                                                            value={hRef}
+                                                                            setValue={setHRef}
+                                                                            onEnter={handleOnEnter}/>})
 
+    const getEditableStoriesView = () => skillsViewStates.map(({idHtml, skill: {name, rate}}, index) =>
+        <SkillViewContainer key={name}>
+            <ImageViewSelector imageMaxSize={1} width={20} height={20} description={name} style={{backgroundColor: "white"}}/>
+            <SkillView hslColor={getHslColor(rate)} ref={r => {if(r) (observe as Observe)(r, {mutation: "default",resize: "default"})}}
+                       id={(getHtmlElementId as GetHtmlElementId)(idHtml)} resize={true} height={rate} onClick={(e)=> handleOnClickSkill(e, idHtml, index)}/>
+        </SkillViewContainer>)
     return (
         <Container>
             <TitleContainer>
             <label style={{ fontWeight: "bold", fontSize: "20px"}}>skills</label>
             {editing && <PlusButton size={15} onClick={handleCreateSkill}/>}
             </TitleContainer>
-            {editing ? getEditableStoriesView() : getStoriesView()}
+           {editing ? getEditableStoriesView() : getStoriesView()}
         </Container>
     )
 }
 const Container = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  position: absolute;
+  left: 0;
   padding: ${containerStyles.padding}px;
-  width: ${containerStyles.width}px;
+  height: ${containerStyles.height}px;
   gap: 5px;
 `
 const TitleContainer = styled.div`
@@ -77,18 +114,22 @@ const TitleContainer = styled.div`
   color: white;
   gap: 5px;
 `
-const SkillView = styled.div<{width: number, resize?: boolean}>`
+const SkillViewContainer = styled.div`
+  display: flex;
+  flex-direction: column-reverse;
+`
+const SkillView = styled.div<{height: number, resize?: boolean, hslColor: string}>`
   display: flex;
   overflow: hidden;
-  background-color: white;
   padding-left: 5px;
   color: #696969;
-  height: 20px;
+  width: 20px;
   font-weight: bold;
   border-radius: 3px;
-  max-width: 100%;
-  ${({width, resize})=> 
-    `width: ${width}%;
-    ${resize ? "resize: horizontal;" : ""}
+  max-height: 100%;
+  ${({height, resize, hslColor})=> 
+    `height: ${height}%;
+    background-color: ${hslColor};
+    ${resize ? "resize: vertical;" : ""}
    `}
  `

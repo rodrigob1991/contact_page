@@ -161,23 +161,20 @@ export default function StoriesView<M extends ViewMode>({
 
         return (
             <StoryContainer key={idHtml}>
-                <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r)=> (observe as Observe)(r, {mutation: "default"})} color={"#778899"} fontSize={15} options={Object.values(StoryState)}
-                                initSelectedOption={story.state}/>
+                <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r)=> (observe as Observe)(r, {mutation: "default"})}
+                                color={"#778899"} fontSize={15} options={Object.values(StoryState)} initSelectedOption={story.state}/>
                 <StoryTitleContainer>
-                    <StoryTitle id={htmlIds.title} ref={r => {if(r) (observe as Observe)(r, {mutation: "default"})}} toDelete={toDelete} contentEditable={!toDelete}>{title}</StoryTitle>
-                    <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen}
-                                            onClick={(e => openOrCloseStory(index))}/>
+                    <StoryTitle id={htmlIds.title} ref={r => {if(r) (observe as Observe)(r, {mutation: "default"})}} toDelete={toDelete} contentEditable={!toDelete}>
+                        {title}
+                    </StoryTitle>
+                    <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
                     <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
-                                           handleDelete={() => {
-                                               handleDeleteStory(idHtml, index, !("id" in story))
-                                           }}
-                                           handleRecover={() => {
-                                               handleRecoverStory(idHtml, index)
-                                           }}/>
+                                           handleDelete={() => {handleDeleteStory(idHtml, index, !("id" in story))}}
+                                           handleRecover={() => {handleRecoverStory(idHtml, index)}}/>
                     <Pallet show={isEditingStory(idHtml)} isAsking={isAsking} fontSize={bodyStoryFontSize}/>
                 </StoryTitleContainer>
                 {isOpen && <StoryBody id={htmlIds.body} contentEditable={!toDelete}
-                                      ref={r => {if(r) (observe as Observe)(r, {mutation: "default"})}}
+                                      ref={r => {if(r) (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}
                                       dangerouslySetInnerHTML={{__html: body}}
                                       onFocus={handleOnFocusBody}
                                       onBlur={handleOnBlurBody}

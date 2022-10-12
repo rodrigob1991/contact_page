@@ -109,12 +109,11 @@ export class PropsStorageClient {
                 ...presentationRest
             } = args as UpdatePresentationArgs
             const saveManySkills = {skills: {...this.#getCreateMany(newSkills), ...this.#getUpdateMany(updateSkills), ...this.#getDeleteMany(deleteSkills)}}
-            const data = this.#getUpdate({...this.#getPresentationWithImageBuffer(presentationRest), ...saveManySkills})
 
             promise = this.prisma.presentation.update(
                 {
                     where: {id: id},
-                    data: data,
+                    data: {...this.#getPresentationWithImageBuffer(presentationRest), ...saveManySkills},
                     ...select
                 }
             )
@@ -161,7 +160,7 @@ export class PropsStorageClient {
                               }, stories: {new: newStories}
                           }: CreateHomePropsArgs) {
         const createManySkills = {skills: this.#getCreateMany(newSkills)}
-        const createPresentation = {presentation: this.#getCreate({id: PropsStorageClient.presentationId, ...this.#getPresentationWithImageBuffer(presentationRest), ...createManySkills})}
+        const createPresentation = {presentation: {create: {id: PropsStorageClient.presentationId, ...this.#getPresentationWithImageBuffer(presentationRest), ...createManySkills}}}
 
         const createManyStories = {stories: this.#getCreateMany(newStories)}
 
@@ -183,9 +182,9 @@ export class PropsStorageClient {
                            },
                            stories: {delete: deleteStories, new: newStories, update: updateStories}
                        }: UpdateHomePropsArgs): Promise<HomeProps> {
+        console.table(newSkills)
         const saveManySkills = {skills: {...this.#getCreateMany(newSkills), ...this.#getUpdateMany(updateSkills), ...this.#getDeleteMany(deleteSkills)}}
-        const updatePresentation = {presentation: this.#getUpdate({...this.#getPresentationWithImageBuffer(presentationRest), ...saveManySkills})}
-
+        const updatePresentation = {presentation: {update: {...this.#getPresentationWithImageBuffer(presentationRest), ...saveManySkills}}}
         const saveManyStories = {stories: {...this.#getCreateMany(newStories), ...this.#getUpdateMany(updateStories), ...this.#getDeleteMany(deleteStories)}}
 
         return this.prisma.props.update(
@@ -232,12 +231,13 @@ export class PropsStorageClient {
     }
 
     /* ----- PRIVATE METHODS TO HELP BUILD QUERIES ----- */
-    #getCreate<NE extends NewEntity>(entity: NE) {
+    /*#getCreate<NE extends NewEntity>(entity: NE) {
         return {create: {...entity}}
     }
     #getUpdate<NE extends NewEntity>(entity: NE | undefined, id?: string) {
-        return {update: (id ? {where: {id: id}} : {}), ...entity}
-    }
+        const where = id ? {where: {id: id}} : {}
+        return {...where, data: entity}
+    }*/
     #getCreateMany<NE extends NewEntity>(entities: NE[] | undefined) {
         return {createMany: entities && entities.length > 0 ? {data: entities} : undefined}
     }

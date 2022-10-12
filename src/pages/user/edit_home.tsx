@@ -185,7 +185,7 @@ export default function EditHome(props?: HomeProps) {
     const [observe, setObserve] = useState<Observe>(()=> ()=> {})
 
     useEffect(() => {
-        const handleMutateOrResizeSkillHTMLElement = <K extends keyof NewSkill>(htmlElementId: string, key: K,  newPropertyValue: Skill[K]) => {
+        const handleMutatedOrResizedSkillHTMLElement = <K extends keyof NewSkill>(htmlElementId: string, key: K,  newPropertyValue: Skill[K]) => {
             const skillId = getContainedString(htmlElementId, "{", "}")
             if (isNewEntity(skillId)) {
                 mutateNewSkill(skillId, key, newPropertyValue)
@@ -193,15 +193,15 @@ export default function EditHome(props?: HomeProps) {
                 mutateSavedSkill(skillId, key, newPropertyValue)
             }
         }
-        const handleMutatePresentationHTMLElement = (htmlElementId: string, newPropertyValue: string) => {
-            const key = getContainedString(htmlElementId, "-") as keyof PresentationWithoutImage
-            if (key === "skills") {
-                handleMutateOrResizeSkillHTMLElement(htmlElementId,"name",  newPropertyValue)
+        const handleMutatedPresentationHTMLElement = (htmlElementId: string, newPropertyValue: string) => {
+            const key = getContainedString(htmlElementId, "-")
+            if (key.startsWith("skills")) {
+                handleMutatedOrResizedSkillHTMLElement(htmlElementId,"name",  newPropertyValue)
             } else {
-                mutatePresentation(key, newPropertyValue)
+                mutatePresentation(key as keyof PresentationWithoutImage, newPropertyValue)
             }
         }
-        const handleMutateStoryHTMLElement = (htmlElementId: string, newPropertyValue: string) => {
+        const handleMutatedStoryHTMLElement = (htmlElementId: string, newPropertyValue: string) => {
             const storyId = getContainedString(htmlElementId, "{", "}")
             const key = getContainedString(htmlElementId, "}") as keyof NewStory
             if (isNewEntity(storyId)) {
@@ -211,11 +211,15 @@ export default function EditHome(props?: HomeProps) {
             }
         }
 
+        const isTargetElement = (node: Node) => node instanceof HTMLElement && (node.id.startsWith(presentationHtmlElementIdPrefix) || node.id.startsWith(storyHtmlElementIdPrefix))
+
         const mutationObserver = new MutationObserver(
             (mutations, observer) => {
-                const isTargetElement = (node: Node) => node instanceof HTMLElement && (node.id.startsWith(presentationHtmlElementIdPrefix) || node.id.startsWith(storyHtmlElementIdPrefix))
                 for (const mutation of mutations) {
                     const targetMutation = mutation.target
+                    if (!targetMutation.isConnected) {
+                        continue
+                    }
                     const targetElement = isTargetElement(targetMutation) ? targetMutation
                         : lookUpParent(targetMutation, (p: ParentNode) => isTargetElement(p))
 
@@ -227,29 +231,27 @@ export default function EditHome(props?: HomeProps) {
                     console.log(innerHTML)
 
                     if (id.startsWith(presentationHtmlElementIdPrefix)) {
-                        handleMutatePresentationHTMLElement(id, innerHTML)
+                        handleMutatedPresentationHTMLElement(id, innerHTML)
                     } else {
-                        handleMutateStoryHTMLElement(id, innerHTML)
+                        handleMutatedStoryHTMLElement(id, innerHTML)
                     }
                 }
             })
 
         const resizeObserver = new ResizeObserver((resizes, observer) => {
             for (const resize of resizes) {
-                const {id} = resize.target as HTMLElement
-                const newRate = (resize.contentBoxSize[0].inlineSize + skillsChartContainerStyles.padding) * 100 / skillsChartContainerStyles.width
-                handleMutateOrResizeSkillHTMLElement(id,"rate", newRate)
-                console.table(resize)
+                const resizeTarget = resize.target as HTMLElement
+                // can be no connected when removing
+                if (resizeTarget.isConnected) {
+                    const newRate = Math.round((resize.borderBoxSize[0].blockSize) * 100 / (skillsChartContainerStyles.height - (skillsChartContainerStyles.padding * 2)))
+                    handleMutatedOrResizedSkillHTMLElement(resizeTarget.id, "rate", newRate)
+                }
             }
-
         })
         const observe: Observe = (element, observeWhat) => {
             if ("mutation" in observeWhat) {
                 const options = observeWhat.mutation
-                mutationObserver.observe(element, options === "default" ? {
-                    characterData: true,
-                    subtree: true
-                } : options)
+                mutationObserver.observe(element, options === "default" ? {characterData: true, subtree: true} : options)
             }
             if ("resize" in observeWhat) {
                 const options = observeWhat.resize
