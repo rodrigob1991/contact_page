@@ -21,12 +21,7 @@ type TextInputProps = {
     email?: boolean
     onEnter?: () => void
 } & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>,HTMLInputElement>
-export const TextInput = forwardRef(({
-                              setValue,
-                              email,
-                              onEnter,
-                              ...rest
-                          }: TextInputProps, ref : Ref<HTMLInputElement>) => {
+export const TextInput = forwardRef(({setValue, email, onEnter, ...rest}: TextInputProps, ref : Ref<HTMLInputElement>) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         switch (e.key.toLowerCase()) {
             case "enter" :
@@ -38,7 +33,7 @@ export const TextInput = forwardRef(({
     }
 
     return (
-        <Input {...rest} type={email ? "email" : "text"} ref={ref}
+        <Input {...rest} height={43} type={email ? "email" : "text"} ref={ref}
                onChange={(e) => setValue(e.target.value)}
                onKeyDown={handleKeyDown}
         />
@@ -81,11 +76,7 @@ const Input = styled.input`
 type TextAreaInputProps = {
     setValue: (value: string) => void
 } & DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>
-
-export const TextAreaInput = ({
-                                  setValue,
-                                    ...rest
-                              }: TextAreaInputProps) => {
+export const TextAreaInput = ({setValue, ...rest}: TextAreaInputProps) => {
     return (
         <TextArea {...rest} onChange={(e) => setValue(e.target.value)}/>
     )

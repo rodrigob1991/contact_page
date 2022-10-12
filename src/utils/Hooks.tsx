@@ -31,6 +31,34 @@ export const useRecordState = <R extends Record<string, any>>(r: R) => {
     return {state: state, setDefaultState: setDefaultState, setState: setSubSet}
 }
 
+export type Ask = (top: number, left: number) => void
+export type Hide = () => void
+export type IsAsking = () => boolean
+export type UseAskProps = {
+    child: JSX.Element
+    onShow?: ()=> void
+    maxWidth?: number
+}
+export const useAsk = ({child, onShow, maxWidth}: UseAskProps): [Ask, Hide, IsAsking , JSX.Element] => {
+    const askInitialStates = {show: false, position: {top: 0, left: 0}}
+    const {state, setState, setDefaultState: hide} = useRecordState(askInitialStates)
+    const ask = (top: number, left: number) => {
+        setState({show: true, position: {top: top, left: left}})
+    }
+    useEffect(() => {
+        if (onShow && state.show) {
+            onShow()
+        }
+    }, [state.show])
+
+    const isAsking = () => state.show
+
+    const Element = <AskContainer {...state} maxWidth={maxWidth}>
+                    {child}
+                    </AskContainer>
+
+    return [ask, hide, isAsking, Element]
+}
 type AskContainerProps = { show: boolean, position: { top: number, left: number }, maxWidth?: number}
 const AskContainer = styled.div<AskContainerProps>`
   display: ${({show, position:{top, left}, maxWidth}) => (show ? "flex" : "none") + ";"
@@ -46,31 +74,3 @@ const AskContainer = styled.div<AskContainerProps>`
   border-color: #000000;
   background-color: white;
 `
-export type Ask = (top: number, left: number) => void
-export type Hide = () => void
-export type IsAsking = () => boolean
-export type UseAskProps = {
-    child: JSX.Element
-    onShow: ()=> void
-    maxWidth?: number
-}
-export const useAsk = ({child, onShow, maxWidth}: UseAskProps): [Ask, Hide, IsAsking , JSX.Element] => {
-    const askInitialStates = {show: false, position: {top: 0, left: 0}}
-    const {state, setState, setDefaultState: hide} = useRecordState(askInitialStates)
-    const ask = (top: number, left: number) => {
-        setState({show: true, position: {top: top, left: left}})
-    }
-    useEffect(() => {
-        if (state.show) {
-            onShow()
-        }
-    }, [state.show])
-
-    const isAsking = () => state.show
-
-    const Element = <AskContainer {...state} maxWidth={maxWidth}>
-                    {child}
-                    </AskContainer>
-
-    return [ask, hide, isAsking, Element]
-}

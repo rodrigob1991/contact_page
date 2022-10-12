@@ -423,11 +423,11 @@ const useAskHRef = ({processHRef, isAskingFalse}: UseAskHRefProps): [Ask, IsAski
 
     const [ask, hide, isAsking, Ask] = useAsk({
         child: <TextInput placeholder={"href"}
-                                 ref={refToInput}
-                                 width={150}
-                                 value={hRef}
-                                 setValue={setHRef}
-                                 onEnter={handleOnEnter}/>,
+                          style={{width: "200px"}}
+                          ref={refToInput}
+                          value={hRef}
+                          setValue={setHRef}
+                          onEnter={handleOnEnter}/>,
         onShow: focusInput
     })
     return [ask, isAsking, Ask]
