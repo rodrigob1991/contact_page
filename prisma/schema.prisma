@@ -26,6 +26,7 @@ model Skill {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   name String @unique
   rate Int
+  image Bytes
   presentation Presentation @relation(fields: [presentationId], references: [id])
   presentationId String @db.ObjectId
 }

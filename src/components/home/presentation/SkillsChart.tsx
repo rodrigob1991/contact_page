@@ -2,9 +2,10 @@ import styled from "@emotion/styled"
 import {PlusButton} from "../../Buttons"
 import React, {useEffect, useRef, useState} from "react"
 import {NewSkill, Skill, ViewMode} from "../../../types/Home"
-import {Observe} from "../../../pages/user/edit_home";
-import {ImageViewSelector, TextInput} from "../../FormComponents";
-import {useAsk} from "../../../utils/Hooks";
+import {Observe} from "../../../pages/user/edit_home"
+import {ImageViewSelector, TextInput} from "../../FormComponents"
+import {useAsk} from "../../../utils/Hooks"
+import Image from "next/image";
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
@@ -26,10 +27,24 @@ type Props<VM extends ViewMode> = {
 export const containerStyles = {padding: 7, height: 200}
 
 export default function SkillsChart<VM extends ViewMode>({skills, editing, createSkill, deleteSkill, getHtmlElementId, observe}: Props<VM>) {
-    console.table(skills)
     const [skillsViewStates, setSkillsViewStates] = useState<SkillViewState[]>(skills.map((s) => {
         return {idHtml: s.id, skill: s}
     }))
+
+    const getHslColor = (rate: number) => {
+        const hue = rate*120/100
+        const saturation = 80
+        const lightness = 55
+
+        return `hsl(${hue},${saturation}%,${lightness}%)`
+    }
+
+    const getStoriesView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
+        <SkillViewContainer key={name}>
+            <Image src={image} width={20} height={20} layout={"intrinsic"}/>
+            <SkillView key={name} height={rate} hslColor={getHslColor(rate)}> {name} </SkillView>
+        </SkillViewContainer>)
+
     useEffect(() => {
         setSkillsViewStates((skillsViewStates) => {
             const updatedSkillsViewStates = []
@@ -51,7 +66,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
         const [idHtml, newSkill] = (createSkill as CreateSkill)()
         setSkillsViewStates([...skillsViewStates, {idHtml: idHtml, skill: newSkill}])
     }
-    const handleTwoClickSkill = (index: number) => {
+    const handleOnTwoClickSkill = (index: number) => {
         (deleteSkill as DeleteSkill)(skillsViewStates[index].idHtml)
         setSkillsViewStates(
             (current) => {
@@ -60,61 +75,80 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
                 return next
             })
     }
+    const clickCount = useRef(0)
     const handleOnClickSkill = (e: React.MouseEvent<HTMLDivElement>, index: number) => {
+        let callback
         switch (e.detail) {
             case 1:
-                handleOneClickSkill(index)
+                clickCount.current = 1
+                callback = () => {
+                    if (clickCount.current === 1) {
+                        handleOnOneClickSkill(index, e.clientY, e.clientX)
+                    }
+                }
                 break
             case 2:
-                handleTwoClickSkill(index)
+                clickCount.current = 2
+                callback = () => {
+                    if (clickCount.current === 2) {
+                        handleOnTwoClickSkill(index)
+                    }
+                }
                 break
+            default:
+                clickCount.current = 0
         }
+        if (callback)
+            setTimeout(callback, 200)
     }
 
-    const getHslColor = (rate: number) => {
-        const hue = rate*120/100
-        const saturation = 80
-        const lightness = 55
-
-        return `hsl(${hue},${saturation}%,${lightness}%)`
-    }
-
-
-    const getStoriesView = () => skillsViewStates.map(({skill: {name, rate}}) =>
-        <SkillView key={name} height={rate} hslColor={getHslColor(rate)}> {name} </SkillView>)
-
-    const [currentSkillName, setCurrentSkillName] = useState("")
     const refToSkillNameInput = useRef<HTMLInputElement | null>(null)
     const focusSkillNameInput = () => refToSkillNameInput.current?.focus()
-    const handleOneClickSkill = (index: number) => {
-        const nextMutateSkillName = () => {
-            skillsViewStates[index].skill.name = currentSkillName
-        }
-        setMutateSkillName((current)=> nextMutateSkillName)
-        askSkillName(50, 50)
+
+    const [selectedSkillIndex, setSelectedSkillIndex] = useState(-1)
+    const [selectedSkillName, setSelectedSkillName] = useState( "")
+    const mutateSkillName = () => {
+        skillsViewStates[selectedSkillIndex].skill.name = selectedSkillName
     }
-    type MutateSkillName = ()=> void
-    const [mutateSkillName, setMutateSkillName] = useState<MutateSkillName>()
+    const handleOnOneClickSkill = (index: number, top: number, left: number) => {
+        setSelectedSkillIndex(index)
+        setSelectedSkillName(skillsViewStates[index].skill.name)
+        askSkillName(top, left)
+    }
+
     const onEnterSkillName = () => {
-        (mutateSkillName as MutateSkillName)()
+        mutateSkillName()
+        hideAskSkillName()
+    }
+    const onEscapeSkillName = () => {
+        setSelectedSkillName("")
         hideAskSkillName()
     }
     const [askSkillName, hideAskSkillName, isAskingSkillName, AskSkillNameElement] =
         useAsk({onShow: focusSkillNameInput,
                                     child: <TextInput placeholder={"name"}
-                                                      style={{width: "100px"}}
+                                                      style={{width: "120px"}}
                                                       ref={refToSkillNameInput}
-                                                      value={currentSkillName}
-                                                      setValue={setCurrentSkillName}
-                                                      onEnter={onEnterSkillName}/>})
+                                                      value={selectedSkillName}
+                                                      setValue={setSelectedSkillName}
+                                                      onEnter={onEnterSkillName}
+                                                      onEscape={onEscapeSkillName}/>})
 
-    const getEditableStoriesView = () => skillsViewStates.map(({idHtml, skill: {name, rate}}, index) =>
-        <SkillViewContainer key={name}>
-            <ImageViewSelector imageMaxSize={1} width={20} height={20} description={name} style={{backgroundColor: "white"}}/>
-            <SkillView hslColor={getHslColor(rate)} ref={r => {if(r) (observe as Observe)(r, {mutation: "default",resize: "default"})}}
-                       id={(getHtmlElementId as GetHtmlElementId)(idHtml)} resize={true} height={rate} onClick={(e)=> handleOnClickSkill(e, index)}/>
+    const getEditableStoriesView = () =>
+        <>
             {AskSkillNameElement}
-        </SkillViewContainer>)
+            {skillsViewStates.map(({idHtml, skill: {name, rate}}, index) =>
+                <SkillViewContainer key={name}>
+                    <ImageViewSelector imageMaxSize={1} width={20} height={20} description={name}
+                                       style={{backgroundColor: "white"}}/>
+                    <SkillView hslColor={getHslColor(rate)} ref={r => {
+                        if (r) (observe as Observe)(r, {mutation: "default", resize: "default"})
+                    }}
+                               id={(getHtmlElementId as GetHtmlElementId)(idHtml)} resize={true} height={rate}
+                               onClick={(e) => handleOnClickSkill(e, index)}/>
+                </SkillViewContainer>)}
+        </>
+
     return (
         <Container>
             <TitleContainer>
@@ -142,6 +176,7 @@ const TitleContainer = styled.div`
 const SkillViewContainer = styled.div`
   display: flex;
   flex-direction: column-reverse;
+  gap: 2px;
 `
 const SkillView = styled.div<{height: number, resize?: boolean, hslColor: string}>`
   display: flex;

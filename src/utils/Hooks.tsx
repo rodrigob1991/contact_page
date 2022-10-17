@@ -49,7 +49,7 @@ export const useAsk = ({child, onShow, maxWidth}: UseAskProps): [Ask, Hide, IsAs
         if (onShow && state.show) {
             onShow()
         }
-    }, [state.show])
+    }, [state])
 
     const isAsking = () => state.show
 
