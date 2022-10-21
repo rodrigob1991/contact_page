@@ -8,7 +8,7 @@ import {
     UpdateHomePropsArgs,
     UpdatePresentationArgs
 } from "../types/Home"
-import {isEmpty} from "../utils/StringFunctions"
+import {isEmpty} from "../utils/StringManipulations"
 
 export class ApiParamsValidator {
     static isValidSkill = ({id, name, rate}: Skill) => {

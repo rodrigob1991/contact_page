@@ -8,16 +8,24 @@ import {
     HomePropsArgs,
     NewStory,
     Presentation,
-    PresentationArgs,
+    PresentationArgs, Skill,
     Story,
     UpdateHomePropsArgs,
-    UpdatePresentationArgs
+    UpdatePresentationArgs, UpdatePresentationWithoutSkillsAndImageArgs
 } from "../types/Home"
 import {ObjectID} from "bson"
-import {getContainedString} from "../utils/StringFunctions"
+import {getContainedString} from "../utils/StringManipulations"
+import {getRecordWithNewProps} from "../utils/RecordManipulations"
 
 type NewEntity = Record<string, any>
 type Entity = { id: string }
+
+type BufferImage = Buffer | null
+type Base64Image = string | undefined
+type EntityWithBufferImage<T extends BufferImage> = { image: T }
+type Base64ImageConvert<T extends BufferImage> = T extends Buffer ? string : Base64Image
+type EntityWithBase64Image<T extends Base64Image> = { image: T }
+type BufferImageConvert<T extends Base64Image> = T extends string ? Buffer : BufferImage
 
 type NormalizedHomeProps<T extends HomePropsArgs | null> = T extends HomePropsArgs ? HomeProps : HomeProps | undefined
 
@@ -28,7 +36,7 @@ export class PropsStorageClient {
     private static readonly presentationId = new ObjectID("111111111111111111111111").toJSON()
     private static readonly imageUrlPrefix = "data:image/webp;base64"
 
-    static readonly selectSkill = {select: {id: true, name: true, rate: true}}
+    static readonly selectSkill = {select: {id: true, name: true, rate: true, image: true}}
     static readonly selectPresentation = {
         select: {
             name: true,
@@ -91,13 +99,14 @@ export class PropsStorageClient {
 
         let promise
         if (type === "create") {
-            const {skills: {new: newSkills}, ...presentationRest} = args as CreatePresentationArgs
+            const {skills: {new: newSkills}, ...rest} = args as CreatePresentationArgs
+            const createManySkills = newSkills && newSkills.length > 0 ? this.#getCreateMany(this.#getEntitiesWithBufferImage(newSkills)) : undefined
             promise = this.prisma.presentation.create(
                 {
                     data: {
                         id: id,
-                        ...this.#getPresentationWithImageBuffer(presentationRest),
-                        skills: this.#getCreateMany(newSkills),
+                        ...this.#getEntityWithBufferImage(rest),
+                        skills: createManySkills,
                         ...connectOrCreateProps,
                     },
                     ...select
@@ -106,14 +115,17 @@ export class PropsStorageClient {
         } else {
             const {
                 skills: {delete: deleteSkills, new: newSkills, update: updateSkills},
-                ...presentationRest
+                ...rest
             } = args as UpdatePresentationArgs
-            const saveManySkills = {skills: {...this.#getCreateMany(newSkills), ...this.#getUpdateMany(updateSkills), ...this.#getDeleteMany(deleteSkills)}}
+            const createManySkills = newSkills && newSkills.length > 0 ? this.#getCreateMany(this.#getEntitiesWithBufferImage(newSkills)) : undefined
+            const updateManySkills = updateSkills && updateSkills.length > 0 ? this.#getUpdateMany(this.#getEntitiesWithBufferImage(updateSkills)) : undefined
+            const saveManySkills = {skills: {...createManySkills, ...updateManySkills, ...this.#getDeleteMany(deleteSkills)}}
+            const restWithBufferImage = "image" in rest ?  this.#getEntityWithBufferImage(rest as EntityWithBase64Image<string | undefined>): rest as UpdatePresentationWithoutSkillsAndImageArgs
 
             promise = this.prisma.presentation.update(
                 {
                     where: {id: id},
-                    data: {...this.#getPresentationWithImageBuffer(presentationRest), ...saveManySkills},
+                    data: {...restWithBufferImage, ...saveManySkills},
                     ...select
                 }
             )
@@ -156,11 +168,11 @@ export class PropsStorageClient {
     async createHomeProps({
                               presentation: {
                                   skills: {new: newSkills},
-                                  ...presentationRest
+                                  ...presentationWithoutSkills
                               }, stories: {new: newStories}
                           }: CreateHomePropsArgs) {
-        const createManySkills = {skills: this.#getCreateMany(newSkills)}
-        const createPresentation = {presentation: {create: {id: PropsStorageClient.presentationId, ...this.#getPresentationWithImageBuffer(presentationRest), ...createManySkills}}}
+        const createManySkills = newSkills && newSkills.length > 0 ? {skills: this.#getCreateMany(this.#getEntitiesWithBufferImage(newSkills))} : undefined
+        const createPresentation = {presentation: {create: {id: PropsStorageClient.presentationId, ...this.#getEntityWithBufferImage(presentationWithoutSkills), ...createManySkills}}}
 
         const createManyStories = {stories: this.#getCreateMany(newStories)}
 
@@ -182,16 +194,17 @@ export class PropsStorageClient {
                            },
                            stories: {delete: deleteStories, new: newStories, update: updateStories}
                        }: UpdateHomePropsArgs): Promise<HomeProps> {
-        console.table(newSkills)
-        const saveManySkills = {skills: {...this.#getCreateMany(newSkills), ...this.#getUpdateMany(updateSkills), ...this.#getDeleteMany(deleteSkills)}}
-        const updatePresentation = {presentation: {update: {...this.#getPresentationWithImageBuffer(presentationRest), ...saveManySkills}}}
+        const createManySkills = newSkills && newSkills.length > 0 ? this.#getCreateMany(this.#getEntitiesWithBufferImage(newSkills)) : undefined
+        const updateManySkills = updateSkills && updateSkills.length > 0 ? this.#getUpdateMany(this.#getEntitiesWithBufferImage(updateSkills)) : undefined
+        const saveManySkills = {skills: {...createManySkills, ...updateManySkills, ...this.#getDeleteMany(deleteSkills)}}
+        const presentationRestWithBufferImage = "image" in presentationRest ?  this.#getEntityWithBufferImage(presentationRest as EntityWithBase64Image<string | undefined>): presentationRest as UpdatePresentationWithoutSkillsAndImageArgs
         const saveManyStories = {stories: {...this.#getCreateMany(newStories), ...this.#getUpdateMany(updateStories), ...this.#getDeleteMany(deleteStories)}}
 
         return this.prisma.props.update(
             {
                 where: {id: PropsStorageClient.homePropsId},
                 data: {
-                    ...updatePresentation,
+                    ...presentationRestWithBufferImage,
                     ...saveManyStories,
                 },
                 ...PropsStorageClient.selectEditHomeProps
@@ -213,21 +226,28 @@ export class PropsStorageClient {
     }
 
     /* ----- PRIVATE METHODS TO MAP DATA FROM DB TO UI AND VICE VERSA ----- */
+    #getBufferImage<T extends Base64Image>(base64Image: T) {
+        return (base64Image ? Buffer.from(getContainedString(base64Image, ","), "base64") : null) as BufferImageConvert<T>
+    }
+    #getBase64Image<T extends BufferImage>(imageBuffer: T) {
+        return (imageBuffer ? PropsStorageClient.imageUrlPrefix + "," + Buffer.from(imageBuffer).toString("base64") : undefined) as Base64ImageConvert<T>
+    }
+    #getEntityWithBufferImage<T extends Base64Image, E extends EntityWithBase64Image<T>>(e: E) {
+        return getRecordWithNewProps<E, [["image", BufferImageConvert<E["image"]>]]>(e, [["image", this.#getBufferImage(e.image)]])
+    }
+    #getEntitiesWithBufferImage<T extends Base64Image, E extends EntityWithBase64Image<T>>(entities: E[]) {
+        return entities.map(e => this.#getEntityWithBufferImage(e))
+    }
+
+    #getEntityWithBase64Image<T extends BufferImage, E extends EntityWithBufferImage<T>>(e: E) {
+        return getRecordWithNewProps<E, [["image", Base64ImageConvert<E["image"]>]]>(e, [["image", this.#getBase64Image(e.image)]])
+    }
+    #getEntitiesWithBase64Image<T extends BufferImage, E extends EntityWithBufferImage<T>>(entities: E[]) {
+        return entities.map(e => this.#getEntityWithBase64Image(e))
+    }
+
     #getNormalizePresentation(dbArgs: PresentationArgs): Presentation {
-        return (({image, ...r}) => {
-            return {image: this.#getImageBase64(dbArgs.image), ...r}
-        })(dbArgs)
-    }
-    #getPresentationWithImageBuffer<P extends { image?: string | undefined }>(p: P) {
-        return (({image, ...r}) => {
-            return {image: this.#getImageBuffer(image), ...r}
-        })(p)
-    }
-    #getImageBuffer(imageBase64: string | undefined) {
-        return imageBase64 ? Buffer.from(getContainedString(imageBase64, ","), "base64") : null
-    }
-    #getImageBase64(imageBuffer: Buffer | null) {
-        return imageBuffer ? PropsStorageClient.imageUrlPrefix + "," + Buffer.from(imageBuffer).toString("base64") : undefined
+        return this.#getEntityWithBase64Image(getRecordWithNewProps<PresentationArgs, [["skills", Skill[]]]>(dbArgs, [["skills", this.#getEntitiesWithBase64Image(dbArgs.skills)]]))
     }
 
     /* ----- PRIVATE METHODS TO HELP BUILD QUERIES ----- */

@@ -14,7 +14,9 @@ type ManipulateSkillsArgs =  CreateSkillsArgs & {update?: Skill[], delete?: stri
 type CreatePresentationSkillsArgs = {[K in keyof SkillsPresentation] : CreateSkillsArgs}
 type UpdatePresentationSkillsArgs = {[K in keyof SkillsPresentation] : ManipulateSkillsArgs}
 export type CreatePresentationArgs = CreatePresentationSkillsArgs & PresentationWithoutSkills
-export type UpdatePresentationArgs = UpdatePresentationSkillsArgs & Partial<PresentationWithoutSkills>
+type UpdatePresentationWithoutSkillsArgs = Partial<PresentationWithoutSkills>
+export type UpdatePresentationWithoutSkillsAndImageArgs = Omit<UpdatePresentationWithoutSkillsArgs, "image">
+export type UpdatePresentationArgs = UpdatePresentationSkillsArgs & UpdatePresentationWithoutSkillsArgs
 export type CreateOrUpdatePresentationArgs<DBO extends DbOperation> = DBO extends "create" ? CreatePresentationArgs : UpdatePresentationArgs
 type CreateStoriesArgs = { new?: NewStory[] }
 type ManipulateStoriesArgs = CreateStoriesArgs & { update?: Story[], delete?: string[] }
@@ -37,13 +39,13 @@ export type StoryHTMLElementIds = {[K in keyof NewStory as `${K}`] : string}
 
 const skillArgs = Prisma.validator<Prisma.SkillArgs>()(PropsStorageClient.selectSkill)
 type SkillArgs = Prisma.SkillGetPayload<typeof skillArgs>
-export type Skill = SkillArgs
+export type Skill = ChangePropertiesType<SkillArgs, [["image", string]]>
 export type NewSkill = Omit<Skill, keyof Pick<Skill, "id">>
 export type NewSkillPropertiesType = NewSkill[keyof NewSkill]
 
 const presentationArgs = Prisma.validator<Prisma.PresentationArgs>()(PropsStorageClient.selectPresentation)
 export type PresentationArgs = Prisma.PresentationGetPayload<typeof presentationArgs>
-export type Presentation = ChangePropertiesType<PresentationArgs, [["image", string | undefined]]>
+export type Presentation = ChangePropertiesType<PresentationArgs, [["image", string | undefined], ["skills", Skill[]]]>
 export type PresentationWithoutImage = Omit<PresentationArgs, keyof Pick<PresentationArgs, "image">>
 export type PresentationWithoutSkills = Omit<Presentation, keyof Pick<Presentation, "skills">>
 export type PresentationPropertiesType = Presentation[keyof Presentation]

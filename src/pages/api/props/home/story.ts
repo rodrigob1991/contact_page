@@ -2,7 +2,7 @@ import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
 import {NewStory, Story} from "../../../../types/Home"
 import {AuthResponseBody} from "../../_middleware"
-import {isEmpty} from "../../../../utils/StringFunctions"
+import {isEmpty} from "../../../../utils/StringManipulations"
 import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
 
 const STORY_API_ROUTE = "/api/props/home/story"
