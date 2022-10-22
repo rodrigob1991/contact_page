@@ -8,10 +8,12 @@ import {
     HomePropsArgs,
     NewStory,
     Presentation,
-    PresentationArgs, Skill,
+    PresentationArgs,
+    Skill,
     Story,
     UpdateHomePropsArgs,
-    UpdatePresentationArgs, UpdatePresentationWithoutSkillsAndImageArgs
+    UpdatePresentationArgs,
+    UpdatePresentationWithoutSkillsAndImageArgs
 } from "../types/Home"
 import {ObjectID} from "bson"
 import {getContainedString} from "../utils/StringManipulations"
@@ -37,28 +39,11 @@ export class PropsStorageClient {
     private static readonly imageUrlPrefix = "data:image/webp;base64"
 
     static readonly selectSkill = {select: {id: true, name: true, rate: true, image: true}}
-    static readonly selectPresentation = {
-        select: {
-            name: true,
-            introduction: true,
-            image: true,
-            skills: this.selectSkill
-        }
-    }
+    static readonly selectPresentation = {select: {name: true, introduction: true, image: true, skills: this.selectSkill}}
     static readonly selectStory = {select: {id: true, title: true, body: true, state: true}}
     static readonly selectPublishedStory = {...this.selectStory, where: {state: StoryState.PUBLISHED}}
-    static readonly selectHomeProps = {
-        select: {
-            stories: this.selectPublishedStory,
-            presentation: this.selectPresentation
-        }
-    }
-    static readonly selectEditHomeProps = {
-        select: {
-            stories: this.selectStory,
-            presentation: this.selectPresentation
-        }
-    }
+    static readonly selectHomeProps = {select: {stories: this.selectPublishedStory, presentation: this.selectPresentation}}
+    static readonly selectEditHomeProps = {select: {stories: this.selectStory, presentation: this.selectPresentation}}
 
     constructor() {
         this.prisma = new PrismaClient()
@@ -136,6 +121,7 @@ export class PropsStorageClient {
 
     async setStory(story: NewStory | Story): Promise<Story> {
         const homePropsId = PropsStorageClient.homePropsId
+        const presentationId = PropsStorageClient.presentationId
 
         if ("id" in story) {
             return this.prisma.story.update({
@@ -151,7 +137,15 @@ export class PropsStorageClient {
                         props: {
                             connectOrCreate: {
                                 where: {id: homePropsId},
-                                create: {id: homePropsId}
+                                create: {
+                                    id: homePropsId,
+                                    presentation: {
+                                        connectOrCreate: {
+                                            where: {id: presentationId},
+                                            create: {id: presentationId, name: "", introduction: ""},
+                                        }
+                                    }
+                                }
                             }
                         }
                     },
@@ -232,18 +226,18 @@ export class PropsStorageClient {
     #getBase64Image<T extends BufferImage>(imageBuffer: T) {
         return (imageBuffer ? PropsStorageClient.imageUrlPrefix + "," + Buffer.from(imageBuffer).toString("base64") : undefined) as Base64ImageConvert<T>
     }
-    #getEntityWithBufferImage<T extends Base64Image, E extends EntityWithBase64Image<T>>(e: E) {
-        return getRecordWithNewProps<E, [["image", BufferImageConvert<E["image"]>]]>(e, [["image", this.#getBufferImage(e.image)]])
+    #getEntityWithBufferImage<E extends EntityWithBase64Image<Base64Image>>(e: E) {
+        return getRecordWithNewProps<E, [["image", BufferImageConvert<E["image"]>]]>(e, [["image", this.#getBufferImage<E["image"]>(e.image)]])
     }
-    #getEntitiesWithBufferImage<T extends Base64Image, E extends EntityWithBase64Image<T>>(entities: E[]) {
-        return entities.map(e => this.#getEntityWithBufferImage(e))
+    #getEntitiesWithBufferImage<E extends EntityWithBase64Image<Base64Image>>(entities: E[]) {
+        return entities.map(e => this.#getEntityWithBufferImage<E>(e))
     }
 
-    #getEntityWithBase64Image<T extends BufferImage, E extends EntityWithBufferImage<T>>(e: E) {
-        return getRecordWithNewProps<E, [["image", Base64ImageConvert<E["image"]>]]>(e, [["image", this.#getBase64Image(e.image)]])
+    #getEntityWithBase64Image<E extends EntityWithBufferImage<BufferImage>>(e: E) {
+        return getRecordWithNewProps<E, [["image", Base64ImageConvert<E["image"]>]]>(e, [["image", this.#getBase64Image<E["image"]>(e.image)]])
     }
-    #getEntitiesWithBase64Image<T extends BufferImage, E extends EntityWithBufferImage<T>>(entities: E[]) {
-        return entities.map(e => this.#getEntityWithBase64Image(e))
+    #getEntitiesWithBase64Image<E extends EntityWithBufferImage<BufferImage>>(entities: E[]) {
+        return entities.map(e => this.#getEntityWithBase64Image<E>(e))
     }
 
     #getNormalizePresentation(dbArgs: PresentationArgs): Presentation {
