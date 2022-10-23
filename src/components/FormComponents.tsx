@@ -4,6 +4,7 @@ import React, {
     ChangeEvent,
     DetailedHTMLProps,
     forwardRef,
+    ImgHTMLAttributes,
     InputHTMLAttributes,
     Ref,
     TextareaHTMLAttributes,
@@ -220,17 +221,13 @@ export const ImageSelector = ({processImage, label, imageMaxSize, disabled = fal
 
 
 type ImageViewSelectorProps = {
-    imageDataUrl?: string
     processImage?: (imageDataUrl: string)=> void
     imageMaxSize: number
-    width: number
-    height: number
     description?: string
-    style?: React.CSSProperties
-}
+} & DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>,HTMLImageElement>
 
-export const ImageViewSelector = ({processImage,imageDataUrl: imageDataUrlInit , imageMaxSize, width, height, description, style}: ImageViewSelectorProps) => {
-    const [imageDataUrl, setImageDataUrl] = useState(imageDataUrlInit)
+export const ImageViewSelector = ({processImage, imageMaxSize, description, ...rest}: ImageViewSelectorProps) => {
+    const [imageDataUrl, setImageDataUrl] = useState(rest.src)
 
     const [hoveringImage, setHoveringImage] = useState(false)
     const [hoveringDescription, setHoveringDescription] = useState(false)
@@ -251,7 +248,7 @@ export const ImageViewSelector = ({processImage,imageDataUrl: imageDataUrlInit ,
         <ImageSelectorContainer>
             <ImageSelector processImage={(name, src)=> {setImageDataUrl(src); if (processImage) {processImage(src)}}}
                            label={<>{description && <ImageDescription onMouseEnter={handleOnMouseEnterDescription} onMouseLeave={handleOnMouseLeaveDescription} show={hoveringImage || hoveringDescription}>{description}</ImageDescription>}
-                               <img onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave} src={imageDataUrl} style={style} width={width} height={height}/>
+                               <img {...rest} src={imageDataUrl} onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave}/>
                            </>} imageMaxSize={imageMaxSize}/>
         </ImageSelectorContainer>
     )

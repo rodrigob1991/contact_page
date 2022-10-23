@@ -192,13 +192,14 @@ export class PropsStorageClient {
         const updateManySkills = updateSkills && updateSkills.length > 0 ? this.#getUpdateMany(this.#getEntitiesWithBufferImage(updateSkills)) : undefined
         const saveManySkills = {skills: {...createManySkills, ...updateManySkills, ...this.#getDeleteMany(deleteSkills)}}
         const presentationRestWithBufferImage = "image" in presentationRest ?  this.#getEntityWithBufferImage(presentationRest as EntityWithBase64Image<string | undefined>): presentationRest as UpdatePresentationWithoutSkillsAndImageArgs
+        const presentationUpdate = {presentation: {update: {...presentationRestWithBufferImage, ...saveManySkills}}}
         const saveManyStories = {stories: {...this.#getCreateMany(newStories), ...this.#getUpdateMany(updateStories), ...this.#getDeleteMany(deleteStories)}}
 
         return this.prisma.props.update(
             {
                 where: {id: PropsStorageClient.homePropsId},
                 data: {
-                    ...presentationRestWithBufferImage,
+                    ...presentationUpdate,
                     ...saveManyStories,
                 },
                 ...PropsStorageClient.selectEditHomeProps

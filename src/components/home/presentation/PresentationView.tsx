@@ -10,7 +10,6 @@ export type GetHtmlElementId = <K extends PresentationHTMLElementIdsKey>(key: K,
 type EditingProps = {
     editing: true
     getHtmlElementId: GetHtmlElementId
-    mutatePresentationImage: (imageDataUrl: string) => void
     createSkill: CreateSkill
     deleteSkill : DeleteSkill
     observe: Observe
@@ -21,9 +20,11 @@ type Props<VM extends ViewMode> = {
 
 export default function PresentationView<VM extends ViewMode>({
                                              editing,
-                                             presentation: {name, introduction, skills, image: imageDataUrl},
-                                             getHtmlElementId, mutatePresentationImage, createSkill, deleteSkill, observe
+                                             presentation,
+                                             getHtmlElementId, createSkill, deleteSkill, observe
                                          }: Props<VM>) {
+    const {name, introduction, skills, image: imageDataUrl} = presentation
+
     let nameHtmlId
     let introductionHtmlId
     let getSkillHtmlId
@@ -43,8 +44,8 @@ export default function PresentationView<VM extends ViewMode>({
             {skillsChart}
             <InnerContainer>
             <NameImageContainer>
-                {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processImage={mutatePresentationImage}
-                                         imageDataUrl={imageDataUrl}/>
+                {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processImage={(imageDataUrl)=> presentation.image = imageDataUrl}
+                                         src={imageDataUrl}/>
                         : <Image src={imageDataUrl as string} width={100} height={90} layout={"intrinsic"}/>}
                 <Name id={nameHtmlId} contentEditable={editing} ref={ editing ? r => {if (r) (observe as Observe)(r, {mutation: "default"})} : undefined}>
                     {name}

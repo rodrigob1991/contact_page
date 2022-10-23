@@ -39,7 +39,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
         return `hsl(${hue},${saturation}%,${lightness}%)`
     }
 
-    const getStoriesView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
+    const getSkillView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
         <SkillViewContainer key={name}>
             <Image src={image} width={20} height={20} layout={"intrinsic"}/>
             <SkillView key={name} height={rate} hslColor={getHslColor(rate)}> {name} </SkillView>
@@ -110,6 +110,9 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
     const mutateSkillName = () => {
         skillsViewStates[selectedSkillIndex].skill.name = selectedSkillName
     }
+    const mutateSkillImage = (index: number, imageDataUrl: string) => {
+        skillsViewStates[index].skill.image = imageDataUrl
+    }
     const handleOnOneClickSkill = (index: number, top: number, left: number) => {
         setSelectedSkillIndex(index)
         setSelectedSkillName(skillsViewStates[index].skill.name)
@@ -134,16 +137,15 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
                                                       onEnter={onEnterSkillName}
                                                       onEscape={onEscapeSkillName}/>})
 
-    const getEditableStoriesView = () =>
+    const getEditableSkillView = () =>
         <>
             {AskSkillNameElement}
-            {skillsViewStates.map(({idHtml, skill: {name, rate}}, index) =>
+            {skillsViewStates.map(({idHtml, skill: {name, rate, image}}, index) =>
                 <SkillViewContainer key={name}>
-                    <ImageViewSelector imageMaxSize={1} width={20} height={20} description={name}
+                    <ImageViewSelector src={image} processImage={(imageDataUrl)=>  mutateSkillImage(index, imageDataUrl)}
+                                       imageMaxSize={1} width={20} height={20} description={name}
                                        style={{backgroundColor: "white"}}/>
-                    <SkillView hslColor={getHslColor(rate)} ref={r => {
-                        if (r) (observe as Observe)(r, {mutation: "default", resize: "default"})
-                    }}
+                    <SkillView hslColor={getHslColor(rate)} ref={r => {if (r) (observe as Observe)(r, {resize: "default"})}}
                                id={(getHtmlElementId as GetHtmlElementId)(idHtml)} resize={true} height={rate}
                                onClick={(e) => handleOnClickSkill(e, index)}/>
                 </SkillViewContainer>)}
@@ -155,7 +157,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
             <label style={{ fontWeight: "bold", fontSize: "20px"}}>skills</label>
             {editing && <PlusButton size={15} onClick={handleCreateSkill}/>}
             </TitleContainer>
-           {editing ? getEditableStoriesView() : getStoriesView()}
+            {editing ? getEditableSkillView() : getSkillView()}
         </Container>
     )
 }

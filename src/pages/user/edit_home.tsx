@@ -56,9 +56,6 @@ export default function EditHome(props?: HomeProps) {
     const mutatePresentation = <K extends keyof Presentation>(key: K, value: Presentation[K]) => {
         getPresentation()[key] = value
     }
-    const mutatePresentationImage = (imageDataUrl: string) => {
-        mutatePresentation("image", imageDataUrl)
-    }
 
     const mutateNewSkill = <K extends keyof NewSkill>(id: string, key: K, value: NewSkill[K]) => {
         (getNewSkills()[getIndexFromNewEntityId(id)] as NewSkill)[key] = value
@@ -76,7 +73,7 @@ export default function EditHome(props?: HomeProps) {
         return getNewSkills().filter(isNoNull)
     }
     const createNewSkill = (): [string, NewSkill] => {
-        const newSkill = {name: "new skill", rate: 50}
+        const newSkill = {name: "new skill", rate: 50, image: ""}
         const id = newEntityIdPrefix + (getNewSkills().push(newSkill) - 1)
         return [id, newSkill]
     }
@@ -196,7 +193,7 @@ export default function EditHome(props?: HomeProps) {
         const handleMutatedPresentationHTMLElement = (htmlElementId: string, newPropertyValue: string) => {
             const key = getContainedString(htmlElementId, "-")
             if (key.startsWith("skills")) {
-                handleMutatedOrResizedSkillHTMLElement(htmlElementId,"name",  newPropertyValue)
+                handleMutatedOrResizedSkillHTMLElement(htmlElementId,"image",  newPropertyValue)
             } else {
                 mutatePresentation(key as keyof PresentationWithoutImage, newPropertyValue)
             }
@@ -331,7 +328,7 @@ export default function EditHome(props?: HomeProps) {
     return (
         <Container ref={refToMutationObserverTarget}>
             <SpinLoader show={loading}/>
-            <PresentationView editing observe={observe} getHtmlElementId={getPresentationHtmlElementId} presentation={getPresentation()} mutatePresentationImage={mutatePresentationImage}
+            <PresentationView editing observe={observe} getHtmlElementId={getPresentationHtmlElementId} presentation={getPresentation()}
                               createSkill={createNewSkill} deleteSkill={deleteSkill}/>
             <StoriesView editing observe={observe} stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
                          createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}/>
