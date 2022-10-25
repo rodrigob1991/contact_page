@@ -16,6 +16,7 @@ import {IoMdClose} from "react-icons/io"
 import {Button} from "./Buttons"
 import {ResultMessage, ResultMessageProps} from "./Labels"
 import {BlocksLoader} from "./Loaders"
+import {getContainedString} from "../utils/StringManipulations";
 
 type TextInputProps = {
     setValue: (value: string) => void
@@ -170,13 +171,14 @@ const DropDownMenu = styled.div<{ show: boolean }>`
   transition: display 150ms ease-in-out, transform 150ms ease-in-out;
 `
 
+export type ProcessSelectedImage = (name: string, extension: string, dataUrl: string) => void
 type ImageSelectorProps = {
-    processImage: (name: string, dataUrl: string) => void
+    processSelectedImage?: ProcessSelectedImage
     label: JSX.Element
     imageMaxSize: number
     disabled?: boolean
 }
-export const ImageSelector = ({processImage, label, imageMaxSize, disabled = false}: ImageSelectorProps) => {
+export const ImageSelector = ({processSelectedImage, label, imageMaxSize, disabled = false}: ImageSelectorProps) => {
     const inputFileRef = useRef<HTMLInputElement>(null)
 
     const [imageSizeErrorStr, setImageSizeErrorStr] = useState("")
@@ -195,8 +197,8 @@ export const ImageSelector = ({processImage, label, imageMaxSize, disabled = fal
                 reader.onloadend = () => {
                     const imageDataUrl = reader.result as string
                     if (imageDataUrl) {
-                        if (processImage) {
-                            processImage(image.name, imageDataUrl)
+                        if (processSelectedImage) {
+                            processSelectedImage(image.name, getContainedString(image.type, "/"), imageDataUrl)
                         }
                     }
                 }
@@ -221,12 +223,12 @@ export const ImageSelector = ({processImage, label, imageMaxSize, disabled = fal
 
 
 type ImageViewSelectorProps = {
-    processImage?: (imageDataUrl: string)=> void
+    processSelectedImage?: ProcessSelectedImage
     imageMaxSize: number
     description?: string
 } & DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>,HTMLImageElement>
 
-export const ImageViewSelector = ({processImage, imageMaxSize, description, ...rest}: ImageViewSelectorProps) => {
+export const ImageViewSelector = ({processSelectedImage, imageMaxSize, description, ...rest}: ImageViewSelectorProps) => {
     const [imageDataUrl, setImageDataUrl] = useState(rest.src)
 
     const [hoveringImage, setHoveringImage] = useState(false)
@@ -246,7 +248,7 @@ export const ImageViewSelector = ({processImage, imageMaxSize, description, ...r
 
     return (
         <ImageSelectorContainer>
-            <ImageSelector processImage={(name, src)=> {setImageDataUrl(src); if (processImage) {processImage(src)}}}
+            <ImageSelector processSelectedImage={(name, extension, src)=> {setImageDataUrl(src); if (processSelectedImage) {processSelectedImage(name, extension, src)}}}
                            label={<>{description && <ImageDescription onMouseEnter={handleOnMouseEnterDescription} onMouseLeave={handleOnMouseLeaveDescription} show={hoveringImage || hoveringDescription}>{description}</ImageDescription>}
                                <img {...rest} src={imageDataUrl} onMouseEnter={handleOnMouseEnter} onMouseLeave={handleOnMouseLeave}/>
                            </>} imageMaxSize={imageMaxSize}/>

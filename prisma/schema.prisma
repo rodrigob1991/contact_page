@@ -18,7 +18,7 @@ model Presentation {
   id String @id @map("_id") @db.ObjectId
   name String
   introduction String
-  image Bytes?
+  image Image?
   skills Skill[]
   props Props?
 }
@@ -26,7 +26,7 @@ model Skill {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   name String @unique
   rate Int
-  image Bytes
+  image Image
   presentation Presentation @relation(fields: [presentationId], references: [id])
   presentationId String @db.ObjectId
 }
@@ -44,3 +44,11 @@ enum StoryState {
   PUBLISHED
   UNPUBLISHED
 }
+
+type Image {
+  extension String
+  name String?
+  src Bytes
+}
+
+

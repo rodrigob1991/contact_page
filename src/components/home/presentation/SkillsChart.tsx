@@ -41,7 +41,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
 
     const getSkillView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
         <SkillViewContainer key={name}>
-            <Image src={image} width={20} height={20} layout={"intrinsic"}/>
+            <Image src={image.src} width={20} height={20} layout={"intrinsic"}/>
             <SkillView key={name} height={rate} hslColor={getHslColor(rate)}> {name} </SkillView>
         </SkillViewContainer>)
 
@@ -110,8 +110,8 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
     const mutateSkillName = () => {
         skillsViewStates[selectedSkillIndex].skill.name = selectedSkillName
     }
-    const mutateSkillImage = (index: number, imageDataUrl: string) => {
-        skillsViewStates[index].skill.image = imageDataUrl
+    const mutateSkillImage = (index: number, name: string, extension: string, dataUrl: string) => {
+        skillsViewStates[index].skill.image = {name: name, extension: extension, src: dataUrl}
     }
     const handleOnOneClickSkill = (index: number, top: number, left: number) => {
         setSelectedSkillIndex(index)
@@ -142,7 +142,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
             {AskSkillNameElement}
             {skillsViewStates.map(({idHtml, skill: {name, rate, image}}, index) =>
                 <SkillViewContainer key={name}>
-                    <ImageViewSelector src={image} processImage={(imageDataUrl)=>  mutateSkillImage(index, imageDataUrl)}
+                    <ImageViewSelector src={image.src} processSelectedImage={(name, extension, dataUrl)=>  mutateSkillImage(index, name, extension, dataUrl)}
                                        imageMaxSize={1} width={20} height={20} description={name}
                                        style={{backgroundColor: "white"}}/>
                     <SkillView hslColor={getHslColor(rate)} ref={r => {if (r) (observe as Observe)(r, {resize: "default"})}}

@@ -91,7 +91,7 @@ export default function Home({presentation, stories}: HomeProps) {
                   <MdForwardToInbox size={70} style={{cursor: "pointer", paddingLeft: 20, paddingTop: 25, color: "#DAA520"}} onClick={(e)=> showSendMessageModal()}/>
               </ContactLinksContainer>
           </Header>
-          <PresentationView presentation={presentation || {name:"", introduction: "", image: undefined}}/>
+          <PresentationView presentation={presentation || {name:"", introduction: "", skills: [], image: undefined}}/>
           <StoriesView stories={stories}/>
           <Footer>
           </Footer>

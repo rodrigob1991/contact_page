@@ -1,7 +1,7 @@
 import styled from "@emotion/styled"
 import React, {useEffect, useRef, useState} from "react"
 import {
-    HomeProps,
+    HomeProps, Image,
     NewSkill,
     NewStory,
     Presentation,
@@ -47,7 +47,8 @@ export default function EditHome(props?: HomeProps) {
         return parseInt(getContainedString(id, newEntityIdPrefix))
     }
 
-    const emptyPresentation: Presentation = {name: "", introduction: "", skills: [], image: undefined}
+    const emptyImage: Image = {extension: "", name: "", src: ""}
+    const emptyPresentation: Presentation = {name: "", introduction: "", skills: [], image: emptyImage}
     const refToPresentation = useRef<Presentation>(props?.presentation || emptyPresentation)
     const getPresentation = () => refToPresentation.current
     const setPresentation = (p: Presentation) => {
@@ -73,7 +74,7 @@ export default function EditHome(props?: HomeProps) {
         return getNewSkills().filter(isNoNull)
     }
     const createNewSkill = (): [string, NewSkill] => {
-        const newSkill = {name: "new skill", rate: 50, image: ""}
+        const newSkill = {name: "new skill", rate: 50, image: emptyImage}
         const id = newEntityIdPrefix + (getNewSkills().push(newSkill) - 1)
         return [id, newSkill]
     }
@@ -193,7 +194,7 @@ export default function EditHome(props?: HomeProps) {
         const handleMutatedPresentationHTMLElement = (htmlElementId: string, newPropertyValue: string) => {
             const key = getContainedString(htmlElementId, "-")
             if (key.startsWith("skills")) {
-                handleMutatedOrResizedSkillHTMLElement(htmlElementId,"image",  newPropertyValue)
+                //handleMutatedOrResizedSkillHTMLElement(htmlElementId,"image",  newPropertyValue)
             } else {
                 mutatePresentation(key as keyof PresentationWithoutImage, newPropertyValue)
             }

@@ -1,7 +1,7 @@
 import {Presentation, PresentationHTMLElementIdsKey, ViewMode} from "../../../types/Home"
 import styled from "@emotion/styled"
 import React from "react"
-import {ImageViewSelector} from "../../FormComponents"
+import {ImageViewSelector, ProcessSelectedImage} from "../../FormComponents"
 import Image from "next/image"
 import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
 import {Observe} from "../../../pages/user/edit_home"
@@ -23,7 +23,11 @@ export default function PresentationView<VM extends ViewMode>({
                                              presentation,
                                              getHtmlElementId, createSkill, deleteSkill, observe
                                          }: Props<VM>) {
-    const {name, introduction, skills, image: imageDataUrl} = presentation
+    const {name, introduction, skills, image} = presentation
+    const imageDataUrl = image?.src
+    const processSelectedImage: ProcessSelectedImage = (name, extension, dataUrl) => {
+        presentation.image = {name: name, extension: extension, src: dataUrl}
+    }
 
     let nameHtmlId
     let introductionHtmlId
@@ -44,9 +48,8 @@ export default function PresentationView<VM extends ViewMode>({
             {skillsChart}
             <InnerContainer>
             <NameImageContainer>
-                {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processImage={(imageDataUrl)=> presentation.image = imageDataUrl}
-                                         src={imageDataUrl}/>
-                        : <Image src={imageDataUrl as string} width={100} height={90} layout={"intrinsic"}/>}
+                {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processSelectedImage={processSelectedImage} src={imageDataUrl}/>
+                         : <Image src={imageDataUrl as string} width={100} height={90} layout={"intrinsic"}/>}
                 <Name id={nameHtmlId} contentEditable={editing} ref={ editing ? r => {if (r) (observe as Observe)(r, {mutation: "default"})} : undefined}>
                     {name}
                 </Name>
