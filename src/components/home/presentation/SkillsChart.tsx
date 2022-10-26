@@ -137,11 +137,30 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
                                                       onEnter={onEnterSkillName}
                                                       onEscape={onEscapeSkillName}/>})
 
+    const [indexDragSkill, setIndexDragSkill] = useState(-1)
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+        setIndexDragSkill(index)
+    }
+    const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+    }
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+
+    }
+    const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+    }
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+        e.preventDefault()
+        console.log(`from ${indexDragSkill} to ${index}`)
+    }
+
     const getEditableSkillView = () =>
         <>
             {AskSkillNameElement}
             {skillsViewStates.map(({idHtml, skill: {name, rate, image}}, index) =>
-                <SkillViewContainer key={name}>
+                <SkillViewContainer id={index.toString()} key={name} draggable={true} onDragStart={(e)=> handleDragStart(e, index)} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDrag={handleDrag} onDrop={(e)=> handleDrop(e, index)}>
                     <ImageViewSelector src={image.src} processSelectedImage={(name, extension, dataUrl)=>  mutateSkillImage(index, name, extension, dataUrl)}
                                        imageMaxSize={1} width={20} height={20} description={name}
                                        style={{backgroundColor: "white"}}/>

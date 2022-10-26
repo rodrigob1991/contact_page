@@ -206,6 +206,9 @@ export class PropsStorageClient {
         ).then((homeProps)=> this.#getNormalizeHomeProps(homeProps))
     }
 
+    #getNormalizePresentation(dbArgs: PresentationDbArgs): Presentation {
+        return this.#getEntityWithImage(getRecordWithNewProps<PresentationDbArgs, [["skills", Skill[]]]>(dbArgs, [["skills", this.#getEntitiesWithImage(dbArgs.skills)]]))
+    }
     #getNormalizeHomeProps<T extends HomePropsDbArgs | null>(homeProps: T): NormalizedHomeProps<T> {
         let normalizedHomeProps: Record<string, any> | undefined
         if (homeProps) {
@@ -256,11 +259,6 @@ export class PropsStorageClient {
     #getEntitiesWithImage<E extends EntityWithImageDbArgs<ImageDbArgsOrNull>>(entities: E[]) {
         return entities.map(e => this.#getEntityWithImage<E>(e))
     }
-
-    #getNormalizePresentation(dbArgs: PresentationDbArgs): Presentation {
-        return this.#getEntityWithImage(getRecordWithNewProps<PresentationDbArgs, [["skills", Skill[]]]>(dbArgs, [["skills", this.#getEntitiesWithImage(dbArgs.skills)]]))
-    }
-
     /* ----- PRIVATE METHODS TO HELP BUILD QUERIES ----- */
     /*#getCreate<NE extends NewEntity>(entity: NE) {
         return {create: {...entity}}

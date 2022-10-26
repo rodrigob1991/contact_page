@@ -31,7 +31,8 @@ export async function getServerSideProps() {
     const propsStorageClient = new PropsStorageClient()
     const props = await propsStorageClient.getEditHomeProps()
 
-    return {props: props}
+    // json parser is use to don`t serialize undefined values, Next.js throw an error otherwise.
+    return {props: JSON.parse(JSON.stringify(props))}
 }
 
 export type Observe = (element: HTMLElement, observeWhat: AnyPropertiesCombination<{ mutation: MutationObserverInit | "default", resize: ResizeObserverOptions | "default" }>) => void
