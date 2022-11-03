@@ -5,7 +5,8 @@ import {NewSkill, Skill, ViewMode} from "../../../types/Home"
 import {Observe} from "../../../pages/user/edit_home"
 import {ImageViewSelector, TextInput} from "../../FormComponents"
 import {useAsk} from "../../../utils/Hooks"
-import Image from "next/image";
+import Image from "next/image"
+import {orderByComparePreviousByNumber} from "../../../utils/Arrays";
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
@@ -27,7 +28,7 @@ type Props<VM extends ViewMode> = {
 export const containerStyles = {padding: 7, height: 200}
 
 export default function SkillsChart<VM extends ViewMode>({skills, editing, createSkill, deleteSkill, getHtmlElementId, observe}: Props<VM>) {
-    const [skillsViewStates, setSkillsViewStates] = useState<SkillViewState[]>(skills.map((s) => {
+    const [skillsViewStates, setSkillsViewStates] = useState<SkillViewState[]>(orderByComparePreviousByNumber(skills, "position").map((s) => {
         return {idHtml: s.id, skill: s}
     }))
 
@@ -113,6 +114,14 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
     const mutateSkillImage = (index: number, name: string, extension: string, dataUrl: string) => {
         skillsViewStates[index].skill.image = {name: name, extension: extension, src: dataUrl}
     }
+    const mutateSkillsPosition = (indexOne: number, indexTwo: number) => {
+        const skillOne = skillsViewStates[indexOne].skill
+        const skillTwo = skillsViewStates[indexTwo].skill
+        const positionOne = skillOne.position
+        skillOne.position = skillTwo.position
+        skillTwo.position = positionOne
+    }
+
     const handleOnOneClickSkill = (index: number, top: number, left: number) => {
         setSelectedSkillIndex(index)
         setSelectedSkillName(skillsViewStates[index].skill.name)
@@ -137,9 +146,8 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
                                                       onEnter={onEnterSkillName}
                                                       onEscape={onEscapeSkillName}/>})
 
-    const [indexDragSkill, setIndexDragSkill] = useState(-1)
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-        setIndexDragSkill(index)
+        e.dataTransfer.setData("text/plain", index.toString())
     }
     const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault()
@@ -151,16 +159,24 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
     const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault()
     }
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>, toIndex: number) => {
         e.preventDefault()
-        console.log(`from ${indexDragSkill} to ${index}`)
+
+        const fromIndex = parseInt(e.dataTransfer.getData("text/plain"))
+        mutateSkillsPosition(fromIndex,toIndex)
+        setSkillsViewStates((current) => {
+            const next = [...current]
+            next[fromIndex] = current[toIndex]
+            next[toIndex] = current[fromIndex]
+            return next
+        })
     }
 
     const getEditableSkillView = () =>
         <>
             {AskSkillNameElement}
             {skillsViewStates.map(({idHtml, skill: {name, rate, image}}, index) =>
-                <SkillViewContainer id={index.toString()} key={name} draggable={true} onDragStart={(e)=> handleDragStart(e, index)} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDrag={handleDrag} onDrop={(e)=> handleDrop(e, index)}>
+                <SkillViewContainer id={idHtml} key={idHtml} draggable={true} onDragStart={(e)=> handleDragStart(e, index)} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDrag={handleDrag} onDrop={(e)=> handleDrop(e, index)}>
                     <ImageViewSelector src={image.src} processSelectedImage={(name, extension, dataUrl)=>  mutateSkillImage(index, name, extension, dataUrl)}
                                        imageMaxSize={1} width={20} height={20} description={name}
                                        style={{backgroundColor: "white"}}/>

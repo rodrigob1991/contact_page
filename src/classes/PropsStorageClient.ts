@@ -37,7 +37,7 @@ export class PropsStorageClient {
     private static readonly homePropsId = new ObjectID("111111111111111111111111").toJSON()
     private static readonly presentationId = new ObjectID("111111111111111111111111").toJSON()
 
-    static readonly selectSkill = {select: {id: true, name: true, rate: true, image: true}}
+    static readonly selectSkill = {select: {id: true, name: true, rate: true, image: true, position: true}}
     static readonly selectPresentation = {select: {name: true, introduction: true, image: true, skills: this.selectSkill}}
     static readonly selectStory = {select: {id: true, title: true, body: true, state: true}}
     static readonly selectPublishedStory = {...this.selectStory, where: {state: StoryState.PUBLISHED}}

@@ -1,7 +1,8 @@
 import styled from "@emotion/styled"
 import React, {useEffect, useRef, useState} from "react"
 import {
-    HomeProps, Image,
+    HomeProps,
+    Image,
     NewSkill,
     NewStory,
     Presentation,
@@ -75,7 +76,9 @@ export default function EditHome(props?: HomeProps) {
         return getNewSkills().filter(isNoNull)
     }
     const createNewSkill = (): [string, NewSkill] => {
-        const newSkill = {name: "new skill", rate: 50, image: emptyImage}
+        let position = 0
+        getNotNullsNewSkills().concat(getUpdateSkills()).forEach(s => position = s.position > position ? s.position : position)
+        const newSkill = {name: "new skill", rate: 50, image: emptyImage, position: position + 1}
         const id = newEntityIdPrefix + (getNewSkills().push(newSkill) - 1)
         return [id, newSkill]
     }

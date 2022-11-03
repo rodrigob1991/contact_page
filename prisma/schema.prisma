@@ -29,6 +29,7 @@ model Skill {
   image Image
   presentation Presentation @relation(fields: [presentationId], references: [id])
   presentationId String @db.ObjectId
+  position Int
 }
 
 model Story {
