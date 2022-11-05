@@ -104,11 +104,11 @@ type OptionSelectorProps<E extends string> = {
     processRefToValueHtmlElement?: (e: HTMLElement) => void
     options: E[]
     initSelectedOption?: E
-    fontSize?: number
+    fontSize?: string
     color?: string
 }
 export const OptionSelector = <E extends string>({id, processRefToValueHtmlElement, options, initSelectedOption, fontSize, color}: OptionSelectorProps<E>) => {
-    const styles = {fontSize: fontSize || 15, color: color || "black"}
+    const styles = {fontSize: fontSize || "15px", color: color || "black"}
 
     const [selectedOption, setSelectedOption] = useState(initSelectedOption || options[0])
     const [show, setShow] = useState(false)
@@ -136,17 +136,17 @@ export const OptionSelector = <E extends string>({id, processRefToValueHtmlEleme
 const DropDown = styled.div`
   position: relative;
 `
-const DropDownValue = styled.span<{fontSize: number}>`
+const DropDownValue = styled.span<{fontSize: string}>`
 ${({fontSize, color})=> 
-    `font-size: ${fontSize}px; 
+    `font-size: ${fontSize}; 
      color: ${color};`}
   font-weight: bold;
   cursor: pointer;
   z-index: -1;
 `
-const DropDownMenuOption = styled.div<{fontSize: number}>`
+const DropDownMenuOption = styled.div<{fontSize: string}>`
 ${({fontSize, color})=>
-    `font-size: ${fontSize}px; 
+    `font-size: ${fontSize}; 
      color: ${color};`}
   font-weight: bold;
   padding: .45rem;

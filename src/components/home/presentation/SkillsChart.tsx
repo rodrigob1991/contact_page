@@ -6,7 +6,7 @@ import {Observe} from "../../../pages/user/edit_home"
 import {ImageViewSelector, TextInput} from "../../FormComponents"
 import {useAsk} from "../../../utils/Hooks"
 import Image from "next/image"
-import {orderByComparePreviousByNumber} from "../../../utils/Arrays";
+import {orderByComparePreviousByNumber} from "../../../utils/Arrays"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
@@ -25,7 +25,7 @@ type Props<VM extends ViewMode> = {
     width: number
 } & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
-export const containerStyles = {padding: 7, height: 200}
+export const containerStyles = {padding: 7, height: 180}
 
 export default function SkillsChart<VM extends ViewMode>({skills, editing, createSkill, deleteSkill, getHtmlElementId, observe}: Props<VM>) {
     const [skillsViewStates, setSkillsViewStates] = useState<SkillViewState[]>(orderByComparePreviousByNumber(skills, "position").map((s) => {
@@ -42,8 +42,8 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
 
     const getSkillView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
         <SkillViewContainer key={name}>
-            <Image src={image.src} width={20} height={20} layout={"intrinsic"}/>
-            <SkillView key={name} height={rate} hslColor={getHslColor(rate)}> {name} </SkillView>
+            <Image src={image.src} width={20} height={20} layout={"intrinsic"} style={{backgroundColor: "white"}}/>
+            <SkillView key={name} height={rate} hslColor={getHslColor(rate)}/>
         </SkillViewContainer>)
 
     useEffect(() => {
@@ -60,7 +60,6 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
             }
             return updatedSkillsViewStates
         })
-
     }, [skills])
 
     const handleCreateSkill = (e: React.MouseEvent<SVGElement>) => {
@@ -188,11 +187,9 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
 
     return (
         <Container>
-            <TitleContainer>
-            <label style={{ fontWeight: "bold", fontSize: "20px"}}>skills</label>
-            {editing && <PlusButton size={15} onClick={handleCreateSkill}/>}
-            </TitleContainer>
-            {editing ? getEditableSkillView() : getSkillView()}
+            {editing
+                ? <>{getEditableSkillView()} <PlusButton size={15} color={"white"} onClick={handleCreateSkill}/></>
+                : getSkillView()}
         </Container>
     )
 }
@@ -204,11 +201,9 @@ const Container = styled.div`
   padding: ${containerStyles.padding}px;
   height: ${containerStyles.height}px;
   gap: 5px;
-`
-const TitleContainer = styled.div`
-  display: flex;
-  color: white;
-  gap: 5px;
+  @media (max-width: 700px) {
+    position: relative;
+  }
 `
 const SkillViewContainer = styled.div`
   display: flex;
@@ -222,7 +217,6 @@ const SkillView = styled.div<{height: number, resize?: boolean, hslColor: string
   color: #696969;
   width: 20px;
   font-weight: bold;
-  border-radius: 3px;
   max-height: 100%;
   ${({height, resize, hslColor})=> 
     `height: ${height}%;

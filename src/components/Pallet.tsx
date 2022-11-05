@@ -25,14 +25,13 @@ import {DeleteOrRecoverButton} from "./Buttons"
 type Props = {
     show?: boolean
     isAsking?: (asking: boolean) => void
-    fontSize: number
 }
 type OptionType = "defaultText" | "span" | "link" | "image"
 type OptionTargetElement = HTMLSpanElement | HTMLAnchorElement | HTMLImageElement
 type OptionTargetNode = Text | OptionTargetElement
 type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
 
-export const Pallet = ({show=true, isAsking, fontSize}: Props) => {
+export const Pallet = ({show=true, isAsking}: Props) => {
     const isAskingTrue = () => {
         if (isAsking) {
             isAsking(true)
@@ -44,8 +43,8 @@ export const Pallet = ({show=true, isAsking, fontSize}: Props) => {
         }
     }
     const lastElementAddedId = "lastElementAdded"
-    const getLastElementAdded = () => {
-        return document.querySelector("#" + lastElementAddedId) as OptionTargetElement | null
+    const getLastElementsAdded = () => {
+        return document.querySelectorAll<OptionTargetElement>("#" + lastElementAddedId)
     }
 
     const handleMouseDown = (e: React.MouseEvent<Element>) => {
@@ -278,14 +277,12 @@ export const Pallet = ({show=true, isAsking, fontSize}: Props) => {
                     }
                     return span
                 }
-                onFinally = () => { lastSpan.id = ""; positionCaretOn(lastSpan) }
+                onFinally = () => { positionCaretOn(lastSpan) }
                 break
             case "link":
                 getNewNode = (t, isLast) => {
                     const link = createAnchor({innerHTML: t, ...elementProps})
-                    if (isLast) {
-                        link.id = lastElementAddedId
-                    }
+                    link.id = lastElementAddedId
                     return link
                 }
                 onFinally = () => {
@@ -320,12 +317,26 @@ export const Pallet = ({show=true, isAsking, fontSize}: Props) => {
     }
 
     const processHRef = (hRef: string) => {
-        const lastLinkAdded = getLastElementAdded() as HTMLAnchorElement
-        positionCaretOn(lastLinkAdded)
-        lastLinkAdded.id = ""
-        lastLinkAdded.href = hRef
+        const lastLinksAdded = getLastElementsAdded()
+        for (const link of lastLinksAdded) {
+            if (!(link instanceof HTMLAnchorElement)) {
+                throw new Error("last elements added must be anchors here")
+            }
+            link.id = ""
+            link.href = hRef
+        }
+        positionCaretOn(lastLinksAdded[lastLinksAdded.length - 1])
     }
-    const [askHRef, isAskingHRef, AskHRef] = useAskHRef({processHRef: processHRef, isAskingFalse: isAskingFalse})
+    const removeLastLinksAdded = () => {
+        const lastLinksAdded = getLastElementsAdded()
+        for (const link of lastLinksAdded) {
+            if (!(link instanceof HTMLAnchorElement)) {
+                throw new Error("last elements added must be anchors here")
+            }
+            link.remove()
+        }
+    }
+    const [askHRef, isAskingHRef, AskHRef] = useAskHRef({processHRef: processHRef, removeLastLinksAdded: removeLastLinksAdded, isAskingFalse: isAskingFalse})
 
     const modifyImageElement = (img: HTMLImageElement) => {
         const divParent = img.parentElement as HTMLDivElement
@@ -406,9 +417,10 @@ const Container = styled.div<{ show: boolean}>`
  `
 type UseAskHRefProps = {
     processHRef: (hRef: string)=> void
+    removeLastLinksAdded: ()=> void
     isAskingFalse: ()=> void
 }
-const useAskHRef = ({processHRef, isAskingFalse}: UseAskHRefProps): [Ask, IsAsking, JSX.Element] => {
+const useAskHRef = ({processHRef, removeLastLinksAdded, isAskingFalse}: UseAskHRefProps): [Ask, IsAsking, JSX.Element] => {
     const [hRef, setHRef] = useState("")
 
     const refToInput = useRef<HTMLInputElement | null>(null)
@@ -420,14 +432,21 @@ const useAskHRef = ({processHRef, isAskingFalse}: UseAskHRefProps): [Ask, IsAski
         setHRef("")
         hide()
     }
+    const handleOnEscape = () => {
+        isAskingFalse()
+        removeLastLinksAdded()
+        setHRef("")
+        hide()
+    }
 
     const [ask, hide, isAsking, Ask] = useAsk({
         child: <TextInput placeholder={"href"}
-                          style={{width: "200px"}}
+                          style={{width: "200px", fontSize: "1.8rem"}}
                           ref={refToInput}
                           value={hRef}
                           setValue={setHRef}
-                          onEnter={handleOnEnter}/>,
+                          onEnter={handleOnEnter}
+                          onEscape={handleOnEscape}  />,
         onShow: focusInput
     })
     return [ask, isAsking, Ask]
@@ -495,30 +514,30 @@ const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: Use
             {e}
         </div>
     const getFormOptionLabel = (str: string) =>
-        <span style={{fontSize: 20, width: 70}}>{str}:</span>
+        <span style={{fontSize: "2rem", width: 70}}>{str}:</span>
 
     const [ask, hide, isAsking, Ask] = useAsk({
         child:   <div style={{padding: 5}}>
                         {getWrapFormOption(<>
                                            {getFormOptionLabel("height")}
-                                           <NumberInput disabled={remove} style={{ width: "60%"}} ref={refToHeightInput} value={height} setValue={(v) => setImageProp({image:{height: v}})}/>
+                                           <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} ref={refToHeightInput} value={height} setValue={(v) => setImageProp({image:{height: v}})}/>
                                            </>)
                         }
                         {getWrapFormOption(<>
                                            {getFormOptionLabel("width")}
-                                           <NumberInput disabled={remove} style={{ width: "60%"}} value={width} setValue={(v) => setImageProp({image:{width: v}})}/>
+                                           <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} value={width} setValue={(v) => setImageProp({image:{width: v}})}/>
                                            </>)
                         }
                         {getWrapFormOption(<>
                             {getFormOptionLabel("left")}
-                            <NumberInput disabled={remove} style={{ width: "60%"}} value={left} setValue={(v) => setImageProp({parent:{left: v}})}/>
+                            <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} value={left} setValue={(v) => setImageProp({parent:{left: v}})}/>
                         </>)
                         }
                         {getWrapFormOption(<>
-                                           <ImageSelector disabled={remove} processImage={processImage}
+                                           <ImageSelector disabled={remove} processSelectedImage={processImage}
                                                label={getFormOptionLabel("src")} imageMaxSize={10}/>
                                            <span style={{
-                                               fontSize: 20, display: "inline-block", overflow: "hidden",
+                                               fontSize: "2rem", display: "inline-block", overflow: "hidden",
                                                textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
                                                {id}</span>
                                            </>)
@@ -528,8 +547,8 @@ const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: Use
                                       </div>
                         }
                         <div style={{display: "flex"}}>
-                            <button style={{width: "50%"}} onClick={handleOnClickAccept}>accept</button>
-                            <button style={{width: "50%"}} onClick={handleOnClickCancel}>cancel</button>
+                            <button style={{width: "50%", fontSize: "1.8rem"}} onClick={handleOnClickAccept}>accept</button>
+                            <button style={{width: "50%", fontSize: "1.8rem"}} onClick={handleOnClickCancel}>cancel</button>
                         </div>
                         </div>,
         onShow: focusHeightInput,

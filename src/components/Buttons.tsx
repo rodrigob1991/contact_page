@@ -11,7 +11,7 @@ export const Button = styled.button<{ backgroundColor?: string }>`
  width: fit-content;
  font-weight: bold;
  cursor: pointer;
- font-size: 22px;
+ font-size: 2.2rem;
 `
 export const PlusButton = ({
                                ...props

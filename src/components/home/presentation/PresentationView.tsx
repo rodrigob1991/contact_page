@@ -45,11 +45,10 @@ export default function PresentationView<VM extends ViewMode>({
 
     return (
         <Container>
-            {skillsChart}
             <InnerContainer>
             <NameImageContainer>
                 {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processSelectedImage={processSelectedImage} src={imageDataUrl}/>
-                         : <Image src={imageDataUrl as string} width={100} height={90} layout={"intrinsic"}/>}
+                         : <Image src={imageDataUrl || "/"} width={100} height={90} layout={"intrinsic"}/>}
                 <Name id={nameHtmlId} contentEditable={editing} ref={ editing ? r => {if (r) (observe as Observe)(r, {mutation: "default"})} : undefined}>
                     {name}
                 </Name>
@@ -57,15 +56,16 @@ export default function PresentationView<VM extends ViewMode>({
             <Introduction id={introductionHtmlId} contentEditable={editing} ref={ editing ? r => {if(r) (observe as Observe)(r, {mutation: "default"})} : undefined}
                                       dangerouslySetInnerHTML={{__html: introduction}}/>
             </InnerContainer>
+            {skillsChart}
         </Container>
     )
 }
 
 const Container = styled.div`
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  padding: 20px;
-  gap: 80px;
+  padding: 10px;
   background-image: linear-gradient(#00008B,#0000FF);
   box-shadow: 5px 10px #888888;
     `
@@ -83,12 +83,12 @@ const Name = styled.span`
   text-decoration-style: solid;
   text-transform: uppercase;
   font-weight: bold;
-  font-size: 25px;
+  font-size: 2.5rem;
   text-shadow: 2px 2px 5px #000000;
     `
 const Introduction = styled.span`
   font-weight: bold;
-  font-size: 21px;
+  font-size: 2.1rem;
   background-color: #778899;
   padding: 7px;
   border-radius: 15px;

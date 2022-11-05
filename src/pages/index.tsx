@@ -13,13 +13,14 @@ export const HOME_ROUTE = "/"
 
 export async function getStaticProps() {
     const propsStorageClient = new PropsStorageClient()
-    const homeProps = await propsStorageClient.getHomeProps()
+    const props = await propsStorageClient.getHomeProps()
 
-    if (!homeProps) {
+    if (!props) {
         throw new Error("There is not home props in the database")
     }
 
-    return {props: homeProps}
+    // json parser is use to don`t serialize undefined values, Next.js throw an error otherwise.
+    return {props: JSON.parse(JSON.stringify(props))}
 }
 
 export default function Home({presentation, stories}: HomeProps) {

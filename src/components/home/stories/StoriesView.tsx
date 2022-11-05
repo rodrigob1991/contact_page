@@ -162,7 +162,7 @@ export default function StoriesView<M extends ViewMode>({
         return (
             <StoryContainer key={idHtml}>
                 <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r)=> (observe as Observe)(r, {mutation: "default"})}
-                                color={"#778899"} fontSize={15} options={Object.values(StoryState)} initSelectedOption={story.state}/>
+                                color={"#778899"} fontSize={"1.5rem"} options={Object.values(StoryState)} initSelectedOption={story.state}/>
                 <StoryTitleContainer>
                     <StoryTitle id={htmlIds.title} ref={r => {if(r) (observe as Observe)(r, {mutation: "default"})}} toDelete={toDelete} contentEditable={!toDelete}>
                         {title}
@@ -171,7 +171,7 @@ export default function StoriesView<M extends ViewMode>({
                     <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
                                            handleDelete={() => {handleDeleteStory(idHtml, index, !("id" in story))}}
                                            handleRecover={() => {handleRecoverStory(idHtml, index)}}/>
-                    <Pallet show={isEditingStory(idHtml)} isAsking={isAsking} fontSize={bodyStoryFontSize}/>
+                    <Pallet show={isEditingStory(idHtml)} isAsking={isAsking}/>
                 </StoryTitleContainer>
                 {isOpen && <StoryBody id={htmlIds.body} contentEditable={!toDelete}
                                       ref={r => {if(r) (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}
@@ -224,7 +224,7 @@ const Title = styled.text`
   text-shadow: 2px 2px 5px #000000;
   text-transform: uppercase;
   font-weight: bold;
-  font-size: 20px;
+  font-size: 2rem;
   border-radius: 5px;
   background-color: #778899;
   width: fit-content;
@@ -235,11 +235,10 @@ const StoryContainer = styled.li`
   padding-bottom: 15px;
   margin-top: 15px;
 `
-const bodyStoryFontSize = 28
 const StoryBody = styled.div`
   color: #696969;
   background-color: #FFFFFF;
-  font-size: ${bodyStoryFontSize}px;
+  font-size: 2.8rem;
   font-family: "Lucida Console", "Courier New", monospace;
   border-color: #778899;
   border-width: thin;
@@ -257,7 +256,7 @@ const StoryTitleContainer = styled.div`
   width: fit-content;
 `
 const StoryTitle = styled.span<{ toDelete?: boolean }>`
-  font-size: 33px;
+  font-size: 3.3rem;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
   color: #778899;
