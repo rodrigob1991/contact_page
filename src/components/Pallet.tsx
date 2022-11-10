@@ -29,7 +29,9 @@ type Props = {
 type OptionType = "defaultText" | "span" | "link" | "image"
 type OptionTargetElement = HTMLSpanElement | HTMLAnchorElement | HTMLImageElement
 type OptionTargetNode = Text | OptionTargetElement
+type OptionTargetElementProps = ImageProps | string
 type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
+type GetOptionTargetNodeWithProps = (text: string, isLast: boolean, props?: OptionTargetElementProps)=> OptionTargetNode
 
 export const Pallet = ({show=true, isAsking}: Props) => {
     const isAskingTrue = () => {
@@ -245,13 +247,17 @@ export const Pallet = ({show=true, isAsking}: Props) => {
 
     const handleClickPalletOption = (optionType: OptionType, className?: string) => {
         const selection = window.getSelection() as Selection
-        const anchorNode = selection.anchorNode as ChildNode
-        const anchorOffset = selection.anchorOffset
+        const {isCollapsed, rangeCount, anchorNode, anchorOffset} = selection;
+        const ranges : Range[] = []
+        for (let i = 0; i < rangeCount; i++) {
+            ranges.push(selection.getRangeAt(i))
+        }
+        // use to ask href of links and props of images
+        const {y: rectTop,x: rectLeft} = ranges[0].getBoundingClientRect()
+        let somethingToAsk = false
+        let setHandleSelection: (f: (p?: OptionTargetElementProps) => void) => void = () => {}
 
-        // use to ask href of links and p props of images
-        const {top: rectTop,left: rectLeft} = selection.getRangeAt(0).getBoundingClientRect()
-
-        let getNewNode: GetOptionTargetNode
+        let getNewNode : GetOptionTargetNodeWithProps
         let onFinally: () => void
 
         const elementProps = {className: className, tabIndex: -1}
@@ -280,63 +286,74 @@ export const Pallet = ({show=true, isAsking}: Props) => {
                 onFinally = () => { positionCaretOn(lastSpan) }
                 break
             case "link":
-                getNewNode = (t, isLast) => {
+                let lastLinkAdded : HTMLAnchorElement
+                getNewNode = (t, isLast, hRef) => {
                     const link = createAnchor({innerHTML: t, ...elementProps})
-                    link.id = lastElementAddedId
+                    //link.id = lastElementAddedId
+                    link.href = hRef as string
+                    if (isLast) {
+                        lastLinkAdded = link
+                    }
                     return link
                 }
+                somethingToAsk = true
+                setHandleSelection = (handleSelection) => {
+                    updateInsertLink((hRef) => {
+                        handleSelection(hRef)
+                        setTimeout(()=> positionCaretOn(lastLinkAdded), 100)
+                    })
+                }
+
                 onFinally = () => {
                     isAskingTrue()
                     askHRef(rectTop, rectLeft)
                 }
                 break
             case "image":
-                updateInsertOrModifyImage((ip) => {
-                    const div = createDiv({props: {contentEditable: "false"}, styles: {paddingLeft: ip.parent.left + "px"}})
-                    const image = createImage(ip.image)
-                    image.setAttribute("onclick", `{
+                somethingToAsk = true
+                setHandleSelection = (handleSelection) => {
+                    updateInsertOrModifyImage((ip) => {
+                        handleSelection(ip)
+                    })
+                }
+                getNewNode = (t, isLast, ip) => {
+                    const {parent, image} = ip as ImageProps
+                    const div = createDiv({
+                        props: {contentEditable: "false"},
+                        styles: {paddingLeft: parent.left + "px"}
+                    })
+                    const imageElement = createImage(image)
+                    imageElement.setAttribute("onclick", `{
                         window.modifyImageElement(this)
                     }`)
-                    div.append(image)
-                    handleCollapsedSelection(optionType, div, anchorNode, anchorOffset)
-                })
-                isAskingTrue()
-                askImageProps(rectTop, rectLeft)
-                return
+                    div.append(imageElement)
+                    return div
+                }
+                onFinally = () => {
+                    isAskingTrue()
+                    askImageProps(rectTop, rectLeft)
+                }
+                break
         }
 
-        if (selection.isCollapsed) {
-            handleCollapsedSelection(optionType, getNewNode("-", true), anchorNode, anchorOffset)
-        } else {
-            for (let i = 0; i < selection.rangeCount; i++) {
-                handleRangeSelection(optionType, getNewNode, selection.getRangeAt(i))
+        const handleSelection = (p?: OptionTargetElementProps) => {
+            if (isCollapsed) {
+                handleCollapsedSelection(optionType, getNewNode("-", true, p), anchorNode as ChildNode, anchorOffset)
+            } else {
+                ranges.forEach((r) => handleRangeSelection(optionType, (text, isLast) => getNewNode(text, isLast, p), r))
             }
         }
-        // to give time to update the DOM
+        if (somethingToAsk) {
+            setHandleSelection(handleSelection)
+        } else {
+            handleSelection()
+        }
         setTimeout(onFinally, 100)
     }
 
-    const processHRef = (hRef: string) => {
-        const lastLinksAdded = getLastElementsAdded()
-        for (const link of lastLinksAdded) {
-            if (!(link instanceof HTMLAnchorElement)) {
-                throw new Error("last elements added must be anchors here")
-            }
-            link.id = ""
-            link.href = hRef
-        }
-        positionCaretOn(lastLinksAdded[lastLinksAdded.length - 1])
-    }
-    const removeLastLinksAdded = () => {
-        const lastLinksAdded = getLastElementsAdded()
-        for (const link of lastLinksAdded) {
-            if (!(link instanceof HTMLAnchorElement)) {
-                throw new Error("last elements added must be anchors here")
-            }
-            link.remove()
-        }
-    }
-    const [askHRef, isAskingHRef, AskHRef] = useAskHRef({processHRef: processHRef, removeLastLinksAdded: removeLastLinksAdded, isAskingFalse: isAskingFalse})
+    const [insertLink, setInsertLink] = useState<InsertLink>(()=> {})
+    const updateInsertLink = (fun: InsertLink)=> { setInsertLink((f: InsertLink)=> fun) }
+    const [askHRef, isAskingHRef, AskHRef] = useAskHRef({insertLink: insertLink, isAskingFalse: isAskingFalse})
 
     const modifyImageElement = (img: HTMLImageElement) => {
         const divParent = img.parentElement as HTMLDivElement
@@ -358,12 +375,10 @@ export const Pallet = ({show=true, isAsking}: Props) => {
     useEffect(() => {
         window.modifyImageElement = modifyImageElement
     }, [])
-
     const [insertOrModifyImage, setInsertOrModifyImage] = useState<InsertOrModifyImage>((ip)=> {})
     const updateInsertOrModifyImage = (fun: InsertOrModifyImage)=> { setInsertOrModifyImage((f: InsertOrModifyImage)=> fun) }
     const [removeImage, setRemoveImage] = useState<RemoveImage>(() => {})
     const updateRemoveImage = (fun: RemoveImage) => { setRemoveImage(() => fun) }
-
     const [askImageProps, isAskingImageProps, AskImageProps] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage, isAskingFalse: isAskingFalse})
 
     const palletOptionClass = "palletOption"
@@ -415,12 +430,12 @@ const Container = styled.div<{ show: boolean}>`
   border-color: #778899;
   background-color: #FFFFFF;
  `
+type InsertLink = (hRef: string) => void
 type UseAskHRefProps = {
-    processHRef: (hRef: string)=> void
-    removeLastLinksAdded: ()=> void
+    insertLink: InsertLink
     isAskingFalse: ()=> void
 }
-const useAskHRef = ({processHRef, removeLastLinksAdded, isAskingFalse}: UseAskHRefProps): [Ask, IsAsking, JSX.Element] => {
+const useAskHRef = ({insertLink, isAskingFalse}: UseAskHRefProps): [Ask, IsAsking, JSX.Element] => {
     const [hRef, setHRef] = useState("")
 
     const refToInput = useRef<HTMLInputElement | null>(null)
@@ -428,13 +443,12 @@ const useAskHRef = ({processHRef, removeLastLinksAdded, isAskingFalse}: UseAskHR
 
     const handleOnEnter = () => {
         isAskingFalse()
-        processHRef(hRef)
+        insertLink(hRef)
         setHRef("")
         hide()
     }
     const handleOnEscape = () => {
         isAskingFalse()
-        removeLastLinksAdded()
         setHRef("")
         hide()
     }

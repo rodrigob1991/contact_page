@@ -23,7 +23,7 @@ export const isImage = (node: Node) => {
 export const positionCaretOn = (node: Node) => {
     const selection = document.getSelection()
     if (selection) {
-        let offset
+        let offset = 0
         switch (node.nodeType) {
             case 3:
                 offset = (node.nodeValue as string).length
