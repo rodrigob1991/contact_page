@@ -489,8 +489,8 @@ const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: Use
         ask(top, left)
     }
 
-    const processImage = (id: string, dataUrl: string) => {
-        setImageProp({image: {id: id, src: dataUrl}})
+    const processImage = (name: string, extension: string, dataUrl: string) => {
+        setImageProp({image: {id: name, src: dataUrl}})
     }
 
     const close = () => {
@@ -557,7 +557,7 @@ const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: Use
                                            </>)
                         }
                         {modifying && <div style={{display: "flex", justifyContent: "center", padding: 5}}>
-                                      <DeleteOrRecoverButton handleRecover={()=> {handleRecover()}} handleDelete={()=> {handleRemove()}} color={"gray"}/>
+                                      <DeleteOrRecoverButton handleRecover={()=> {handleRecover()}} handleDelete={()=> {handleRemove()}} color={"gray"} size={15}/>
                                       </div>
                         }
                         <div style={{display: "flex"}}>

@@ -68,12 +68,18 @@ const Container = styled.div`
   padding: 10px;
   background-image: linear-gradient(#00008B,#0000FF);
   box-shadow: 5px 10px #888888;
+  @media (max-width: 900px) {
+    align-items: left;
+  }
     `
 const InnerContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  @media (max-width: 900px) {
+    width: fit-content;
+  }
     `
 const Name = styled.span`
   display: inline-block;

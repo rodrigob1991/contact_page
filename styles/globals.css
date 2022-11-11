@@ -6,6 +6,11 @@ body {
     Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
   font-size: 62.5%;
 }
+@media (max-width: 768px) {
+  html {
+    font-size: 50%;
+  }
+}
 
 a {
   color: inherit;

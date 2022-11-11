@@ -203,13 +203,14 @@ export default function StoriesView<M extends ViewMode>({
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  padding-left: 90px;
+  padding-left: 40px;
+  padding-right: 40px;
   gap: 15px;
   padding-top: 15px;
   padding-bottom: 15px;
   background-color: #fff;
   background-image:
-  linear-gradient(90deg, transparent 79px, #abced4 79px, #abced4 81px, transparent 81px),
+  linear-gradient(270deg, transparent 19px, #abced4 29px, #abced4 21px, transparent 81px),
   linear-gradient(#eee .1em, transparent .1em);
   background-size: 100% 1.2em;
 `

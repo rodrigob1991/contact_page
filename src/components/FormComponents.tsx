@@ -1,7 +1,7 @@
 import styled from "@emotion/styled"
 import {css} from "@emotion/react"
 import React, {
-    ChangeEvent,
+    ChangeEvent, CSSProperties,
     DetailedHTMLProps,
     forwardRef,
     ImgHTMLAttributes,
@@ -278,17 +278,18 @@ const ImageDescription = styled.div<{show: boolean}>`
 `
 
 type InputType = "textAreaInput" | "textInput" | "textInputEmail"
-type InputElementProps = {type: InputType, placeholder: string, height: number, width: number}
+type InputElementProps = {type: InputType}
 type InputElementsProps = { [key: string]: InputElementProps }
 type InputValues<E extends InputElementsProps> = {
     [K in keyof E]: (E[K]["type"] extends ("textInput" | "textAreaInput" | "textInputEmail") ? string : never)
 }
 
 type FormModalProps<E extends InputElementsProps> = {
-    inputElementsProps: E
-    processSubmission: (values: InputValues<E>) => Promise<ResultMessageProps>
     position: {top: number, left: number}
-    buttonText : string
+    inputElementsProps: E
+    button: {text: string, style?: CSSProperties}
+    resultMessageStyle?: CSSProperties
+    processSubmission: (values: InputValues<E>) => Promise<ResultMessageProps>
 }
 const useElementsValues = <E extends InputElementsProps>(inputElementsProps: E) : [JSX.Element, InputValues<E>]  => {
     const elementsValues = useRef(
@@ -330,13 +331,14 @@ const useElementsValues = <E extends InputElementsProps>(inputElementsProps: E) 
 }
 
 export const useFormModal = <E extends InputElementsProps>({
-                                                               inputElementsProps,
-                                                               processSubmission,
                                                                position: {
                                                                    top: topPosition,
                                                                    left: leftPosition
                                                                },
-                                                               buttonText
+                                                               inputElementsProps,
+                                                               button: {text: buttonText, style: buttonStyle},
+                                                               resultMessageStyle,
+                                                               processSubmission,
                                                            }: FormModalProps<E>) : [()=> void, JSX.Element] => {
     const [Elements, elementsValues] = useElementsValues(inputElementsProps)
 
@@ -376,10 +378,10 @@ export const useFormModal = <E extends InputElementsProps>({
 
     const Modal = <FormModalContainer onSubmit={handleSubmission} show={show} topPosition={topPosition}
                             leftPosition={leftPosition}>
-                    <IoMdClose style={{cursor: "pointer", color: "#FFFFFF"}} onClick={handleCloseModal}/>
+                    <IoMdClose size={20} style={{cursor: "pointer", color: "#FFFFFF"}} onClick={handleCloseModal}/>
                     {Elements}
                     <BlocksLoader show={loading}/>
-                    <Button disabled={loading} backgroundColor={"#00008B"}>{buttonText}</Button>
+                    <Button disabled={loading} style={buttonStyle} backgroundColor={"#00008B"}>{buttonText}</Button>
                     <ResultMessage {...resultMessage}/>
                  </FormModalContainer>
 
