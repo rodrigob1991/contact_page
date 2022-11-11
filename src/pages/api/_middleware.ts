@@ -7,7 +7,7 @@ export function middleware(request: NextRequest, ev: NextFetchEvent) {
     let response: Response
 
     const auth = request.headers.get("authorization")
-    if (auth && auth === process.env.PRIVATE_TOKEN) {
+    if (process.env.NODE_ENV !== "production" || (auth && auth === process.env.PRIVATE_TOKEN)) {
         response = NextResponse.next()
     } else {
         response = new Response(JSON.stringify(authResponseBody),

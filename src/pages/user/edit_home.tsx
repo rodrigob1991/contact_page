@@ -1,255 +1,372 @@
 import styled from "@emotion/styled"
-import React, {FormEvent, useState} from "react"
-import {HomeComponentProps, PresentationComponent, StoryComponent} from "../../types/Home"
+import React, {useEffect, useRef, useState} from "react"
+import {
+    HomeProps,
+    Image,
+    NewSkill,
+    NewStory,
+    Presentation,
+    PresentationWithoutImage,
+    Skill,
+    Story,
+    StoryHTMLElementIds
+} from "../../types/Home"
 import {revalidatePages} from "../api/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
-import {PropsStorageClient} from "../../classes/Props"
-import {putPresentation} from "../api/props/home/presentation"
-import {deleteStory, putStory} from "../api/props/home/story"
-import {TextAreaInput, TextInput} from "../../components/FormComponents"
+import {PropsStorageClient} from "../../classes/PropsStorageClient"
 import {Button} from "../../components/Buttons"
+import {Container, Footer} from "../../components/home/Layout"
+import PresentationView, {GetHtmlElementId as GetPresentationHtmlElementId} from "../../components/home/presentation/PresentationView"
+import StoriesView from "../../components/home/stories/StoriesView"
+import {getContainedString} from "../../utils/StringManipulations"
+import {patchHomeProps, postHomeProps} from "../api/props/home"
+import {SpinLoader} from "../../components/Loaders"
+import {StoryState} from "@prisma/client"
+import {AnyPropertiesCombination} from "../../utils/Types"
+import {lookUpParent} from "../../utils/DomManipulations"
+import {containerStyles as skillsChartContainerStyles} from "../../components/home/presentation/SkillsChart"
 
 export const EDITH_HOME_ROUTE = "/user/edit_home"
 
 export async function getServerSideProps() {
     const propsStorageClient = new PropsStorageClient()
-    const homeProps = await propsStorageClient.getHomeProps()
+    const props = await propsStorageClient.getEditHomeProps()
 
-    return {props: homeProps}
+    // json parser is use to don`t serialize undefined values, Next.js throw an error otherwise.
+    return {props: JSON.parse(JSON.stringify(props))}
 }
 
-const emptyStory = {id: undefined, title: "", body: ""}
-const emptyPresentation = {id: undefined, name: "", introduction: ""}
+export type Observe = (element: HTMLElement, observeWhat: AnyPropertiesCombination<{ mutation: MutationObserverInit | "default", resize: ResizeObserverOptions | "default" }>) => void
 
-export default function EditHome(props: HomeComponentProps | null) {
-    const [presentation, setPresentation] = useState(props?.presentation || emptyPresentation)
-    const setPresentationProperty = (presentationKey: keyof PresentationComponent, propertyValue: string) => {
-        setPresentation((presentation) => {
-            const updatedPresentation = {...presentation}
-            updatedPresentation[presentationKey] = propertyValue
-            return updatedPresentation
-        })
+export default function EditHome(props?: HomeProps) {
+    const isCreateHomeProps = props === undefined
+
+    const newEntityIdPrefix = "-"
+    const isNewEntity = (id: string) => {
+        return id.startsWith(newEntityIdPrefix)
     }
-    const handleSavePresentation = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-
-        const operation = presentation.id ? "UPDATE" : "CREATE"
-
-        putPresentation(presentation).then(({succeed, presentation, errorMessage}) => {
-                if (succeed) {
-                    setEditPresentationMessage(`presentation ${operation}D`)
-                    if (presentation) {
-                        setPresentation(presentation)
-                    }
-                } else {
-                    setEditPresentationMessage(errorMessage || `could not ${operation} the presentation`)
-                }
-            }
-        )
+    const getIndexFromNewEntityId = (id: string) => {
+        return parseInt(getContainedString(id, newEntityIdPrefix))
     }
-    const [editPresentationMessage, setEditPresentationMessage] = useState("")
 
-    const [stories, setStories] = useState(props?.stories || [])
-    const [selectedStory, setSelectedStory] = useState<StoryComponent>(emptyStory)
-    const creatingStory = selectedStory.id === undefined
-    const handleStorySelection = (e: React.MouseEvent<HTMLDivElement>, story: StoryComponent) => {
-        e.preventDefault()
-        setSelectedStory(story)
+    const emptyImage: Image = {extension: "", name: "", src: ""}
+    const emptyPresentation: Presentation = {name: "", introduction: "", skills: [], image: emptyImage}
+    const refToPresentation = useRef<Presentation>(props?.presentation || emptyPresentation)
+    const getPresentation = () => refToPresentation.current
+    const setPresentation = (p: Presentation) => {
+        refToPresentation.current = p
     }
-    const setStoryProperty = (storyKey: keyof StoryComponent, propertyValue: string) => {
-        setSelectedStory((story) => {
-            const updatedStory = {...story}
-            updatedStory[storyKey] = propertyValue
-            return updatedStory
-        })
+    const mutatePresentation = <K extends keyof Presentation>(key: K, value: Presentation[K]) => {
+        getPresentation()[key] = value
     }
-    const handleSavedStory = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
 
-        const isCreate = selectedStory.id === undefined
-        const operation = isCreate ? "CREATE" : "UPDATE"
-
-        putStory(selectedStory).then(({succeed, story, errorMessage}) => {
-                if (succeed) {
-                    setEditStoryMessage(`story ${operation}D`)
-                    if (story) {
-                        setSelectedStory(story)
-                        const updatedStories = isCreate ? [...stories, story] :
-                            () => {
-                                const auxStories = [...stories]
-                                auxStories.splice(stories.findIndex(s => s.id === story.id), 1, story)
-                                return auxStories
-                            }
-                        setStories(updatedStories)
-                    }
-                } else {
-                    setEditStoryMessage(errorMessage || `could not ${operation} the story`)
-                }
-            }
-        )
+    const mutateNewSkill = <K extends keyof NewSkill>(id: string, key: K, value: NewSkill[K]) => {
+        (getNewSkills()[getIndexFromNewEntityId(id)] as NewSkill)[key] = value
     }
-    const handleNewStory = (e: React.MouseEvent<HTMLButtonElement>)=>{
-        e.preventDefault()
-        setSelectedStory(emptyStory)
+    const mutateSavedSkill = <K extends keyof Skill>(id: string, key: K, value: Skill[K]) => {
+        getPresentation().skills[getPresentation().skills.findIndex((s) => s.id === id)][key] = value
     }
-    const handleDeleteStory = async (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault()
-
-        if (selectedStory.id) {
-            deleteStory(selectedStory.id).then(({succeed, errorMessage}) => {
-                    if (succeed) {
-                        setStories((stories)=> {
-                            const updatedStories = [...stories]
-                            updatedStories.splice(stories.findIndex(s => s.id === selectedStory.id),1)
-                            return updatedStories
-                        })
-                        setSelectedStory(emptyStory)
-                        setEditStoryMessage("story deleted successfully")
-                    } else {
-                        setEditStoryMessage(errorMessage || "could not delete the story")
-                    }
-                }
-            )
+    const refToNewSkills = useRef<(NewSkill | null)[]>([])
+    const getNewSkills = () => refToNewSkills.current
+    const setNewSkills = (ns: NewSkill[]) => {
+        refToNewSkills.current = ns
+    }
+    const getNotNullsNewSkills = () => {
+        const isNoNull = (s: NewSkill | null): s is NewSkill => s !== null
+        return getNewSkills().filter(isNoNull)
+    }
+    const createNewSkill = (): [string, NewSkill] => {
+        let position = 0
+        getNotNullsNewSkills().concat(getUpdateSkills()).forEach(s => position = s.position > position ? s.position : position)
+        const newSkill = {name: "new skill", rate: 50, image: emptyImage, position: position + 1}
+        const id = newEntityIdPrefix + (getNewSkills().push(newSkill) - 1)
+        return [id, newSkill]
+    }
+    const refToDeleteSkillsIds = useRef<string[]>([])
+    const getDeleteSkillsIds = () => refToDeleteSkillsIds.current
+    const setDeleteSkillsIds = (ids: string[]) => {
+        refToDeleteSkillsIds.current = ids
+    }
+    const addDeleteSkillsId = (id: string) => {
+        getDeleteSkillsIds().push(id)
+    }
+    const deleteSkill = (id: string) => {
+        if (isNewEntity(id)) {
+            getNewSkills().splice(getIndexFromNewEntityId(id), 1, null)
+        } else {
+            addDeleteSkillsId(id)
         }
     }
-    const [editStoryMessage, setEditStoryMessage] = useState("")
+    const getUpdateSkills = () => getPresentation().skills.filter((s) => !(getDeleteSkillsIds().some((id) => id === s.id)))
 
-    const revalidateHome = async (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault()
+    const presentationHtmlElementIdPrefix = "presentation"
+    const getPresentationHtmlElementId: GetPresentationHtmlElementId = (key, skillId) => {
+        let htmlElementId = presentationHtmlElementIdPrefix + "-" + key
+        switch (key) {
+            case "introduction":
+            case "name" :
+                break
+            case "skills":
+                htmlElementId += `{${skillId}}`
+                break
+            default:
+                throw new Error("typescript should realize that all the cases are cover")
+        }
+        return htmlElementId
+    }
 
-        revalidatePages([RevalidationRouteId.HOME]).then(({
-                                                                                           succeed,
-                                                                                           revalidations,
-                                                                                           errorMessage
-                                                                                       }) => {
-                if (succeed) {
-                    //there must always be revalidations here
-                    if (revalidations) {
-                        const message = revalidations.map(r => r.routeId + ":" + r.message).toString()
-                        setRevalidationMessage(message)
+    const emptyStory: Story = {id: "", state : StoryState.UNPUBLISHED, title: "", body: ""}
+
+    const refToSavedStories = useRef<Story[]>(props?.stories || [])
+    const getSavedStories = () => refToSavedStories.current
+    const setSavedStories = (ns: Story[]) => {
+        refToSavedStories.current = ns
+    }
+    const mutateSavedStory = <K extends keyof NewStory>(storyId: string, key: K, value: Story[K]) => {
+        const storyToUpdateIndex = getSavedStories().findIndex((s) => s.id === storyId)
+        getSavedStories()[storyToUpdateIndex][key] = value
+    }
+
+    const newStories = useRef<(NewStory | null)[]>([])
+    const getNewStories = () => newStories.current
+    const setNewStories = (ns: NewStory[]) => {
+        newStories.current = ns
+    }
+    const getNotNullsNewStories = () => {
+        const isNoNull = (s: NewStory | null): s is NewStory => s !== null
+        return getNewStories().filter(isNoNull)
+    }
+    const createNewStory = (): [string, NewStory] => {
+        const newStory = {state: StoryState.UNPUBLISHED, title: "title", body: "<div> body </div>"}
+        const id = newEntityIdPrefix + (getNewStories().push(newStory) - 1)
+        return [id, newStory]
+    }
+    const mutateNewStory = <K extends keyof NewStory>(id: string, key: K, value: NewStory[K]) => {
+        const index = getIndexFromNewEntityId(id);
+        (getNewStories()[index] as NewStory)[key] = value
+    }
+    const deleteNewStory = (id: string) => {
+        getNewStories().splice(getIndexFromNewEntityId(id), 1, null)
+    }
+
+    const refToDeleteStoriesIds = useRef<string[]>([])
+    const getDeleteStoriesIds = () => refToDeleteStoriesIds.current
+    const setDeleteStoriesIds = (ids: string[]) => {
+        refToDeleteStoriesIds.current = ids
+    }
+    const addDeleteStoryId = (id: string) => {
+        getDeleteStoriesIds().push(id)
+    }
+    const deleteDeleteStoryId = (id: string) => {
+        getDeleteStoriesIds().splice(getDeleteStoriesIds().findIndex((id) => id === id), 1)
+    }
+    const deleteStory = (id: string) => {
+        if (isNewEntity(id)) {
+            deleteNewStory(id)
+        } else {
+            addDeleteStoryId(id)
+        }
+    }
+    const recoverStory = (id: string) => {
+        deleteDeleteStoryId(id)
+    }
+    const getUpdateStories = () =>
+        getSavedStories().filter((s) => !(getDeleteStoriesIds().some((id) => id === s.id)))
+
+    const storyHtmlElementIdPrefix = "story"
+    const getStoryHtmlElementIds = (storyId: string) => {
+        const htmlElementIds: Record<string, string> = {}
+        for (const key in emptyStory) {
+            htmlElementIds[key] = `${storyHtmlElementIdPrefix}{${storyId}}${key}`
+        }
+        return htmlElementIds as StoryHTMLElementIds
+    }
+
+    const refToMutationObserverTarget = useRef<HTMLDivElement>(null)
+
+    const [observe, setObserve] = useState<Observe>(()=> ()=> {})
+
+    useEffect(() => {
+        const handleMutatedOrResizedSkillHTMLElement = <K extends keyof NewSkill>(htmlElementId: string, key: K,  newPropertyValue: Skill[K]) => {
+            const skillId = getContainedString(htmlElementId, "{", "}")
+            if (isNewEntity(skillId)) {
+                mutateNewSkill(skillId, key, newPropertyValue)
+            } else {
+                mutateSavedSkill(skillId, key, newPropertyValue)
+            }
+        }
+        const handleMutatedPresentationHTMLElement = (htmlElementId: string, newPropertyValue: string) => {
+            const key = getContainedString(htmlElementId, "-")
+            if (key.startsWith("skills")) {
+                //handleMutatedOrResizedSkillHTMLElement(htmlElementId,"image",  newPropertyValue)
+            } else {
+                mutatePresentation(key as keyof PresentationWithoutImage, newPropertyValue)
+            }
+        }
+        const handleMutatedStoryHTMLElement = (htmlElementId: string, newPropertyValue: string) => {
+            const storyId = getContainedString(htmlElementId, "{", "}")
+            const key = getContainedString(htmlElementId, "}") as keyof NewStory
+            if (isNewEntity(storyId)) {
+                mutateNewStory(storyId, key, newPropertyValue)
+            } else {
+                mutateSavedStory(storyId, key, newPropertyValue)
+            }
+        }
+
+        const isTargetElement = (node: Node) => node instanceof HTMLElement && (node.id.startsWith(presentationHtmlElementIdPrefix) || node.id.startsWith(storyHtmlElementIdPrefix))
+
+        const mutationObserver = new MutationObserver(
+            (mutations, observer) => {
+                for (const mutation of mutations) {
+                    const targetMutation = mutation.target
+                    if (!targetMutation.isConnected) {
+                        continue
                     }
-                } else {
-                    setRevalidationMessage(errorMessage || "there must be always an error message")
+                    const targetElement = isTargetElement(targetMutation) ? targetMutation
+                        : lookUpParent(targetMutation, (p: ParentNode) => isTargetElement(p))
+
+                    if (!targetElement || !isTargetElement(targetElement)) {
+                        throw Error("this should not happen")
+                    }
+
+                    const {id, innerHTML} = targetElement as HTMLElement
+                    console.log(innerHTML)
+
+                    if (id.startsWith(presentationHtmlElementIdPrefix)) {
+                        handleMutatedPresentationHTMLElement(id, innerHTML)
+                    } else {
+                        handleMutatedStoryHTMLElement(id, innerHTML)
+                    }
+                }
+            })
+
+        const resizeObserver = new ResizeObserver((resizes, observer) => {
+            for (const resize of resizes) {
+                const resizeTarget = resize.target as HTMLElement
+                // can be no connected when removing
+                if (resizeTarget.isConnected) {
+                    const newRate = Math.round((resize.borderBoxSize[0].blockSize) * 100 / (skillsChartContainerStyles.height - (skillsChartContainerStyles.padding * 2)))
+                    handleMutatedOrResizedSkillHTMLElement(resizeTarget.id, "rate", newRate)
                 }
             }
-        )
+        })
+        const observe: Observe = (element, observeWhat) => {
+            if ("mutation" in observeWhat) {
+                const options = observeWhat.mutation
+                mutationObserver.observe(element, options === "default" ? {characterData: true, subtree: true} : options)
+            }
+            if ("resize" in observeWhat) {
+                const options = observeWhat.resize
+                resizeObserver.observe(element, options === "default" ? {box: "border-box"} : options)
+            }
+        }
+        setObserve((current: Observe) => observe)
+
+        return () => {
+            mutationObserver.disconnect()
+            resizeObserver.disconnect()
+        }
+    }, [])
+
+    const [loading, setLoading] = useState(false)
+    const prepareApiCall = (promise: Promise<any>) => {
+        setStorageResultMessage("")
+        setRevalidationResultMessage("")
+        setLoading(true)
+        promise.finally(() => setLoading(false))
     }
-    const [revalidationMessage, setRevalidationMessage] = useState("")
+
+    const [storageResultMessage, setStorageResultMessage] = useState("")
+    const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
+        prepareApiCall(isCreateHomeProps ?
+                               postHomeProps({
+                                   presentation: { ...getPresentation(), skills: {new: getNotNullsNewSkills()}},
+                                   stories: {new: getNotNullsNewStories()}
+                                }) :
+                                patchHomeProps({
+                                    presentation: { ...getPresentation(),
+                                                  skills: {new: getNotNullsNewSkills(), update: getUpdateSkills(), delete: getDeleteSkillsIds()}
+                                    },
+                                    stories: {
+                                        update: getUpdateStories(),
+                                        delete: getDeleteStoriesIds(),
+                                        new: getNotNullsNewStories()
+                                }
+        }).then(({succeed, homeProps: {presentation, stories} = {}, errorMessage}) => {
+            let resultMessage
+            if (succeed) {
+                resultMessage = "home props successfully stored"
+                setPresentation(presentation || emptyPresentation)
+                setNewSkills([])
+                setDeleteSkillsIds([])
+                setSavedStories(stories || [])
+                setNewStories([])
+                setDeleteStoriesIds([])
+            } else {
+                resultMessage = errorMessage || "home props could not be stored"
+            }
+            setStorageResultMessage(resultMessage)
+        }).finally(() => setLoading(false)))
+    }
+
+    const revalidateHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
+        prepareApiCall(revalidatePages([RevalidationRouteId.HOME])
+            .then(({
+                       succeed,
+                       revalidations,
+                       errorMessage
+                   }) => {
+                    if (succeed) {
+                        //there must always be revalidations here
+                        if (revalidations) {
+                            const message = revalidations.map(r => r.routeId + ":" + r.message).toString()
+                            setRevalidationResultMessage(message)
+                        }
+                    } else {
+                        setRevalidationResultMessage(errorMessage || "there must be always an error message")
+                    }
+                }
+            ))
+    }
+    const [revalidationResultMessage, setRevalidationResultMessage] = useState("")
 
     return (
-        <Container>
-            <PresentationForm onSubmit={handleSavePresentation}>
-                <TextInput width={300} value={presentation.name}
-                           setValue={(value) => setPresentationProperty("name", value)}/>
-                <TextAreaInput height={400} width={1000} value={presentation.introduction}
-                               setValue={(value) => setPresentationProperty("introduction", value)}/>
-                <Button backgroundColor={"#00008B"} type={"submit"}> SAVE PRESENTATION </Button>
-                {editPresentationMessage}
-            </PresentationForm>
-            <StoryContainer>
-                <EditStoryForm onSubmit={handleSavedStory}>
-                    <EditStoryDataContainer>
-                        <TextInput width={300} value={selectedStory.title}
-                                   setValue={(value) => setStoryProperty("title", value)}/>
-                        <TextAreaInput height={350} width={700} value={selectedStory.body}
-                                       setValue={(value) => setStoryProperty("body", value)}/>
-                        {editStoryMessage}
-                    </EditStoryDataContainer>
-                    <EditStoryButtonsContainer>
-                        <Button backgroundColor={"#00008B"} type={"submit"}> {creatingStory ? "CREATE" : "UPDATE"} </Button>
-                        {!creatingStory ?
-                            <><Button backgroundColor={"#00008B"} onClick={handleNewStory}> NEW </Button>
-                                <Button backgroundColor={"#00008B"} onClick={handleDeleteStory}> DELETE </Button></>
-                            : ""
-                        }
-                    </EditStoryButtonsContainer>
-
-                </EditStoryForm>
-                <StoryTable>
-                    <StoryTableTitle>Stories</StoryTableTitle>
-                    {stories.map((s) => (
-                        <StoryRow key={s.id} onClick={(e) => handleStorySelection(e, s)}>
-                            <StoryColumn> {s.title}</StoryColumn> </StoryRow>
-                    ))}
-                </StoryTable>
-            </StoryContainer>
-            <Button backgroundColor={"#00008B"} onClick={revalidateHome}> REVALIDATE HOME </Button>
-            {revalidationMessage}
+        <Container ref={refToMutationObserverTarget}>
+            <SpinLoader show={loading}/>
+            <PresentationView editing observe={observe} getHtmlElementId={getPresentationHtmlElementId} presentation={getPresentation()}
+                              createSkill={createNewSkill} deleteSkill={deleteSkill}/>
+            <StoriesView editing observe={observe} stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
+                         createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}/>
+            <Footer>
+                <ButtonsContainer>
+                    <Button disabled={loading} onClick={storeHomeProps}> STORE </Button>
+                    <Button disabled={loading} onClick={revalidateHomeProps}> REVALIDATE </Button>
+                </ButtonsContainer>
+                <OperationMessagesContainer>
+                    <OperationMessage>{storageResultMessage}</OperationMessage>
+                    <OperationMessage>{revalidationResultMessage}</OperationMessage>
+                </OperationMessagesContainer>
+            </Footer>
         </Container>
     )
 }
 
-const Container = styled.div`
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  padding: 50px;
-  background-color: #4682B4;
-  gap: 20px;
-  height: fit-content;
-`
-const PresentationForm = styled.form`
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  background-color: #B0C4DE;
-  gap: 20px;
-  padding: 50px;
-`
-
-const StoryContainer = styled.div`
-  align-items: left;
-  display: flex;
-  flex-direction: column;
-  background-color: #B0C4DE;
-  gap: 20px;
-  padding: 50px;
-`
-const EditStoryForm = styled.form`
-  align-items: center;
+const ButtonsContainer = styled.div`
   display: flex;
   flex-direction: row;
-  background-color:;
-  gap: 15px;
+  justify-content: center;
+  padding-top: 20px;
+  gap: 20px;
 `
-const EditStoryDataContainer = styled.div`
+const OperationMessagesContainer = styled.div`
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  display: flex;
-  flex-direction: column;
-  background-color:;
-  gap: 15px;
+  padding: 20px;
+  gap: 10px;
 `
-const EditStoryButtonsContainer = styled.div`
-  align-items: left;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-`
-const StoryTable = styled.div`
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  background-color: #B0C4DE;
-  gap: 5px;
-`
-const StoryTableTitle = styled.text`
-  color: #4682B4;
-  text-decoration-color: #4682B4;
-  text-decoration-line: underline;
-  text-decoration-style: solid;
-  text-transform: uppercase;
+const OperationMessage = styled.text`
   font-weight: bold;
   font-size: 20px;
+  color: #00008B;
     `
-
-const StoryRow = styled.div`
-  align-items: left;
-  display: flex;
-  flex-direction: row;
-  cursor: pointer;
-  font-weight: bold;
-`
-const StoryColumn = styled.div`
-  border-style: solid;
-  border-color: #4682B4;
-`

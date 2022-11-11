@@ -1,7 +1,9 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {PropsStorageClient} from "../../../../classes/Props"
-import {Story, StoryComponent, StoryPutParam} from "../../../../types/Home"
-import {AuthResponseBody} from "../../_middleware";
+import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
+import {NewStory, Story} from "../../../../types/Home"
+import {AuthResponseBody} from "../../_middleware"
+import {isEmpty} from "../../../../utils/StringManipulations"
+import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
 
 const STORY_API_ROUTE = "/api/props/home/story"
 
@@ -15,7 +17,7 @@ type DeleteResponseBody = {
     message: string
 }
 
-export const putStory = async (story: StoryComponent) => {
+export const putStory = async (story: NewStory | Story) => {
     const result: { succeed: boolean, story?: Story, errorMessage?: string } = {succeed: false}
 
     try {
@@ -89,13 +91,13 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     switch (request.method) {
         case "PUT" :
-            const story: StoryPutParam = params
-            if (!validStory(story)) {
+            const story: NewStory | Story = params
+            if (!story || !ApiParamsValidator.isValidSetStory(story)) {
                 httpCode = 400
-                body = {errorMessage: "missing data"}
+                body = {errorMessage: "invalid data"}
             } else {
                 try {
-                    const savedStory = await propsStorageClient.setStory(story as StoryComponent)
+                    const savedStory = await propsStorageClient.setStory(story)
                     httpCode = 200
                     body = {story: savedStory}
                 } catch (e) {
@@ -107,7 +109,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
             break
         case "DELETE" :
             const storyId: string = params
-            if (storyId === undefined || storyId.length === 0) {
+            if (isEmpty(storyId)) {
                 httpCode = 400
                 body = {message: "missing story id"}
             } else {
@@ -127,10 +129,4 @@ export default async function handler(request: NextApiRequest, response: NextApi
             body = {errorMessage: "invalid http method"}
     }
     response.status(httpCode).json(body)
-}
-
-const validStory = (story: StoryPutParam) => {
-    return story !== undefined && story.title !== undefined
-        && story.title.length > 0 && story.body !== undefined
-        && story.body.length > 0
 }

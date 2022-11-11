@@ -1,17 +1,17 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
-import {AuthResponseBody} from "../../_middleware"
-import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
-import {CreatePresentationArgs, Presentation, UpdatePresentationArgs} from "../../../../types/Home"
+import {PropsStorageClient} from "../../../classes/PropsStorageClient"
+import {CreateHomePropsArgs, HomeProps, UpdateHomePropsArgs} from "../../../types/Home"
+import {AuthResponseBody} from "../_middleware"
+import {ApiParamsValidator} from "../../../classes/ApiParamsValidator"
 
-const PRESENTATION_API_ROUTE = "/api/props/home/presentation"
+const HOME_PROPS_API_ROUTE = "/api/props/home"
 
-const URL = process.env.NEXT_PUBLIC_BASE_URL + PRESENTATION_API_ROUTE
+const URL = process.env.NEXT_PUBLIC_BASE_URL + HOME_PROPS_API_ROUTE
 
-type ResponseBody = { presentation?: Presentation, errorMessage?: string }
+type ResponseBody = { homeProps?: HomeProps, errorMessage?: string }
 type ProcessResponseResult = { succeed: boolean} & ResponseBody
 
-export const setPresentation = async (body: CreatePresentationArgs | UpdatePresentationArgs, method: "POST" | "PATCH") => {
+const setHomeProps = async (body: CreateHomePropsArgs | UpdateHomePropsArgs, method: "POST" | "PATCH") => {
     const result: ProcessResponseResult = {succeed: false}
 
     try {
@@ -31,7 +31,7 @@ export const setPresentation = async (body: CreatePresentationArgs | UpdatePrese
         } else {
             const responseBody: ResponseBody = await response.json()
             if (response.ok) {
-                result.presentation = responseBody.presentation
+                result.homeProps = responseBody.homeProps
             } else {
                 result.errorMessage = responseBody.errorMessage
             }
@@ -42,11 +42,11 @@ export const setPresentation = async (body: CreatePresentationArgs | UpdatePrese
 
     return result
 }
-export const postPresentation = async (body: CreatePresentationArgs) => {
-    return setPresentation(body, "POST")
+export const postHomeProps = (body: CreateHomePropsArgs) => {
+    return setHomeProps(body, "POST")
 }
-export const patchPresentation = async (body: UpdatePresentationArgs) => {
-    return setPresentation(body, "PATCH")
+export const patchHomeProps = (body: UpdateHomePropsArgs) => {
+    return setHomeProps(body, "PATCH")
 }
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
@@ -59,33 +59,33 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
     switch (request.method) {
         case "POST" :
-            if (!requestBody || !ApiParamsValidator.isValidCreatePresentation(requestBody)) {
+            if (!requestBody || !ApiParamsValidator.areValidCreateHomePropsArgs(requestBody)) {
                 httpCode = 400
-                body = {errorMessage: "invalid create presentation params"}
+                body = {errorMessage: "invalid create home props request body"}
             } else {
                 try {
-                    const createdPresentation = await propsStorageClient.setPresentation(requestBody)
+                    const createdHomeProps = await propsStorageClient.createHomeProps(requestBody)
                     httpCode = 200
-                    body = {presentation: createdPresentation}
+                    body = {homeProps: createdHomeProps}
                 } catch (e) {
                     httpCode = 500
-                    body = {errorMessage: "could not create the presentation"}
+                    body = {errorMessage: "could not create home props"}
                     console.error(e)
                 }
             }
             break
         case "PATCH" :
-            if (!requestBody || !ApiParamsValidator.isValidUpdatePresentation(requestBody)) {
+            if (!requestBody || !ApiParamsValidator.areValidUpdateHomePropsArgs(requestBody)) {
                 httpCode = 400
-                body = {errorMessage: "invalid update presentation params"}
+                body = {errorMessage: "invalid update home props request body"}
             } else {
                 try {
-                    const updatedPresentation = await propsStorageClient.setPresentation(requestBody)
+                    const updatedHomeProps = await propsStorageClient.updateHomeProps(requestBody)
                     httpCode = 200
-                    body = {presentation: updatedPresentation}
+                    body = {homeProps: updatedHomeProps}
                 } catch (e) {
                     httpCode = 500
-                    body = {errorMessage: "could not update the presentation"}
+                    body = {errorMessage: "could not update home props"}
                     console.error(e)
                 }
             }

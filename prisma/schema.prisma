@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,8 +9,8 @@ datasource db {
 
 model Props {
   id String @id @map("_id") @db.ObjectId
-  presentation Presentation? @relation(fields: [presentationId], references: [id])
-  presentationId String @db.ObjectId
+  presentation Presentation @relation(fields: [presentationId], references: [id])
+  presentationId String @db.ObjectId @unique
   stories Story[]
 }
 
@@ -21,13 +18,38 @@ model Presentation {
   id String @id @map("_id") @db.ObjectId
   name String
   introduction String
+  image Image?
+  skills Skill[]
   props Props?
+}
+model Skill {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
+  rate Int
+  image Image
+  presentation Presentation @relation(fields: [presentationId], references: [id])
+  presentationId String @db.ObjectId
+  position Int
 }
 
 model Story {
   id String @id @default(auto()) @map("_id") @db.ObjectId
-  title String
+  title String @unique
   body String
+  state StoryState @default(UNPUBLISHED)
   props Props @relation(fields: [propsId], references: [id])
-  propsId String    @db.ObjectId
+  propsId String @db.ObjectId
 }
+
+enum StoryState {
+  PUBLISHED
+  UNPUBLISHED
+}
+
+type Image {
+  extension String
+  name String?
+  src Bytes
+}
+
+
