@@ -210,9 +210,8 @@ const Container = styled.div`
   padding-bottom: 15px;
   background-color: #fff;
   background-image:
-  linear-gradient(270deg, transparent 19px, #abced4 29px, #abced4 21px, transparent 81px),
   linear-gradient(#eee .1em, transparent .1em);
-  background-size: 100% 1.2em;
+  background-size: 100% 2.5em;
 `
 const TitleContainer = styled.div`
   display: flex;
@@ -239,11 +238,11 @@ const StoryContainer = styled.li`
 const StoryBody = styled.div`
   color: #696969;
   background-color: #FFFFFF;
-  font-size: 2.8rem;
+  font-size: 2.5rem;
   font-family: "Lucida Console", "Courier New", monospace;
-  border-color: #778899;
-  border-width: thin;
-  border-style: solid;
+  border-color: #0000FF;
+  border-width: medium;
+  border-style: double;
   border-radius: 5px;
   padding: 6px;
   block-size: fit-content;
@@ -262,6 +261,7 @@ const StoryTitle = styled.span<{ toDelete?: boolean }>`
   font-family: Arial, Helvetica, sans-serif;
   color: #778899;
   text-shadow: 2px 2px 1px #000000;
+  padding-bottom: 5px;
   ${props => 
     props.toDelete ? 
         "text-decoration: line-through;"
