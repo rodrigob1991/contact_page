@@ -189,13 +189,13 @@ export default function StoriesView<M extends ViewMode>({
                 <Title>STORIES</Title> {editing &&
             <PlusButton id={"plus-button"} color={"#778899"} size={26} onClick={handleAddNewStory}/>}
             </TitleContainer>
-            <ul>
+            <StoriesContainer>
                 {storiesViewStates
                     .map((s, index) =>
                         editing ? getEditableStoryView(s, index) : getStoryView(s, index)
                     )
                 }
-            </ul>
+            </StoriesContainer>
         </Container>
     )
 }
@@ -204,7 +204,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   padding-left: 40px;
-  padding-right: 40px;
+  padding-right: 10px;
   gap: 15px;
   padding-top: 15px;
   padding-bottom: 15px;
@@ -212,6 +212,9 @@ const Container = styled.div`
   background-image:
   linear-gradient(#eee .1em, transparent .1em);
   background-size: 100% 2.5em;
+  @media (max-width: 800px) {
+    padding-left: 10px;
+  }
 `
 const TitleContainer = styled.div`
   display: flex;
@@ -230,6 +233,10 @@ const Title = styled.text`
   width: fit-content;
   padding: 5px;
   `
+const StoriesContainer = styled.ul`
+  padding: 0;
+  margin: 0;
+`
 const StoryContainer = styled.li`
   list-style-type: none;
   padding-bottom: 15px;
