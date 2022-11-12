@@ -201,7 +201,7 @@ const Container = styled.div`
   padding: ${containerStyles.padding}px;
   height: ${containerStyles.height}px;
   gap: 5px;
-  @media (max-width: 900px) {
+  @media (max-width: 1500px) {
     position: relative;
   }
 `
