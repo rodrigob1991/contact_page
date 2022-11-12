@@ -46,6 +46,7 @@ export default function PresentationView<VM extends ViewMode>({
     return (
         <Container>
             <InnerContainer>
+            <NameImageIntroductionContainer>
             <NameImageContainer>
                 {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processSelectedImage={processSelectedImage} src={imageDataUrl}/>
                          : <Image src={imageDataUrl || "/"} width={100} height={90} layout={"intrinsic"}/>}
@@ -55,8 +56,9 @@ export default function PresentationView<VM extends ViewMode>({
             </NameImageContainer>
             <Introduction id={introductionHtmlId} contentEditable={editing} ref={ editing ? r => {if(r) (observe as Observe)(r, {mutation: "default"})} : undefined}
                                       dangerouslySetInnerHTML={{__html: introduction}}/>
-            </InnerContainer>
+            </NameImageIntroductionContainer>
             {skillsChart}
+            </InnerContainer>
         </Container>
     )
 }
@@ -68,16 +70,23 @@ const Container = styled.div`
   padding: 10px;
   background-image: linear-gradient(#00008B,#0000FF);
   box-shadow: 5px 10px #888888;
-  @media (max-width: 900px) {
-    align-items: left;
+  @media (max-width: 1500px) {
+    align-items: center;
+    justify-content: left;
   }
     `
 const InnerContainer = styled.div`
   display: flex;
   flex-direction: column;
+  @media (max-width: 1500px) {
+    align-items: left;
+  }`
+const NameImageIntroductionContainer = styled.div`
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 10px;
-  @media (max-width: 900px) {
+  @media (max-width: 1500px) {
     width: fit-content;
   }
     `
