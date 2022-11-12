@@ -46,6 +46,9 @@ export default function Home({presentation, stories}: HomeProps) {
         }
         const succeedResultMessage = {succeed: true, message: "email sent"}
         const unsucceedResultMessage = {succeed: false, message: "email was not sent"}
+        const logError = (error: any) => {
+            console.error(`Error sending the email: ${JSON.stringify(error)}`)
+        }
 
         return fetch(process.env.NEXT_PUBLIC_SENDINBLUE_URL as string, {
             method: "POST",
@@ -56,13 +59,25 @@ export default function Home({presentation, stories}: HomeProps) {
             },
             body: JSON.stringify(bodyParams),
         }).then((response) => {
-                return {resultMessage: response.ok ? succeedResultMessage : unsucceedResultMessage, body: response.json()}
+                let nextThenArg
+                if (response.ok) {
+                    nextThenArg = "ok"
+                } else {
+                    nextThenArg = response.json()
+                }
+                return nextThenArg
             }
-        ).then(({resultMessage, body}) => {
-            console.log(`response body of send email: ${body}`)
+        ).then((resultMessageOrBody) => {
+            let resultMessage
+            if (resultMessageOrBody === "ok") {
+                resultMessage = succeedResultMessage
+            } else {
+                resultMessage = unsucceedResultMessage
+                logError(resultMessageOrBody)
+            }
             return resultMessage
         }).catch((e) => {
-            console.error(`Error sending the email: ${e}`)
+            logError(e)
             return unsucceedResultMessage
         })
     }
