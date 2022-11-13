@@ -6,7 +6,7 @@ import {ApiParamsValidator} from "../../../classes/ApiParamsValidator"
 
 const HOME_PROPS_API_ROUTE = "/api/props/home"
 
-const URL = process.env.NEXT_PUBLIC_BASE_URL + HOME_PROPS_API_ROUTE
+//const URL = process.env.NEXT_PUBLIC_BASE_URL + HOME_PROPS_API_ROUTE
 
 type ResponseBody = { homeProps?: HomeProps, errorMessage?: string }
 type ProcessResponseResult = { succeed: boolean} & ResponseBody
@@ -15,7 +15,7 @@ const setHomeProps = async (body: CreateHomePropsArgs | UpdateHomePropsArgs, met
     const result: ProcessResponseResult = {succeed: false}
 
     try {
-        const response = await fetch(URL, {
+        const response = await fetch(window.location.origin + HOME_PROPS_API_ROUTE, {
             method: method,
             headers: {
                 "Content-Type": "application/json",
