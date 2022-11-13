@@ -28,7 +28,7 @@ export const revalidatePages = async (pagesId: RevalidationRouteId[]) => {
             }
         }
     } catch (e) {
-        console.error(`Error consuming revalidating endpoint: ${e}`)
+        result.errorMessage = JSON.stringify(e)
     }
 
     return result

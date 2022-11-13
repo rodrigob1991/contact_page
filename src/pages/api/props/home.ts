@@ -37,7 +37,7 @@ const setHomeProps = async (body: CreateHomePropsArgs | UpdateHomePropsArgs, met
             }
         }
     } catch (e) {
-        console.error(`Error getting response: ${e}`)
+        result.errorMessage = JSON.stringify(e)
     }
 
     return result
