@@ -4,15 +4,15 @@ import {HOME_ROUTE} from "../../index"
 import {EDITH_HOME_ROUTE} from "../../user/edit_home"
 import {AuthResponseBody} from "../_middleware"
 
-const REVALIDATION_API_ROUTE = "api/revalidate/multiple"
+const REVALIDATION_API_ROUTE = "/api/revalidate/multiple"
 
-const URL = process.env.NEXT_PUBLIC_BASE_URL + "/" + REVALIDATION_API_ROUTE
+//const URL = process.env.NEXT_PUBLIC_BASE_URL + "/" + REVALIDATION_API_ROUTE
 
 export const revalidatePages = async (pagesId: RevalidationRouteId[]) => {
     const result: { succeed: boolean, revalidations?: RevalidatedRoute[], errorMessage?: string } = {succeed: false}
 
     try {
-        const response = await fetch(`${URL}?ids=${pagesId}`)
+        const response = await fetch(`${window.location.origin + REVALIDATION_API_ROUTE}?ids=${pagesId}`)
 
         result.succeed = response.ok
 
@@ -28,7 +28,7 @@ export const revalidatePages = async (pagesId: RevalidationRouteId[]) => {
             }
         }
     } catch (e) {
-        result.errorMessage = JSON.stringify(e)
+        result.errorMessage = "error: " + JSON.stringify(e)
     }
 
     return result
