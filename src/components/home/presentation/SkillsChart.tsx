@@ -5,7 +5,7 @@ import {NewSkill, Skill, ViewMode} from "../../../types/Home"
 import {Observe} from "../../../pages/user/edit_home"
 import {ImageViewSelector, TextInput} from "../../FormComponents"
 import {useAsk} from "../../../utils/Hooks"
-import Image from "next/image"
+import Image from "next/legacy/image";
 import {orderByComparePreviousByNumber} from "../../../utils/Arrays"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}

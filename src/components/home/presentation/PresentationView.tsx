@@ -2,7 +2,7 @@ import {Presentation, PresentationHTMLElementIdsKey, ViewMode} from "../../../ty
 import styled from "@emotion/styled"
 import React from "react"
 import {ImageViewSelector, ProcessSelectedImage} from "../../FormComponents"
-import Image from "next/image"
+import Image from "next/legacy/image";
 import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
 import {Observe} from "../../../pages/user/edit_home"
 

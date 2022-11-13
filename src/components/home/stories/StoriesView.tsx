@@ -5,7 +5,7 @@ import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../../B
 import {Pallet} from "../../Pallet"
 import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
-import Image from 'next/image'
+import Image from "next/legacy/image";
 import {Observe} from "../../../pages/user/edit_home";
 
 export type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
