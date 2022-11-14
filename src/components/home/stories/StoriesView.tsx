@@ -5,7 +5,7 @@ import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../../B
 import {Pallet} from "../../Pallet"
 import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
-import Image from "next/legacy/image";
+import Image from "next/image";
 import {Observe} from "../../../pages/user/edit_home";
 
 export type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
@@ -113,9 +113,9 @@ export default function StoriesView<M extends ViewMode>({
                     } else if (divChild instanceof HTMLAnchorElement) {
                         jsxDivChild = <a className={divChild.className} href={divChild.href}>{divChild.firstChild?.nodeValue}</a>
                     } else if (divChild instanceof HTMLImageElement) {
-                        jsxDivChild = <div style={{paddingLeft: div.style.paddingLeft}}><Image src={divChild.src} layout={"intrinsic"}
-                                                                              height={divChild.height}
-                                                                              width={divChild.width}/></div>
+                        jsxDivChild = <div style={{paddingLeft: div.style.paddingLeft}}>
+                            <Image alt={""} src={divChild.src} layout={"intrinsic"} height={divChild.height} width={divChild.width}
+                            style={{maxWidth: "100%", height: "auto"}} /></div>
                     } else if (divChild instanceof HTMLBRElement) {
                         // for now ignore this case
                     } else {

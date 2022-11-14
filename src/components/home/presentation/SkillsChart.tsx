@@ -5,7 +5,7 @@ import {NewSkill, Skill, ViewMode} from "../../../types/Home"
 import {Observe} from "../../../pages/user/edit_home"
 import {ImageViewSelector, TextInput} from "../../FormComponents"
 import {useAsk} from "../../../utils/Hooks"
-import Image from "next/legacy/image";
+import Image from "next/image";
 import {orderByComparePreviousByNumber} from "../../../utils/Arrays"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
@@ -42,7 +42,8 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
 
     const getSkillView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
         <SkillViewContainer key={name}>
-            <Image src={image.src} width={20} height={20} layout={"intrinsic"} style={{backgroundColor: "white"}}/>
+            <Image alt={""} src={image.src} width={20} height={20} layout={"intrinsic"}
+                style={{backgroundColor: "white", maxWidth: "100%", height: "auto"}} />
             <SkillView key={name} height={rate} hslColor={getHslColor(rate)}/>
         </SkillViewContainer>)
 

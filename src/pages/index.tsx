@@ -1,7 +1,7 @@
 import styled from "@emotion/styled"
 import {PropsStorageClient} from "../classes/PropsStorageClient"
 import {MdForwardToInbox} from "react-icons/md"
-import Image from "next/legacy/image";
+import Image from "next/image";
 import Link from "next/link"
 import {useFormModal} from "../components/FormComponents"
 import {HomeProps} from "../types/Home"
@@ -100,10 +100,12 @@ export default function Home({presentation, stories}: HomeProps) {
           <Header>
               <ContactLinksContainer>
                   <Link href={"https://www.linkedin.com/in/rodrigo-benoit-867152150"}>
-                      <Image style={{cursor: "pointer"}} src="/linkedin.svg" width="40" height="40"/>
+                      <Image alt={""} src="/linkedin.svg" width="40" height="40"
+                          style={{cursor: "pointer", maxWidth: "100%", height: "auto"}} />
                   </Link>
                   <Link href={"https://github.com/rodrigob1991"}>
-                      <Image style={{cursor: "pointer"}} src="/github.svg" width="40" height="40"/>
+                      <Image alt={""} src="/github.svg" width="40" height="40"
+                          style={{cursor: "pointer", maxWidth: "100%", height: "auto"}} />
                   </Link>
                   <MdForwardToInbox size={70} style={{cursor: "pointer", paddingLeft: 20, paddingTop: 25, color: "#DAA520"}} onClick={(e)=> showSendMessageModal()}/>
               </ContactLinksContainer>
@@ -113,7 +115,7 @@ export default function Home({presentation, stories}: HomeProps) {
           <Footer>
           </Footer>
       </Container>
-  )
+  );
 }
 const Header = styled.div`
   display: flex;
