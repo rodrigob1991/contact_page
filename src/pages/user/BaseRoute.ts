@@ -1,3 +1,1 @@
-const UserBaseRoute = "/user"
-
-export default UserBaseRoute
+export const UserBaseRoute = "/user"

@@ -2,8 +2,8 @@ import type {NextApiRequest, NextApiResponse} from 'next'
 import {RevalidatedRoute, RevalidationResponseBody, RevalidationRouteId} from "../../../../types/Revalidation"
 import {HOME_ROUTE} from "../../../index"
 import {EDITH_HOME_ROUTE} from "../../../user/edit_home"
-import ProtectedApiBaseRoute from "../BaseRoute"
-import {AuthResponseBody} from "../../../../middleware";
+import {ProtectedApiBaseRoute} from "../BaseRoute"
+import {AuthResponseBody} from "../../../../middleware"
 
 const REVALIDATION_API_ROUTE = ProtectedApiBaseRoute + "/revalidate/multiple"
 

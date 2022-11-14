@@ -1,3 +1,1 @@
-const ProtectedApiBaseRoute = "/api/protected"
-
-export default ProtectedApiBaseRoute
+export const ProtectedApiBaseRoute = "/api/protected"

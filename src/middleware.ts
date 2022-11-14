@@ -1,6 +1,6 @@
 import type {NextRequest} from 'next/server'
-import ProtectedApiBaseRoute from "./pages/api/protected/BaseRoute"
-import UserBaseRoute from "./pages/user/BaseRoute"
+import {ProtectedApiBaseRoute} from "./pages/api/protected/BaseRoute"
+import {UserBaseRoute} from "./pages/user/BaseRoute"
 import {NextFetchEvent, NextResponse} from "next/server"
 import {Error404Route} from "./pages/404"
 
