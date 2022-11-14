@@ -1,10 +1,11 @@
 import type {NextApiRequest, NextApiResponse} from 'next'
-import {RevalidatedRoute, RevalidationResponseBody, RevalidationRouteId} from "../../../types/Revalidation"
-import {HOME_ROUTE} from "../../index"
-import {EDITH_HOME_ROUTE} from "../../user/edit_home"
-import {AuthResponseBody} from "../_middleware"
+import {RevalidatedRoute, RevalidationResponseBody, RevalidationRouteId} from "../../../../types/Revalidation"
+import {HOME_ROUTE} from "../../../index"
+import {EDITH_HOME_ROUTE} from "../../../user/edit_home"
+import ProtectedApiBaseRoute from "../BaseRoute"
+import {AuthResponseBody} from "../../../../middleware";
 
-const REVALIDATION_API_ROUTE = "/api/revalidate/multiple"
+const REVALIDATION_API_ROUTE = ProtectedApiBaseRoute + "/revalidate/multiple"
 
 //const URL = process.env.NEXT_PUBLIC_BASE_URL + "/" + REVALIDATION_API_ROUTE
 
@@ -52,7 +53,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
                 revalidationState.message = "does not exit a route with this id"
             } else {
                 try {
-                    await response.unstable_revalidate(route)
+                    await response.revalidate(route)
                     revalidationState.revalidated = true
                     revalidationState.message = "successfully revalidated"
                 } catch (error) {

@@ -11,7 +11,7 @@ import {
     Story,
     StoryHTMLElementIds
 } from "../../types/Home"
-import {revalidatePages} from "../api/revalidate/multiple"
+import {revalidatePages} from "../api/protected/revalidate/multiple"
 import {RevalidationRouteId} from "../../types/Revalidation"
 import {PropsStorageClient} from "../../classes/PropsStorageClient"
 import {Button} from "../../components/Buttons"
@@ -19,7 +19,7 @@ import {Container, Footer} from "../../components/home/Layout"
 import PresentationView, {GetHtmlElementId as GetPresentationHtmlElementId} from "../../components/home/presentation/PresentationView"
 import StoriesView from "../../components/home/stories/StoriesView"
 import {getContainedString} from "../../utils/StringManipulations"
-import {patchHomeProps, postHomeProps} from "../api/props/home"
+import {patchHomeProps, postHomeProps} from "../api/protected/props/home"
 import {SpinLoader} from "../../components/Loaders"
 import {StoryState} from "@prisma/client"
 import {AnyPropertiesCombination} from "../../utils/Types"

@@ -1,10 +1,11 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
-import {AuthResponseBody} from "../../_middleware"
-import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
-import {CreatePresentationArgs, Presentation, UpdatePresentationArgs} from "../../../../types/Home"
+import {PropsStorageClient} from "../../../../../classes/PropsStorageClient"
+import {ApiParamsValidator} from "../../../../../classes/ApiParamsValidator"
+import {CreatePresentationArgs, Presentation, UpdatePresentationArgs} from "../../../../../types/Home"
+import {HomePropsApiRoute} from "../home"
+import {AuthResponseBody} from "../../../../../middleware";
 
-const PRESENTATION_API_ROUTE = "/api/props/home/presentation"
+const PRESENTATION_API_ROUTE = HomePropsApiRoute + "/presentation"
 
 const URL = process.env.NEXT_PUBLIC_BASE_URL + PRESENTATION_API_ROUTE
 

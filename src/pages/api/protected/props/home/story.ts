@@ -1,11 +1,12 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
-import {NewStory, Story} from "../../../../types/Home"
-import {AuthResponseBody} from "../../_middleware"
-import {isEmpty} from "../../../../utils/StringManipulations"
-import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
+import {PropsStorageClient} from "../../../../../classes/PropsStorageClient"
+import {NewStory, Story} from "../../../../../types/Home"
+import {isEmpty} from "../../../../../utils/StringManipulations"
+import {ApiParamsValidator} from "../../../../../classes/ApiParamsValidator"
+import {HomePropsApiRoute} from "../home"
+import {AuthResponseBody} from "../../../../../middleware";
 
-const STORY_API_ROUTE = "/api/props/home/story"
+const STORY_API_ROUTE = HomePropsApiRoute + "/story"
 
 const URL = process.env.NEXT_PUBLIC_BASE_URL + STORY_API_ROUTE
 

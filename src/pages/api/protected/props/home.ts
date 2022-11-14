@@ -1,10 +1,11 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {PropsStorageClient} from "../../../classes/PropsStorageClient"
-import {CreateHomePropsArgs, HomeProps, UpdateHomePropsArgs} from "../../../types/Home"
-import {AuthResponseBody} from "../_middleware"
-import {ApiParamsValidator} from "../../../classes/ApiParamsValidator"
+import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
+import {CreateHomePropsArgs, HomeProps, UpdateHomePropsArgs} from "../../../../types/Home"
+import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
+import ProtectedApiBaseRoute from "../BaseRoute"
+import {AuthResponseBody} from "../../../../middleware";
 
-const HOME_PROPS_API_ROUTE = "/api/props/home"
+export const HomePropsApiRoute = ProtectedApiBaseRoute + "/props/home"
 
 //const URL = process.env.NEXT_PUBLIC_BASE_URL + HOME_PROPS_API_ROUTE
 
@@ -15,7 +16,7 @@ const setHomeProps = async (body: CreateHomePropsArgs | UpdateHomePropsArgs, met
     const result: ProcessResponseResult = {succeed: false}
 
     try {
-        const response = await fetch(window.location.origin + HOME_PROPS_API_ROUTE, {
+        const response = await fetch(window.location.origin + HomePropsApiRoute, {
             method: method,
             headers: {
                 "Content-Type": "application/json",

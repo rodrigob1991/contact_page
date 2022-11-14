@@ -100,37 +100,51 @@ export default function Home({presentation, stories}: HomeProps) {
           <Header>
               <ContactLinksContainer>
                   <Link href={"https://www.linkedin.com/in/rodrigo-benoit-867152150"}>
-                      <Image alt={""} src="/linkedin.svg" width="40" height="40"
+                      <Image className={"headerIcon"} alt={""} src="/linkedin.svg" width="40" height="40"
                           style={{cursor: "pointer", maxWidth: "100%", height: "auto"}} />
                   </Link>
                   <Link href={"https://github.com/rodrigob1991"}>
-                      <Image alt={""} src="/github.svg" width="40" height="40"
+                      <Image className={"headerIcon"} alt={""} src="/github.svg" width="40" height="40"
                           style={{cursor: "pointer", maxWidth: "100%", height: "auto"}} />
                   </Link>
-                  <MdForwardToInbox size={70} style={{cursor: "pointer", paddingLeft: 20, paddingTop: 25, color: "#DAA520"}} onClick={(e)=> showSendMessageModal()}/>
               </ContactLinksContainer>
+              <MessengerContainer>
+                  <MdForwardToInbox className={"headerIcon"} style={{cursor: "pointer", color: "#DAA520"}}
+                                    onClick={(e)=> showSendMessageModal()}/>
+              </MessengerContainer>
           </Header>
           <PresentationView presentation={presentation || {name:"", introduction: "", skills: [], image: undefined}}/>
           <StoriesView stories={stories}/>
           <Footer>
           </Footer>
       </Container>
-  );
+  )
 }
 const Header = styled.div`
   display: flex;
   flex-direction: row;
-  height: 100px;
-  min-height: 100px; 
-  max-height: 100px;
+  align-items: center;
+  height: 90px;
+  min-height: 90px; 
+  max-height: 90px;
   border-bottom: 2px solid;
   border-color: #000000;
   background-color: #F5F5F5;
+  @media (max-width: 768px) {
+    height: 70px;
+    min-height: 70px; 
+    max-height: 70px;
+  }
     `
 const ContactLinksContainer = styled.div`
   display: flex;
   flex-direction: row;
-  padding-left: 50px;
-  gap: 30px;
-  align-items: left;
+  padding-left: 20px;
+  width: 100%;
+    `
+const MessengerContainer = styled.div`
+  display: flex;
+  flex-direction: row-reverse;
+  padding-right: 20px;
+  width: 100%;
     `
