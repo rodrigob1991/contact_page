@@ -2,7 +2,7 @@ import styled from "@emotion/styled"
 
 export const ROUTE_ERROR_500 = "/500"
 
-export default function PageError500() {
+export default function Error500() {
     return <Container>Something was wrong</Container>
 }
 

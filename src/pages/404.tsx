@@ -2,7 +2,7 @@ import styled from "@emotion/styled"
 
 export const Error404Route = "/404"
 
-export default function PageError404() {
+export default function Error404() {
     return <Container>Page Not Found</Container>
 }
 
