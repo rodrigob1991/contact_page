@@ -1,9 +1,9 @@
 import type {NextApiRequest, NextApiResponse} from 'next'
 import {RevalidatedRoute, RevalidationResponseBody, RevalidationRouteId} from "../../../../types/Revalidation"
-import {HOME_ROUTE} from "../../../index"
-import {EDITH_HOME_ROUTE} from "../../../user/edit_home"
-import {ProtectedApiBaseRoute} from "../BaseRoute"
 import {AuthResponseBody} from "../../../../middleware"
+import {ProtectedApiBaseRoute} from "../../../../BaseRoutes"
+import {HomeRoute} from "../../../index";
+import {EditHomeRoute} from "../../../user/edit_home";
 
 const REVALIDATION_API_ROUTE = ProtectedApiBaseRoute + "/revalidate/multiple"
 
@@ -75,10 +75,10 @@ const getRoute = (routeId: string) => {
     let route
     switch (routeId) {
         case RevalidationRouteId.HOME:
-            route = HOME_ROUTE
+            route = HomeRoute
             break
         case RevalidationRouteId.EDIT_HOME:
-            route = EDITH_HOME_ROUTE
+            route = EditHomeRoute
     }
     return route
 }

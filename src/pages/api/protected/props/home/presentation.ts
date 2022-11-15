@@ -3,7 +3,7 @@ import {PropsStorageClient} from "../../../../../classes/PropsStorageClient"
 import {ApiParamsValidator} from "../../../../../classes/ApiParamsValidator"
 import {CreatePresentationArgs, Presentation, UpdatePresentationArgs} from "../../../../../types/Home"
 import {HomePropsApiRoute} from "../home"
-import {AuthResponseBody} from "../../../../../middleware";
+import {AuthResponseBody} from "../../../../../middleware"
 
 const PRESENTATION_API_ROUTE = HomePropsApiRoute + "/presentation"
 

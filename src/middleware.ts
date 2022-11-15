@@ -1,8 +1,7 @@
 import type {NextRequest} from 'next/server'
-import {ProtectedApiBaseRoute} from "./pages/api/protected/BaseRoute"
-import {UserBaseRoute} from "./pages/user/BaseRoute"
 import {NextFetchEvent, NextResponse} from "next/server"
 import {Error404Route} from "./pages/404"
+import {ProtectedApiBaseRoute, UserBaseRoute} from "./BaseRoutes";
 
 const authResponseBody = "invalid authorization token"
 export type AuthResponseBody = typeof authResponseBody

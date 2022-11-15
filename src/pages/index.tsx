@@ -9,7 +9,7 @@ import PresentationView from "../components/home/presentation/PresentationView"
 import StoriesView from "../components/home/stories/StoriesView"
 import {Container, Footer} from "../components/home/Layout"
 
-export const HOME_ROUTE = "/"
+export const HomeRoute = "/"
 
 export async function getStaticProps() {
     const propsStorageClient = new PropsStorageClient()

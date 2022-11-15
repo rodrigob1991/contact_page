@@ -25,8 +25,9 @@ import {StoryState} from "@prisma/client"
 import {AnyPropertiesCombination} from "../../utils/Types"
 import {lookUpParent} from "../../utils/DomManipulations"
 import {containerStyles as skillsChartContainerStyles} from "../../components/home/presentation/SkillsChart"
+import {UserBaseRoute} from "../../BaseRoutes"
 
-export const EDITH_HOME_ROUTE = "/user/edit_home"
+export const EditHomeRoute = UserBaseRoute + "/edit_home"
 
 export async function getServerSideProps() {
     const propsStorageClient = new PropsStorageClient()

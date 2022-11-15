@@ -2,8 +2,8 @@ import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
 import {CreateHomePropsArgs, HomeProps, UpdateHomePropsArgs} from "../../../../types/Home"
 import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
-import {ProtectedApiBaseRoute} from "../BaseRoute"
 import {AuthResponseBody} from "../../../../middleware"
+import {ProtectedApiBaseRoute} from "../../../../BaseRoutes"
 
 export const HomePropsApiRoute = ProtectedApiBaseRoute + "/props/home"
 
