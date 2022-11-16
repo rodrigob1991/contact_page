@@ -2,7 +2,7 @@ import {Presentation, PresentationHTMLElementIdsKey, ViewMode} from "../../../ty
 import styled from "@emotion/styled"
 import React from "react"
 import {ImageViewSelector, ProcessSelectedImage} from "../../FormComponents"
-import Image from "next/image";
+import Image from "next/image"
 import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
 import {Observe} from "../../../pages/user/edit_home"
 
@@ -49,8 +49,8 @@ export default function PresentationView<VM extends ViewMode>({
             <NameImageIntroductionContainer>
             <NameImageContainer>
                 {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processSelectedImage={processSelectedImage} src={imageDataUrl}/>
-                         : <Image alt={""} src={imageDataUrl || "/"} width={100} height={90} layout={"intrinsic"}
-                                  style={{maxWidth: "100%", height: "auto"}} />}
+                         : <Image alt={""} src={imageDataUrl || ""} width={100} height={90} layout={"intrinsic"}/>
+                }
                 <Name id={nameHtmlId} contentEditable={editing} ref={ editing ? r => {if (r) (observe as Observe)(r, {mutation: "default"})} : undefined}>
                     {name}
                 </Name>
