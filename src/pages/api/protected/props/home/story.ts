@@ -4,7 +4,7 @@ import {NewStory, Story} from "../../../../../types/Home"
 import {isEmpty} from "../../../../../utils/StringManipulations"
 import {ApiParamsValidator} from "../../../../../classes/ApiParamsValidator"
 import {HomePropsApiRoute} from "../home"
-import {AuthResponseBody} from "../../../../../middleware";
+import {AuthResponseBody} from "../../../internal/unauthorized"
 
 const STORY_API_ROUTE = HomePropsApiRoute + "/story"
 
