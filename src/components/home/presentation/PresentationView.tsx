@@ -61,7 +61,7 @@ export default function PresentationView<VM extends ViewMode>({
             {skillsChart}
             </InnerContainer>
         </Container>
-    );
+    )
 }
 
 const Container = styled.div`

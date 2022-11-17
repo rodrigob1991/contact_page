@@ -4,7 +4,7 @@ import React, {useEffect, useRef, useState} from "react"
 import {NewSkill, Skill, ViewMode} from "../../../types/Home"
 import {Observe} from "../../../pages/user/edit_home"
 import {ImageViewSelector, TextInput} from "../../FormComponents"
-import {useAsk} from "../../../utils/Hooks"
+import {useAsk, useTooltip} from "../../../utils/Hooks"
 import Image from "next/legacy/image"
 import {orderByComparePreviousByNumber} from "../../../utils/Arrays"
 
@@ -40,8 +40,16 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
         return `hsl(${hue},${saturation}%,${lightness}%)`
     }
 
+    const [NameTooltip, showNameTooltip, hideNameTooltip] = useTooltip()
+    const handleMouseEnterSkillView = (e: React.MouseEvent<HTMLDivElement>, name: string) => {
+        showNameTooltip(name)
+    }
+    const handleMouseLeaveSkillView = (e: React.MouseEvent<HTMLDivElement>) => {
+        hideNameTooltip()
+    }
+
     const getSkillView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
-        <SkillViewContainer key={name}>
+        <SkillViewContainer key={name} onMouseEnter={e => {handleMouseEnterSkillView(e, name)}} onMouseLeave={handleMouseLeaveSkillView}>
             <Image alt={""} src={image.src} width={20} height={20} layout={"intrinsic"}
                 style={{backgroundColor: "white", width: 20, height: 20}} />
             <SkillView key={name} height={rate} hslColor={getHslColor(rate)}/>
@@ -188,6 +196,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
 
     return (
         <Container>
+            {NameTooltip}
             {editing
                 ? <>{getEditableSkillView()} <PlusButton size={15} color={"white"} onClick={handleCreateSkill}/></>
                 : getSkillView()}
