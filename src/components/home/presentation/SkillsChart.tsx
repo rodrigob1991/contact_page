@@ -47,12 +47,20 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
     const handleMouseLeaveSkillView = (e: React.MouseEvent<HTMLDivElement>) => {
         hideNameTooltip()
     }
+    const handleTouchStartSkillView = (e: React.TouchEvent<HTMLDivElement>, name: string) => {
+        showNameTooltip(name)
+    }
+    const handleTouchEndSkillView = (e: React.TouchEvent<HTMLDivElement>) => {
+        hideNameTooltip()
+    }
 
     const getSkillView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
-        <SkillViewContainer key={name} onMouseEnter={e => {handleMouseEnterSkillView(e, name)}} onMouseLeave={handleMouseLeaveSkillView}>
-            <Image alt={""} src={image.src} width={20} height={20} layout={"intrinsic"}
-                style={{backgroundColor: "white", width: 20, height: 20}} />
-            <SkillView key={name} height={rate} hslColor={getHslColor(rate)}/>
+        <SkillViewContainer key={name}>
+            <Image alt={""} src={image.src} width={20} height={20} layout={"intrinsic"} style={{backgroundColor: "white", width: 20, height: 20}}
+                   onMouseEnter={e => {handleMouseEnterSkillView(e, name)}} onMouseLeave={handleMouseLeaveSkillView}/>
+            <SkillView key={name} height={rate} hslColor={getHslColor(rate)}
+                       onMouseEnter={e => {handleMouseEnterSkillView(e, name)}} onMouseLeave={handleMouseLeaveSkillView}
+                       onTouchStart={ e=> {handleTouchStartSkillView(e, name)}} onTouchEnd={handleTouchEndSkillView}/>
         </SkillViewContainer>)
 
     useEffect(() => {
