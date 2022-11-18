@@ -74,11 +74,19 @@ const AskContainer = styled.div<AskContainerProps>`
   border-color: #000000;
   background-color: white;
 `
-export const useTooltip = (style?: CSSProperties) : [JSX.Element, (t: string)=> void, ()=> void] => {
+type Position = {top: number, left: number}
+export const useTooltip = (style?: CSSProperties) : [JSX.Element, (t: string, p?: Position)=> void, ()=> void] => {
     const [hidden, setHidden] = useState(true)
     const [position, setPosition] = useState({top: -1, left: -1})
+    const [useMousePosition, setUseMousePosition] = useState(true)
     const [text, setText] = useState("")
-    const show = (text: string) => {
+    const show = (text: string, position?: Position) => {
+        if (position) {
+            setUseMousePosition(false)
+            setPosition(position)
+        } else {
+            setUseMousePosition(true)
+        }
         setText(text)
         setHidden(false)
     }
@@ -89,14 +97,16 @@ export const useTooltip = (style?: CSSProperties) : [JSX.Element, (t: string)=> 
         setPosition({top: e.clientY - 32, left: e.clientX})
     }
     useEffect(() => {
-        if (!hidden) {
+        if (!hidden && useMousePosition) {
             window.addEventListener("mousemove", captureMousePosition)
+        } else {
+            window.removeEventListener("mousemove", captureMousePosition)
         }
         return () => window.removeEventListener("mousemove", captureMousePosition)
-    }, [hidden])
+    }, [hidden, useMousePosition])
 
-    const Tooltip = <TooltipContainer style={style || {padding: "3px", color: "#778899", backgroundColor: "white", fontSize: "1.7rem",
-                                      fontWeight: "bold", borderStyle: "solid", borderColor: "#778899"}}
+    const Tooltip = <TooltipContainer style={style || {padding: "3px", color: "black", backgroundColor: "white", fontSize: "1.7rem",
+                                      fontWeight: "bold", borderStyle: "solid", borderColor: "black"}}
                                       hidden={hidden} {...position}>{text}</TooltipContainer>
 
     return [Tooltip, show, hide]
