@@ -16,7 +16,7 @@ import {
     positionCaretOn,
     removeNodesFromOneSide
 } from "../utils/DomManipulations"
-import React, {useEffect, useRef, useState} from "react"
+import React, {useEffect, useReducer, useRef, useState} from "react"
 import {ImageSelector, NumberInput, TextInput} from "./FormComponents"
 import {FcPicture} from "react-icons/fc"
 import {Ask, IsAsking, useAsk, useRecordState} from "../utils/Hooks"
@@ -44,14 +44,18 @@ export const Pallet = ({show=true, isAsking}: Props) => {
             isAsking(false)
         }
     }
-    const lastElementAddedId = "lastElementAdded"
-    const getLastElementsAdded = () => {
-        return document.querySelectorAll<OptionTargetElement>("#" + lastElementAddedId)
-    }
 
-    const handleMouseDown = (e: React.MouseEvent<Element>) => {
-        e.preventDefault()
+    const refToElementId = useRef<string>()
+    const setElementId = (id: string) => {
+        refToElementId.current = id
     }
+    const getElementId = () => refToElementId.current
+    const consumeElementId = () => {
+        const id = refToElementId.current
+        refToElementId.current = undefined
+        return id
+    }
+    const [askElementId, isAskingElementId, AskElementId] = useAskElementId({id: getElementId(), setId: setElementId, isAskingFalse: isAskingFalse})
 
     const handleCollapsedSelection = (optionType: OptionType, newNode: OptionTargetNode, anchor: ChildNode, anchorOffSet: number) => {
         const anchorParent = anchor.parentElement as HTMLDivElement | OptionTargetElement
@@ -247,7 +251,7 @@ export const Pallet = ({show=true, isAsking}: Props) => {
 
     const handleClickPalletOption = (optionType: OptionType, className?: string) => {
         const selection = window.getSelection() as Selection
-        const {isCollapsed, rangeCount, anchorNode, anchorOffset} = selection;
+        const {isCollapsed, rangeCount, anchorNode, anchorOffset} = selection
         const ranges : Range[] = []
         for (let i = 0; i < rangeCount; i++) {
             ranges.push(selection.getRangeAt(i))
@@ -260,7 +264,7 @@ export const Pallet = ({show=true, isAsking}: Props) => {
         let getNewNode : GetOptionTargetNodeWithProps
         let onFinally: () => void
 
-        const elementProps = {className: className, tabIndex: -1}
+        const elementProps = {id: consumeElementId(), className: className, tabIndex: -1}
 
         switch (optionType) {
             case "defaultText":
@@ -319,7 +323,7 @@ export const Pallet = ({show=true, isAsking}: Props) => {
                 getNewNode = (t, isLast, ip) => {
                     const {parent, image} = ip as ImageProps
                     const div = createDiv({
-                        props: {contentEditable: "false"},
+                        props: {... elementProps, contentEditable: "false"},
                         styles: {paddingLeft: parent.left + "px"}
                     })
                     const imageElement = createImage(image)
@@ -381,15 +385,22 @@ export const Pallet = ({show=true, isAsking}: Props) => {
     const updateRemoveImage = (fun: RemoveImage) => { setRemoveImage(() => fun) }
     const [askImageProps, isAskingImageProps, AskImageProps] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage, isAskingFalse: isAskingFalse})
 
+    const handleMouseDown = (e: React.MouseEvent<Element>) => {
+        e.preventDefault()
+    }
+
     const palletOptionClass = "palletOption"
     const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
     const linkClass = "linkOption"
+    const idOffClass = ""
+    const idOnClass = ""
+    const [idClass, setIdClass] = useState(idOffClass)
     const getOptionClass = (className?: string) =>  className ? palletOptionClass + " " + className : palletOptionClass
 
     const optionSeparator = <span style={{color: "#000000"}}>-</span>
 
     return (
-        <Container show={show || isAskingHRef() || isAskingImageProps()}>
+        <Container show={show || isAskingElementId() || isAskingHRef() || isAskingImageProps()}>
             <span className={getOptionClass()}
                   onMouseDown={handleMouseDown}
                   onClick={(e) => handleClickPalletOption("defaultText")}>
@@ -413,6 +424,13 @@ export const Pallet = ({show=true, isAsking}: Props) => {
             </a>
             {optionSeparator}
             <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e)=> handleClickPalletOption("image")} style={{cursor: "pointer"}}/>
+            {optionSeparator}
+            <span className={getOptionClass(idClass)}
+                  onMouseDown={handleMouseDown}
+                  onClick={(e) => askElementId(e.clientY - 20, e.clientX + 20)}>
+                Id
+            </span>
+            {AskElementId}
             {AskHRef}
             {AskImageProps}
         </Container>
@@ -430,6 +448,42 @@ const Container = styled.div<{ show: boolean}>`
   border-color: #778899;
   background-color: #FFFFFF;
  `
+type UseAskElementIdProps = {
+    id: string | undefined
+    setId: (id: string)=> void
+    isAskingFalse: ()=> void
+}
+const useAskElementId = ({id, setId, isAskingFalse}: UseAskElementIdProps): [Ask, IsAsking, JSX.Element] => {
+    const [localId, setLocalId] = useState(id || "")
+
+    const refToInput = useRef<HTMLInputElement | null>(null)
+    const focusInput = () => refToInput.current?.focus()
+
+    const handleOnEnter = () => {
+        isAskingFalse()
+        setId(localId)
+        setLocalId("")
+        hide()
+    }
+    const handleOnEscape = () => {
+        isAskingFalse()
+        setLocalId("")
+        hide()
+    }
+
+    const [ask, hide, isAsking, Ask] = useAsk({
+        child: <TextInput placeholder={"href"}
+                          style={{width: "200px", fontSize: "1.8rem"}}
+                          ref={refToInput}
+                          value={localId}
+                          setValue={setLocalId}
+                          onEnter={handleOnEnter}
+                          onEscape={handleOnEscape}  />,
+        onShow: focusInput
+    })
+    return [ask, isAsking, Ask]
+}
+
 type InsertLink = (hRef: string) => void
 type UseAskHRefProps = {
     insertLink: InsertLink

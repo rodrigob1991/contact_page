@@ -42,11 +42,9 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
 
     const [NameTooltip, showNameTooltip, hideNameTooltip] = useTooltip()
     const handleMouseEnterSkillView = (e: React.MouseEvent<HTMLDivElement>, name: string) => {
-        console.log("enter")
         showNameTooltip(name)
     }
     const handleMouseLeaveSkillView = (e: React.MouseEvent<HTMLDivElement>) => {
-        console.log("leaving")
         hideNameTooltip()
     }
     const handleTouchStartSkillView = (e: React.TouchEvent<HTMLDivElement>, name: string) => {
