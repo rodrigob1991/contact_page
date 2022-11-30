@@ -28,14 +28,16 @@ export const TextInput = forwardRef(({setValue, email, onEnter, onEscape, ...res
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         switch (e.key.toLowerCase()) {
             case "enter" :
-                if (onEnter)
+                if (onEnter) {
                     onEnter()
-                //e.preventDefault()
+                    e.preventDefault()
+                }
                 break
             case "escape" :
-                if (onEscape)
+                if (onEscape) {
                     onEscape()
-               // e.preventDefault()
+                    e.preventDefault()
+                }
                 break
         }
     }

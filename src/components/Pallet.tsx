@@ -23,6 +23,7 @@ import {Ask, IsAsking, useAsk, useRecordState} from "../utils/Hooks"
 import {DeleteOrRecoverButton} from "./Buttons"
 
 type Props = {
+    rootElementId: string
     show?: boolean
     isAsking?: (asking: boolean) => void
 }
@@ -33,7 +34,7 @@ type OptionTargetElementProps = ImageProps | string
 type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
 type GetOptionTargetNodeWithProps = (text: string, isLast: boolean, props?: OptionTargetElementProps)=> OptionTargetNode
 
-export const Pallet = ({show=true, isAsking}: Props) => {
+export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
     const isAskingTrue = () => {
         if (isAsking) {
             isAsking(true)
@@ -45,17 +46,27 @@ export const Pallet = ({show=true, isAsking}: Props) => {
         }
     }
 
-    const refToElementId = useRef<string>()
+   /* const refToElementId = useRef<string>()
     const setElementId = (id: string) => {
         refToElementId.current = id
-    }
-    const getElementId = () => refToElementId.current
+        setIdClass(idOnClass)
+    }*/
+    const [elementId, setElementId] = useState<string>()
+   // const getElementId = () => refToElementId.current
     const consumeElementId = () => {
-        const id = refToElementId.current
-        refToElementId.current = undefined
+        const id = elementId
+        setElementId(undefined)
+        //setIdClass(idOffClass)
         return id
     }
-    const [askElementId, isAskingElementId, AskElementId] = useAskElementId({id: getElementId(), setId: setElementId, isAskingFalse: isAskingFalse})
+
+    const focusRootElement = () => {
+        document.getElementById(rootElementId)?.focus()
+    }
+    const [askElementId, isAskingElementId, AskElementId] = useAskElementId({id: elementId, setId: setElementId, isAskingFalse: isAskingFalse, focusRootElement: focusRootElement})
+    const handleClickElementId = (e: React.MouseEvent<HTMLSpanElement>) => {
+        askElementId(e.clientY - 20, e.clientX + 20)
+    }
 
     const handleCollapsedSelection = (optionType: OptionType, newNode: OptionTargetNode, anchor: ChildNode, anchorOffSet: number) => {
         const anchorParent = anchor.parentElement as HTMLDivElement | OptionTargetElement
@@ -264,7 +275,7 @@ export const Pallet = ({show=true, isAsking}: Props) => {
         let getNewNode : GetOptionTargetNodeWithProps
         let onFinally: () => void
 
-        const elementProps = {id: consumeElementId(), className: className, tabIndex: -1}
+        const elementProps = {className: className, tabIndex: -1, ...(elementId ? {id: consumeElementId()} : {})}
 
         switch (optionType) {
             case "defaultText":
@@ -392,12 +403,12 @@ export const Pallet = ({show=true, isAsking}: Props) => {
     const palletOptionClass = "palletOption"
     const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
     const linkClass = "linkOption"
-    const idOffClass = ""
-    const idOnClass = ""
+    const idOffClass = "idOff"
+    const idOnClass = "idOn"
     const [idClass, setIdClass] = useState(idOffClass)
     const getOptionClass = (className?: string) =>  className ? palletOptionClass + " " + className : palletOptionClass
 
-    const optionSeparator = <span style={{color: "#000000"}}>-</span>
+    const optionSeparator = <span style={{color: "#000000", fontSize: "2rem"}}>-</span>
 
     return (
         <Container show={show || isAskingElementId() || isAskingHRef() || isAskingImageProps()}>
@@ -425,10 +436,10 @@ export const Pallet = ({show=true, isAsking}: Props) => {
             {optionSeparator}
             <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e)=> handleClickPalletOption("image")} style={{cursor: "pointer"}}/>
             {optionSeparator}
-            <span className={getOptionClass(idClass)}
+            <span className={getOptionClass(elementId ? idOnClass : idOffClass)}
                   onMouseDown={handleMouseDown}
-                  onClick={(e) => askElementId(e.clientY - 20, e.clientX + 20)}>
-                Id
+                  onClick={handleClickElementId}>
+                ID
             </span>
             {AskElementId}
             {AskHRef}
@@ -452,31 +463,34 @@ type UseAskElementIdProps = {
     id: string | undefined
     setId: (id: string)=> void
     isAskingFalse: ()=> void
+    focusRootElement: ()=> void
 }
-const useAskElementId = ({id, setId, isAskingFalse}: UseAskElementIdProps): [Ask, IsAsking, JSX.Element] => {
-    const [localId, setLocalId] = useState(id || "")
+const useAskElementId = ({id, setId, isAskingFalse, focusRootElement}: UseAskElementIdProps): [Ask, IsAsking, JSX.Element] => {
+    //const [localId, setLocalId] = useState(id || "")
 
     const refToInput = useRef<HTMLInputElement | null>(null)
     const focusInput = () => refToInput.current?.focus()
 
     const handleOnEnter = () => {
         isAskingFalse()
-        setId(localId)
-        setLocalId("")
+        //setId(localId)
+        //setLocalId("")
         hide()
+        focusRootElement()
     }
     const handleOnEscape = () => {
         isAskingFalse()
-        setLocalId("")
+        setId("")
         hide()
+        focusRootElement()
     }
 
     const [ask, hide, isAsking, Ask] = useAsk({
-        child: <TextInput placeholder={"href"}
+        child: <TextInput placeholder={"id"}
                           style={{width: "200px", fontSize: "1.8rem"}}
                           ref={refToInput}
-                          value={localId}
-                          setValue={setLocalId}
+                          value={id || ""}
+                          setValue={setId}
                           onEnter={handleOnEnter}
                           onEscape={handleOnEscape}  />,
         onShow: focusInput

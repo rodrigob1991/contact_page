@@ -117,7 +117,7 @@ export default function StoriesView<M extends ViewMode>({
                             <Image alt={""} src={divChild.src} layout={"intrinsic"} height={divChild.height} width={divChild.width}
                             style={{maxWidth: "100%", height: "auto"}} /></div>
                     } else if (divChild instanceof HTMLBRElement) {
-                        // for now ignore this case
+                        jsxDivChild = <br/>
                     } else {
                         throw new Error("div child of type " + divChild.nodeType + " must have enter some if")
                     }
@@ -125,14 +125,16 @@ export default function StoriesView<M extends ViewMode>({
                 }
                 jsx = <>{jsx}<div>{jsxDivChildren}</div></>
             } else {
-                throw new Error("Only divs must appears here")
+                //throw new Error("Only divs must appears here")
             }
         }
+        console.log(jsx)
         return jsx
     }
 
     const getStoryView = (storyVisibility: StoryViewStates, index: number) => {
         const {story: {title, body}, isOpen} = storyVisibility
+        const JsxBody = convertBodyFromHtmlToJsx(body)
 
         return (
             <StoryContainer key={title}>
@@ -141,7 +143,7 @@ export default function StoriesView<M extends ViewMode>({
                     <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen}
                                             onClick={(e => openOrCloseStory(index))}/>
                 </StoryTitleContainer>
-                {isOpen && <StoryBody>{convertBodyFromHtmlToJsx(body)}</StoryBody>}
+                {isOpen && <StoryBody>{JsxBody}</StoryBody>}
             </StoryContainer>
         )
     }
@@ -171,7 +173,7 @@ export default function StoriesView<M extends ViewMode>({
                     <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
                                            handleDelete={() => {handleDeleteStory(idHtml, index, !("id" in story))}}
                                            handleRecover={() => {handleRecoverStory(idHtml, index)}}/>
-                    <Pallet show={isEditingStory(idHtml)} isAsking={isAsking}/>
+                    <Pallet rootElementId={htmlIds.body} show={isEditingStory(idHtml)} isAsking={isAsking}/>
                 </StoryTitleContainer>
                 {isOpen && <StoryBody id={htmlIds.body} contentEditable={!toDelete}
                                       ref={r => {if(r) (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}

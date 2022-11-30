@@ -119,6 +119,18 @@ textarea:invalid {
   color: black;
 }
 
+.idOff {
+  color: red;
+  font-weight: bold;
+  padding: 2px;
+}
+
+.idOn {
+  color: greenyellow;
+  font-weight: bold;
+  padding: 2px;
+}
+
 .selectorOption {
 }
 .selectorOption:last-child {
