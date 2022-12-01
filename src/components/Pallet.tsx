@@ -16,7 +16,7 @@ import {
     positionCaretOn,
     removeNodesFromOneSide
 } from "../utils/DomManipulations"
-import React, {useEffect, useReducer, useRef, useState} from "react"
+import React, {useEffect, useRef, useState} from "react"
 import {ImageSelector, NumberInput, TextInput} from "./FormComponents"
 import {FcPicture} from "react-icons/fc"
 import {Ask, IsAsking, useAsk, useRecordState} from "../utils/Hooks"
@@ -405,7 +405,6 @@ export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
     const linkClass = "linkOption"
     const idOffClass = "idOff"
     const idOnClass = "idOn"
-    const [idClass, setIdClass] = useState(idOffClass)
     const getOptionClass = (className?: string) =>  className ? palletOptionClass + " " + className : palletOptionClass
 
     const optionSeparator = <span style={{color: "#000000", fontSize: "2rem"}}>-</span>

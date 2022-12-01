@@ -7,6 +7,7 @@ import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
 import Image from "next/image";
 import {Observe} from "../../../pages/user/edit_home";
+import {getStoryBodyJsx} from "../../../utils/Parsers";
 
 export type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -134,7 +135,7 @@ export default function StoriesView<M extends ViewMode>({
 
     const getStoryView = (storyVisibility: StoryViewStates, index: number) => {
         const {story: {title, body}, isOpen} = storyVisibility
-        const JsxBody = convertBodyFromHtmlToJsx(body)
+        const JsxBody = getStoryBodyJsx(body)
 
         return (
             <StoryContainer key={title}>
