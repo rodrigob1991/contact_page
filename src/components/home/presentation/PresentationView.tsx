@@ -78,6 +78,7 @@ const Container = styled.div`
     `
 const InnerContainer = styled.div`
   display: flex;
+  position: relative;
   flex-direction: column;
   @media (max-width: 1500px) {
     align-items: left;

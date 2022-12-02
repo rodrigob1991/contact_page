@@ -11,6 +11,25 @@ export const getContainedString = (str: string, betweenLeft?: string, betweenRig
     }
     return containedString
 }
+
 export const isEmpty = (str: string | undefined | null) => {
     return str === undefined || str === null || str.trim().length === 0
 }
+
+export const getIndexOnOccurrence = (str: string, search: string, occurrence: number) => {
+    let index = 0
+    let occurrences = 0
+    let found = false
+    while (!found && index < str.length) {
+        if (str.startsWith(search, index)) {
+            occurrences++
+            if (occurrence === occurrences) {
+                found = true
+            }
+        }
+        index ++
+    }
+    return  found ? index - 1 : -1
+}
+
+

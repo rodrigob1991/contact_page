@@ -129,7 +129,6 @@ export default function StoriesView<M extends ViewMode>({
                 //throw new Error("Only divs must appears here")
             }
         }
-        console.log(jsx)
         return jsx
     }
 
