@@ -4,7 +4,7 @@ export const Container = styled.div`
   display: flex;
   flex-flow: column;
   height: 100vh;
-  overflow: scroll;
+  overflow: auto;
   `
 
 export const Footer = styled.div`

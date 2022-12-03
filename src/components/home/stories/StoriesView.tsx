@@ -5,7 +5,6 @@ import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../../B
 import {Pallet} from "../../Pallet"
 import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
-import Image from "next/image";
 import {Observe} from "../../../pages/user/edit_home";
 import {getStoryBodyJsx} from "../../../utils/Parsers";
 
@@ -41,6 +40,26 @@ export default function StoriesView<M extends ViewMode>({
     const [storiesViewStates, setStoriesViewStates] = useState<StoryViewStates[]>(stories.map((s) => {
         return {idHtml: s.id, story: s, toDelete: false, isOpen: false}
     }))
+
+    const openOrCloseStory = (index: number) => {
+        const updatedStoriesViewStates = [...storiesViewStates]
+        updatedStoriesViewStates[index].isOpen = !updatedStoriesViewStates[index].isOpen
+        setStoriesViewStates(updatedStoriesViewStates)
+    }
+    const getStoriesView = () =>
+        storiesViewStates.map(({story: {title, body}, isOpen}, index) => {
+            const JsxBody = getStoryBodyJsx(body)
+            return (
+                <StoryContainer key={title}>
+                    <StoryTitleContainer>
+                        <StoryTitle>{title}</StoryTitle>
+                        <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen}
+                                                onClick={(e => openOrCloseStory(index))}/>
+                    </StoryTitleContainer>
+                    {isOpen && <StoryBody>{JsxBody}</StoryBody>}
+                </StoryContainer>
+            )
+        })
     // this effect is for maintain the previous states when saving stories
     useEffect(() => {
             setStoriesViewStates((storiesViewStates) => {
@@ -61,12 +80,16 @@ export default function StoriesView<M extends ViewMode>({
         },
         [stories])
 
+    const refToLastStory = useRef<HTMLDivElement>()
     const handleAddNewStory = (e: React.MouseEvent) => {
         const [idHtml, newStory] = (createNewStory as GetNewStory)()
         setStoriesViewStates((svs) => {
                 return [...svs, {idHtml: idHtml, story: newStory, isOpen: true, toDelete: false}]
             }
         )
+        setTimeout(() => {
+            refToLastStory.current?.focus()
+        }, 500)
     }
     const handleDeleteStory = (idHtml: string, index: number, isNew: boolean) => {
         (deleteStory as DeleteStory)(idHtml)
@@ -84,12 +107,6 @@ export default function StoriesView<M extends ViewMode>({
         updatedStoriesViewStates[index].toDelete = false
         setStoriesViewStates(updatedStoriesViewStates)
     }
-    const openOrCloseStory = (index: number) => {
-        const updatedStoriesViewStates = [...storiesViewStates]
-        updatedStoriesViewStates[index].isOpen = !updatedStoriesViewStates[index].isOpen
-        setStoriesViewStates(updatedStoriesViewStates)
-    }
-
     const [editingStoryIdHtml, setEditingStoryIdHtml] = useState("")
     const isEditingStory = (idHtml: string) => {
         return editingStoryIdHtml === idHtml
@@ -98,92 +115,42 @@ export default function StoriesView<M extends ViewMode>({
     const isAsking = (asking: boolean) => {
         refToIsAsking.current = asking
     }
+    const getEditableStoriesView = () =>
+        storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
+            const {title,body, state} = story
+            const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
-    const convertBodyFromHtmlToJsx = (body: string) => {
-        let jsx = <></>
-        const html = new DOMParser().parseFromString(body, "text/html").body.children
-        for (const div of html) {
-            if(div instanceof HTMLDivElement) {
-                let jsxDivChildren = <></>
-                for (const divChild of div.childNodes) {
-                    let jsxDivChild
-                    if (divChild instanceof Text) {
-                        jsxDivChild = divChild.nodeValue
-                    } else if (divChild instanceof HTMLSpanElement) {
-                        jsxDivChild = <span className={divChild.className}>{divChild.firstChild?.nodeValue}</span>
-                    } else if (divChild instanceof HTMLAnchorElement) {
-                        jsxDivChild = <a className={divChild.className} href={divChild.href}>{divChild.firstChild?.nodeValue}</a>
-                    } else if (divChild instanceof HTMLImageElement) {
-                        jsxDivChild = <div style={{paddingLeft: div.style.paddingLeft}}>
-                            <Image alt={""} src={divChild.src} layout={"intrinsic"} height={divChild.height} width={divChild.width}
-                            style={{maxWidth: "100%", height: "auto"}} /></div>
-                    } else if (divChild instanceof HTMLBRElement) {
-                        jsxDivChild = <br/>
-                    } else {
-                        throw new Error("div child of type " + divChild.nodeType + " must have enter some if")
-                    }
-                    jsxDivChildren = <>{jsxDivChildren} {jsxDivChild}</>
+            const handleOnFocusBody = (e: React.FocusEvent) => {
+                setEditingStoryIdHtml(idHtml)
+            }
+            const handleOnBlurBody = (e: React.FocusEvent) => {
+                if (!refToIsAsking.current) {
+                    setEditingStoryIdHtml("")
                 }
-                jsx = <>{jsx}<div>{jsxDivChildren}</div></>
-            } else {
-                //throw new Error("Only divs must appears here")
             }
-        }
-        return jsx
-    }
-
-    const getStoryView = (storyVisibility: StoryViewStates, index: number) => {
-        const {story: {title, body}, isOpen} = storyVisibility
-        const JsxBody = getStoryBodyJsx(body)
-
-        return (
-            <StoryContainer key={title}>
-                <StoryTitleContainer>
-                    <StoryTitle>{title}</StoryTitle>
-                    <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen}
-                                            onClick={(e => openOrCloseStory(index))}/>
-                </StoryTitleContainer>
-                {isOpen && <StoryBody>{JsxBody}</StoryBody>}
-            </StoryContainer>
-        )
-    }
-    const getEditableStoryView = (storyVisibility: StoryViewStates, index: number) => {
-        const {idHtml, story, isOpen, toDelete} = storyVisibility
-        const {title,body} = story
-        const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
-
-        const handleOnFocusBody = (e: React.FocusEvent) => {
-            setEditingStoryIdHtml(idHtml)
-        }
-        const handleOnBlurBody = (e: React.FocusEvent) => {
-            if (!refToIsAsking.current) {
-                setEditingStoryIdHtml("")
-            }
-        }
-
-        return (
-            <StoryContainer key={idHtml}>
-                <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r)=> (observe as Observe)(r, {mutation: "default"})}
-                                color={"#778899"} fontSize={"1.5rem"} options={Object.values(StoryState)} initSelectedOption={story.state}/>
-                <StoryTitleContainer>
-                    <StoryTitle id={htmlIds.title} ref={r => {if(r) (observe as Observe)(r, {mutation: "default"})}} toDelete={toDelete} contentEditable={!toDelete}>
-                        {title}
-                    </StoryTitle>
-                    <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
-                    <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
-                                           handleDelete={() => {handleDeleteStory(idHtml, index, !("id" in story))}}
-                                           handleRecover={() => {handleRecoverStory(idHtml, index)}}/>
-                    <Pallet rootElementId={htmlIds.body} show={isEditingStory(idHtml)} isAsking={isAsking}/>
-                </StoryTitleContainer>
-                {isOpen && <StoryBody id={htmlIds.body} contentEditable={!toDelete}
-                                      ref={r => {if(r) (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}
-                                      dangerouslySetInnerHTML={{__html: body}}
-                                      onFocus={handleOnFocusBody}
-                                      onBlur={handleOnBlurBody}
-                />}
-            </StoryContainer>
-        )
-    }
+            return (
+                <StoryContainer key={idHtml}>
+                    <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r)=> (observe as Observe)(r, {mutation: "default"})}
+                                    color={"#778899"} fontSize={"1.5rem"} options={Object.values(StoryState)} initSelectedOption={state}/>
+                    <StoryTitleContainer>
+                        <StoryTitle id={htmlIds.title} ref={r => {if(r) (observe as Observe)(r, {mutation: "default"})}} toDelete={toDelete} contentEditable={!toDelete}>
+                            {title}
+                        </StoryTitle>
+                        <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
+                        <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
+                                               handleDelete={() => {handleDeleteStory(idHtml, index, !("id" in story))}}
+                                               handleRecover={() => {handleRecoverStory(idHtml, index)}}/>
+                        <Pallet rootElementId={htmlIds.body} show={isEditingStory(idHtml)} isAsking={isAsking}/>
+                    </StoryTitleContainer>
+                    {isOpen && <StoryBody id={htmlIds.body} contentEditable={!toDelete}
+                                          ref={r => {if(r) {refToLastStory.current = r; (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
+                                          dangerouslySetInnerHTML={{__html: body}}
+                                          onFocus={handleOnFocusBody}
+                                          onBlur={handleOnBlurBody}
+                    />}
+                </StoryContainer>
+            )
+        })
 
     return (
         <Container>
@@ -192,10 +159,8 @@ export default function StoriesView<M extends ViewMode>({
             <PlusButton id={"plus-button"} color={"#778899"} size={26} onClick={handleAddNewStory}/>}
             </TitleContainer>
             <StoriesContainer>
-                {storiesViewStates
-                    .map((s, index) =>
-                        editing ? getEditableStoryView(s, index) : getStoryView(s, index)
-                    )
+                {editing ? getEditableStoriesView()
+                         : getStoriesView()
                 }
             </StoriesContainer>
         </Container>
@@ -238,6 +203,10 @@ const Title = styled.text`
 const StoriesContainer = styled.ul`
   padding: 0;
   margin: 0;
+  width: 80%;
+  @media (max-width: 1200px) {
+    width: 100%;
+  }
 `
 const StoryContainer = styled.li`
   list-style-type: none;

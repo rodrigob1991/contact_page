@@ -68,7 +68,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 10px;
+  padding: 20px;
   background-image: linear-gradient(#00008B,#0000FF);
   box-shadow: 5px 10px #888888;
   @media (max-width: 1500px) {

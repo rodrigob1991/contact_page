@@ -105,8 +105,8 @@ export const useTooltip = (style?: CSSProperties) : [JSX.Element, (t: string, p?
         return () => window.removeEventListener("mousemove", captureMousePosition)
     }, [hidden, useMousePosition])
 
-    const Tooltip = <TooltipContainer style={style || {padding: "3px", color: "black", backgroundColor: "white", fontSize: "1.7rem",
-                                      fontWeight: "bold", borderStyle: "solid", borderColor: "black"}}
+    const Tooltip = <TooltipContainer style={{padding: "3px", color: "black", backgroundColor: "white", fontSize: "1.7rem",
+                                      fontWeight: "bold", borderStyle: "solid", borderColor: "black", ...(style ? style : {})}}
                                       hidden={hidden} {...position}>{text}</TooltipContainer>
 
     return [Tooltip, show, hide]
