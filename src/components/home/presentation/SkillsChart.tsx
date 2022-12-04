@@ -40,7 +40,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
         return `hsl(${hue},${saturation}%,${lightness}%)`
     }
 
-    const [NameTooltip, showNameTooltip, hideNameTooltip] = useTooltip()
+    const [NameTooltip, showNameTooltip, hideNameTooltip] = useTooltip({topDeviation: -40})
     const handleMouseEnterSkillView = (e: React.MouseEvent<HTMLDivElement>, name: string) => {
         showNameTooltip(name)
     }

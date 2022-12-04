@@ -150,6 +150,17 @@ textarea:invalid {
     margin: 10px;
   }
 }
+.sidebarIcon {
+  width: 60px;
+  height:60px;
+}
+
+@media (max-width: 768px) {
+  .sidebarIcon {
+    width: 30px;
+    height: 30px;
+  }
+}
 
 div[disabled]
 {

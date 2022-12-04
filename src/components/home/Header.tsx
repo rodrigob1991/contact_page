@@ -28,6 +28,7 @@ const Container = styled.div`
   border-bottom: 2px solid;
   border-color: white;
   background-color: #778899;
+  z-index: 7;
   @media (max-width: 768px) {
     height: 70px;
     min-height: 70px; 

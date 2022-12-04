@@ -74,8 +74,13 @@ const AskContainer = styled.div<AskContainerProps>`
   border-color: #000000;
   background-color: white;
 `
+type Props = {
+    style?: CSSProperties
+    topDeviation?: number
+    leftDeviation?: number
+}
 type Position = {top: number, left: number}
-export const useTooltip = (style?: CSSProperties) : [JSX.Element, (t: string, p?: Position)=> void, ()=> void] => {
+export const useTooltip = ({style, topDeviation=0, leftDeviation=0}: Props) : [JSX.Element, (t: string, p?: Position)=> void, ()=> void] => {
     const [hidden, setHidden] = useState(true)
     const [position, setPosition] = useState({top: -1, left: -1})
     const [useMousePosition, setUseMousePosition] = useState(true)
@@ -94,7 +99,7 @@ export const useTooltip = (style?: CSSProperties) : [JSX.Element, (t: string, p?
         setHidden(true)
     }
     const captureMousePosition = (e: MouseEvent) => {
-        setPosition({top: e.clientY - 32, left: e.clientX})
+        setPosition({top: e.clientY + topDeviation , left: e.clientX + leftDeviation})
     }
     useEffect(() => {
         if (!hidden && useMousePosition) {
@@ -105,17 +110,22 @@ export const useTooltip = (style?: CSSProperties) : [JSX.Element, (t: string, p?
         return () => window.removeEventListener("mousemove", captureMousePosition)
     }, [hidden, useMousePosition])
 
-    const Tooltip = <TooltipContainer style={{padding: "3px", color: "black", backgroundColor: "white", fontSize: "1.7rem",
-                                      fontWeight: "bold", borderStyle: "solid", borderColor: "black", ...(style ? style : {})}}
-                                      hidden={hidden} {...position}>{text}</TooltipContainer>
+    const Tooltip = <TooltipContainer style={style} show={!hidden} {...position}>{text}</TooltipContainer>
 
     return [Tooltip, show, hide]
 }
 
-const TooltipContainer = styled.div<{ hidden: boolean, left:number, top:number}>`
-  visibility: ${props=> props.hidden ? 'hidden' : 'visible'};
+const TooltipContainer = styled.div<{ show: boolean, left:number, top:number}>`
+  visibility: ${props => props.show ? 'visible' : 'hidden'};
   position: fixed;
   left: ${props=> props.left}px;
   top:  ${props=> props.top}px;
   z-index: 99;
+  padding: 3px;
+  color: #778899;
+  background-color: white;
+  font-size: 1.7rem;
+  font-weight: bold;
+  border-style: solid;
+  border-color: #778899;
  `

@@ -3,15 +3,17 @@ import {useTooltip} from "../utils/Hooks"
 import {CSSProperties} from "react"
 
 type Props = {
-    ChildElement: JSX.Element
+    childElement: JSX.Element
     tooltipText: string
-    tooltipCssProperties?: CSSProperties
+    tooltipStyle?: CSSProperties
+    tooltipTopDeviation?: number
+    tooltipLeftDeviation?: number
 }
-export default function ComponentWithTooltip({ChildElement, tooltipText, tooltipCssProperties} : Props) {
-    const [Tooltip, showTooltip, hideTooltip] = useTooltip(tooltipCssProperties)
+export default function ComponentWithTooltip({childElement, tooltipText, tooltipStyle, tooltipTopDeviation, tooltipLeftDeviation} : Props) {
+    const [Tooltip, showTooltip, hideTooltip] = useTooltip({style: tooltipStyle, topDeviation: tooltipTopDeviation, leftDeviation: tooltipLeftDeviation})
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-        showTooltip(tooltipText, {top: e.pageY, left: e.pageX})
+        showTooltip(tooltipText)
     }
     const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
         hideTooltip()
@@ -24,7 +26,7 @@ export default function ComponentWithTooltip({ChildElement, tooltipText, tooltip
     return (
         <Container onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onTouchStart={handleTouchStart}>
             {Tooltip}
-            {ChildElement}
+            {childElement}
         </Container>
     )
 

@@ -41,10 +41,6 @@ export const getStoryBodyJsx = (storyBodyHtml: string) => {
         return text.replaceAll("&nbsp;", "\u00A0")
     }
 
-    /*const getElementText = (startTag: string) => {
-        return startTag.substring(startTag.search(tagEndRgx) + 1, startTag.search(closeTagBeginRgx))
-    }
-*/
     let leftDivs = storyBodyHtml.trim()
     while (!isEmpty(leftDivs)) {
         const startOnDivBeginIndex = leftDivs.search(tagBeginRgx)

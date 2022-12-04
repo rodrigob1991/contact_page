@@ -1,10 +1,12 @@
 import styled from "@emotion/styled"
 import {MdForwardToInbox} from "react-icons/md"
 import {useFormModal} from "../FormComponents"
-import {useTooltip} from "../../utils/Hooks"
-import ComponentWithTooltip from "../ComponentWithTooltip";
+import ComponentWithTooltip from "../ComponentWithTooltip"
 
-export default function Sidebar(){
+type Props = {
+    show: boolean
+}
+export default function Sidebar({show}: Props){
     const sendEmail = ({
                            from,
                            subject,
@@ -77,29 +79,37 @@ export default function Sidebar(){
         })
 
     return (
-        <Container>
+        <Container show={show}>
             {SendMessageModal}
-            <ComponentWithTooltip ChildElement={<MdForwardToInbox size={50} style={{cursor: "pointer", color: "#DAA520"}}
-                                                                  onClick={(e)=> showSendMessageModal()}/>}
-                                  tooltipText={"send me an email"}
-                                  tooltipCssProperties={{height: "35px", color: "#778899", borderColor: "#778899"}}/>
+            <ComponentWithTooltip
+                childElement={<MdForwardToInbox className={"sidebarIcon"} style={{cursor: "pointer", color: "#DAA520"}} onClick={(e) => showSendMessageModal()}/>}
+                tooltipText={"send email"} tooltipStyle={{height: "35px",  width: "fit-content"}}
+                tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>
         </Container>
     )
 }
 
-const Container = styled.div`
+const Container = styled.div<{ show: boolean }>`
+  visibility: ${props => props.show ? 'visible' : 'hidden'};
   display: flex;
   flex-direction: column;
   position: absolute;
   right: 0px;
+  top: 90px;
   align-items: center;
-  height: 100%;
-  padding-top: 150px;
+  height: 50%;
+  padding-top: 70px;
   z-index: 5;
   width: 100px;
-  border-left: 2px solid;
-  border-color: #778899;
+  border-left: 4px solid;
+  border-top: 4px solid;
+  border-bottom: 4px solid;
+  border-color: #00008B;
   background-color: white;
+    @media (max-width: 768px) {
+    top: 70px;
+    width: 50px;
+  }
     `
 const MessengerContainer = styled.div`
   display: flex;

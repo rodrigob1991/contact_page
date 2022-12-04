@@ -1,15 +1,12 @@
-import styled from "@emotion/styled"
 import {PropsStorageClient} from "../classes/PropsStorageClient"
-import {MdForwardToInbox} from "react-icons/md"
-import Image from "next/image"
-import Link from "next/link"
-import {useFormModal} from "../components/FormComponents"
 import {HomeProps} from "../types/Home"
 import PresentationView from "../components/home/presentation/PresentationView"
 import StoriesView from "../components/home/stories/StoriesView"
 import {Container, Footer} from "../components/home/Layout"
 import Sidebar from "../components/home/Sidebar";
 import Header from "../components/home/Header";
+import {useEffect, useState} from "react";
+import {maxWidthSmallestLayout} from "../Dimensions";
 
 export const HomeRoute = "/"
 
@@ -26,9 +23,23 @@ export async function getStaticProps() {
 }
 
 export default function Home({presentation, stories}: HomeProps) {
+    const [showSidebar, setShowSidebar] = useState(false)
+    const showOrHideSidebar = () => { setShowSidebar(window.innerWidth > maxWidthSmallestLayout) }
+    useEffect(() => {
+        showOrHideSidebar()
+        const handleWindowResize = () => {
+            showOrHideSidebar()
+        }
+        window.addEventListener('resize', handleWindowResize)
+
+        return () => { window.removeEventListener('resize', handleWindowResize) }
+    }, [])
+
+    
+
   return (
       <Container>
-          <Sidebar/>
+          <Sidebar show={showSidebar}/>
           <Header/>
           <PresentationView presentation={presentation || {name:"", introduction: "", skills: [], image: undefined}}/>
           <StoriesView stories={stories}/>
