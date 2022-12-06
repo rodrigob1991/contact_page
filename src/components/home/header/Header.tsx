@@ -1,6 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import styled from "@emotion/styled"
+import Messenger from "./Messenger";
 
 export default function Header() {
     return (
@@ -15,6 +16,7 @@ export default function Header() {
                            style={{cursor: "pointer", maxWidth: "100%", height: "auto"}}/>
                 </Link>
             </ContactLinksContainer>
+            <Messenger/>
         </Container>
     )
 }

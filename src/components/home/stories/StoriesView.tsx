@@ -203,7 +203,7 @@ const Title = styled.text`
 const StoriesContainer = styled.ul`
   padding: 0;
   margin: 0;
-  width: 80%;
+  width: 98%;
   @media (max-width: 1200px) {
     width: 100%;
   }

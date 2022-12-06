@@ -3,10 +3,9 @@ import {HomeProps} from "../types/Home"
 import PresentationView from "../components/home/presentation/PresentationView"
 import StoriesView from "../components/home/stories/StoriesView"
 import {Container, Footer} from "../components/home/Layout"
-import Sidebar from "../components/home/Sidebar";
-import Header from "../components/home/Header";
-import {useEffect, useState} from "react";
-import {maxWidthSmallestLayout} from "../Dimensions";
+import Header from "../components/home/header/Header"
+import {useEffect, useState} from "react"
+import {maxWidthSmallestLayout} from "../Dimensions"
 
 export const HomeRoute = "/"
 
@@ -35,11 +34,10 @@ export default function Home({presentation, stories}: HomeProps) {
         return () => { window.removeEventListener('resize', handleWindowResize) }
     }, [])
 
-    
+
 
   return (
       <Container>
-          <Sidebar show={showSidebar}/>
           <Header/>
           <PresentationView presentation={presentation || {name:"", introduction: "", skills: [], image: undefined}}/>
           <StoriesView stories={stories}/>

@@ -1,38 +1,27 @@
 import styled from "@emotion/styled"
 import {MdForwardToInbox} from "react-icons/md"
-import {useFormModal} from "../FormComponents"
-import ComponentWithTooltip from "../ComponentWithTooltip"
+import {useFormModal} from "../../FormComponents"
+import ComponentWithTooltip from "../../ComponentWithTooltip"
+import Image from "next/image"
+import {useState} from "react";
 
 type Props = {
-    show: boolean
 }
-export default function Sidebar({show}: Props){
-    const sendEmail = ({
-                           from,
-                           subject,
-                           message
-                       }: {
-        from: string,
-        subject: string,
-        message: string
-    }) => {
+export default function Messenger(){
+    const [liveChat, setLiveChat] = useState(false)
+
+    const sendEmail = ({from, subject, message}: { from: string, subject: string, message: string }) => {
         const bodyParams = {
             sender: {email: from},
             to: [{email: process.env.NEXT_PUBLIC_MY_EMAIL, name: "Rodrigo"}],
             subject: subject,
-            htmlContent: `<!DOCTYPE html>  
-                <html> 
-                    <body>  
-                        ${message}
-                    </body> 
-                </html>`
+            htmlContent: `<!DOCTYPE html><html><body>${message}</body> </html>`
         }
         const succeedResultMessage = {succeed: true, message: "email sent"}
         const unsucceedResultMessage = {succeed: false, message: "email was not sent"}
         const logError = (error: any) => {
             console.error(`Error sending the email: ${JSON.stringify(error)}`)
         }
-
         return fetch(process.env.NEXT_PUBLIC_SENDINBLUE_URL as string, {
             method: "POST",
             headers: {
@@ -79,39 +68,24 @@ export default function Sidebar({show}: Props){
         })
 
     return (
-        <Container show={show}>
+        <Container>
             {SendMessageModal}
-            <ComponentWithTooltip
-                childElement={<MdForwardToInbox className={"sidebarIcon"} style={{cursor: "pointer", color: "#DAA520"}} onClick={(e) => showSendMessageModal()}/>}
-                tooltipText={"send email"} tooltipStyle={{height: "35px",  width: "fit-content"}}
-                tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>
+            {liveChat ? <ComponentWithTooltip childElement={<Image className={"messengerIcon"} alt={""} src="/online.svg" width="80" height="50"/>}
+                            tooltipText={"ask me"} tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>
+                      : <ComponentWithTooltip childElement={<Image className={"messengerIcon"} alt={""} src="/offline.svg" width="80" height="50"/>}
+                            tooltipText={"you can send an email"} tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>}
+            <ComponentWithTooltip childElement={<MdForwardToInbox className={"messengerIcon"} style={{cursor: "pointer", color: "#DAA520"}} onClick={(e) => showSendMessageModal()}/>}
+                                  tooltipText={"send email"} tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>
         </Container>
     )
 }
 
-const Container = styled.div<{ show: boolean }>`
-  visibility: ${props => props.show ? 'visible' : 'hidden'};
-  display: flex;
-  flex-direction: column;
-  position: absolute;
+const Container = styled.div`
+  position: relative;
   right: 0px;
-  top: 90px;
-  align-items: center;
-  height: 50%;
-  padding-top: 70px;
-  z-index: 5;
-  width: 100px;
-  border-left: 4px solid;
-  border-top: 4px solid;
-  border-bottom: 4px solid;
-  border-color: #00008B;
-  background-color: white;
-    @media (max-width: 768px) {
-    top: 70px;
-    width: 50px;
-  }
-    `
-const MessengerContainer = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  gap: 40px;
+  padding-right: 30px;
+  align-items: center;
     `
