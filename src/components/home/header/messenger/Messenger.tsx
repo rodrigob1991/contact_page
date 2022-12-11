@@ -1,21 +1,20 @@
 import styled from "@emotion/styled"
 import {MdForwardToInbox} from "react-icons/md"
-import {useFormModal} from "../../FormComponents"
-import ComponentWithTooltip from "../../ComponentWithTooltip"
-import Image from "next/image"
-import {useState} from "react";
+import {useFormModal} from "../../../FormComponents"
+import ComponentWithTooltip from "../../../ComponentWithTooltip"
+import {maxWidthSmallestLayout} from "../../../../Dimensions"
+import LiveChat from "./LiveChat"
 
 type Props = {
 }
 export default function Messenger(){
-    const [liveChat, setLiveChat] = useState(false)
 
     const sendEmail = ({from, subject, message}: { from: string, subject: string, message: string }) => {
         const bodyParams = {
             sender: {email: from},
             to: [{email: process.env.NEXT_PUBLIC_MY_EMAIL, name: "Rodrigo"}],
             subject: subject,
-            htmlContent: `<!DOCTYPE html><html><body>${message}</body> </html>`
+            htmlContent: `<!DOCTYPE html><html><body>${message}</body></html>`
         }
         const succeedResultMessage = {succeed: true, message: "email sent"}
         const unsucceedResultMessage = {succeed: false, message: "email was not sent"}
@@ -70,11 +69,8 @@ export default function Messenger(){
     return (
         <Container>
             {SendMessageModal}
-            {liveChat ? <ComponentWithTooltip childElement={<Image className={"messengerIcon"} alt={""} src="/online.svg" width="80" height="50"/>}
-                            tooltipText={"ask me"} tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>
-                      : <ComponentWithTooltip childElement={<Image className={"messengerIcon"} alt={""} src="/offline.svg" width="80" height="50"/>}
-                            tooltipText={"you can send an email"} tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>}
-            <ComponentWithTooltip childElement={<MdForwardToInbox className={"messengerIcon"} style={{cursor: "pointer", color: "#DAA520"}} onClick={(e) => showSendMessageModal()}/>}
+            <LiveChat/>
+            <ComponentWithTooltip childElement={<MdForwardToInbox className={"sendEmailIcon"} onClick={(e) => showSendMessageModal()}/>}
                                   tooltipText={"send email"} tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>
         </Container>
     )
@@ -88,4 +84,7 @@ const Container = styled.div`
   gap: 40px;
   padding-right: 30px;
   align-items: center;
+   @media (max-width: ${maxWidthSmallestLayout}px) {
+    gap: 15px;
+  }
     `

@@ -115,17 +115,18 @@ export const useTooltip = ({style, topDeviation=0, leftDeviation=0}: Props) : [J
     return [Tooltip, show, hide]
 }
 
-const TooltipContainer = styled.div<{ show: boolean, left:number, top:number}>`
+const TooltipContainer = styled.div<{show: boolean, left: number, top: number}>`
   visibility: ${props => props.show ? 'visible' : 'hidden'};
   position: fixed;
   left: ${props=> props.left}px;
   top:  ${props=> props.top}px;
   z-index: 99;
   padding: 3px;
-  color: #778899;
+  color: #00008B;
   background-color: white;
   font-size: 1.7rem;
   font-weight: bold;
+  font-family: Arial, Helvetica, sans-serif;
   border-style: solid;
-  border-color: #778899;
+  border-color: black;
  `

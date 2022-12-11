@@ -1,19 +1,20 @@
 import Link from "next/link"
 import Image from "next/image"
 import styled from "@emotion/styled"
-import Messenger from "./Messenger";
+import Messenger from "./messenger/Messenger"
+import LinkedinIcon from 'public/linkedin.svg'
+import GithubIcon from 'public/github.svg'
+import {maxWidthSmallestLayout} from "../../../Dimensions";
 
 export default function Header() {
     return (
         <Container>
             <ContactLinksContainer>
                 <Link href={"https://www.linkedin.com/in/rodrigo-benoit-867152150"}>
-                    <Image className={"headerIcon"} alt={""} src="/linkedin.svg" width="40" height="40"
-                           style={{cursor: "pointer", maxWidth: "100%", height: "auto"}}/>
+                    <LinkedinIcon className={"headerIcon"}/>
                 </Link>
                 <Link href={"https://github.com/rodrigob1991"}>
-                    <Image className={"headerIcon"} alt={""} src="/github.svg" width="40" height="40"
-                           style={{cursor: "pointer", maxWidth: "100%", height: "auto"}}/>
+                    <GithubIcon className={"headerIcon"}/>
                 </Link>
             </ContactLinksContainer>
             <Messenger/>
@@ -28,6 +29,8 @@ const Container = styled.div`
   min-height: 90px; 
   max-height: 90px;
   border-bottom: 2px solid;
+  border-left: 2px solid;
+  border-right: 2px solid;
   border-color: white;
   background-color: #778899;
   z-index: 7;
@@ -40,6 +43,12 @@ const Container = styled.div`
 const ContactLinksContainer = styled.div`
   display: flex;
   flex-direction: row;
+  gap: 40px;
+  align-items: center;
   padding-left: 20px;
   width: 100%;
+  align-items: center;
+   @media (max-width: ${maxWidthSmallestLayout}px) {
+    gap: 15px;
+  }
     `
