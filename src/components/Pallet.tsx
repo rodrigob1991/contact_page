@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import {getContainedString, isEmpty} from "../utils/StringManipulations"
+import {getContainedString, isEmpty} from "../utils/Strings"
 import {
     createAnchor,
     createDiv,

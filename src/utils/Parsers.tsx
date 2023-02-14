@@ -1,4 +1,4 @@
-import {getContainedString, getIndexOnOccurrence, isEmpty} from "./StringManipulations"
+import {getContainedString, getIndexOnOccurrence, isEmpty} from "./Strings"
 import React from "react"
 import {firstCharAfterEqualAndSpaces} from "./RegularExpressions"
 import Image from "next/image"

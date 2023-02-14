@@ -16,7 +16,7 @@ import {
     UpdatePresentationWithoutSkillsAndImageArgs
 } from "../types/Home"
 import {ObjectID} from "bson"
-import {getContainedString} from "../utils/StringManipulations"
+import {getContainedString} from "../utils/Strings"
 import {getRecordWithNewProps} from "../utils/RecordManipulations"
 
 type NewEntity = Record<string, any>

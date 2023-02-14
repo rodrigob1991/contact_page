@@ -16,7 +16,7 @@ import {IoMdClose} from "react-icons/io"
 import {Button} from "./Buttons"
 import {ResultMessage, ResultMessageProps} from "./Labels"
 import {BlocksLoader} from "./Loaders"
-import {getContainedString} from "../utils/StringManipulations";
+import {getContainedString} from "../utils/Strings";
 
 type TextInputProps = {
     setValue: (value: string) => void
