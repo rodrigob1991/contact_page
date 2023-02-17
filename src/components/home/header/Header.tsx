@@ -4,7 +4,7 @@ import styled from "@emotion/styled"
 import Messenger from "./messenger/Messenger"
 import LinkedinIcon from 'public/linkedin.svg'
 import GithubIcon from 'public/github.svg'
-import {maxWidthSmallestLayout} from "../../../Dimensions";
+import {maxWidthSmallestLayout} from "../../../Dimensions"
 
 export default function Header() {
     return (

@@ -10,6 +10,7 @@ export type Image = ChangePropertiesType<ImageDbArgs,[["src", string], ["name", 
 const homePropsDbArgs = Prisma.validator<Prisma.PropsArgs>()(PropsStorageClient.selectHomeProps)
 export type HomePropsDbArgs = Prisma.PropsGetPayload<typeof homePropsDbArgs>
 export type HomeProps = ChangePropertiesType<HomePropsDbArgs, [["stories", Story[]],["presentation", Presentation | undefined]]>
+export type EditHomeProps = Partial<HomeProps>
 type HomePropsPresentation = Pick<HomeProps, "presentation">
 type SkillsPresentation = Pick<Presentation, "skills">
 type CreateSkillsArgs = {new?: NewSkill[]}
