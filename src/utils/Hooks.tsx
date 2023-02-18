@@ -122,7 +122,6 @@ const TooltipContainer = styled.div<{show: boolean, left: number, top: number}>`
   top:  ${props=> props.top}px;
   z-index: 99;
   padding: 3px;
-  color: #00008B;
   background-color: white;
   font-size: 1.7rem;
   font-weight: bold;

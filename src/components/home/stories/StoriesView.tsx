@@ -5,8 +5,8 @@ import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../../B
 import {Pallet} from "../../Pallet"
 import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
-import {Observe} from "../../../pages/user/edit_home";
-import {getStoryBodyJsx} from "../../../utils/Parsers";
+import {Observe} from "../../../pages/user/edit_home"
+import {getStoryBodyJsx} from "../../../utils/Parsers"
 
 export type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -51,10 +51,9 @@ export default function StoriesView<M extends ViewMode>({
             const JsxBody = getStoryBodyJsx(body)
             return (
                 <StoryContainer key={title}>
-                    <StoryTitleContainer>
+                    <StoryTitleContainer onClick={(e => openOrCloseStory(index))}>
                         <StoryTitle>{title}</StoryTitle>
-                        <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen}
-                                                onClick={(e => openOrCloseStory(index))}/>
+                        <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen}/>
                     </StoryTitleContainer>
                     {isOpen && <StoryBody>{JsxBody}</StoryBody>}
                 </StoryContainer>
@@ -156,7 +155,7 @@ export default function StoriesView<M extends ViewMode>({
         <Container>
             <TitleContainer>
                 <Title>STORIES</Title> {editing &&
-            <PlusButton id={"plus-button"} color={"#778899"} size={26} onClick={handleAddNewStory}/>}
+            <PlusButton id={"plus-button"} color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
             </TitleContainer>
             <StoriesContainer>
                 {editing ? getEditableStoriesView()
@@ -170,18 +169,11 @@ export default function StoriesView<M extends ViewMode>({
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  padding-left: 40px;
-  padding-right: 10px;
+  padding: 10px;
   gap: 15px;
-  padding-top: 15px;
-  padding-bottom: 15px;
-  background-color: #fff;
-  background-image:
-  linear-gradient(#eee .1em, transparent .1em);
-  background-size: 100% 2.5em;
-  @media (max-width: 800px) {
-    padding-left: 10px;
-  }
+  background-color: #778899;
+  border-style: solid;
+  border-color: #FFFFFF;
 `
 const TitleContainer = styled.div`
   display: flex;
@@ -195,33 +187,33 @@ const Title = styled.text`
   text-transform: uppercase;
   font-weight: bold;
   font-size: 2rem;
-  border-radius: 5px;
-  background-color: #778899;
-  width: fit-content;
-  padding: 5px;
   `
 const StoriesContainer = styled.ul`
   padding: 0;
   margin: 0;
-  width: 98%;
-  @media (max-width: 1200px) {
-    width: 100%;
-  }
+  width: 100%;
+  overflow: auto;
+  max-height: 50vh;
+  border-style: solid;
+  border-color: #778899;
+  padding: 5px;
+  background-color: #fff;
+  background-image:
+  linear-gradient(#eee .1em, transparent .1em);
+  background-size: 100% 2.5em;
 `
 const StoryContainer = styled.li`
   list-style-type: none;
   padding-bottom: 15px;
+  border-color: #778899;
+  border-width: medium;
+  border-bottom-style: solid;
   margin-top: 15px;
 `
 const StoryBody = styled.div`
   color: #696969;
-  background-color: #FFFFFF;
   font-size: 2.5rem;
   font-family: "Lucida Console", "Courier New", monospace;
-  border-color: #0000FF;
-  border-width: medium;
-  border-style: double;
-  border-radius: 5px;
   padding: 6px;
   block-size: fit-content;
 `
@@ -232,9 +224,10 @@ const StoryTitleContainer = styled.div`
   gap: 15px;
   color: #FFFFFF;
   width: fit-content;
+  cursor: pointer;
 `
 const StoryTitle = styled.span<{ toDelete?: boolean }>`
-  font-size: 3.3rem;
+  font-size: 2.5rem;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
   color: #778899;

@@ -6,6 +6,7 @@ import {Container, Footer} from "../components/home/Layout"
 import Header from "../components/home/header/Header"
 import {useEffect, useState} from "react"
 import {maxWidthSmallestLayout} from "../Dimensions"
+import Head from "next/head"
 
 export const HomeRoute = "/"
 
@@ -37,6 +38,11 @@ export default function Home({presentation, stories}: HomeProps) {
 
 
   return (
+      <>
+      <Head>
+          <title>{presentation?.name}</title>
+          <link rel="shortcut icon" href="/favicon.ico" />
+      </Head>
       <Container>
           <Header/>
           <PresentationView presentation={presentation || {name:"", introduction: "", skills: [], image: undefined}}/>
@@ -44,5 +50,6 @@ export default function Home({presentation, stories}: HomeProps) {
           <Footer>
           </Footer>
       </Container>
+      </>
   )
 }

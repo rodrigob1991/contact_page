@@ -7,9 +7,9 @@ export const metadata = {
         icon: "/icon.png"
     }*/
 }
-export async function generateMetadata() {
+/*export async function generateMetadata() {
     //fetch and return the data
-}
+}*/
 
 //export const dynamic = "force-static"
 
