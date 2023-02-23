@@ -9,15 +9,17 @@ import {maxWidthSmallestLayout} from "../../../Dimensions"
 export default function Header() {
     return (
         <Container>
+            <Image alt={""} src={"/favicon.png"} width={80} height={80} style={{margin: "20px"}}/>
             <ContactLinksContainer>
-                <Link href={"https://www.linkedin.com/in/rodrigo-benoit-867152150"}>
-                    <LinkedinIcon className={"headerIcon"}/>
-                </Link>
+                <Messenger/>
+                <div style={{width: "5px", height: "100%", backgroundColor: "white"}}/>
                 <Link href={"https://github.com/rodrigob1991"}>
                     <GithubIcon className={"headerIcon"}/>
                 </Link>
+                <Link href={"https://www.linkedin.com/in/rodrigo-benoit-867152150"}>
+                    <LinkedinIcon className={"headerIcon"}/>
+                </Link>
             </ContactLinksContainer>
-            <Messenger/>
         </Container>
     )
 }
@@ -42,11 +44,12 @@ const Container = styled.div`
     `
 const ContactLinksContainer = styled.div`
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   gap: 40px;
   align-items: center;
-  padding-left: 20px;
+  padding-right: 20px;
   width: 100%;
+  height: 100%;
   align-items: center;
    @media (max-width: ${maxWidthSmallestLayout}px) {
     gap: 15px;

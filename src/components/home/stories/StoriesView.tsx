@@ -7,6 +7,7 @@ import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
 import {Observe} from "../../../pages/user/edit_home"
 import {getStoryBodyJsx} from "../../../utils/Parsers"
+import {css} from "@emotion/react";
 
 export type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -209,7 +210,11 @@ const StoryContainer = styled.li`
   border-width: medium;
   border-bottom-style: solid;
   margin-top: 15px;
+  :last-of-type {
+        border-bottom-style: none;
+    }
 `
+
 const StoryBody = styled.div`
   color: #696969;
   font-size: 2.5rem;

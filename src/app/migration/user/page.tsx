@@ -2,16 +2,18 @@ import {PropsStorageClient} from "../../../classes/PropsStorageClient"
 import EditHome from "./EditHome"
 import {HomeProps} from "../../../types/Home"
 
-export const metadata = {
+/*export const metadata = {
     title: "yo",
-    /* icons: {
+    /!* icons: {
          icon: "/icon.png"
-     }*/
-}
+     }*!/
+}*/
 
+/*
 export async function generateMetadata() {
     //fetch and return the data
 }
+*/
 
 export const dynamic = "force-dynamic"
 

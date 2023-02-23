@@ -1,12 +1,12 @@
 import Home from './Home'
 import {PropsStorageClient} from "../../classes/PropsStorageClient"
 
-export const metadata = {
+/*export const metadata = {
     title: "rodrigo benoit",
-   /* icons: {
-        icon: "/icon.png"
-    }*/
-}
+    /!* icons: {
+         icon: "/icon.png"
+     }*!/
+}*/
 /*export async function generateMetadata() {
     //fetch and return the data
 }*/

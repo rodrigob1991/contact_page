@@ -35,13 +35,11 @@ export default function Home({presentation, stories}: HomeProps) {
         return () => { window.removeEventListener('resize', handleWindowResize) }
     }, [])
 
-
-
   return (
       <>
       <Head>
           <title>{presentation?.name}</title>
-          <link rel="shortcut icon" href="/favicon.ico" />
+          <link rel="shortcut icon" href="favicon.png" />
       </Head>
       <Container>
           <Header/>

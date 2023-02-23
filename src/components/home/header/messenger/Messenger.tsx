@@ -77,12 +77,9 @@ export default function Messenger(){
 }
 
 const Container = styled.div`
-  position: relative;
-  right: 0px;
   display: flex;
   flex-direction: row;
   gap: 40px;
-  padding-right: 30px;
   align-items: center;
    @media (max-width: ${maxWidthSmallestLayout}px) {
     gap: 15px;
