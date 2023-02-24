@@ -70,7 +70,7 @@ export default function Messenger(){
         <Container>
             {SendMessageModal}
             <LiveChat/>
-            <ComponentWithTooltip childElement={<MdForwardToInbox className={"sendEmailIcon"} onClick={(e) => showSendMessageModal()}/>}
+            <ComponentWithTooltip childElement={<SendEmailImage onClick={(e) => showSendMessageModal()}/>}
                                   tooltipText={"send email"} tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>
         </Container>
     )
@@ -83,5 +83,15 @@ const Container = styled.div`
   align-items: center;
    @media (max-width: ${maxWidthSmallestLayout}px) {
     gap: 15px;
+  }
+    `
+const SendEmailImage = styled(MdForwardToInbox)`
+  width: 70px;
+  height:70px;
+  color: white;
+  cursor: pointer;
+   @media (max-width: ${maxWidthSmallestLayout}px) {
+    width: 40px;
+    height: 40px;
   }
     `

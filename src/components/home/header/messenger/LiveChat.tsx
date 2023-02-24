@@ -1,6 +1,8 @@
 import {useEffect, useState} from "react"
 import ComponentWithTooltip from "../../../ComponentWithTooltip"
 import LiveIcon from "/public/live.svg"
+import styled from "@emotion/styled";
+import {maxWidthSmallestLayout} from "../../../../Dimensions";
 
 export default function LiveChat() {
     /*const [messages, setMessages] = useState<(InboundMessage | OutboundMessage)[]>([])
@@ -25,7 +27,7 @@ export default function LiveChat() {
 
     return (
         <>
-        <ComponentWithTooltip childElement={<LiveIcon className={"liveIcon"} fill={liveIconColor}/>}
+        <ComponentWithTooltip childElement={<Image fill={liveIconColor}/>}
                               tooltipText={liveIconTooltipText}
                               tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40}
                               tooltipLeftDeviation={-70}/>
@@ -46,3 +48,13 @@ export default function LiveChat() {
         </>
     )
 }
+
+const Image = styled(LiveIcon)`
+  width: 85px;
+  height:85px;
+  cursor: pointer;
+  @media (max-width: ${maxWidthSmallestLayout}px) {
+    width: 55px;
+    height: 55px;
+  }
+`

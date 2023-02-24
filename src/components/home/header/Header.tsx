@@ -2,22 +2,20 @@ import Link from "next/link"
 import Image from "next/image"
 import styled from "@emotion/styled"
 import Messenger from "./messenger/Messenger"
-import LinkedinIcon from 'public/linkedin.svg'
-import GithubIcon from 'public/github.svg'
 import {maxWidthSmallestLayout} from "../../../Dimensions"
 
 export default function Header() {
     return (
         <Container>
-            <Image alt={""} src={"/favicon.png"} width={80} height={80} style={{margin: "20px"}}/>
+            <LogoImage alt={""} src={"/favicon.png"} width={80} height={80}/>
             <ContactLinksContainer>
                 <Messenger/>
                 <div style={{width: "5px", height: "100%", backgroundColor: "white"}}/>
                 <Link href={"https://github.com/rodrigob1991"}>
-                    <GithubIcon className={"headerIcon"}/>
+                    <ContactImage data={"/github.svg"}/>
                 </Link>
                 <Link href={"https://www.linkedin.com/in/rodrigo-benoit-867152150"}>
-                    <LinkedinIcon className={"headerIcon"}/>
+                    <ContactImage data={"/linkedin.svg"}/>
                 </Link>
             </ContactLinksContainer>
         </Container>
@@ -51,7 +49,24 @@ const ContactLinksContainer = styled.div`
   width: 100%;
   height: 100%;
   align-items: center;
-   @media (max-width: ${maxWidthSmallestLayout}px) {
+  @media (max-width: ${maxWidthSmallestLayout}px) {
     gap: 15px;
   }
     `
+const LogoImage = styled(Image)`
+  margin: 20px;
+  @media (max-width: ${maxWidthSmallestLayout}px) {
+    width: 50px;
+    height: 50px;
+  }
+`
+const ContactImage = styled.object`
+  pointer-events: none;
+  width: 50px;
+  height: 50px;
+  cursor: pointer;
+  @media (max-width: ${maxWidthSmallestLayout}px) {
+    width: 30px;
+    height: 30px;
+  }
+`

@@ -131,50 +131,6 @@ textarea:invalid {
   padding: 2px;
 }
 
-.selectorOption {
-}
-.selectorOption:last-child {
-  border-bottom: 2px solid;
-}
-
-.headerIcon {
-  width: 50px;
-  height:50px;
-  cursor: pointer;
-}
-
-@media (max-width: 768px) {
-  .headerIcon {
-    width: 30px;
-    height: 30px;
-  }
-}
-.sendEmailIcon {
-  width: 70px;
-  height:70px;
-  color: white;
-  cursor: pointer;
-}
-
-@media (max-width: 768px) {
-  .sendEmailIcon {
-    width: 40px;
-    height: 40px;
-  }
-}
-.liveIcon {
-  width: 85px;
-  height:85px;
-  cursor: pointer;
-}
-
-@media (max-width: 768px) {
-  .liveIcon {
-    width: 55px;
-    height: 55px;
-  }
-}
-
 div[disabled]
 {
   pointer-events: none;

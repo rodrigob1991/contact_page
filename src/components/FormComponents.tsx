@@ -128,7 +128,7 @@ export const OptionSelector = <E extends string>({id, processRefToValueHtmlEleme
         <DropDown>
             <DropDownValue id={id} ref={processRefToValueHtmlElement ? r => {if(r) processRefToValueHtmlElement(r) } : undefined} {...styles} onClick={handleOpenMenu}>{selectedOption}</DropDownValue>
             <DropDownMenu show={show}>
-               {options.map((o) => <DropDownMenuOption className={"selectorOption"} key={o} {...styles} onClick={e => handleSelection(o)}> {o}
+               {options.map((o) => <DropDownMenuOption key={o} {...styles} onClick={e => handleSelection(o)}> {o}
                                        </DropDownMenuOption>)
                 }
             </DropDownMenu>
@@ -156,6 +156,9 @@ ${({fontSize, color})=>
   border-left: 2px solid;
   border-right: 2px solid;
   border-top: 2px solid;
+  :last-child {
+    border-bottom: 2px solid;
+    }
 `
 const DropDownMenu = styled.div<{ show: boolean }>`
   position: absolute;
