@@ -7,6 +7,7 @@ import {ImageViewSelector, TextInput} from "../../FormComponents"
 import {useAsk, useTooltip} from "../../../utils/Hooks"
 import Image from "next/legacy/image"
 import {orderByComparePreviousByNumber} from "../../../utils/Arrays"
+import {minWidthFullLayout} from "../../../Dimensions";
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
@@ -25,7 +26,7 @@ type Props<VM extends ViewMode> = {
     width: number
 } & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
-export const containerStyles = {padding: 7, height: 180}
+export const containerStyles = {height: 180}
 
 export default function SkillsChart<VM extends ViewMode>({skills, editing, createSkill, deleteSkill, getHtmlElementId, observe}: Props<VM>) {
     const [skillsViewStates, setSkillsViewStates] = useState<SkillViewState[]>(orderByComparePreviousByNumber(skills, "position").map((s) => {
@@ -218,10 +219,9 @@ const Container = styled.div`
   flex-direction: row;
   position: absolute;
   left: 0;
-  padding: ${containerStyles.padding}px;
   height: ${containerStyles.height}px;
   gap: 5px;
-  @media (max-width: 1500px) {
+  @media (max-width: ${minWidthFullLayout}px) {
     position: relative;
   }
 `

@@ -10,13 +10,14 @@ export default function Header() {
             <LogoImage alt={""} src={"/favicon.png"} width={80} height={80}/>
             <ContactLinksContainer>
                 <Messenger/>
-                <div style={{width: "5px", height: "100%", backgroundColor: "white"}}/>
+                <Separator/>
                 <Link href={"https://github.com/rodrigob1991"}>
                     <ContactImage data={"/github.svg"}/>
                 </Link>
                 <Link href={"https://www.linkedin.com/in/rodrigo-benoit-867152150"}>
                     <ContactImage data={"/linkedin.svg"}/>
                 </Link>
+                <Separator/>
             </ContactLinksContainer>
         </Container>
     )
@@ -69,4 +70,9 @@ const ContactImage = styled.object`
     width: 30px;
     height: 30px;
   }
+`
+const Separator = styled.div`
+  width: 2px;
+  height: 100%;
+  background-color: white;
 `

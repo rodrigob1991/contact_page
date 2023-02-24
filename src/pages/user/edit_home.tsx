@@ -246,7 +246,7 @@ export default function EditHome(props?: HomeProps) {
                 const resizeTarget = resize.target as HTMLElement
                 // can be no connected when removing
                 if (resizeTarget.isConnected) {
-                    const newRate = Math.round((resize.borderBoxSize[0].blockSize) * 100 / (skillsChartContainerStyles.height - (skillsChartContainerStyles.padding * 2)))
+                    const newRate = Math.round((resize.borderBoxSize[0].blockSize) * 100 / (skillsChartContainerStyles.height))
                     console.log(newRate)
                     handleMutatedOrResizedSkillHTMLElement(resizeTarget.id, "rate", newRate)
                 }

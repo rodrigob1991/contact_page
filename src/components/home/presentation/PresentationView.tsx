@@ -5,6 +5,7 @@ import {ImageViewSelector, ProcessSelectedImage} from "../../FormComponents"
 import Image from "next/image"
 import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
 import {Observe} from "../../../pages/user/edit_home"
+import {minWidthFullLayout} from "../../../Dimensions";
 
 export type GetHtmlElementId = <K extends PresentationHTMLElementIdsKey>(key: K, skillId: (K extends "skills" ? string : undefined)) =>  string
 type EditingProps = {
@@ -71,7 +72,7 @@ const Container = styled.div`
   padding: 20px;
   background-image: linear-gradient(#00008B,#0000FF);
   box-shadow: 5px 10px #888888;
-  @media (max-width: 1500px) {
+  @media (max-width: ${minWidthFullLayout}px) {
     align-items: center;
     justify-content: left;
   }
@@ -80,7 +81,8 @@ const InnerContainer = styled.div`
   display: flex;
   position: relative;
   flex-direction: column;
-  @media (max-width: 1500px) {
+  justify-content: end;
+  @media (max-width: ${minWidthFullLayout}px) {
     align-items: left;
   }`
 const NameImageIntroductionContainer = styled.div`
@@ -88,7 +90,7 @@ const NameImageIntroductionContainer = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  @media (max-width: 1500px) {
+  @media (max-width: ${minWidthFullLayout}px) {
     width: fit-content;
   }
     `
