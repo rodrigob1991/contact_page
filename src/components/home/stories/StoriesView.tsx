@@ -7,7 +7,6 @@ import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
 import {Observe} from "../../../pages/user/edit_home"
 import {getStoryBodyJsx} from "../../../utils/Parsers"
-import {css} from "@emotion/react";
 
 export type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
