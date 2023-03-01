@@ -35,6 +35,35 @@ type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
 type GetOptionTargetNodeWithProps = (text: string, isLast: boolean, props?: OptionTargetElementProps)=> OptionTargetNode
 
 export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
+    const getRootElement = () => {
+        return document.getElementById(rootElementId)
+    }
+
+    //THIS EFFECT IS FOR WHEN IS REMOVE A DIV DELETE THE SPAN THAT THE BROWSER CREATE. I DONT LIKE AT ALL.
+   /* useEffect(() => {
+        const listener = (e: InputEvent) => {
+            if (e.inputType === "deleteContentBackward") {
+                const nextToCaretSibling = getNextSiblingOrParentSibling((window.getSelection() as Selection).anchorNode as Node, "right")
+                if (nextToCaretSibling && nextToCaretSibling instanceof HTMLSpanElement) {
+                    if (isEmpty(nextToCaretSibling.className)) {
+                        nextToCaretSibling.parentElement?.append(getTexts(nextToCaretSibling))
+                        nextToCaretSibling.remove()
+                    }
+
+                }
+            }
+        }
+        const removeListener = () => {
+            getRootElement()?.removeEventListener("input", listener)
+        }
+        if (show) {
+            getRootElement()?.addEventListener<"input">("input", listener)
+        } else {
+            removeListener()
+        }
+        return removeListener
+    }, [show])*/
+
     const isAskingTrue = () => {
         if (isAsking) {
             isAsking(true)
@@ -46,22 +75,15 @@ export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
         }
     }
 
-   /* const refToElementId = useRef<string>()
-    const setElementId = (id: string) => {
-        refToElementId.current = id
-        setIdClass(idOnClass)
-    }*/
     const [elementId, setElementId] = useState<string>()
-   // const getElementId = () => refToElementId.current
     const consumeElementId = () => {
         const id = elementId
         setElementId(undefined)
-        //setIdClass(idOffClass)
         return id
     }
 
     const focusRootElement = () => {
-        document.getElementById(rootElementId)?.focus()
+        getRootElement()?.focus()
     }
     const [askElementId, isAskingElementId, AskElementId] = useAskElementId({id: elementId, setId: setElementId, isAskingFalse: isAskingFalse, focusRootElement: focusRootElement})
     const handleClickElementId = (e: React.MouseEvent<HTMLSpanElement>) => {
@@ -335,7 +357,7 @@ export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
                     const {parent, image} = ip as ImageProps
                     const div = createDiv({
                         props: {... elementProps, contentEditable: "false"},
-                        styles: {paddingLeft: parent.left + "px"}
+                        styles: {width: "100%", justifyContent: "center", display: "flex"}
                     })
                     const imageElement = createImage(image)
                     imageElement.setAttribute("onclick", `{
@@ -377,7 +399,7 @@ export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
             img.src = src
             img.height = height
             img.width = width
-            divParent.style.paddingLeft = left + "px"
+            //divParent.style.paddingLeft = left + "px"
         })
         updateRemoveImage(() => {
             (img.parentElement as HTMLDivElement).remove()

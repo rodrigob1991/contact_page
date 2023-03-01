@@ -135,6 +135,28 @@ export const hasSiblingOrParentSibling = (node: Node, side: "right" | "left", se
     }
     return foundSibling
 }
+export const getNextSiblingOrParentSibling = (node: Node, side: "right" | "left", seekTill?: TillParent) => {
+    const siblingPropertyKey = side === "right" ? "nextSibling" : "previousSibling"
+    let currentNode = node
+    let sibling
+    let continueSeeking = true
+
+    while (continueSeeking) {
+        sibling = currentNode[siblingPropertyKey]
+        if (sibling) {
+            continueSeeking = false
+        } else {
+            const parent = currentNode.parentNode
+            if (parent) {
+                continueSeeking = seekTill ? !seekTill(parent) : true
+                currentNode = parent
+            } else {
+                continueSeeking = false
+            }
+        }
+    }
+    return sibling
+}
 export const lookUpDivParent = (node: Node) => {
     return lookUpParent(node, (p) => isDiv(p)) as null | HTMLDivElement
 }

@@ -214,7 +214,6 @@ const StoryContainer = styled.li`
         border-bottom-style: none;
     }
 `
-
 const StoryBody = styled.div`
   color: #696969;
   font-size: 2.5rem;
