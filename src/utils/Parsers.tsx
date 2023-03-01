@@ -69,7 +69,7 @@ export const getStoryBodyJsx = (storyBodyHtml: string) => {
                         closeTagIndex = getIndexOnOccurrence(startOnChild, ">", 2)
                         break
                     case "img":
-                        jsxDivChild = <div id={getNextAttrValue(startOnDiv, "id")} style={{paddingLeft: getContainedString(getNextAttrValue(startOnDiv, "style"), ":", ";")}}>
+                        jsxDivChild = <div id={getNextAttrValue(startOnDiv, "id")} style={{width: "100%", justifyContent: "center", display: "flex"}}>
                                       <Image alt={""} src={getNextAttrValue(startOnChild, "src")} layout={"intrinsic"} height={parseInt(getNextAttrValue(startOnChild, "height"))} width={parseInt(getNextAttrValue(startOnChild, "width"))} style={{maxWidth: "100%", height: "auto"}} />
                                        </div>
                         closeTagIndex = startOnChild.search(tagEndRgx)
