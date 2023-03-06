@@ -26,11 +26,11 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # local env files
-.env*
+nextjs/.env
 
 # vercel
-.vercel
+nextjs/.vercel
 
 # typescript
 *.tsbuildinfo
-!/src/utils/TypesChecks.ts
+!/nextjs/src/utils/TypesChecks.ts

@@ -1,0 +1,27 @@
+version: '3.9'
+networks:
+  redis-chat:
+    driver: bridge
+volumes:
+    redis-data:
+services:
+  chat:
+    build:
+      context: ./
+    image: chat
+    #restart: no
+    ports:
+      - "3000:3000"
+    networks:
+      - redis-chat
+    environment:
+      - PORT
+  redis:
+    image: "redis"
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    networks:
+      - redis-chat
+
+
+
