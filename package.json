@@ -1,7 +1,7 @@
 {
   "name": "contact_page",
   "private": true,
-  "workspaces": ["chat_common","chat_server", "nextjs"],
+  "workspaces": ["packages/*"],
   "version": "1.0.0",
   "dependencies": {
     "websocket": "^1.0.34"

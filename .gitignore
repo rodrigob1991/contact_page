@@ -1,16 +1,24 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# root
 /node_modules
-/.pnp
-.pnp.js
+/.idea
+/.vscode
 
-# testing
-/coverage
+# common
+/packages/common/node_modules
 
-# next.js
-/.next/
-/out/
+# nextjs
+/packages/nextjs/.env
+/packages/nextjs/.vercel
+/packages/nextjs/.next
+/packages/nextjs/node_modules
+/packages/nextjs/
+
+# chat_backend
+/packages/chat_backend/.env
+/packages/chat_backend/dist
+/packages/chat_backend/node_modules
 
 # production
 /build
@@ -25,12 +33,6 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# local env files
-nextjs/.env
-
-# vercel
-nextjs/.vercel
-
 # typescript
 *.tsbuildinfo
-!/nextjs/src/utils/TypesChecks.ts
+!/packages/common/src/utils/TypesChecks.ts
