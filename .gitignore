@@ -13,7 +13,6 @@
 /packages/nextjs/.vercel
 /packages/nextjs/.next
 /packages/nextjs/node_modules
-/packages/nextjs/
 
 # chat_backend
 /packages/chat_backend/.env

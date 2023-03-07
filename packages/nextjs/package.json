@@ -1,0 +1,33 @@
+{
+  "name": "nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node_modules/.bin/next dev",
+    "build": "node_modules/.bin/next build",
+    "start": "node_modules/.bin/next start",
+    "lint": "node_modules/.bin/next lint",
+    "test": "jest"
+  },
+  "dependencies": {
+    "cross-env": "5.0.5",
+    "@emotion/react": "^11.9.0",
+    "@emotion/styled": "^11.8.1",
+    "@prisma/client": "^4.1.0",
+    "@vercel/analytics": "^0.1.10",
+    "bson": "^4.6.4",
+    "emotion": "^11.0.0",
+    "next": "13.0.3",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-icons": "^4.4.0",
+    "common": "1.0.0"
+  },
+  "devDependencies": {
+    "@svgr/webpack": "^6.5.1",
+    "@types/react": "18.0.8",
+    "@types/react-dom": "18.0.0",
+    "eslint-config-next": "^13.0.3",
+    "prisma": "^4.1.0"
+  }
+}
