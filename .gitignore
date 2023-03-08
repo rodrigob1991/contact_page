@@ -6,18 +6,18 @@
 /.vscode
 
 # common
-/packages/common/node_modules
+/packages/utils/node_modules
 
 # nextjs
-/packages/nextjs/.env
-/packages/nextjs/.vercel
-/packages/nextjs/.next
-/packages/nextjs/node_modules
+/apps/nextjs/.env
+/apps/nextjs/.vercel
+/apps/nextjs/.next
+/apps/nextjs/node_modules
 
 # chat_backend
-/packages/chat_backend/.env
-/packages/chat_backend/dist
-/packages/chat_backend/node_modules
+/apps/chat-backend/.env
+/apps/chat-backend/dist
+/apps/chat-backend/node_modules
 
 # production
 /build
@@ -34,4 +34,4 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-!/packages/common/src/utils/TypesChecks.ts
+!/packages/utils/src/TypesChecks.ts
