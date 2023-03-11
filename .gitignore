@@ -34,4 +34,4 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-!/packages/utils/src/TypesChecks.ts
+!/packages/utils/src/typesChecks.ts

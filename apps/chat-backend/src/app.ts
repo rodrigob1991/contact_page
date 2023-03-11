@@ -2,90 +2,37 @@ import ws, {IUtf8Message} from "websocket"
 import {createClient} from 'redis'
 import http from "http"
 import dotenv from "dotenv"
-import {getIndexOnOccurrence} from "utils/src/Strings"
-
-const users = {host: "host", guess: "guess"} as const
-const messageFlows = {in: "in", out: "out"} as const
-const messagePrefixes = {con: "con", dis: "dis", mes: "mes", ack: "ack"} as const
-const messageParts = {prefix: "prefix", originPrefix: "originPrefix", number: "number", guessId: "guessId", body: "body"} as const
-//generic types
-// type GetTypesStartOnPrefix<U extends string, P extends string> = { [M in U]: IsUnion<M> extends true ? GetTypesStartOnPrefix<M, P> : M extends `${infer MT}` ? MT extends `${P}${any}` ? MT : never : never }[U]
-type UserType = typeof users[keyof typeof users]
-type MessageFlow = typeof messageFlows[keyof typeof messageFlows]
-type MessagePrefix<MF extends MessageFlow=MessageFlow> = typeof messagePrefixes["mes" | "ack"] | ("out" extends MF ? typeof messagePrefixes["con" | "dis"] : never)
-type MessageParts = { [messageParts.prefix]: MessagePrefix, [messageParts.originPrefix]: MessagePrefix<"out">, [messageParts.number]: number, [messageParts.guessId]: number, [messageParts.body]: `-${string}`}
-type MessagePartsKeys = keyof MessageParts
-type PartTemplate<MPK extends MessagePartsKeys, MPKS extends MessagePartsKeys, S extends ":" | ""> = MPK extends MPKS ? `${S}${MessageParts[MPK]}` : ""
-type MessageTemplateInstance<MP extends MessagePrefix, MPKS extends MessagePartsKeys> =
-    `${MP}${PartTemplate<"originPrefix", MPKS, ":">}${PartTemplate<"number", MPKS, ":">}${PartTemplate<"guessId", MPKS, ":">}${PartTemplate<"body", MPKS, ":">}`
-type CutMessage<M extends Message[], WC extends MessagePartsKeys> = M extends [infer OM, ...infer RM] ? OM extends Message ? MessageTemplateInstance<OM["prefix"], Exclude<OM["parts"], WC>> | (RM extends Message[] ? CutMessage<RM, WC> : never) : never : never
-
-type SpecificMessagePartsKeys<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>> =
-    "prefix"
-    | ("in" | "ack" extends MF | MP ? "originPrefix" : never)
-    | "number"
-    | ("mes" extends MP ? "body" : never)
-    | ("host" extends UT ? "guessId" : never)
-
-type SpecificMessagePartsPositions<SMPK extends MessagePartsKeys> = Pick<{ prefix: 1, originPrefix: 2, number: "originPrefix" extends SMPK ? 3 : 2, guessId: "originPrefix" extends SMPK ? 4 : 3, body: "guessId" extends SMPK ? 4 : 3 }, SMPK>
-//type GetSpecificMessagePartsKeys<SMPP extends SpecificMessagePartsPositions<UserType, MessageFlow, MessagePrefix> =
-type MessageInstance<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>, SMPK extends SpecificMessagePartsKeys<UT, MF, MP> = SpecificMessagePartsKeys<UT, MF, MP>> = { userType: UT, flow: MF, prefix: MP, parts: SMPK, positions: SpecificMessagePartsPositions<SMPK>, template: MessageTemplateInstance<MP, SMPK> }
-
-type OutboundToHostMesMessage = MessageInstance<"host", "out", "mes">
-type OutboundToHostConMessage = MessageInstance<"host", "out", "con">
-type OutboundToHostDisMessage = MessageInstance<"host", "out", "dis">
-type OutboundToHostAckMessage = MessageInstance<"host", "out", "ack">
-type OutboundToGuessMesMessage = MessageInstance<"guess", "out", "mes">
-type OutboundToGuessConMessage = MessageInstance<"guess", "out", "con">
-type OutboundToGuessDisMessage = MessageInstance<"guess", "out", "dis">
-type OutboundToGuessAckMessage = MessageInstance<"guess", "out", "ack">
-type OutboundMesMessage<UT extends UserType=UserType> = ("host" extends UT ? OutboundToHostMesMessage : never) | ("guess" extends UT ? OutboundToGuessMesMessage : never)
-type OutboundAckMessage<UT extends UserType=UserType> = ("host" extends UT ? OutboundToHostAckMessage : never) | ("guess" extends UT ? OutboundToGuessAckMessage : never)
-type OutboundConMessage<UT extends UserType=UserType> = ("host" extends UT ? OutboundToHostConMessage : never) | ("guess" extends UT ? OutboundToGuessConMessage : never)
-type OutboundDisMessage<UT extends UserType=UserType> = ("host" extends UT ? OutboundToHostDisMessage : never) | ("guess" extends UT ? OutboundToGuessDisMessage : never)
-type OutboundMessage<UT extends UserType=UserType, MP extends MessagePrefix<"out">=MessagePrefix<"out">> = ("con" extends MP ? OutboundConMessage<UT> : never) | ("dis" extends MP ? OutboundDisMessage<UT>: never)  | ("mes" extends MP ? OutboundMesMessage<UT>: never)  | ("ack" extends MP ? OutboundAckMessage<UT>: never)
-// i dont`t use this way because the compiler cannot always infer the type
-//type OutboundMessage<UT extends UserType=UserType, MP extends MessagePrefix<"out">=MessagePrefix<"out">> = GetTypesStartOnPrefix<OutboundConMessage<UT> | OutboundDisMessage<UT> | OutboundMesMessage<UT> | OutboundAckMessage<UT>, MP>
-type OutboundMessageParts<UT extends UserType=UserType, MP extends MessagePrefix<"out">=MessagePrefix<"out">> = OutboundMessage<UT, MP>["parts"]
-type OutboundMessageTemplate<UT extends UserType=UserType, MP extends MessagePrefix<"out">=MessagePrefix<"out">> = OutboundMessage<UT, MP>["template"]
-
-type InboundFromHostMesMessage = MessageInstance<"host","in","mes">
-type InboundFromHostAckMessage = MessageInstance<"host","in","ack">
-type InboundFromGuessMesMessage = MessageInstance<"guess","in","mes">
-type InboundFromGuessAckMessage = MessageInstance<"guess","in","ack">
-type InboundMesMessage<UT extends UserType=UserType> =   ("host" extends UT ? InboundFromHostMesMessage : never)  | ("guess" extends UT ? InboundFromGuessMesMessage : never)
-type InboundAckMessage<UT extends UserType=UserType> = ("host" extends UT ? InboundFromHostAckMessage  : never) | ("guess" extends UT ? InboundFromGuessAckMessage : never)
-type InboundMessage<UT extends UserType=UserType, MP extends MessagePrefix<"in">=MessagePrefix<"in">> =("mes" extends MP ? InboundMesMessage<UT> : never) | ("ack" extends MP ? InboundAckMessage<UT> : never)
-// i dont`t use this way because the compiler cannot always infer the type
-//type InboundMessage<UT extends UserType=UserType, MP extends MessagePrefix<"in">=MessagePrefix<"in">> = GetTypesStartOnPrefix<InboundMesMessage<UT> | InboundAckMessage<UT>,MP>
-type InboundMessageParts<UT extends UserType=UserType, MP extends MessagePrefix<"in">=MessagePrefix<"in">> = InboundMessage<UT, MP>["parts"]
-type InboundMessageTemplate<UT extends UserType=UserType, MP extends MessagePrefix<"in">=MessagePrefix<"in">> = InboundMessage<UT, MP>["template"]
-type InboundMessageTarget<M extends InboundMessage, UT = M["userType"]> = OutboundMessage<UserType extends M["userType"] ? M["userType"] : Exclude<UserType, UT>,  M["prefix"]>
-type InboundAckMessageOrigin<UT extends UserType = UserType, OP extends MessagePrefix<"out"> = MessagePrefix<"out">> = GetMessages<UT, "out", OP>
-
-type Message<UT extends UserType=UserType, MF extends MessageFlow=MessageFlow, MP extends MessagePrefix<MF>=MessagePrefix<MF>> = ("in" extends MF ? InboundMessage<UT, Exclude<MP, "con" | "dis">> : never)  | ("out" extends MF ? OutboundMessage<UT,MP> : never)
-type MessagePartsPositions<UT extends UserType=UserType, MF extends MessageFlow=MessageFlow, MP extends MessagePrefix<MF>=MessagePrefix<MF>> = Message<UT, MF, MP>["positions"]
-type MessageTemplate<UT extends UserType=UserType, MF extends MessageFlow=MessageFlow, MP extends MessagePrefix<MF>=MessagePrefix<MF>> = Message<UT, MF, MP>["template"]
-
-type FilterMessage<M extends Message, UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>> = M["userType"] | M["flow"] | M["prefix"] extends UT | MF | MP ? [M] : []
-type GetMessages<UT extends UserType = UserType, MF extends MessageFlow = MessageFlow, MP extends MessagePrefix<MF> = MessagePrefix<MF>> = [...FilterMessage<OutboundToHostMesMessage, UT, MF, MP>, ...FilterMessage<OutboundToHostConMessage, UT, MF, MP>, ...FilterMessage<OutboundToHostDisMessage, UT, MF, MP>, ...FilterMessage<OutboundToHostAckMessage, UT, MF, MP>,
-    ...FilterMessage<OutboundToGuessMesMessage, UT, MF, MP>, ...FilterMessage<OutboundToGuessConMessage, UT, MF, MP>, ...FilterMessage<OutboundToGuessDisMessage, UT, MF, MP>, ...FilterMessage<OutboundToGuessAckMessage, UT, MF, MP>, ...FilterMessage<InboundFromHostMesMessage, UT, MF, MP>, ...FilterMessage<InboundFromHostAckMessage, UT, MF, MP>,
-    ...FilterMessage<InboundFromGuessMesMessage, UT, MF, MP>, ...FilterMessage<InboundFromGuessAckMessage, UT, MF, MP>]
+import {MessageParts, MessagePrefix, UserType} from "chat-common/src/model/types"
+import {
+    CutMessage,
+    GetMessageParams,
+    GetMessages,
+    InboundAckMessage,
+    InboundAckMessageOrigin,
+    InboundFromGuessAckMessage,
+    InboundFromGuessMesMessage,
+    InboundFromHostAckMessage,
+    InboundFromHostMesMessage,
+    InboundMesMessage,
+    InboundMessage,
+    InboundMessageTarget,
+    InboundMessageTemplate,
+    OutboundMessage,
+    OutboundMessageTemplate,
+    OutboundToGuessAckMessage,
+    OutboundToGuessConMessage,
+    OutboundToGuessDisMessage,
+    OutboundToHostAckMessage,
+    OutboundToHostConMessage,
+    OutboundToHostDisMessage
+} from "chat-common/src/message/types"
+import {messagePrefixes, users} from "chat-common/src/model/constants"
+import {getCutMessage, getMessage, getMessageParts} from "chat-common/src/message/functions"
 
 type HandleMesMessage<UT extends UserType> = (m: InboundMessageTemplate<UT, "mes">) => void
 type HandleAckMessage<UT extends UserType> = (a: InboundMessageTemplate<UT, "ack">) => void
 
 type RedisMessageKey<M extends OutboundMessage[] = GetMessages<UserType, "out", MessagePrefix<"out">>> = M extends [infer OM, ...infer RM] ? OM extends OutboundMessage ? `${OM["userType"]}${OM["userType"] extends "guess" ? `:${MessageParts["guessId"]}` : ""}:${CutMessage<[OM], "body">}` | (RM extends OutboundMessage[] ? RedisMessageKey<RM> : never) : never : never
-type GetRedisMessageKeyParams<M extends OutboundMessage> = { [K in Exclude<M["parts"], "body">]: MessageParts[K] }
-type GetRedisMessageKey = <M extends OutboundMessage>(params: GetRedisMessageKeyParams<M>)=> RedisMessageKey<[M]>
-// the message less the prefix
-type RedisMessagePayload<MT extends OutboundMessageTemplate> = { [OMT in MT]: OMT extends `${MessagePrefix<"out">}:${infer R}` ? R : never }[MT]
-
-type MessageAndKeyResult<M extends OutboundMessage> = [M["template"], RedisMessageKey<[M]>]
-type GetConMessageAndKey = () => MessageAndKeyResult<OutboundConMessage>
-type GetDisMessageAndKey = () => MessageAndKeyResult<OutboundDisMessage>
-type GetMesMessageAndKey = () => MessageAndKeyResult<OutboundMesMessage>
-type GetAckMessageAndKey = () => MessageAndKeyResult<OutboundAckMessage>
 
 type SendMessage<UT extends UserType> = (...message: OutboundMessageTemplate<UT>[]) => void
 type GuessIdToSubscribe<UT extends UserType> = ("guess" extends UT ? MessageParts["guessId"] : never) | ("host" extends UT ? undefined : never)
@@ -99,109 +46,6 @@ type IsMessageAck = <M extends OutboundMessage>(key: RedisMessageKey<[M]>) => Pr
 type NewUser = (userType: UserType) => Promise<number | void>
 type RemoveUser = (guessId: number | undefined) => void
 type GetUsers = (userType: UserType) => Promise<number[]>
-
-// this is to filter the position that are not unions
-type IfUniquePosition<P, K> = { [N in 1 | 2 | 3 | 4]: N extends P ? Exclude<P, N> extends never ? K : never : never }[1 | 2 | 3 | 4]
-type CommonMessagePartsPositions<M extends Message, MPP = M["positions"]> = keyof { [K in M["parts"] as K extends keyof MPP ? IfUniquePosition<MPP[K], K> : never]: never }
-type AnyMessagePartsPositions<M extends Message, CMPP extends CommonMessagePartsPositions<M>, MPP = M["positions"]> = { [K in CMPP]: K extends keyof MPP ? MPP[K] : never }
-type GotMessageParts<M extends Message, CMPP extends CommonMessagePartsPositions<M>> = { [K in CMPP]: MessageParts[K] }
-type LastPosition<MPP extends MessagePartsPositions, LASTS = [4, 3, 2, 1]> = LASTS extends [infer LAST, ...infer REST] ? LAST extends MPP[keyof MPP] ? LAST : LastPosition<MPP, REST> : never
-type GetMessageParams<M extends Message> = { [K in keyof M["positions"] | "prefix"]: K extends "prefix" ? M["prefix"] : K extends MessagePartsKeys ? MessageParts[K] : never }
-
-const getMessage = <M extends Message>(parts: GetMessageParams<M>) => {
-    let message = ""
-    if (messageParts.prefix in parts)
-        message += parts.prefix
-    if (messageParts.originPrefix in parts)
-        message += ":" + parts.originPrefix
-    if (messageParts.number in parts)
-        message += ":" + parts.number
-    if (messageParts.guessId in parts)
-        message += ":" + parts.guessId
-    if (messageParts.body in parts)
-        message += ":" + parts.body
-
-    return message as M["template"]
-}
-
-const getMessageParts = <M extends Message, CMPP extends CommonMessagePartsPositions<M>>(m: M["template"], whatGet: AnyMessagePartsPositions<M, CMPP>) => {
-    const parts: any = {}
-    const getPartSeparatorIndex = (occurrence: number) => getIndexOnOccurrence(m, ":", occurrence)
-    if (messageParts.prefix in whatGet)
-        parts["prefix"] = m.substring(0, 3)
-    if (messageParts.originPrefix in whatGet)
-        parts["originPrefix"] = m.substring(4, 7)
-    if (messageParts.number in whatGet)
-        parts["number"] = m.substring(8, getPartSeparatorIndex(whatGet.number as 2 | 3))
-    if (messageParts.guessId in whatGet) {
-        const guessIdPosition = whatGet.guessId as 3 | 4
-        parts["guessId"] = m.substring(getPartSeparatorIndex(guessIdPosition - 1) + 1, getPartSeparatorIndex(guessIdPosition))
-    }
-    if (messageParts.body in whatGet)
-        parts["body"] = m.substring(getPartSeparatorIndex((whatGet.body as 3 | 4) - 1) + 1, m.length - 1)
-
-    return parts as GotMessageParts<M, CMPP>
-}
-
-const getCutMessage = <M extends Message, CMPP extends CommonMessagePartsPositions<M>, MPP extends M["positions"] = M["positions"]>(m: M["template"], whatCut: AnyMessagePartsPositions<M, CMPP>, lastPosition: LastPosition<MPP>) => {
-    let cutMessage: string = m
-    let position = 0
-    let cutSize = 0
-    let cutCount = 0
-    let partStartIndex = 0
-    let partEndIndex = 0
-    const findPartBoundaryIndex = (start = true) => {
-        const currentPosition = position - cutCount
-        let index
-        if (currentPosition === 1 && start) {
-            index = 0
-        } else if (start) {
-            index = getIndexOnOccurrence(cutMessage, ":", currentPosition - 1) + 1
-        } else {
-            index = getIndexOnOccurrence(cutMessage, ":", currentPosition) - 1
-        }
-        return index
-    }
-    const cut = () => {
-        let cutStartIndex = partStartIndex - (position === lastPosition ? 1 : 0)
-        let cutEndIndex = partEndIndex + (position === lastPosition ? 0 : 2)
-        cutMessage = cutMessage.substring(0, cutStartIndex ) + cutMessage.substring(cutEndIndex)
-        cutSize += cutEndIndex - cutStartIndex
-        cutCount ++
-    }
-
-    if (messageParts.prefix in whatCut) {
-        position = 1
-        partEndIndex = 2
-        cut()
-    }
-    if (messageParts.originPrefix in whatCut) {
-        position = 2
-        partStartIndex = 4 - cutSize
-        partEndIndex = 6 - cutSize
-        cut()
-    }
-    if (messageParts.number in whatCut) {
-        position = whatCut.number as 2 | 3
-        partStartIndex = 8 - cutSize
-        partEndIndex = findPartBoundaryIndex(false)
-        cut()
-    }
-    if (messageParts.guessId in whatCut) {
-        position = whatCut.guessId as 3 | 4
-        partStartIndex = findPartBoundaryIndex()
-        partEndIndex = findPartBoundaryIndex(false)
-        cut()
-    }
-    if (messageParts.body in whatCut) {
-        position = whatCut.body as 3 | 4
-        partEndIndex = findPartBoundaryIndex()
-        partEndIndex = m.length - 1
-        cut()
-    }
-
-    return cutMessage as CutMessage<[M], CMPP>
-}
 
 const initRedisConnection = async () => {
     const client = createClient({url: process.env.URL, username: process.env.REDIS_USERNAME, password: process.env.REDIS_PASSWORD})

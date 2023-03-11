@@ -1,6 +1,6 @@
 import React, {CSSProperties, useEffect, useState} from "react"
-import {AnyPropertiesCombinationRecursive} from "utils/src/Types"
-import {isRecord} from "utils/src/TypesChecks"
+import {AnyPropertiesCombinationRecursive} from "utils/src/types"
+import {isRecord} from "utils/src/typesChecks"
 import styled from "@emotion/styled"
 
 export const useRecordState = <R extends Record<string, any>>(r: R) => {

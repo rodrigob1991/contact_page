@@ -1,5 +1,5 @@
 import {Prisma} from '@prisma/client'
-import {ChangePropertiesType} from "utils/src/Types"
+import {ChangePropertiesType} from "utils/src/types"
 import {PropsStorageClient} from "../classes/PropsStorageClient"
 
 export type DbOperation = "create" | "update"

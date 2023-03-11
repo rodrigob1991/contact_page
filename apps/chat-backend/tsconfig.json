@@ -4,11 +4,20 @@
     "module": "commonjs",                                /* Specify what module code is generated. */
     "rootDir": "./src",                                  /* Specify the root folder within your source files. */
     "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
-    //"outDir": "./dist",                                   /* Specify an output folder for all emitted files. */
+    "outDir": "./dist",                                   /* Specify an output folder for all emitted files. */
     "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
     "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
     "strict": true,                                      /* Enable all strict type-checking options. */
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
   },
-  "references": [{ "path": "../packages/utils"}]
+  "references": [
+    {
+      "path": "../../packages/utils",
+      "prepend": true
+    },
+    {
+      "path": "../../packages/chat-common",
+      "prepend": true
+    }
+  ]
 }

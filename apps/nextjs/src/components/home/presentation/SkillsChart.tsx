@@ -7,7 +7,7 @@ import {ImageViewSelector, TextInput} from "../../FormComponents"
 import {useAsk, useTooltip} from "../../../utils/Hooks"
 import Image from "next/legacy/image"
 import {minWidthFullLayout} from "../../../Dimensions"
-import {orderByComparePreviousByNumber} from "utils/src/Arrays"
+import {orderByComparePreviousByNumber} from "utils/src/arrays"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 

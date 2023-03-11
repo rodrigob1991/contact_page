@@ -1,6 +1,6 @@
-import {getIndexOnOccurrence, isEmpty} from "utils/src/Strings"
+import {getIndexOnOccurrence, isEmpty} from "utils/src/strings"
 import React from "react"
-import {firstCharAfterEqualAndSpaces} from "utils/src/RegularExpressions"
+import {firstCharAfterEqualAndSpaces} from "utils/src/regularExpressions"
 import Image from "next/image"
 
 export const getStoryBodyJsx = (storyBodyHtml: string) => {
