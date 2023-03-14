@@ -28,18 +28,9 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
   ],
   "exclude": [
     "node_modules"
-  ],
-  "references": [
-    {
-      "path": [
-        "../../packages/utils",
-        "../../packages/chat-common"
-      ],
-      "prepend": true
-    }
   ]
 }

@@ -2,13 +2,6 @@
   "name": "nextjs",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "node_modules/.bin/next dev",
-    "build": "node_modules/.bin/next build",
-    "start": "node_modules/.bin/next start",
-    "lint": "node_modules/.bin/next lint",
-    "test": "jest"
-  },
   "dependencies": {
     "cross-env": "5.0.5",
     "@emotion/react": "^11.9.0",
@@ -21,13 +14,22 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-icons": "^4.4.0",
-    "utils": "1.0.0"
+    "utils": "1.0.0",
+    "chat-common": "1.0.0"
   },
   "devDependencies": {
     "@svgr/webpack": "^6.5.1",
     "@types/react": "18.0.8",
     "@types/react-dom": "18.0.0",
     "eslint-config-next": "^13.0.3",
-    "prisma": "^4.1.0"
+    "prisma": "^4.1.0",
+    "concurrently": "^7.6.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "jest"
   }
 }

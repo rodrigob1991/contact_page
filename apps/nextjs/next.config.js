@@ -13,7 +13,7 @@ const nextConfig = {
   experimental: {
     appDir: true,
   },
-  transpilePackages: ["utils"],
+  transpilePackages: ["utils", "chat-common"],
 }
 
 module.exports = nextConfig

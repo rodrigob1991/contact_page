@@ -299,3 +299,4 @@ const init = async () => {
 
 dotenv.config()
 init()
+//setInterval(()=> console.log(users.host), 2000)

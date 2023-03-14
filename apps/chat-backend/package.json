@@ -1,6 +1,7 @@
 {
   "name": "chat-backend",
   "version": "1.0.0",
+  "private": true,
   "main": "app.js",
   "license": "MIT",
   "dependencies": {
@@ -21,8 +22,8 @@
     "ts-node": "^10.9.1"
   },
   "scripts": {
-    "dev": "node_modules/.bin/concurrently \"npx tsc --watch\" \"nodemon -q dist/app.js\"",
-    "build": "tsc --build",
+    "dev": "concurrently \"tsc --watch\" \"yarn workspace utils dev\" \"yarn workspace chat-common dev\" \"nodemon --watch ./dist --watch ../../packages dist/app.js\"",
+    "build": "tsc --build --verbose --force",
     "start": "nodemon --exec ts-node src/app.ts"
   }
 }
