@@ -1,8 +1,8 @@
 import {useEffect, useState} from "react"
-import ComponentWithTooltip from "../../../ComponentWithTooltip"
+import ComponentWithTooltip from "../../../../ComponentWithTooltip"
 import LiveIcon from "/public/live.svg"
 import styled from "@emotion/styled";
-import {maxWidthSmallestLayout} from "../../../../Dimensions";
+import {maxWidthSmallestLayout} from "../../../../../Dimensions";
 
 export default function LiveChat() {
     /*const [messages, setMessages] = useState<(InboundMessage | OutboundMessage)[]>([])

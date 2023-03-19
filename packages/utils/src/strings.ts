@@ -33,4 +33,3 @@ export const getIndexOnOccurrence = (str: string, search: string, occurrence: nu
     }
     return  found ? index - 1 : -1
 }
-

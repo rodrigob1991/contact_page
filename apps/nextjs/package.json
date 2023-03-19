@@ -26,7 +26,7 @@
     "concurrently": "^7.6.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently \"yarn workspace utils dev\" \"yarn workspace chat-common dev\" \"next dev\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
