@@ -7,6 +7,7 @@ import Header from "../components/home/header/Header"
 import {useEffect, useState} from "react"
 import {maxWidthSmallestLayout} from "../Dimensions"
 import Head from "next/head"
+import {getStoryBodyJsx} from "../utils/Parsers";
 
 export const HomeRoute = "/"
 
@@ -44,7 +45,7 @@ export default function Home({presentation, stories}: HomeProps) {
       <Container>
           <Header/>
           <PresentationView presentation={presentation || {name:"", introduction: "", skills: [], image: undefined}}/>
-          <StoriesView stories={stories}/>
+          <StoriesView stories={stories.map(s=> {return {...(({body, ...rest})=> rest)(s),body:getStoryBodyJsx(s.body)}})}/>
           <Footer>
           </Footer>
       </Container>

@@ -48,14 +48,14 @@ export default function StoriesView<M extends ViewMode>({
     }
     const getStoriesView = () =>
         storiesViewStates.map(({story: {title, body}, isOpen}, index) => {
-            const JsxBody = getStoryBodyJsx(body)
+            //const JsxBody = getStoryBodyJsx(body)
             return (
                 <StoryContainer key={title}>
                     <StoryTitleContainer onClick={(e => openOrCloseStory(index))}>
                         <StoryTitle>{title}</StoryTitle>
                         <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen}/>
                     </StoryTitleContainer>
-                    {isOpen && <StoryBody>{JsxBody}</StoryBody>}
+                    {isOpen && <StoryBody>{body}</StoryBody>}
                 </StoryContainer>
             )
         })
