@@ -1,4 +1,4 @@
-import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../../types/Home"
+import {NewStory, Story, StoryHTMLElementIds, StoryWithJsxBody, ViewMode} from "../../../types/Home"
 import React, {useEffect, useRef, useState} from "react"
 import styled from "@emotion/styled"
 import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../../Buttons"
@@ -6,9 +6,8 @@ import {Pallet} from "../../Pallet"
 import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
 import {Observe} from "../../../pages/user/edit_home"
-import {getStoryBodyJsx} from "../../../utils/Parsers"
 
-export type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
+export type StoryViewStates = {idHtml: string, story: StoryWithJsxBody | Story | NewStory, isOpen: boolean, toDelete: boolean}
 
 type GetHtmlElementIds = (id: string) => StoryHTMLElementIds
 type GetNewStory = () => [string, NewStory]
@@ -23,7 +22,7 @@ type EditingProps = {
     recoverStory : RecoverStory
 }
 type Props<M extends ViewMode> = {
-    stories: Story[]
+    stories: StoryWithJsxBody[] | Story[]
 } & (M extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
 export default function StoriesView<M extends ViewMode>({
@@ -61,21 +60,27 @@ export default function StoriesView<M extends ViewMode>({
         })
     // this effect is for maintain the previous states when saving stories
     useEffect(() => {
-            setStoriesViewStates((storiesViewStates) => {
-                const updatedStoriesViewStates = []
-                for (const svs of storiesViewStates) {
-                    if (!svs.toDelete) {
-                        const prevStory = svs.story
-                        const predicate = (s: Story) => "id" in prevStory ? prevStory.id === s.id : prevStory.title === s.title
-                        const story = stories.find(predicate)
-                        if(!story){
-                            throw new Error("always must the story exist")
+            if (editing) {
+                setStoriesViewStates((storiesViewStates) => {
+                    const updatedStoriesViewStates = []
+                    for (const svs of storiesViewStates) {
+                        if (!svs.toDelete) {
+                            const prevStory = svs.story
+                            const predicate = (s: Story) => "id" in prevStory ? prevStory.id === s.id : prevStory.title === s.title
+                            const story = (stories as Story[]).find(predicate)
+                            if (!story) {
+                                throw new Error("always must the story exist")
+                            }
+                            updatedStoriesViewStates.push({
+                                ...(({story, idHtml, ...rest}) => rest)(svs),
+                                story: story,
+                                idHtml: story.id
+                            })
                         }
-                        updatedStoriesViewStates.push({...(({story,idHtml,...rest}) => rest)(svs), story: story, idHtml: story.id})
                     }
-                }
-                return updatedStoriesViewStates
-            })
+                    return updatedStoriesViewStates
+                })
+            }
         },
         [stories])
 
@@ -143,7 +148,7 @@ export default function StoriesView<M extends ViewMode>({
                     </StoryTitleContainer>
                     {isOpen && <StoryBody id={htmlIds.body} contentEditable={!toDelete}
                                           ref={r => {if(r) {refToLastStory.current = r; (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
-                                          dangerouslySetInnerHTML={{__html: body}}
+                                          dangerouslySetInnerHTML={{__html: body as string}}
                                           onFocus={handleOnFocusBody}
                                           onBlur={handleOnBlurBody}
                     />}
