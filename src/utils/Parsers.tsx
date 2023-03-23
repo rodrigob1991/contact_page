@@ -1,6 +1,5 @@
-import {getContainedString, getIndexOnOccurrence, isEmpty} from "./Strings"
+import {getIndexOnOccurrence, isEmpty} from "./Strings"
 import React from "react"
-import {firstCharAfterEqualAndSpaces} from "./RegularExpressions"
 import Image from "next/image"
 
 export const getStoryBodyJsx = (storyBodyHtml: string) => {
@@ -15,7 +14,7 @@ export const getStoryBodyJsx = (storyBodyHtml: string) => {
         const startAttr = startTag.substring(startTag.indexOf(attrName))
         let attrValueStartIndex
         let attrValueEndIndex
-        const firstCharNoSpaceIndex = startAttr.search(firstCharAfterEqualAndSpaces)
+        const firstCharNoSpaceIndex = (()=> {const s = startAttr.search(/=/); return startAttr.substring(s).search(/\S/) + 1 + s})()
         switch (startAttr.at(firstCharNoSpaceIndex)) {
             case '"':
                 attrValueStartIndex = firstCharNoSpaceIndex + 1
