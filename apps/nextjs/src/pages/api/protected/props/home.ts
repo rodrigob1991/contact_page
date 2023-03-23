@@ -1,6 +1,6 @@
 import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../classes/PropsStorageClient"
-import {CreateHomePropsArgs, HomeProps, UpdateHomePropsArgs} from "../../../../types/Home"
+import {CreateHomePropsArgs, HomeProps, UpdateHomePropsArgs} from "../../../../types/home"
 import {ApiParamsValidator} from "../../../../classes/ApiParamsValidator"
 import {ProtectedApiBaseRoute} from "../../../../BaseRoutes"
 import {AuthResponseBody} from "../../internal/unauthorized"

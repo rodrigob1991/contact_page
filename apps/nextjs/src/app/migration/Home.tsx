@@ -1,6 +1,6 @@
 "use client"
 
-import {HomeProps} from "../../types/Home"
+import {HomeProps} from "../../types/home"
 import {useEffect, useState} from "react"
 import {maxWidthSmallestLayout} from "../../Dimensions"
 import {Footer} from "../../components/home/Layout"

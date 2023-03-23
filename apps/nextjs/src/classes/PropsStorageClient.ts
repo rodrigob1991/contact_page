@@ -14,7 +14,7 @@ import {
     UpdateHomePropsArgs,
     UpdatePresentationArgs,
     UpdatePresentationWithoutSkillsAndImageArgs
-} from "../types/Home"
+} from "../types/home"
 import {ObjectID} from "bson"
 import {getContainedString} from "utils/src/strings"
 import {getRecordWithNewProps} from "utils/src/recordManipulations"

@@ -1,6 +1,6 @@
 import {PropsStorageClient} from "../../../classes/PropsStorageClient"
 import EditHome from "./EditHome"
-import {HomeProps} from "../../../types/Home"
+import {HomeProps} from "../../../types/home"
 
 /*export const metadata = {
     title: "yo",

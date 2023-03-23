@@ -1,18 +1,20 @@
 import {useEffect, useState} from "react"
-import ComponentWithTooltip from "../../../../ComponentWithTooltip"
+import ComponentWithTooltip from "../ComponentWithTooltip"
 import LiveIcon from "/public/live.svg"
 import styled from "@emotion/styled"
-import {maxWidthSmallestLayout} from "../../../../../Dimensions"
-import useWebSocket from "../../../../../hooks/useWebSocket"
+import {maxWidthSmallestLayout} from "../../Dimensions"
+import useWebSocket from "../../hooks/useWebSocket"
 import {UserType} from "chat-common/src/model/types"
+import {InboundMessageUser} from "../../types/chat"
 
-type Props = {
-    userType: UserType
+type Props<UT extends UserType> = {
+    userType: UT
+    onMessage: (m: InboundMessageUser<UT>) => void
 }
 
-export default function LiveChat({userType}: Props) {
+export default function LiveChat<UT extends UserType>({userType, onMessage}: Props<UT>) {
 
-    const sendMessage = useWebSocket()
+    //const sendMessage = useWebSocket()
     const [liveChat, setLiveChat] = useState(false)
     useEffect(() => {
 

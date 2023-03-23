@@ -7,7 +7,7 @@ import {
     Story,
     UpdateHomePropsArgs,
     UpdatePresentationArgs
-} from "../types/Home"
+} from "../types/home"
 import {isEmpty} from "utils/src/strings"
 
 export class ApiParamsValidator {

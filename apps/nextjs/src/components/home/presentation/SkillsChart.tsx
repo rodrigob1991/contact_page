@@ -1,7 +1,7 @@
 import styled from "@emotion/styled"
 import {PlusButton} from "../../Buttons"
 import React, {useEffect, useRef, useState} from "react"
-import {NewSkill, Skill, ViewMode} from "../../../types/Home"
+import {NewSkill, Skill, ViewMode} from "../../../types/home"
 import {Observe} from "../../../pages/user/edit_home"
 import {ImageViewSelector, TextInput} from "../../FormComponents"
 import {useAsk, useTooltip} from "../../../utils/Hooks"

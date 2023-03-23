@@ -28,6 +28,7 @@ import {
     MessageTemplate,
     GetMessages
 } from "chat-common/src/message/types"
+import {UserType} from "chat-common/model/types";
 
 export type InboundToHostMesMessage = OutboundToHostMesMessage
 export type InboundToHostConMessage = OutboundToHostConMessage
@@ -43,6 +44,7 @@ export type  InboundMesMessage = OutboundMesMessage
 export type  InboundAckMessage = OutboundAckMessage
 export type  InboundConMessage = OutboundConMessage
 export type  InboundDisMessage = OutboundDisMessage
+export type InboundMessageUser<UT extends UserType> = UT extends "host" ? InboundToHostMessage : InboundToGuessMessage
 export type  InboundMessage = OutboundMessage
 export type  InboundMessageParts = OutboundMessageParts
 export type  InboundMessageTemplate = OutboundMessageTemplate

@@ -1,6 +1,6 @@
 import styled from "@emotion/styled"
 import {maxWidthSmallestLayout} from "../../../../Dimensions"
-import LiveChat from "./chat/LiveChat"
+import LiveChat from "../../../chat/LiveChat"
 import SendEmail from "./email/SendEmail"
 
 type Props = {

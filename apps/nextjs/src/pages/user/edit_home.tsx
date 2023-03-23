@@ -10,9 +10,9 @@ import {
     Skill,
     Story,
     StoryHTMLElementIds
-} from "../../types/Home"
+} from "../../types/home"
 import {revalidatePages} from "../api/protected/revalidate/multiple"
-import {RevalidationRouteId} from "../../types/Revalidation"
+import {RevalidationRouteId} from "../../types/revalidation"
 import {PropsStorageClient} from "../../classes/PropsStorageClient"
 import {Button} from "../../components/Buttons"
 import {Container, Footer} from "../../components/home/Layout"

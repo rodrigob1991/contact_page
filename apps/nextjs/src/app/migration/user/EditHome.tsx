@@ -11,7 +11,7 @@ import {
     Skill,
     Story,
     StoryHTMLElementIds
-} from "../../../types/Home"
+} from "../../../types/home"
 import {getContainedString} from "common/utils/Strings"
 import React, {useEffect, useRef, useState} from "react"
 import PresentationView, {GetHtmlElementId as GetPresentationHtmlElementId} from "../../../components/home/presentation/PresentationView"
@@ -20,7 +20,7 @@ import {lookUpParent} from "../../../utils/DomManipulations"
 import {containerStyles as skillsChartContainerStyles} from "../../../components/home/presentation/SkillsChart"
 import {patchHomeProps, postHomeProps} from "../../../pages/api/protected/props/home"
 import {revalidatePages} from "../../../pages/api/protected/revalidate/multiple"
-import {RevalidationRouteId} from "../../../types/Revalidation"
+import {RevalidationRouteId} from "../../../types/revalidation"
 import {Footer} from "../../../components/home/Layout"
 import {SpinLoader} from "../../../components/Loaders"
 import StoriesView from "../../../components/home/stories/StoriesView"

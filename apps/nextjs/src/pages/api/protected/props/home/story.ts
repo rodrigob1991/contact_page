@@ -1,6 +1,6 @@
 import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../../classes/PropsStorageClient"
-import {NewStory, Story} from "../../../../../types/Home"
+import {NewStory, Story} from "../../../../../types/home"
 import {isEmpty} from "common/utils/Strings"
 import {ApiParamsValidator} from "../../../../../classes/ApiParamsValidator"
 import {HomePropsApiRoute} from "../home"

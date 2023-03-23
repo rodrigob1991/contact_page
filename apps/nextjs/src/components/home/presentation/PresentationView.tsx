@@ -1,4 +1,4 @@
-import {Presentation, PresentationHTMLElementIdsKey, ViewMode} from "../../../types/Home"
+import {Presentation, PresentationHTMLElementIdsKey, ViewMode} from "../../../types/home"
 import styled from "@emotion/styled"
 import React from "react"
 import {ImageViewSelector, ProcessSelectedImage} from "../../FormComponents"
