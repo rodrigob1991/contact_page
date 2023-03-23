@@ -1,5 +1,5 @@
 import {UserType} from "chat-common/src/model/types"
-import {InboundToGuessMessage, InboundToHostMessage} from "./types"
+import {InboundToGuessMessage, InboundToHostMessage} from "../components/home/header/messenger/chat/types"
 import {useEffect, useRef} from "react"
 
 type Props<UT extends UserType> = {

@@ -1,23 +1,18 @@
 import {useEffect, useState} from "react"
 import ComponentWithTooltip from "../../../../ComponentWithTooltip"
 import LiveIcon from "/public/live.svg"
-import styled from "@emotion/styled";
-import {maxWidthSmallestLayout} from "../../../../../Dimensions";
+import styled from "@emotion/styled"
+import {maxWidthSmallestLayout} from "../../../../../Dimensions"
+import useWebSocket from "../../../../../hooks/useWebSocket"
+import {UserType} from "chat-common/src/model/types"
 
-export default function LiveChat() {
-    /*const [messages, setMessages] = useState<(InboundMessage | OutboundMessage)[]>([])
-    const addMessageAtEnd = (m: InboundMessage | OutboundMessage) => {
-        const newIndex = messages.length
-        setMessages(messages => [...messages,m])
-        return newIndex
-    }
-    const createUserMessage = (body: string, state: OutboundMessageState): OutboundMessage => {
-        return {body: body, state: state, color: USER_COLOR}
-    }
-    const createOutsideMessage = (from: string, body: string): InboundMessage => {
-        userColorMap.forEach((value, key) =>  console.log(value));
-        return {from: from, body: body, color: userColorMap.get(from) as string}
-    }*/
+type Props = {
+    userType: UserType
+}
+
+export default function LiveChat({userType}: Props) {
+
+    const sendMessage = useWebSocket()
     const [liveChat, setLiveChat] = useState(false)
     useEffect(() => {
 
