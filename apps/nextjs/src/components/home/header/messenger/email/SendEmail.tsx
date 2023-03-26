@@ -2,7 +2,7 @@ import {useFormModal} from "../../../../FormComponents"
 import ComponentWithTooltip from "../../../../ComponentWithTooltip"
 import styled from "@emotion/styled"
 import {MdForwardToInbox} from "react-icons/md"
-import {maxWidthSmallestLayout} from "../../../../../Dimensions"
+import {maxWidthSmallestLayout} from "../../../../../dimensions"
 
 export default function SendEmail() {
     const sendEmail = ({from, subject, message}: { from: string, subject: string, message: string }) => {

@@ -25,7 +25,7 @@ import {StoryState} from "@prisma/client"
 import {AnyPropertiesCombination} from "utils/src/types"
 import {lookUpParent} from "../../utils/DomManipulations"
 import {containerStyles as skillsChartContainerStyles} from "../../components/home/presentation/SkillsChart"
-import {UserBaseRoute} from "../../BaseRoutes"
+import {UserBaseRoute} from "../../baseRoutes"
 
 export const EditHomeRoute = UserBaseRoute + "/edit_home"
 

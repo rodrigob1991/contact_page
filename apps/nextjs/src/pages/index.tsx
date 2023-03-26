@@ -5,7 +5,7 @@ import StoriesView from "../components/home/stories/StoriesView"
 import {Container, Footer} from "../components/home/Layout"
 import Header from "../components/home/header/Header"
 import {useEffect, useState} from "react"
-import {maxWidthSmallestLayout} from "../Dimensions"
+import {maxWidthSmallestLayout} from "../dimensions"
 import Head from "next/head"
 import {getStoryBodyJsx} from "../utils/Parsers"
 

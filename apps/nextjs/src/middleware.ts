@@ -1,7 +1,7 @@
 import type {NextRequest} from 'next/server'
 import {NextFetchEvent, NextResponse} from "next/server"
 import {Error404Route} from "./pages/404"
-import {ProtectedApiBaseRoute, UserBaseRoute} from "./BaseRoutes"
+import {ProtectedApiBaseRoute, UserBaseRoute} from "./baseRoutes"
 import {UnauthorizedRoute} from "./pages/api/internal/unauthorized"
 
 export function middleware(request: NextRequest, fetchEvent: NextFetchEvent) {

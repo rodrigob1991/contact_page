@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import styled from "@emotion/styled"
 import Messenger from "./messenger/Messenger"
-import {maxWidthSmallestLayout} from "../../../Dimensions"
+import {maxWidthSmallestLayout} from "../../../dimensions"
 
 export default function Header() {
     return (

@@ -5,7 +5,7 @@ import {ImageViewSelector, ProcessSelectedImage} from "../../FormComponents"
 import Image from "next/image"
 import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
 import {Observe} from "../../../pages/user/edit_home"
-import {minWidthFullLayout} from "../../../Dimensions";
+import {minWidthFullLayout} from "../../../dimensions";
 
 export type GetHtmlElementId = <K extends PresentationHTMLElementIdsKey>(key: K, skillId: (K extends "skills" ? string : undefined)) =>  string
 type EditingProps = {

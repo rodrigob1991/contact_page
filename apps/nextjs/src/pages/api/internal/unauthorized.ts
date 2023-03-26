@@ -1,5 +1,5 @@
 import {NextApiRequest, NextApiResponse} from "next"
-import {InternalApiBaseRoute} from "../../../BaseRoutes"
+import {InternalApiBaseRoute} from "../../../baseRoutes"
 
 export const UnauthorizedRoute = InternalApiBaseRoute + "/unauthorized"
 

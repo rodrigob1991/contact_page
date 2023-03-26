@@ -1,13 +1,19 @@
 import {UserType} from "chat-common/src/model/types"
-import {InboundToGuessMessage, InboundToHostMessage} from "../types/chat"
+import {HandleConMessage, HandleDisMessage, HandleMesMessage} from "../types/chat"
 import {useEffect, useRef} from "react"
 
 type Props<UT extends UserType> = {
     userType: UT
-    onMessage: (m: (UT extends "host" ? InboundToHostMessage : InboundToGuessMessage)) => void
-
+    handleConMessage: HandleConMessage<UT>
+    handleDisMessage: HandleDisMessage<UT>
+    handleMesMessage: HandleMesMessage<UT>
 }
-export default function useWebSocket<UT extends UserType>({userType, onMessage}: Props<UT>) {
+
+export default function useWebSocket<UT extends UserType>({
+                                                              userType, handleConMessage,
+                                                              handleDisMessage,
+                                                              handleMesMessage
+                                                          }: Props<UT>) {
     const wsEndpoint = `${process.env.WEBSOCKET_ENDPOINT}${userType === "host" ? "?host_user=" + process.env.PRIVATE_TOKEN : ""}`
     const refToWs = useRef<WebSocket>()
     const setWs = (ws: WebSocket) => {

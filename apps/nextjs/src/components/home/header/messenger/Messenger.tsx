@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import {maxWidthSmallestLayout} from "../../../../Dimensions"
+import {maxWidthSmallestLayout} from "../../../../dimensions"
 import LiveChat from "../../../chat/LiveChat"
 import SendEmail from "./email/SendEmail"
 

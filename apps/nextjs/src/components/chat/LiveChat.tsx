@@ -1,57 +1,36 @@
-import {useEffect, useState} from "react"
-import ComponentWithTooltip from "../ComponentWithTooltip"
-import LiveIcon from "/public/live.svg"
-import styled from "@emotion/styled"
-import {maxWidthSmallestLayout} from "../../Dimensions"
-import useWebSocket from "../../hooks/useWebSocket"
 import {UserType} from "chat-common/src/model/types"
-import {InboundMessageUser} from "../../types/chat"
+import {HandleConMessage, HandleDisMessage, HandleMesMessage,} from "../../types/chat"
+import ChatView from "./View"
+import useWebSocket from "../../hooks/useWebSocket";
 
 type Props<UT extends UserType> = {
     userType: UT
-    onMessage: (m: InboundMessageUser<UT>) => void
+    handleConMessage: HandleConMessage<UT>
+    handleDisMessage: HandleDisMessage<UT>
+    handleMesMessage: HandleMesMessage<UT>
 }
 
-export default function LiveChat<UT extends UserType>({userType, onMessage}: Props<UT>) {
+export default function LiveChat<UT extends UserType>({
+                                                          userType,
+                                                          handleConMessage,
+                                                          handleDisMessage,
+                                                          handleMesMessage
+                                                      }: Props<UT>) {
+    const handleConMessage: HandleConMessage<"guess"> = (c) => {
 
-    //const sendMessage = useWebSocket()
-    const [liveChat, setLiveChat] = useState(false)
-    useEffect(() => {
+    }
+    const handleDisMessage: HandleDisMessage<"guess"> = (d) => {
+    }
+    const handleMesMessage: HandleMesMessage<"guess"> = (m) => {
+    }
 
-    }, [liveChat])
-    let liveIconColor = liveChat ? "#ADFF2F" : "#FF4500"
-    let liveIconTooltipText = liveChat ? "i'm connected" : "i'm not connected"
+    const sendMessage = useWebSocket({
+        userType: "guess",
+        handleConMessage: handleConMessage,
+        handleDisMessage: handleDisMessage,
+        handleMesMessage: handleMesMessage
+    })
 
-    return (
-        <>
-        <ComponentWithTooltip childElement={<Image fill={liveIconColor}/>}
-                              tooltipText={liveIconTooltipText}
-                              tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40}
-                              tooltipLeftDeviation={-70}/>
-    {/*    <MessagesContainer>
-            {messages.map((m, index) => {
-                if (isOutboundMessage(m)) {
-                    return (<OutboundMessageView state={m.state} color={USER_COLOR} key={index}>
-                        {username + ": " + m.body}
-                    </OutboundMessageView>)
-                } else {
-                    return (<InboundMessageView color={m.color} key={index}>
-                        {m.from + ": " + m.body}
-                    </InboundMessageView>)
-                }
-            })}
-            <div ref={messagesEndRef}/>
-        </MessagesContainer>*/}
-        </>
-    )
+
+    return <ChatView/>
 }
-
-const Image = styled(LiveIcon)`
-  width: 85px;
-  height:85px;
-  cursor: pointer;
-  @media (max-width: ${maxWidthSmallestLayout}px) {
-    width: 55px;
-    height: 55px;
-  }
-`

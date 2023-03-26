@@ -1,6 +1,6 @@
 import type {NextApiRequest, NextApiResponse} from 'next'
 import {RevalidatedRoute, RevalidationResponseBody, RevalidationRouteId} from "../../../../types/revalidation"
-import {ProtectedApiBaseRoute} from "../../../../BaseRoutes"
+import {ProtectedApiBaseRoute} from "../../../../baseRoutes"
 import {HomeRoute} from "../../../index"
 import {EditHomeRoute} from "../../../user/edit_home"
 import {AuthResponseBody} from "../../internal/unauthorized"

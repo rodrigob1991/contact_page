@@ -6,7 +6,7 @@ import {Observe} from "../../../pages/user/edit_home"
 import {ImageViewSelector, TextInput} from "../../FormComponents"
 import {useAsk, useTooltip} from "../../../utils/Hooks"
 import Image from "next/legacy/image"
-import {minWidthFullLayout} from "../../../Dimensions"
+import {minWidthFullLayout} from "../../../dimensions"
 import {orderByComparePreviousByNumber} from "utils/src/arrays"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
