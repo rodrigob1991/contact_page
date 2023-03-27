@@ -1,18 +1,33 @@
 import {UserType} from "chat-common/src/model/types"
-import {HandleConMessage, HandleDisMessage, HandleMesMessage} from "../types/chat"
+import {
+    InboundAckMessageParts,
+    InboundConMessageParts,
+    InboundDisMessageParts,
+    InboundMesMessageParts
+} from "../types/chat"
 import {useEffect, useRef} from "react"
 
-type Props<UT extends UserType> = {
+export type HandleConMessage<UT extends UserType> =  (cm: InboundConMessageParts<UT>) => void
+export type HandleDisMessage<UT extends UserType> =  (dm: InboundDisMessageParts<UT>) => void
+export type HandleMesMessage<UT extends UserType> =  (mm: InboundMesMessageParts<UT>) => void
+export type HandleAckMessage<UT extends UserType> =  (n: number) => void
+
+export type SendMessage = (number: number, body: string) => void
+
+export type Props<UT extends UserType> = {
     userType: UT
     handleConMessage: HandleConMessage<UT>
     handleDisMessage: HandleDisMessage<UT>
     handleMesMessage: HandleMesMessage<UT>
+    handleAckMessage: HandleAckMessage<UT>
 }
 
 export default function useWebSocket<UT extends UserType>({
-                                                              userType, handleConMessage,
+                                                              userType,
+                                                              handleConMessage,
                                                               handleDisMessage,
-                                                              handleMesMessage
+                                                              handleMesMessage,
+                                                              handleAckMessage
                                                           }: Props<UT>) {
     const wsEndpoint = `${process.env.WEBSOCKET_ENDPOINT}${userType === "host" ? "?host_user=" + process.env.PRIVATE_TOKEN : ""}`
     const refToWs = useRef<WebSocket>()
@@ -32,7 +47,8 @@ export default function useWebSocket<UT extends UserType>({
         }
         , [])
 
-    const sendMessage = (body: string) => {
+    const sendMessage: SendMessage = (number, body) => {
+        return number
 
     }
 

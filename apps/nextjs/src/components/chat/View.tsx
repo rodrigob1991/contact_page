@@ -2,20 +2,19 @@ import styled from "@emotion/styled"
 import {useEffect, useRef, useState} from "react"
 import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
+import {LOCAL_USER} from "./LiveChat"
 
 export type MessageData = { user: string, number: number, body: string, ack: boolean }
-export type Position = { left: number, top: number }
+export type ContainerProps = {show: boolean, left: number, top: number }
 
 type Props = {
     messages: MessageData[]
     users: string[]
-    position: Position
     sendMessage: (body: string) => void
+    containerProps: ContainerProps
 }
 
-const LOCAL_USER = "me"
-
-export default function ChatView({messages, users, position, sendMessage}: Props) {
+export default function ChatView({messages, users, containerProps, sendMessage}: Props) {
     const userColorMapRef = useRef(new Map<string, string>([[LOCAL_USER, "black"]]))
     const getUserColorMap = () => userColorMapRef.current
 
@@ -50,14 +49,14 @@ export default function ChatView({messages, users, position, sendMessage}: Props
     }, [messages])
 
     return (
-        <Container {...position}>
+        <Container {...containerProps}>
             <UsersContainer>
                 {users.map((u) => <UserView key={u} color={getUserColor(u)}> {u} </UserView>)}
             </UsersContainer>
             <RightContainer>
                 <MessagesContainer>
                     {messages.map(({user, number, body, ack}) =>
-                             <MessageView key={number} color={getUserColor(user)} ack={ack}> {user + ": " + body} </MessageView>
+                             <MessageView key={user + "-" + number} color={getUserColor(user)} ack={ack}> {user + ": " + body} </MessageView>
                     )}
                     <div ref={messagesEndRef}/>
                 </MessagesContainer>
@@ -67,10 +66,10 @@ export default function ChatView({messages, users, position, sendMessage}: Props
     )
 }
 
-const Container = styled.form<{ top: number, left: number}>`
-  display: flex;
-  ${({top, left}) => 
-    "top: " + top + "%;"
+const Container = styled.form<ContainerProps>`
+  ${({show, top, left}) =>
+    "display: " + (show ? "flex" :  "none") + ";"
+    + "top: " + top + "%;"
     + "left: " + left + "%;"}
   flex-direction: column;
   align-items: center;

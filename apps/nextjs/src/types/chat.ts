@@ -26,7 +26,7 @@ import {
     Message,
     MessagePartsPositions,
     MessageTemplate,
-    GetMessages, GetMessageParams
+    GetMessages, GotAllMessageParts, GotMessageParts
 } from "chat-common/src/message/types"
 import {UserType} from "chat-common/model/types";
 
@@ -45,6 +45,7 @@ export type  InboundAckMessage = OutboundAckMessage
 export type  InboundConMessage = OutboundConMessage
 export type  InboundDisMessage = OutboundDisMessage
 export type InboundMesMessageUser<UT extends UserType> = UT extends "host" ? InboundToHostMesMessage : InboundToGuessMesMessage
+export type InboundAckMessageUser<UT extends UserType> = UT extends "host" ? InboundToHostAckMessage : InboundToGuessAckMessage
 export type InboundConMessageUser<UT extends UserType> = UT extends "host" ? InboundToHostConMessage : InboundToGuessConMessage
 export type InboundDisMessageUser<UT extends UserType> = UT extends "host" ? InboundToHostDisMessage : InboundToGuessDisMessage
 export type  InboundMessage = OutboundMessage
@@ -61,6 +62,7 @@ export type  OutboundMessage = InboundMessage
 export type  OutboundMessageParts = InboundMessageParts
 export type  OutboundMessageTemplate = InboundMessageTemplate
 
-export type HandleConMessage<UT extends UserType> =  (m: GetMessageParams<InboundConMessageUser<UT>>) => void
-export type HandleDisMessage<UT extends UserType> =  (m: GetMessageParams<InboundDisMessageUser<UT>>) => void
-export type HandleMesMessage<UT extends UserType> =  (m: GetMessageParams<InboundMesMessageUser<UT>>) => void
+export type InboundConMessageParts<UT extends UserType> = GotAllMessageParts<InboundConMessageUser<UT>>
+export type InboundDisMessageParts<UT extends UserType> = GotAllMessageParts<InboundDisMessageUser<UT>>
+export type InboundMesMessageParts<UT extends UserType> = GotAllMessageParts<InboundMesMessageUser<UT>>
+export type InboundAckMessageParts<UT extends UserType> = GotAllMessageParts<InboundAckMessageUser<UT>>

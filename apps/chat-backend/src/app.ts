@@ -5,7 +5,7 @@ import dotenv from "dotenv"
 import {MessageParts, MessagePrefix, UserType} from "chat-common/src/model/types"
 import {
     CutMessage,
-    GetMessageParams,
+    GotAllMessageParts,
     GetMessages,
     InboundAckMessage,
     InboundAckMessageOrigin,
@@ -39,7 +39,7 @@ type GuessIdToSubscribe<UT extends UserType> = ("guess" extends UT ? MessagePart
 type SubscribeToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => void
 type GuessIdToPublish<UT extends UserType, MP extends MessagePrefix> = UT extends "guess" ? MP extends "mes" | "ack" ? MessageParts["guessId"] : undefined : undefined
 // only for one message type, no unions.
-type PublishMessage = <M extends OutboundMessage>(messageParts: GetMessageParams<M>, toUserType: M["userType"], toGuessId: GuessIdToPublish<M["userType"], M["prefix"]>) => void
+type PublishMessage = <M extends OutboundMessage>(messageParts: GotAllMessageParts<M>, toUserType: M["userType"], toGuessId: GuessIdToPublish<M["userType"], M["prefix"]>) => void
 type CacheMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>, message: M["template"]) => void
 type RemoveMessage = <M extends OutboundMessage[]>(key: RedisMessageKey<M>) => void
 type IsMessageAck = <M extends OutboundMessage>(key: RedisMessageKey<[M]>) => Promise<boolean>

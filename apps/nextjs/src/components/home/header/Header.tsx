@@ -4,12 +4,16 @@ import styled from "@emotion/styled"
 import Messenger from "./messenger/Messenger"
 import {maxWidthSmallestLayout} from "../../../dimensions"
 
+type Props = {
+    userName: string
+}
+
 export default function Header() {
     return (
         <Container>
             <LogoImage alt={""} src={"/favicon.png"} width={80} height={80}/>
             <ContactLinksContainer>
-                <Messenger/>
+                <Messenger userName={userName}/>
                 <Separator/>
                 <Link href={"https://github.com/rodrigob1991"}>
                     <ContactImage data={"/github.svg"}/>

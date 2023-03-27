@@ -1,22 +1,29 @@
-import LiveChat from "../../../../chat/LiveChat"
+import LiveChat, {FirstHandleConMessage, FirstHandleDisMessage, FirstHandleMesMessage} from "../../../../chat/LiveChat"
 import ComponentWithTooltip from "../../../../ComponentWithTooltip"
-import {useEffect, useState} from "react"
+import {useState} from "react"
 import styled from "@emotion/styled"
 import LiveIcon from "/public/live.svg"
 import {maxWidthSmallestLayout} from "../../../../../dimensions"
-import {HandleConMessage, HandleDisMessage, HandleMesMessage} from "../../../../../types/chat"
 
-export default function GuessLiveChat() {
+type Props = {
+    hostName: string
+}
+
+export default function GuessLiveChat({hostName}: Props) {
+    const [show, setShow] = useState(false)
     const [hostConnected, setHostConnected] = useState(false)
 
-    const handleConMessage: HandleConMessage<"guess"> = (c) => {
+    const handleConMessage: FirstHandleConMessage<"guess"> = (cm) => {
+        setHostConnected(true)
+        return hostName
 
     }
-    const handleDisMessage: HandleDisMessage<"guess"> = (d) => {
+    const handleDisMessage: FirstHandleDisMessage<"guess"> = (dm) => {
         setHostConnected(false)
+        return hostName
     }
-    const handleMesMessage: HandleMesMessage<"guess"> = (m) => {
-        setHostConnected(true)
+    const handleMesMessage: FirstHandleMesMessage<"guess"> = (mm) => {
+        return hostName
     }
 
     let iconColor = hostConnected ? "#ADFF2F" : "#FF4500"
@@ -28,7 +35,7 @@ export default function GuessLiveChat() {
                                   tooltipText={iconTooltipText}
                                   tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40}
                                   tooltipLeftDeviation={-70}/>
-            <LiveChat userType={"guess"} handleConMessage={handleConMessage} handleDisMessage={handleDisMessage} handleMesMessage={handleMesMessage}/>
+            <LiveChat userType={"guess"} viewContainerProps={{show: show, top: 50, left: 50}} firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage} firstHandleMesMessage={handleMesMessage}/>
         </>
     )
 }
