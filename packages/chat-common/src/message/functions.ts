@@ -2,17 +2,17 @@ import {messageParts} from "../model/constants"
 import {
     CommonMessagePartsPositions,
     CutMessage,
-    GetMessageParams,
+    GotAllMessageParts,
     GotMessageParts,
     Message,
-    MessagePartsPositions
+    MessagePartsPositions, MessageTemplate
 } from "./types"
 import {getIndexOnOccurrence} from "utils/src/strings"
 
 type AnyMessagePartsPositions<M extends Message, CMPP extends CommonMessagePartsPositions<M>, MPP = M["positions"]> = { [K in CMPP]: K extends keyof MPP ? MPP[K] : never }
 type LastPosition<MPP extends MessagePartsPositions, LASTS = [4, 3, 2, 1]> = LASTS extends [infer LAST, ...infer REST] ? LAST extends MPP[keyof MPP] ? LAST : LastPosition<MPP, REST> : never
 
-export const getMessage = <M extends Message>(parts: GetMessageParams<M>) => {
+export const getMessage = <M extends Message>(parts: GotAllMessageParts<M>) => {
     let message = ""
     if (messageParts.prefix in parts)
         message += parts.prefix
@@ -28,7 +28,11 @@ export const getMessage = <M extends Message>(parts: GetMessageParams<M>) => {
     return message as M["template"]
 }
 
-export const getMessageParts = <M extends Message, CMPP extends CommonMessagePartsPositions<M>>(m: M["template"], whatGet: AnyMessagePartsPositions<M, CMPP>) => {
+export const getMessagePrefix = <M extends MessageTemplate>(m: M) => {
+    return m.substring(0, 3) as (M extends `${infer MP}:${any}` ? MP : never)
+}
+
+export const getMessageParts = <M extends Message, CMPP extends CommonMessagePartsPositions<M>=CommonMessagePartsPositions<M>>(m: M["template"], whatGet: AnyMessagePartsPositions<M, CMPP>) => {
     const parts: any = {}
     const getPartSeparatorIndex = (occurrence: number) => getIndexOnOccurrence(m, ":", occurrence)
     if (messageParts.prefix in whatGet)
@@ -99,7 +103,7 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
     }
     if (messageParts.body in whatCut) {
         position = whatCut.body as 3 | 4
-        partEndIndex = findPartBoundaryIndex()
+        partStartIndex = findPartBoundaryIndex()
         partEndIndex = m.length - 1
         cut()
     }

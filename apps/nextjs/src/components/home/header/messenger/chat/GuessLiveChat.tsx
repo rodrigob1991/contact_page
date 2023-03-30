@@ -13,6 +13,10 @@ export default function GuessLiveChat({hostName}: Props) {
     const [show, setShow] = useState(false)
     const [hostConnected, setHostConnected] = useState(false)
 
+    const handleOnClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        setShow(true)
+    }
+
     const handleConMessage: FirstHandleConMessage<"guess"> = (cm) => {
         setHostConnected(true)
         return hostName
@@ -34,8 +38,11 @@ export default function GuessLiveChat({hostName}: Props) {
             <ComponentWithTooltip childElement={<Image fill={iconColor}/>}
                                   tooltipText={iconTooltipText}
                                   tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40}
-                                  tooltipLeftDeviation={-70}/>
-            <LiveChat userType={"guess"} viewContainerProps={{show: show, top: 50, left: 50}} firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage} firstHandleMesMessage={handleMesMessage}/>
+                                  tooltipLeftDeviation={-70}
+                                  onClick={handleOnClick}/>
+            <LiveChat userType={"guess"} viewContainerProps={{show: show, top: 50, left: 50}}
+                      firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage}
+                      firstHandleMesMessage={handleMesMessage}/>
         </>
     )
 }

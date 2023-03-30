@@ -51,13 +51,10 @@ export default function LiveChat<UT extends UserType>({
     }
     // I AM NOT SURE IF THIS IMPLEMENTATION IS CORRECT
     const setLocalMessageData = (body: string, sendMessage: SendMessage) => {
-        setMessagesData((messages) => {
-            const number = messages.length
-            sendMessage(number, body)
-            const message = {user: LOCAL_USER, number: number, body: body, ack: false}
-            return [...messages, message]
-
-        })
+        const number = messagesData.length + 1
+        const messageData = {user: LOCAL_USER, number: number, body: body, ack: false}
+        setMessageData(messageData)
+        sendMessage(number, body)
     }
     const acknowledgeMessage = (number: number) => {
         setMessagesData((messages) => {

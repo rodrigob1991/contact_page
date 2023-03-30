@@ -1,6 +1,6 @@
 import styled from "@emotion/styled"
 import {useTooltip} from "../utils/Hooks"
-import {CSSProperties} from "react"
+import {CSSProperties, DetailedHTMLProps, HTMLAttributes, InputHTMLAttributes} from "react"
 
 type Props = {
     childElement: JSX.Element
@@ -8,8 +8,8 @@ type Props = {
     tooltipStyle?: CSSProperties
     tooltipTopDeviation?: number
     tooltipLeftDeviation?: number
-}
-export default function ComponentWithTooltip({childElement, tooltipText, tooltipStyle, tooltipTopDeviation, tooltipLeftDeviation} : Props) {
+} & DetailedHTMLProps<HTMLAttributes<HTMLDivElement>,HTMLDivElement>
+export default function ComponentWithTooltip({childElement, tooltipText, tooltipStyle, tooltipTopDeviation, tooltipLeftDeviation, ...rest} : Props) {
     const [Tooltip, showTooltip, hideTooltip] = useTooltip({style: tooltipStyle, topDeviation: tooltipTopDeviation, leftDeviation: tooltipLeftDeviation})
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -24,7 +24,7 @@ export default function ComponentWithTooltip({childElement, tooltipText, tooltip
     }
 
     return (
-        <Container onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onTouchStart={handleTouchStart}>
+        <Container onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onTouchStart={handleTouchStart} {...rest}>
             {Tooltip}
             {childElement}
         </Container>
