@@ -16,14 +16,14 @@ import {
     OutboundMessageTemplate
 } from "../types/chat"
 import {useEffect, useRef} from "react"
-import {getMessage, getMessageParts, getMessagePrefix} from "chat-common/src/message/functions"
+import {getMessage, getMessageParts} from "chat-common/src/message/functions"
 
 export type HandleConMessage<UT extends UserType> =  (cm: InboundConMessageParts<UT>) => void
 export type HandleDisMessage<UT extends UserType> =  (dm: InboundDisMessageParts<UT>) => void
 export type HandleMesMessage<UT extends UserType> =  (mm: InboundMesMessageParts<UT>) => void
 export type HandleAckMessage<UT extends UserType> =  (n: number) => void
 
-type GuessId<UT extends UserType> = UT extends "host" ? number : undefined
+export type GuessId<UT extends UserType> = UT extends "host" ? number : undefined
 export type SendMessage<UT extends UserType> = (number: number, body: string, guessId: GuessId<UT>) => void
 
 export type Props<UT extends UserType> = {
@@ -54,7 +54,7 @@ export default function useWebSocket<UT extends UserType>({
     useEffect(() => {
             const ws = new WebSocket(wsEndpoint)
             ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate<UT>>) => {
-                const prefix = getMessagePrefix(inboundMessage)
+                const {prefix, number} = getMessageParts<InboundMessage>(inboundMessage, {prefix: 1, number: 2})
                 switch (prefix) {
                     case "con":
                         handleConMessage(getConMessageParts(inboundMessage as InboundMessageTemplate<UT, "con">))
@@ -66,12 +66,11 @@ export default function useWebSocket<UT extends UserType>({
                         handleMesMessage(getMesMessageParts(inboundMessage as InboundMessageTemplate<UT, "mes">))
                         break
                     case "ack":
-                        const {number} = getAckMessageParts(inboundMessage as InboundMessageTemplate<UT, "ack">)
+                        setMessageAlreadyAck(number)
                         handleAckMessage(number)
                 }
                 // acknowledged message
-                const {prefix: originPrefix, number} = getMessageParts<InboundMessage>(inboundMessage, {prefix: 1, number: 2})
-                ws.send(getMessage<OutboundFromUserAckMessage>({prefix: "ack", originPrefix: originPrefix, number: number}))
+                ws.send(getMessage<OutboundFromUserAckMessage>({prefix: "ack", originPrefix: prefix, number: number}))
             }
             setWS(ws)
 
@@ -79,8 +78,23 @@ export default function useWebSocket<UT extends UserType>({
         }
         , [])
 
+    const ackMessagesRef = useRef<boolean[]>([])
+    const getAckMessages = () => ackMessagesRef.current
+    const setMessageToAck = (n: number) => { getAckMessages()[n] = false }
+    const setMessageAlreadyAck = (n: number) => { getAckMessages()[n] = true }
+    const isMessageAck = (n: number) => getAckMessages()[n]
+
     const sendMesMessage: SendMessage<UT> = (number, body, guessId) => {
-        getWS().send((getOutboundMesMessage as unknown as GetOutboundMessage<UT>)(number, body, guessId))
+        const resendUntilAck = () => {
+            getWS().send((getOutboundMesMessage as unknown as GetOutboundMessage<UT>)(number, body, guessId))
+            setTimeout(() => {
+                if (!isMessageAck(number)) {
+                    resendUntilAck()
+                }
+            }, 5000)
+        }
+        setMessageToAck(number)
+        resendUntilAck()
     }
 
     return sendMesMessage
@@ -90,7 +104,6 @@ type GetConMessageParts<UT extends UserType> = (icm: InboundMessageTemplate<UT, 
 type GetDisMessageParts<UT extends UserType> = (idm: InboundMessageTemplate<UT, "dis">) => InboundDisMessageParts<UT>
 type GetMesMessageParts<UT extends UserType> = (imm: InboundMessageTemplate<UT, "mes">) => InboundMesMessageParts<UT>
 type GetAckMessageParts<UT extends UserType> = (iam: InboundMessageTemplate<UT, "ack">) => InboundAckMessageParts<UT>
-
 type GetOutboundMessage<UT extends UserType> = (n: number, b: string, gi: GuessId<UT>) => OutboundMessageTemplate<UT, "mes">
 type GetUserSpecifics<UT extends UserType> = (hcm: HandleConMessage<UT>, hdm: HandleDisMessage<UT>, hmm: HandleMesMessage<UT>, ham: HandleAckMessage<UT>) => [string, GetOutboundMessage<UT>, GetConMessageParts<UT>, GetDisMessageParts<UT>, GetMesMessageParts<UT>, GetAckMessageParts<UT>]
 

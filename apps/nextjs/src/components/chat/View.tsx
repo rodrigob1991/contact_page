@@ -3,18 +3,25 @@ import {useEffect, useRef, useState} from "react"
 import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
 import {LOCAL_USER} from "./LiveChat"
+import {UserType} from "chat-common/src/model/types"
 
-export type MessageData = { user: string, number: number, body: string, ack: boolean }
+export type MessageData = { fromUserId: string, toUsersIds: string[], number: number, body: string, ack: boolean }
 export type ContainerProps = {show: boolean, left: number, top: number }
+type GuessesIds<UT extends UserType> = UT extends "host" ? string[] : undefined
+type SendMessage<UT extends UserType> =  (b: string, gi: GuessesIds<UT>) => void
 
-type Props = {
+type Props<UT extends UserType> = {
+    userType: UT
     messages: MessageData[]
-    users: string[]
-    sendMessage: (body: string) => void
+    usersIds: string[]
+    sendMessage: SendMessage<UT>
     containerProps: ContainerProps
 }
 
-export default function ChatView({messages, users, containerProps, sendMessage}: Props) {
+export default function ChatView<UT extends UserType>({userType, messages, usersIds, containerProps, sendMessage}: Props<UT>) {
+    const isHost = userType === "host"
+    const [selectedGuessesIds, setSelectedGuessesIds] = useState<string[]>([])
+
     const userColorMapRef = useRef(new Map<string, string>([[LOCAL_USER, "black"]]))
     const getUserColorMap = () => userColorMapRef.current
 
@@ -26,19 +33,34 @@ export default function ChatView({messages, users, containerProps, sendMessage}:
         const rgb = (r << 16) + (g << 8) + b
         return `#${rgb.toString(16)}`
     }
-    const getUserColor = (user: string) => {
-        let color = getUserColorMap().get(user)
+    const getUserColor = (id: string) => {
+        let color = getUserColorMap().get(id)
         if (!color) {
             color = getNewColor()
-            getUserColorMap().set(user, color)
+            getUserColorMap().set(id, color)
         }
         return color
     }
 
+    const handleClickUser = (e: React.MouseEvent<HTMLSpanElement>, id: string) => {
+        if (isHost) {
+            if (selectedGuessesIds.includes(id)) {
+                setSelectedGuessesIds((sgis) => {
+                    const updatedSelectedGuessesIds = [...sgis]
+                    updatedSelectedGuessesIds.splice(sgis.findIndex(sgi => sgi === id), 1)
+                    return updatedSelectedGuessesIds
+                })
+            } else {
+                setSelectedGuessesIds([...selectedGuessesIds, id])
+            }
+        }
+    }
+
     const [messageStr, setMessageStr] = useState("")
+
     const handleInputMessage = () => {
         if (!isEmpty(messageStr)) {
-            sendMessage(messageStr)
+            sendMessage(messageStr, (isHost ? selectedGuessesIds : undefined) as GuessesIds<UT>)
             setMessageStr("")
         }
     }
@@ -51,16 +73,16 @@ export default function ChatView({messages, users, containerProps, sendMessage}:
     return (
         <Container {...containerProps}>
             <UsersContainer>
-                {users.map((u) => <UserView key={u} color={getUserColor(u)}> {u} </UserView>)}
+                {usersIds.map((ui) => <UserView key={ui} color={getUserColor(ui)} onClick={(e) => { handleClickUser(e, ui)}}> {ui} </UserView>)}
             </UsersContainer>
             <RightContainer>
                 <MessagesContainer>
-                    {messages.map(({user, number, body, ack}) =>
-                             <MessageView key={user + "-" + number} color={getUserColor(user)} ack={ack}> {user + ": " + body} </MessageView>
+                    {messages.map(({fromUserId, toUsersIds, number, body, ack}) =>
+                             <MessageView key={fromUserId + "-" + number} color={getUserColor(fromUserId)} ack={ack}> {`${fromUserId}${isHost ? "-> " + toUsersIds.toString() : ""} : ${body}`} </MessageView>
                     )}
                     <div ref={messagesEndRef}/>
                 </MessagesContainer>
-                <TextInput  value={messageStr} setValue={setMessageStr} width={1100} onEnter={handleInputMessage}/>
+                <TextInput value={messageStr} setValue={setMessageStr} width={1100} onEnter={handleInputMessage}/>
             </RightContainer>
         </Container>
     )
@@ -98,7 +120,7 @@ const UsersContainer = styled.div`
   border-style: solid;
   gap: 10px;
   `
-const UserView = styled.label`
+const UserView = styled.span`
  font-size: 20px;
  font-weight: bold;
  color: ${props => props.color};

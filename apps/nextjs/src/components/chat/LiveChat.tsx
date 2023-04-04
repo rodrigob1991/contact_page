@@ -6,6 +6,7 @@ import {
 } from "../../types/chat"
 import ChatView, {ContainerProps, MessageData} from "./View"
 import useWebSocket, {
+    GuessId,
     HandleAckMessage,
     HandleConMessage,
     HandleDisMessage,
@@ -50,7 +51,7 @@ export default function LiveChat<UT extends UserType>({
         setMessagesData((messagesData) => [...messagesData, md])
     }
     // I AM NOT SURE IF THIS IMPLEMENTATION IS CORRECT
-    const setLocalMessageData = (body: string, sendMessage: SendMessage) => {
+    const setOutboundMessageData = (body: string, ) => {
         const number = messagesData.length + 1
         const messageData = {user: LOCAL_USER, number: number, body: body, ack: false}
         setMessageData(messageData)
@@ -87,7 +88,7 @@ export default function LiveChat<UT extends UserType>({
         handleMesMessage: handleMesMessage,
         handleAckMessage: handleAckMessage
     })
-    const sendMessageWrapper = (body: string) => {
+    const sendMessageWrapper = (body: string, guessId: GuessId<UT>) => {
         setLocalMessageData(body, sendMessage)
     }
 
