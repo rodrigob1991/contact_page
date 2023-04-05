@@ -22,7 +22,7 @@
     "ts-node": "^10.9.1"
   },
   "scripts": {
-    "dev": "concurrently \"tsc --watch\" \"yarn workspace utils dev\" \"yarn workspace chat-common dev\" \"nodemon --watch ./dist --watch ../../packages dist/app.js\"",
+    "dev": "concurrently \"docker start redis\" \"tsc --watch\" \"yarn workspace utils dev\" \"yarn workspace chat-common dev\" \"nodemon --watch ./dist --watch ../../packages dist/app.js\"",
     "build": "tsc --build --verbose --force",
     "start": "nodemon --exec ts-node src/app.ts"
   }

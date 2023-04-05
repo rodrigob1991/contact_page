@@ -2,19 +2,19 @@ import styled from "@emotion/styled"
 import {useEffect, useRef, useState} from "react"
 import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
-import {LOCAL_USER} from "./LiveChat"
+import {LOCAL_USER_ID} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
 
-export type MessageData = { fromUserId: string, toUsersIds: string[], number: number, body: string, ack: boolean }
-export type ContainerProps = {show: boolean, left: number, top: number }
-type GuessesIds<UT extends UserType> = UT extends "host" ? string[] : undefined
-type SendMessage<UT extends UserType> =  (b: string, gi: GuessesIds<UT>) => void
+export type MessageData = { fromUserId: string, toUsersIds?: string[], number: number, body: string, ack: boolean }
+export type ContainerProps = { show: boolean, left: number, top: number }
+
+type SendMessage =  (b: string, gi?: string[]) => void
 
 type Props<UT extends UserType> = {
     userType: UT
     messages: MessageData[]
     usersIds: string[]
-    sendMessage: SendMessage<UT>
+    sendMessage: SendMessage
     containerProps: ContainerProps
 }
 
@@ -22,7 +22,7 @@ export default function ChatView<UT extends UserType>({userType, messages, users
     const isHost = userType === "host"
     const [selectedGuessesIds, setSelectedGuessesIds] = useState<string[]>([])
 
-    const userColorMapRef = useRef(new Map<string, string>([[LOCAL_USER, "black"]]))
+    const userColorMapRef = useRef(new Map<string, string>([[LOCAL_USER_ID, "black"]]))
     const getUserColorMap = () => userColorMapRef.current
 
     const getNewColor = () => {
@@ -60,7 +60,7 @@ export default function ChatView<UT extends UserType>({userType, messages, users
 
     const handleInputMessage = () => {
         if (!isEmpty(messageStr)) {
-            sendMessage(messageStr, (isHost ? selectedGuessesIds : undefined) as GuessesIds<UT>)
+            sendMessage(messageStr, isHost ? selectedGuessesIds : undefined)
             setMessageStr("")
         }
     }
@@ -78,7 +78,7 @@ export default function ChatView<UT extends UserType>({userType, messages, users
             <RightContainer>
                 <MessagesContainer>
                     {messages.map(({fromUserId, toUsersIds, number, body, ack}) =>
-                             <MessageView key={fromUserId + "-" + number} color={getUserColor(fromUserId)} ack={ack}> {`${fromUserId}${isHost ? "-> " + toUsersIds.toString() : ""} : ${body}`} </MessageView>
+                             <MessageView key={fromUserId + "-" + number} color={getUserColor(fromUserId)} ack={ack}> {`${fromUserId}${isHost && toUsersIds ? "-> " + toUsersIds.toString() : ""} : ${body}`} </MessageView>
                     )}
                     <div ref={messagesEndRef}/>
                 </MessagesContainer>
@@ -93,7 +93,7 @@ const Container = styled.form<ContainerProps>`
     "display: " + (show ? "flex" :  "none") + ";"
     + "top: " + top + "%;"
     + "left: " + left + "%;"}
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   z-index: 1; 
   position: fixed;

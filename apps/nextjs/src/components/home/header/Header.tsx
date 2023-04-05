@@ -8,7 +8,7 @@ type Props = {
     userName: string
 }
 
-export default function Header() {
+export default function Header({userName}: Props) {
     return (
         <Container>
             <LogoImage alt={""} src={"/favicon.png"} width={80} height={80}/>

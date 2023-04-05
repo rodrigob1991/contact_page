@@ -1,18 +1,14 @@
 import {UserType} from "chat-common/src/model/types"
-import {
-    InboundConMessageParts,
-    InboundDisMessageParts,
-    InboundMesMessageParts
-} from "../../types/chat"
+import {InboundConMessageParts, InboundDisMessageParts, InboundMesMessageParts} from "../../types/chat"
 import ChatView, {ContainerProps, MessageData} from "./View"
 import useWebSocket, {
-    GuessId,
+    GuessesIds,
     HandleAckMessage,
     HandleConMessage,
     HandleDisMessage,
-    HandleMesMessage, SendMessage
+    HandleMesMessage, SendMesMessage
 } from "../../hooks/useWebSocket"
-import {useState} from "react"
+import {useEffect, useRef, useState} from "react"
 
 export type FirstHandleConMessage<UT extends UserType> = (cm: InboundConMessageParts<UT>) => string
 export type FirstHandleDisMessage<UT extends UserType> = (dm: InboundDisMessageParts<UT>) => string
@@ -26,7 +22,7 @@ type Props<UT extends UserType> = {
     viewContainerProps: ContainerProps
 }
 
-export const LOCAL_USER = "me"
+export const LOCAL_USER_ID = "me"
 
 export default function LiveChat<UT extends UserType>({
                                                           userType,
@@ -47,16 +43,30 @@ export default function LiveChat<UT extends UserType>({
         })
     }
     const [messagesData, setMessagesData] = useState<MessageData[]>([])
-    const setMessageData = (md: MessageData) => {
+    const setInboundMessageData = (md: MessageData) => {
         setMessagesData((messagesData) => [...messagesData, md])
     }
-    // I AM NOT SURE IF THIS IMPLEMENTATION IS CORRECT
-    const setOutboundMessageData = (body: string, ) => {
-        const number = messagesData.length + 1
-        const messageData = {user: LOCAL_USER, number: number, body: body, ack: false}
-        setMessageData(messageData)
-        sendMessage(number, body)
+    const refToMessagesNumbersToSend = useRef<number[]>([])
+    const getMessagesNumbersToSend = () => refToMessagesNumbersToSend.current
+
+    const setOutboundMessageData = (body: string, toUsersIds?: string[]) => {
+        setMessagesData((messagesData) => {
+            const number = messagesData.length
+            getMessagesNumbersToSend().push(number)
+            const messageData = {fromUserId: LOCAL_USER_ID, toUsersIds: toUsersIds, number: messagesData.length, body: body, ack: false}
+
+            return [...messagesData, messageData]
+        })
     }
+    useEffect(() => {
+        getMessagesNumbersToSend().forEach((n)=> {
+            const {body, number, toUsersIds} = messagesData[n]
+            sendMessage(number, body, (toUsersIds ? toUsersIds.map((ui)=> parseInt(ui)): undefined) as GuessesIds<UT>)
+        })
+        getMessagesNumbersToSend().splice(0, getMessagesNumbersToSend().length)
+
+    }, [messagesData])
+
     const acknowledgeMessage = (number: number) => {
         setMessagesData((messages) => {
             const updatedMessages = [...messages]
@@ -74,8 +84,8 @@ export default function LiveChat<UT extends UserType>({
         removeConnectedUser(user)
     }
     const handleMesMessage: HandleMesMessage<UT> = (mm) => {
-        const user = firstHandleMesMessage(mm)
-        setMessageData({user: user, number: mm.number, body: mm.body, ack: true})
+        const userId = firstHandleMesMessage(mm)
+        setInboundMessageData({fromUserId: userId, number: mm.number, body: mm.body, ack: true})
     }
     const handleAckMessage: HandleAckMessage<UT> = (n) => {
         acknowledgeMessage(n)
@@ -87,10 +97,11 @@ export default function LiveChat<UT extends UserType>({
         handleDisMessage: handleDisMessage,
         handleMesMessage: handleMesMessage,
         handleAckMessage: handleAckMessage
-    })
-    const sendMessageWrapper = (body: string, guessId: GuessId<UT>) => {
-        setLocalMessageData(body, sendMessage)
+    }) as  SendMesMessage<UT>
+
+    const sendMessageFromView = (body: string, guessesIds?: string[]) => {
+        setOutboundMessageData(body, guessesIds)
     }
 
-    return <ChatView users={connectedUsers} messages={messagesData} sendMessage={sendMessageWrapper} containerProps={viewContainerProps}/>
+    return <ChatView userType={userType} usersIds={connectedUsers} messages={messagesData} sendMessage={sendMessageFromView} containerProps={viewContainerProps}/>
 }

@@ -69,9 +69,9 @@ export type CommonMessagePartsPositions<M extends Message, MPP = M["positions"]>
     [K in M["parts"] as K extends keyof MPP ? IfUniquePosition<MPP[K], K> : never]: never;
 };
 export type GotMessageParts<M extends Message, CMPP extends CommonMessagePartsPositions<M>> = {
-    [K in CMPP]: MessageParts[K];
+    [K in CMPP]: K extends "prefix" ? M["prefix"] : MessageParts[K];
 };
-export type GetMessageParams<M extends Message> = {
+export type GotAllMessageParts<M extends Message> = {
     [K in keyof M["positions"] | "prefix"]: K extends "prefix" ? M["prefix"] : K extends MessagePartsKeys ? MessageParts[K] : never;
 };
 export {};

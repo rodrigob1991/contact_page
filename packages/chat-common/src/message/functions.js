@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCutMessage = exports.getMessageParts = exports.getMessage = void 0;
+exports.getCutMessage = exports.getMessageParts = exports.getMessagePrefix = exports.getMessage = void 0;
 const constants_1 = require("../model/constants");
 const strings_1 = require("utils/src/strings");
 const getMessage = (parts) => {
@@ -18,6 +18,10 @@ const getMessage = (parts) => {
     return message;
 };
 exports.getMessage = getMessage;
+const getMessagePrefix = (m) => {
+    return m.substring(0, 3);
+};
+exports.getMessagePrefix = getMessagePrefix;
 const getMessageParts = (m, whatGet) => {
     const parts = {};
     const getPartSeparatorIndex = (occurrence) => (0, strings_1.getIndexOnOccurrence)(m, ":", occurrence);
@@ -89,7 +93,7 @@ const getCutMessage = (m, whatCut, lastPosition) => {
     }
     if (constants_1.messageParts.body in whatCut) {
         position = whatCut.body;
-        partEndIndex = findPartBoundaryIndex();
+        partStartIndex = findPartBoundaryIndex();
         partEndIndex = m.length - 1;
         cut();
     }

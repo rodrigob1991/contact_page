@@ -28,6 +28,7 @@ import {
 } from "chat-common/src/message/types"
 import {messagePrefixes, users} from "chat-common/src/model/constants"
 import {getCutMessage, getMessage, getMessageParts} from "chat-common/src/message/functions"
+import {isEmpty} from "../../../packages/utils/src/strings";
 
 type HandleMesMessage<UT extends UserType> = (m: InboundMessageTemplate<UT, "mes">) => void
 type HandleAckMessage<UT extends UserType> = (a: InboundMessageTemplate<UT, "ack">) => void
@@ -83,16 +84,19 @@ const initWebSocket = (subscribeToMessages : SubscribeToMessages, publishMessage
         return true
     }
     wsServer.on("request", async (request) => {
+        console.log(`REQUESTED PROTOCOLS: ${request.requestedProtocols.toString()}`)
         const origin = request.origin
         const connectionDate = Date.now()
         if (!originIsAllowed(origin)) {
             request.reject()
             console.log(`${connectionDate} connection from origin ${origin} rejected.`)
         } else {
-            const connection = request.accept("echo-protocol", origin)
+            const connection = request.accept(undefined, origin)
             console.log((connectionDate) + " connection accepted")
 
-            const userType: UserType = request.httpRequest.headers.host_user === process.env.HOST_USER_SECRET ? users.host : users.guess
+            const hostHeader = request.httpRequest.headers.host_use
+            console.log(hostHeader + "-" + process.env.HOST_HEADER)
+            const userType: UserType = !isEmpty(hostHeader) && hostHeader === process.env.HOST_HEADER ? users.host : users.guess
             const guessId = await newUser(userType)
 
             const sendMessage = (key: RedisMessageKey, message: OutboundMessageTemplate) => {
@@ -271,7 +275,7 @@ const init = async () => {
         if (userType === users.host) {
             promise = redisClient.sAdd(users.host, storageHostMemberId)
         } else {
-            promise = redisClient.incr(users.guess).then(guessesCount => {
+            promise = redisClient.incr(users.guess + "-count").then(guessesCount => {
                 redisClient.sAdd(users.guess, guessesCount + "")
                 return guessesCount
             })

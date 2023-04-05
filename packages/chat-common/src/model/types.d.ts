@@ -7,6 +7,6 @@ export type MessageParts = {
     [messageParts.originPrefix]: MessagePrefix<"out">;
     [messageParts.number]: number;
     [messageParts.guessId]: number;
-    [messageParts.body]: `-${string}`;
+    [messageParts.body]: string;
 };
 export type MessagePartsKeys = keyof MessageParts;

@@ -23,7 +23,7 @@ export async function getStaticProps() {
     return {props: JSON.parse(JSON.stringify(props))}
 }
 
-export default function Home({presentation, stories}: HomeProps) {
+export default function Home({presentation= {name:"", introduction: "", skills: [], image: undefined}, stories}: HomeProps) {
     const [showSidebar, setShowSidebar] = useState(false)
     const showOrHideSidebar = () => { setShowSidebar(window.innerWidth > maxWidthSmallestLayout) }
     useEffect(() => {
@@ -43,8 +43,8 @@ export default function Home({presentation, stories}: HomeProps) {
           <link rel="shortcut icon" href="favicon.png" />
       </Head>
       <Container>
-          <Header/>
-          <PresentationView presentation={presentation || {name:"", introduction: "", skills: [], image: undefined}}/>
+          <Header userName={presentation.name}/>
+          <PresentationView presentation={presentation}/>
           <StoriesView stories={stories.map(s=> {return {...(({body, ...rest})=> rest)(s),body:getStoryBodyJsx(s.body)}})}/>
           <Footer>
           </Footer>
