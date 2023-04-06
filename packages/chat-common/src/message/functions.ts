@@ -39,8 +39,10 @@ export const getMessageParts = <M extends Message, CMPP extends CommonMessagePar
         parts["prefix"] = m.substring(0, 3)
     if (messageParts.originPrefix in whatGet)
         parts["originPrefix"] = m.substring(4, 7)
-    if (messageParts.number in whatGet)
-        parts["number"] = m.substring(8, getPartSeparatorIndex(whatGet.number as 2 | 3))
+    if (messageParts.number in whatGet) {
+        const numberPosition = whatGet.number as 2 | 3
+        parts["number"] = m.substring(getPartSeparatorIndex(numberPosition - 1) + 1, getPartSeparatorIndex(numberPosition))
+    }
     if (messageParts.guessId in whatGet) {
         const guessIdPosition = whatGet.guessId as 3 | 4
         parts["guessId"] = m.substring(getPartSeparatorIndex(guessIdPosition - 1) + 1, getPartSeparatorIndex(guessIdPosition))

@@ -28,7 +28,8 @@ import {
 } from "chat-common/src/message/types"
 import {messagePrefixes, users} from "chat-common/src/model/constants"
 import {getCutMessage, getMessage, getMessageParts} from "chat-common/src/message/functions"
-import {isEmpty} from "../../../packages/utils/src/strings";
+import {isEmpty} from "utils/src/strings"
+import {getParam} from "utils/src/urls"
 
 type HandleMesMessage<UT extends UserType> = (m: InboundMessageTemplate<UT, "mes">) => void
 type HandleAckMessage<UT extends UserType> = (a: InboundMessageTemplate<UT, "ack">) => void
@@ -84,7 +85,6 @@ const initWebSocket = (subscribeToMessages : SubscribeToMessages, publishMessage
         return true
     }
     wsServer.on("request", async (request) => {
-        console.log(`REQUESTED PROTOCOLS: ${request.requestedProtocols.toString()}`)
         const origin = request.origin
         const connectionDate = Date.now()
         if (!originIsAllowed(origin)) {
@@ -94,15 +94,16 @@ const initWebSocket = (subscribeToMessages : SubscribeToMessages, publishMessage
             const connection = request.accept(undefined, origin)
             console.log((connectionDate) + " connection accepted")
 
-            const hostHeader = request.httpRequest.headers.host_use
-            console.log(hostHeader + "-" + process.env.HOST_HEADER)
-            const userType: UserType = !isEmpty(hostHeader) && hostHeader === process.env.HOST_HEADER ? users.host : users.guess
+            const url = request.httpRequest.url
+            const hostToken =  url ? getParam(url, "host_token") : ""
+            const userType: UserType = !isEmpty(hostToken) && hostToken === process.env.HOST_TOKEN ? users.host : users.guess
             const guessId = await newUser(userType)
 
             const sendMessage = (key: RedisMessageKey, message: OutboundMessageTemplate) => {
                 cacheMessage(key, message)
 
                 const resendUntilAck = () => {
+                    console.log("outbound message:" + message)
                     connection.sendUTF(message)
                     setTimeout(() => {
                         isMessageAck(key).then(is => {
@@ -166,7 +167,7 @@ const initWebSocket = (subscribeToMessages : SubscribeToMessages, publishMessage
                         handleAckMessage(message as InboundAckMessage<UT>["template"])
                         break
                 }
-                console.log((new Date()) + " message: " + message)
+                console.log((new Date()) + " inbound message: " + message)
             }
             const handleMessageFromHost = (m: ws.Message) => {
                 const handleMesMessage: HandleMesMessage<"host"> = (m) => {
@@ -295,7 +296,7 @@ const init = async () => {
     }
 
     const getUsers: GetUsers = (userType) => {
-        return redisClient.lRange(users[userType], 0, -1).then(ids => ids.map(id => parseInt(id)))
+        return redisClient.sMembers(users[userType]).then(ids => ids.map(id => parseInt(id)))
     }
 
     initWebSocket(subscribeToMessages, publishMessage, cacheMessage, removeMessage, isMessageAck, newUser, removeUser, getUsers)

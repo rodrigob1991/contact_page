@@ -55,7 +55,7 @@ export default function useWebSocket<UT extends UserType>({
         resendUntilAck()
     }
 
-    const [wsEndpoint, sendMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getAckMessageParts] = userType === "host" ?
+    const [getWsEndpoint, sendMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getAckMessageParts] = userType === "host" ?
         getHostSpecifics(sendMesMessageCommon, handleConMessage, handleDisMessage, handleMesMessage, handleAckMessage)
         : getGuessSpecifics(sendMesMessageCommon, handleConMessage, handleDisMessage, handleMesMessage, handleAckMessage)
 
@@ -66,9 +66,11 @@ export default function useWebSocket<UT extends UserType>({
     const getWS = () => refToWs.current as WebSocket
 
     useEffect(() => {
-            const ws = new WebSocket(wsEndpoint)
+            const ws = new WebSocket(getWsEndpoint())
             ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate<UT>>) => {
+                console.log("inbound message: " + inboundMessage)
                 const {prefix, number} = getMessageParts<InboundMessage>(inboundMessage, {prefix: 1, number: 2})
+                console.log("number: " + number)
                 switch (prefix) {
                     case "con":
                         handleConMessage(getConMessageParts(inboundMessage as InboundMessageTemplate<UT, "con">))
@@ -106,10 +108,10 @@ type GetConMessageParts<UT extends UserType> = (icm: InboundMessageTemplate<UT, 
 type GetDisMessageParts<UT extends UserType> = (idm: InboundMessageTemplate<UT, "dis">) => InboundDisMessageParts<UT>
 type GetMesMessageParts<UT extends UserType> = (imm: InboundMessageTemplate<UT, "mes">) => InboundMesMessageParts<UT>
 type GetAckMessageParts<UT extends UserType> = (iam: InboundMessageTemplate<UT, "ack">) => InboundAckMessageParts<UT>
-type GetUserSpecifics<UT extends UserType> = (smmg: SendMesMessageCommon, hcm: HandleConMessage<UT>, hdm: HandleDisMessage<UT>, hmm: HandleMesMessage<UT>, ham: HandleAckMessage<UT>) => [string, SendMesMessage<UT>, GetConMessageParts<UT>, GetDisMessageParts<UT>, GetMesMessageParts<UT>, GetAckMessageParts<UT>]
+type GetUserSpecifics<UT extends UserType> = (smmg: SendMesMessageCommon, hcm: HandleConMessage<UT>, hdm: HandleDisMessage<UT>, hmm: HandleMesMessage<UT>, ham: HandleAckMessage<UT>) => [() => string, SendMesMessage<UT>, GetConMessageParts<UT>, GetDisMessageParts<UT>, GetMesMessageParts<UT>, GetAckMessageParts<UT>]
 
 const getHostSpecifics : GetUserSpecifics<"host"> = (smmg, hcm, hdm, hmm, ham) => {
-    const wsEndpoint = process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT + "?host_user=" + process.env.PRIVATE_TOKEN
+    const getWsEndpoint = () => process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT + "?host_token=" + localStorage.getItem("host_token")
     const sendMesMessage: SendMesMessage<"host"> = (number, body, guessesId) => {
         for (const guessId of guessesId) {
             smmg(number, getMessage<OutboundFromHostMesMessage>({prefix: "mes", number: number, body: body, guessId: guessId}))
@@ -127,11 +129,11 @@ const getHostSpecifics : GetUserSpecifics<"host"> = (smmg, hcm, hdm, hmm, ham) =
     const getAckMessageParts: GetAckMessageParts<"host"> = (iam) =>
         getMessageParts<InboundAckMessage<"host">>(iam, {prefix: 1, number: 2, guessId: 3})
 
-    return [wsEndpoint, sendMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getAckMessageParts]
+    return [getWsEndpoint, sendMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getAckMessageParts]
 }
 
 const getGuessSpecifics: GetUserSpecifics<"guess"> = (smmg, hcm, hdm, hmm, ham) => {
-    const wsEndpoint = process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT as string
+    const getWsEndpoint = () => process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT as string
     const sendMesMessage: SendMesMessage<"guess"> = (number, body, guessesId) => {
         smmg(number, getMessage<OutboundFromGuessMesMessage>({prefix: "mes", number: number, body: body}))
     }
@@ -147,5 +149,5 @@ const getGuessSpecifics: GetUserSpecifics<"guess"> = (smmg, hcm, hdm, hmm, ham) 
     const getAckMessageParts: GetAckMessageParts<"guess"> = (iam) =>
         getMessageParts<InboundAckMessage<"guess">>(iam, {prefix: 1, number: 2})
 
-    return [wsEndpoint, sendMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getAckMessageParts]
+    return [getWsEndpoint, sendMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getAckMessageParts]
 }

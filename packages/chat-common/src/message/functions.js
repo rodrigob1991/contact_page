@@ -29,8 +29,10 @@ const getMessageParts = (m, whatGet) => {
         parts["prefix"] = m.substring(0, 3);
     if (constants_1.messageParts.originPrefix in whatGet)
         parts["originPrefix"] = m.substring(4, 7);
-    if (constants_1.messageParts.number in whatGet)
-        parts["number"] = m.substring(8, getPartSeparatorIndex(whatGet.number));
+    if (constants_1.messageParts.number in whatGet) {
+        const numberPosition = whatGet.number;
+        parts["number"] = m.substring(getPartSeparatorIndex(numberPosition - 1) + 1, getPartSeparatorIndex(numberPosition));
+    }
     if (constants_1.messageParts.guessId in whatGet) {
         const guessIdPosition = whatGet.guessId;
         parts["guessId"] = m.substring(getPartSeparatorIndex(guessIdPosition - 1) + 1, getPartSeparatorIndex(guessIdPosition));
