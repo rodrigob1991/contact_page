@@ -1,5 +1,5 @@
 import {test, expect} from "@jest/globals"
-import {orderByComparePreviousByString, orderByCounting} from "common/utils/Arrays"
+import {orderByComparePreviousByString, orderByCounting} from "utils/src/arrays"
 
 const recordsWithNumber = [{key: 2}, {key: 8}, {key: 2}, {key: 4}, {key: 3}]
 
