@@ -35,20 +35,28 @@ export const getMessagePrefix = <M extends MessageTemplate>(m: M) => {
 export const getMessageParts = <M extends Message, CMPP extends CommonMessagePartsPositions<M>=CommonMessagePartsPositions<M>>(m: M["template"], whatGet: AnyMessagePartsPositions<M, CMPP>) => {
     const parts: any = {}
     const getPartSeparatorIndex = (occurrence: number) => getIndexOnOccurrence(m, ":", occurrence)
+    let firstSeparatorIndex
+    let finalSeparatorIndex
     if (messageParts.prefix in whatGet)
         parts["prefix"] = m.substring(0, 3)
     if (messageParts.originPrefix in whatGet)
         parts["originPrefix"] = m.substring(4, 7)
     if (messageParts.number in whatGet) {
         const numberPosition = whatGet.number as 2 | 3
-        parts["number"] = m.substring(getPartSeparatorIndex(numberPosition - 1) + 1, getPartSeparatorIndex(numberPosition))
+        firstSeparatorIndex = getPartSeparatorIndex(numberPosition - 1)
+        finalSeparatorIndex = getPartSeparatorIndex(numberPosition)
+        parts["number"] =  parseInt(m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex))
     }
     if (messageParts.guessId in whatGet) {
         const guessIdPosition = whatGet.guessId as 3 | 4
-        parts["guessId"] = m.substring(getPartSeparatorIndex(guessIdPosition - 1) + 1, getPartSeparatorIndex(guessIdPosition))
+        firstSeparatorIndex = getPartSeparatorIndex(guessIdPosition - 1)
+        finalSeparatorIndex = getPartSeparatorIndex(guessIdPosition)
+        parts["guessId"] = parseInt(m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex))
     }
-    if (messageParts.body in whatGet)
-        parts["body"] = m.substring(getPartSeparatorIndex((whatGet.body as 3 | 4) - 1) + 1, m.length - 1)
+    if (messageParts.body in whatGet) {
+        firstSeparatorIndex = getPartSeparatorIndex((whatGet.body as 3 | 4) - 1)
+        parts["body"] = m.substring(firstSeparatorIndex + 1, m.length)
+    }
 
     return parts as GotMessageParts<M, CMPP>
 }

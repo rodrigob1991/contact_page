@@ -18,8 +18,6 @@
     "nextjs": "yarn workspace nextjs",
     "chat-backend": "yarn workspace chat-backend",
     "utils": "yarn workspace utils",
-    "chat-common": "yarn workspace chat-common",
-    "test-chat-common": "jest packages/chat-common/src/test/*",
-    "test-utils": "jest packages/utils/src/test/*"
+    "chat-common": "yarn workspace chat-common"
   }
 }

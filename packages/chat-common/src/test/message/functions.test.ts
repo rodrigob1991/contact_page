@@ -1,5 +1,5 @@
 import {expect, test} from "@jest/globals"
-import {MessagePrefix} from "../model/types"
+import {MessagePrefix} from "../../model/types"
 import {
     GotAllMessageParts,
     InboundFromGuessAckMessage,
@@ -12,16 +12,16 @@ import {
     OutboundToHostConMessage,
     OutboundToHostDisMessage,
     OutboundToHostMesMessage
-} from "../message/types"
-import {messagePrefixes} from "../model/constants"
-import {getMessageParts} from "../message/functions"
+} from "../../message/types"
+import {messagePrefixes} from "../../model/constants"
+import {getMessageParts} from "../../message/functions"
 
 const {con: conPrefix, dis: disPrefix, mes: mesPrefix, ack: ackPrefix} = messagePrefixes
 const hardcodeParts = {originPrefix: "mes" as MessagePrefix, number: 2346544, guessId: 1522, body: "something to say"}
 const {originPrefix, number, guessId, body} = hardcodeParts
 
 const equalParts = <M extends Message, GMP = GotAllMessageParts<M>>(expectedParts: GMP, gotParts: GMP, prefix: M["prefix"], userType: M["userType"], flow: M["flow"]) => {
-    test(`messages parts matches the message on  ${flow}bound ${prefix} ${userType}`, () => {
+    test(`message parts do not matches the message ${flow}bound ${prefix} ${userType}`, () => {
         expect(expectedParts).toEqual(gotParts)
     })
 }
