@@ -68,7 +68,7 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
     let cutCount = 0
     let partStartIndex = 0
     let partEndIndex = 0
-    const findPartBoundaryIndex = (start = true) => {
+    const findPartIndex = (start = true) => {
         const currentPosition = position - cutCount
         let index
         if (currentPosition === 1 && start) {
@@ -76,7 +76,7 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
         } else if (start) {
             index = getIndexOnOccurrence(cutMessage, ":", currentPosition - 1) + 1
         } else {
-            index = getIndexOnOccurrence(cutMessage, ":", currentPosition) - 1
+            index = position === lastPosition ? cutMessage.length : getIndexOnOccurrence(cutMessage, ":", currentPosition) - 1
         }
         return index
     }
@@ -101,20 +101,20 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
     }
     if (messageParts.number in whatCut) {
         position = whatCut.number as 2 | 3
-        partStartIndex = 8 - cutSize
-        partEndIndex = findPartBoundaryIndex(false)
+        partStartIndex = findPartIndex()
+        partEndIndex = findPartIndex(false)
         cut()
     }
     if (messageParts.guessId in whatCut) {
         position = whatCut.guessId as 3 | 4
-        partStartIndex = findPartBoundaryIndex()
-        partEndIndex = findPartBoundaryIndex(false)
+        partStartIndex = findPartIndex()
+        partEndIndex = findPartIndex(false)
         cut()
     }
     if (messageParts.body in whatCut) {
         position = whatCut.body as 3 | 4
-        partStartIndex = findPartBoundaryIndex()
-        partEndIndex = m.length - 1
+        partStartIndex = findPartIndex()
+        partEndIndex = cutMessage.length
         cut()
     }
 

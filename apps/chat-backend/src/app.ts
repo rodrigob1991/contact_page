@@ -103,15 +103,17 @@ const initWebSocket = (subscribeToMessages : SubscribeToMessages, publishMessage
                 cacheMessage(key, message)
 
                 const resendUntilAck = () => {
-                    console.log("outbound message:" + message)
-                    connection.sendUTF(message)
-                    setTimeout(() => {
-                        isMessageAck(key).then(is => {
-                            if (!is) {
-                                resendUntilAck()
-                            }
-                        })
-                    }, 5000)
+                    if (connection.connected) {
+                        console.log("outbound message to " + userType + ": " + message)
+                        connection.sendUTF(message)
+                        setTimeout(() => {
+                            isMessageAck(key).then(is => {
+                                if (!is) {
+                                    resendUntilAck()
+                                }
+                            })
+                        }, 5000)
+                    }
                 }
                 resendUntilAck()
             }
@@ -167,7 +169,7 @@ const initWebSocket = (subscribeToMessages : SubscribeToMessages, publishMessage
                         handleAckMessage(message as InboundAckMessage<UT>["template"])
                         break
                 }
-                console.log((new Date()) + " inbound message: " + message)
+                console.log((new Date()) + " inbound message from " + userType + ": " + message)
             }
             const handleMessageFromHost = (m: ws.Message) => {
                 const handleMesMessage: HandleMesMessage<"host"> = (m) => {

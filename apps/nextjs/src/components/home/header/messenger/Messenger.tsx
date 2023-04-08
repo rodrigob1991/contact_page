@@ -9,7 +9,7 @@ type Props = {
 export default function Messenger({userName}: Props) {
     return (
         <Container>
-            <GuessLiveChat hostName={userName}/>
+            <GuessLiveChat hostName={userName.substring(0,(()=> { const endIndex = userName.indexOf(" "); return endIndex < 0 ? userName.length : endIndex })())}/>
             <SendEmail/>
         </Container>
     )

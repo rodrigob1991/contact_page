@@ -1,6 +1,6 @@
 import {UserType} from "chat-common/src/model/types"
 import {InboundConMessageParts, InboundDisMessageParts, InboundMesMessageParts} from "../../types/chat"
-import ChatView, {ContainerProps, MessageData} from "./View"
+import ChatView, {ContainerProps, Hide, MessageData} from "./View"
 import useWebSocket, {
     GuessesIds,
     HandleAckMessage,
@@ -19,7 +19,7 @@ type Props<UT extends UserType> = {
     firstHandleConMessage: FirstHandleConMessage<UT>
     firstHandleDisMessage: FirstHandleDisMessage<UT>
     firstHandleMesMessage: FirstHandleMesMessage<UT>
-    viewContainerProps: ContainerProps
+    viewProps: { containerProps: ContainerProps, hide?: Hide }
 }
 
 export const LOCAL_USER_ID = "me"
@@ -29,7 +29,7 @@ export default function LiveChat<UT extends UserType>({
                                                           firstHandleConMessage,
                                                           firstHandleDisMessage,
                                                           firstHandleMesMessage,
-                                                          viewContainerProps
+                                                          viewProps
                                                       }: Props<UT>) {
     const [connectedUsers, setConnectedUsers] = useState<string[]>([])
     const setConnectedUser = (user: string) => {
@@ -103,5 +103,5 @@ export default function LiveChat<UT extends UserType>({
         setOutboundMessageData(body, guessesIds)
     }
 
-    return <ChatView userType={userType} usersIds={connectedUsers} messages={messagesData} sendMessage={sendMessageFromView} containerProps={viewContainerProps}/>
+    return <ChatView userType={userType} usersIds={connectedUsers} messages={messagesData} sendMessage={sendMessageFromView} {...viewProps}/>
 }

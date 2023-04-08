@@ -57,7 +57,7 @@ const getCutMessage = (m, whatCut, lastPosition) => {
     let cutCount = 0;
     let partStartIndex = 0;
     let partEndIndex = 0;
-    const findPartBoundaryIndex = (start = true) => {
+    const findPartIndex = (start = true) => {
         const currentPosition = position - cutCount;
         let index;
         if (currentPosition === 1 && start) {
@@ -67,7 +67,7 @@ const getCutMessage = (m, whatCut, lastPosition) => {
             index = (0, strings_1.getIndexOnOccurrence)(cutMessage, ":", currentPosition - 1) + 1;
         }
         else {
-            index = (0, strings_1.getIndexOnOccurrence)(cutMessage, ":", currentPosition) - 1;
+            index = position === lastPosition ? cutMessage.length : (0, strings_1.getIndexOnOccurrence)(cutMessage, ":", currentPosition) - 1;
         }
         return index;
     };
@@ -91,20 +91,20 @@ const getCutMessage = (m, whatCut, lastPosition) => {
     }
     if (constants_1.messageParts.number in whatCut) {
         position = whatCut.number;
-        partStartIndex = 8 - cutSize;
-        partEndIndex = findPartBoundaryIndex(false);
+        partStartIndex = findPartIndex();
+        partEndIndex = findPartIndex(false);
         cut();
     }
     if (constants_1.messageParts.guessId in whatCut) {
         position = whatCut.guessId;
-        partStartIndex = findPartBoundaryIndex();
-        partEndIndex = findPartBoundaryIndex(false);
+        partStartIndex = findPartIndex();
+        partEndIndex = findPartIndex(false);
         cut();
     }
     if (constants_1.messageParts.body in whatCut) {
         position = whatCut.body;
-        partStartIndex = findPartBoundaryIndex();
-        partEndIndex = m.length - 1;
+        partStartIndex = findPartIndex();
+        partEndIndex = cutMessage.length;
         cut();
     }
     return cutMessage;
