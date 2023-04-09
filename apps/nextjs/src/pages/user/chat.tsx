@@ -21,9 +21,8 @@ export default function HostLiveChat({}: Props) {
 
     return (
         <Container>
-        <LiveChat userType={"host"} viewProps={{containerProps: {show: true, top: 50, left: 50}}}
-                  firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage}
-                  firstHandleMesMessage={handleMesMessage}/>
+        <LiveChat userType={"host"} firstOnConnection={() => {}} firstOnDisconnection={() => {}} viewProps={{containerProps: {show: true, top: 50, left: 50}}}
+                  firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage} firstHandleMesMessage={handleMesMessage} connect={true}/>
         </Container>
     )
 }

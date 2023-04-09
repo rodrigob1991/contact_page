@@ -5,6 +5,8 @@ import {isEmpty} from "utils/src/strings"
 import {LOCAL_USER_ID} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
 import {AiFillEyeInvisible} from "react-icons/ai"
+import {FiArrowRight} from "react-icons/fi"
+
 
 export type MessageData = { fromUserId: string, toUsersIds?: string[], number: number, body: string, ack: boolean }
 type SendMessage =  (b: string, gi?: string[]) => void
@@ -93,9 +95,11 @@ export default function ChatView<UT extends UserType>({userType, messages, users
 
     return (
         <Container {...containerProps}>
-            { hide && <AiFillEyeInvisible size={20} style={{cursor: "pointer", color: "#FFFFFF", marginBottom: "10px"}} onClick={(e)=> { hide() }}/> }
+            <ToolBar> { hide && <AiFillEyeInvisible size={30} style={{cursor: "pointer", color: "black"}} onClick={(e)=> { hide() }}/> }</ToolBar>
             <InnerContainer>
             <UsersContainer>
+                <UsersContainerTitle>online users</UsersContainerTitle>
+                <hr color={"black"} style={{width:"100%", margin: "0px"}}/>
                 {usersIds.map((ui) => <UserView key={ui} color={getUserColor(ui)} onClick={(e) => { handleClickUser(e, ui)}} isHost={isHost} isSelected={isHost && selectedGuessesIds.includes(ui)}> {ui} </UserView>)}
             </UsersContainer>
             <RightContainer>
@@ -105,8 +109,8 @@ export default function ChatView<UT extends UserType>({userType, messages, users
                     <div ref={messagesEndRef}/>
                 </MessagesContainer>
                 <SendMessageContainer>
-                <TextInput value={messageStr} setValue={setMessageStr} onEnter={handleInputMessage} placeholder={"message..."} style={{borderStyle: "solid", borderWidth: "medium", borderColor: "black", borderRadius: "10px", fontSize: "23px", fontWeight: "bold", padding: "5px", width: "550px"}}/>
-                    <button onClick={(e) => {e.preventDefault(); handleInputMessage()}} style={{width: "50", borderStyle: "solid", borderWidth: "medium", borderColor: "black", color: "green", borderRadius: "10px", fontWeight: "bold"}} > send </button>
+                <TextInput value={messageStr} setValue={setMessageStr} onEnter={handleInputMessage} placeholder={"type message..."} style={{borderStyle: "solid", borderWidth: "medium", borderColor: "black", borderRadius: "10px", fontSize: "23px", fontWeight: "bold", padding: "5px", width: "550px"}}/>
+                    <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={(e) => {handleInputMessage()}}/>
                 </SendMessageContainer>
             </RightContainer>
             </InnerContainer>
@@ -130,16 +134,34 @@ const Container = styled.form<ContainerProps>`
   overflow: auto; 
   background-color: rgb(0,0,0); 
   background-color: rgba(0,0,0,0.4);
+  gap: 5px;
  `
 const InnerContainer = styled.div`
   display: flex;
   flex-direction: row;
   gap: 5px;
 `
+const ToolBar = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  height: 40px;
+  width: 100%;
+  border-style: solid;
+  border-radius: 10px;
+  background-color: #A9A9A9;
+  justify-content: center;
+  align-items: center;
+`
 const RightContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 5px;
+`
+const UsersContainerTitle = styled.span`
+  font-size: 21px;
+  font-weight: bold;
+  text-align: center;
 `
 const UsersContainer = styled.div`
   width: 150px;
@@ -157,6 +179,11 @@ const UsersContainer = styled.div`
 const UserView = styled.span<{ isHost: boolean, isSelected: boolean }>`
  font-size: 23px;
  font-weight: bold;
+ text-align: center;
+ background-color: #FFFFFF;
+ border-radius: 15px;
+ border-style: solid;
+ padding: 5px;
  ${({color, isHost, isSelected}) =>
     "color: " + color + ";"
     + (isHost ? "cursor: pointer;" : "")
@@ -183,6 +210,7 @@ const MessageView = styled.label<{ ack: boolean, isLocal: boolean}>`
  background-color: #FFFFFF;
  border-radius: 15px;
  border-style: solid;
+ box-shadow: 4px 4px 3px black;
  margin: 5px;
  padding: 5px;
  ${({color, ack, isLocal}) => "opacity:" + (ack ? 1 : 0.2) + ";" 
@@ -194,4 +222,6 @@ const MessageView = styled.label<{ ack: boolean, isLocal: boolean}>`
 const SendMessageContainer = styled.div`
   display: flex;
   flex-direction: row;
+  align-items: center;
+  gap: 5px;
 `

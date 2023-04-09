@@ -6,7 +6,7 @@ import useWebSocket, {
     HandleAckMessage,
     HandleConMessage,
     HandleDisMessage,
-    HandleMesMessage, SendMesMessage
+    HandleMesMessage, OnConnection, OnDisconnection, SendMesMessage
 } from "../../hooks/useWebSocket"
 import {useEffect, useRef, useState} from "react"
 
@@ -16,9 +16,12 @@ export type FirstHandleMesMessage<UT extends UserType> = (mm: InboundMesMessageP
 
 type Props<UT extends UserType> = {
     userType: UT
+    firstOnConnection: OnConnection
+    firstOnDisconnection: OnDisconnection
     firstHandleConMessage: FirstHandleConMessage<UT>
     firstHandleDisMessage: FirstHandleDisMessage<UT>
     firstHandleMesMessage: FirstHandleMesMessage<UT>
+    connect: boolean
     viewProps: { containerProps: ContainerProps, hide?: Hide }
 }
 
@@ -26,9 +29,12 @@ export const LOCAL_USER_ID = "me"
 
 export default function LiveChat<UT extends UserType>({
                                                           userType,
+                                                          firstOnConnection,
+                                                          firstOnDisconnection,
                                                           firstHandleConMessage,
                                                           firstHandleDisMessage,
                                                           firstHandleMesMessage,
+                                                          connect,
                                                           viewProps
                                                       }: Props<UT>) {
     const [connectedUsers, setConnectedUsers] = useState<string[]>([])
@@ -41,6 +47,14 @@ export default function LiveChat<UT extends UserType>({
             updatedUser.splice(users.findIndex((u) => u === user), 1)
             return updatedUser
         })
+    }
+    const onConnection = () => {
+        firstOnConnection()
+        setConnectedUser(LOCAL_USER_ID)
+    }
+    const onDisconnection = () => {
+        firstOnDisconnection()
+        setConnectedUsers([])
     }
     const [messagesData, setMessagesData] = useState<MessageData[]>([])
     const setInboundMessageData = (md: MessageData) => {
@@ -93,10 +107,13 @@ export default function LiveChat<UT extends UserType>({
 
     const sendMessage = useWebSocket({
         userType: userType,
+        onConnection: onConnection,
+        onDisconnection: onDisconnection,
         handleConMessage: handleConMessage,
         handleDisMessage: handleDisMessage,
         handleMesMessage: handleMesMessage,
-        handleAckMessage: handleAckMessage
+        handleAckMessage: handleAckMessage,
+        connect: connect
     }) as  SendMesMessage<UT>
 
     const sendMessageFromView = (body: string, guessesIds?: string[]) => {

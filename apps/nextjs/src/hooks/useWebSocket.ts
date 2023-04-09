@@ -19,6 +19,8 @@ import {
 import {useEffect, useRef} from "react"
 import {getMessage, getMessageParts, getMessagePrefix} from "chat-common/src/message/functions"
 
+export type OnConnection = () => void
+export type OnDisconnection = () => void
 export type HandleConMessage<UT extends UserType> =  (cm: InboundConMessageParts<UT>) => void
 export type HandleDisMessage<UT extends UserType> =  (dm: InboundDisMessageParts<UT>) => void
 export type HandleMesMessage<UT extends UserType> =  (mm: InboundMesMessageParts<UT>) => void
@@ -30,18 +32,24 @@ export type SendMesMessage<UT extends UserType> = (number: number, body: string,
 
 export type Props<UT extends UserType> = {
     userType: UT
+    onConnection: OnConnection
+    onDisconnection: OnDisconnection
     handleConMessage: HandleConMessage<UT>
     handleDisMessage: HandleDisMessage<UT>
     handleMesMessage: HandleMesMessage<UT>
     handleAckMessage: HandleAckMessage<UT>
+    connect: boolean
 }
 
 export default function useWebSocket<UT extends UserType>({
                                                               userType,
+                                                              onConnection,
+                                                              onDisconnection,
                                                               handleConMessage,
                                                               handleDisMessage,
                                                               handleMesMessage,
-                                                              handleAckMessage
+                                                              handleAckMessage,
+                                                              connect
                                                           }: Props<UT>) {
     const sendMesMessageCommon: SendMesMessageCommon = (number, mesMessage) => {
         const resendUntilAck = () => {
@@ -65,43 +73,58 @@ export default function useWebSocket<UT extends UserType>({
         refToWs.current = ws
     }
     const getWS = () => refToWs.current
+    const initWS = () => {
+        const ws = new WebSocket(getWsEndpoint())
+        ws.onopen = (e) => {
+            onConnection()
+        }
+        ws.onclose = (e) => {
+            onDisconnection()
+        }
+        ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate<UT>>) => {
+            console.log("inbound message: " + inboundMessage)
+            let parts
+            let ack
+            const prefix = getMessagePrefix(inboundMessage)
+            switch (prefix) {
+                case "con":
+                    [parts, ack] = getConMessageParts(inboundMessage as InboundMessageTemplate<UT, "con">)
+                    handleConMessage(parts)
+                    break
+                case "dis":
+                    [parts, ack] = getDisMessageParts(inboundMessage as InboundMessageTemplate<UT, "dis">)
+                    handleDisMessage(parts)
+                    break
+                case "mes":
+                    [parts, ack] = getMesMessageParts(inboundMessage as InboundMessageTemplate<UT, "mes">)
+                    handleMesMessage(parts)
+                    break
+                case "ack":
+                    [parts, ack] = getAckMessageParts(inboundMessage as InboundMessageTemplate<UT, "ack">)
+                    setMessageAlreadyAck(parts.number)
+                    handleAckMessage(parts.number)
+                    break
+                default:
+                    throw new Error("invalid inbound message")
+            }
+            // acknowledged message
+            ws.send(ack)
+        }
+        setWS(ws)
+    }
+    const closeWS = () => {
+        getWS()?.close()
+    }
 
     useEffect(() => {
-            const ws = new WebSocket(getWsEndpoint())
-            ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate<UT>>) => {
-                console.log("inbound message: " + inboundMessage)
-                let parts
-                let ack
-                const prefix = getMessagePrefix(inboundMessage)
-                switch (prefix) {
-                    case "con":
-                        [parts, ack] = getConMessageParts(inboundMessage as InboundMessageTemplate<UT, "con">)
-                        handleConMessage(parts)
-                        break
-                    case "dis":
-                        [parts, ack] = getDisMessageParts(inboundMessage as InboundMessageTemplate<UT, "dis">)
-                        handleDisMessage(parts)
-                        break
-                    case "mes":
-                        [parts, ack] = getMesMessageParts(inboundMessage as InboundMessageTemplate<UT, "mes">)
-                        handleMesMessage(parts)
-                        break
-                    case "ack":
-                        [parts, ack] = getAckMessageParts(inboundMessage as InboundMessageTemplate<UT, "ack">)
-                        setMessageAlreadyAck(parts.number)
-                        handleAckMessage(parts.number)
-                        break
-                    default:
-                        throw new Error("invalid inbound message")
-                }
-                // acknowledged message
-                ws.send(ack)
+            if (connect) {
+                initWS()
+            } else {
+                closeWS()
             }
-            setWS(ws)
-
-            return () => { ws.close() }
+            return closeWS
         }
-        , [])
+        , [connect])
 
     const ackMessagesRef = useRef<boolean[]>([])
     const getAckMessages = () => ackMessagesRef.current
