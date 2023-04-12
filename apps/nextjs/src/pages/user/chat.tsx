@@ -4,6 +4,7 @@ import LiveChat, {
     FirstHandleMesMessage
 } from "../../components/chat/LiveChat"
 import styled from "@emotion/styled"
+import {HandleNewConnectionState} from "../../hooks/useWebSocket";
 
 type Props = {}
 
@@ -19,9 +20,12 @@ export default function HostLiveChat({}: Props) {
         return mm.guessId.toString()
     }
 
+    const handleNewConnectionState: HandleNewConnectionState = (cs) => {
+    }
+
     return (
         <Container>
-        <LiveChat userType={"host"} firstOnConnection={() => {}} firstOnDisconnection={() => {}} viewProps={{containerProps: {show: true, top: 50, left: 50}}}
+        <LiveChat userType={"host"} nextHandleNewConnectionState={handleNewConnectionState} viewProps={{containerProps: {show: true, top: 50, left: 50}}}
                   firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage} firstHandleMesMessage={handleMesMessage} connect={true}/>
         </Container>
     )

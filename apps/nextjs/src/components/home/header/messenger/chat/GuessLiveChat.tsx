@@ -1,33 +1,46 @@
 import LiveChat, {FirstHandleConMessage, FirstHandleDisMessage, FirstHandleMesMessage} from "../../../../chat/LiveChat"
 import ComponentWithTooltip from "../../../../ComponentWithTooltip"
-import {useState} from "react"
+import React, {useState} from "react"
 import styled from "@emotion/styled"
 import LiveIcon from "/public/live.svg"
 import {maxWidthSmallestLayout} from "../../../../../dimensions"
+import {SeeOrUnseeButton} from "../../../../Buttons"
+import {ConnectionState, HandleNewConnectionState} from "../../../../../hooks/useWebSocket"
 
 type Props = {
     hostName: string
 }
 
 export default function GuessLiveChat({hostName}: Props) {
-    const [show, setShow] = useState(false)
+    const [showView, setShowView] = useState(false)
     const [connect, setConnect] = useState(false)
+    const handleNewConnectionState: HandleNewConnectionState = (cs) => {
+        switch (cs) {
+            case ConnectionState.DISCONNECTED:
+                setIconProps(disconnectedIconProps)
+                setShowView(false)
+                break
+            case ConnectionState.CONNECTING:
+                setIconProps(connectingIconProps)
+                break
+            case ConnectionState.CONNECTED:
+                setIconProps(connectedIconProps)
+                setShowView(true)
+                break
+        }
+    }
 
-    const handleOnClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const handleOnClickLiveIcon = (e: React.MouseEvent<HTMLDivElement>) => {
         setConnect(!connect)
+    }
+    const handleOnClickSeeIcon = (e: React.MouseEvent<SVGElement>) => {
+        setShowView(!showView)
     }
 
     const disconnectedIconProps = {color: "#FF4500", tooltipText: "connect chat"}
+    const connectingIconProps = {color: "#FFFF00", tooltipText: "connecting chat"}
     const connectedIconProps = {color: "#ADFF2F", tooltipText: "disconnect chat"}
     const [iconProps, setIconProps] = useState(disconnectedIconProps)
-
-    const onConnection = () => {
-        setIconProps(connectedIconProps)
-        setShow(true)
-    }
-    const onDisconnection = () => {
-        setIconProps(disconnectedIconProps)
-    }
 
     const handleConMessage: FirstHandleConMessage<"guess"> = (cm) => {
         return hostName
@@ -40,18 +53,27 @@ export default function GuessLiveChat({hostName}: Props) {
     }
 
     return (
-        <>
+        <Container>
             <ComponentWithTooltip childElement={<Image fill={iconProps.color}/>}
                                   tooltipText={iconProps.tooltipText}
                                   tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40}
                                   tooltipLeftDeviation={-70}
-                                  onClick={handleOnClick}/>
-            <LiveChat userType={"guess"} firstOnConnection={onConnection} firstOnDisconnection={onDisconnection} viewProps={{containerProps: {show: show, top: 50, left: 50}, hide: ()=> { setShow(false) }}}
-                      firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage} firstHandleMesMessage={handleMesMessage} connect={connect}/>
-        </>
+                                  onClick={handleOnClickLiveIcon}/>
+            <SeeOrUnseeButton see={showView} size={50} color={iconProps.color} onClick={handleOnClickSeeIcon}/>
+            <LiveChat userType={"guess"} viewProps={{containerProps: {show: showView, top: 50, left: 50}, hide: ()=> { setShowView(false) }}}
+                      firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage} firstHandleMesMessage={handleMesMessage}
+                      nextHandleNewConnectionState={handleNewConnectionState} connect={connect}/>
+        </Container>
     )
 }
 
+const Container = styled.div`
+ display:flex;
+ flex-direction: row;
+ align-items: center;
+ justify-content: center;
+ gap: 15px;
+`
 const Image = styled(LiveIcon)`
   width: 85px;
   height:85px;

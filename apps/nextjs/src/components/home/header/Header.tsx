@@ -48,7 +48,7 @@ const Container = styled.div`
 const ContactLinksContainer = styled.div`
   display: flex;
   flex-direction: row-reverse;
-  gap: 40px;
+  gap: 20px;
   align-items: center;
   padding-right: 20px;
   width: 100%;
@@ -75,7 +75,7 @@ const ContactImage = styled.object`
     height: 30px;
   }
 `
-const Separator = styled.div`
+export const Separator = styled.div`
   width: 2px;
   height: 100%;
   background-color: white;

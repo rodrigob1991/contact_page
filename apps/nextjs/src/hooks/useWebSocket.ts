@@ -29,28 +29,37 @@ export type HandleAckMessage<UT extends UserType> =  (n: number) => void
 export type GuessesIds<UT extends UserType> = UT extends "host" ? number[] : undefined
 export type GuessId<UT extends UserType> = UT extends "host" ? number : undefined
 export type SendMesMessage<UT extends UserType> = (number: number, body: string, guessesId: GuessesIds<UT>) => void
+export enum ConnectionState { CONNECTED, DISCONNECTED, CONNECTING}
+export type HandleNewConnectionState = (cs: ConnectionState) => void
 
 export type Props<UT extends UserType> = {
     userType: UT
-    onConnection: OnConnection
-    onDisconnection: OnDisconnection
     handleConMessage: HandleConMessage<UT>
     handleDisMessage: HandleDisMessage<UT>
     handleMesMessage: HandleMesMessage<UT>
     handleAckMessage: HandleAckMessage<UT>
     connect: boolean
+    handleNewConnectionState: HandleNewConnectionState
 }
 
 export default function useWebSocket<UT extends UserType>({
                                                               userType,
-                                                              onConnection,
-                                                              onDisconnection,
                                                               handleConMessage,
                                                               handleDisMessage,
                                                               handleMesMessage,
                                                               handleAckMessage,
-                                                              connect
+                                                              connect,
+                                                              handleNewConnectionState,
                                                           }: Props<UT>) {
+    const handleConnecting = () => {
+        handleNewConnectionState(ConnectionState.CONNECTING)
+    }
+    const handleConnected = () => {
+        handleNewConnectionState(ConnectionState.CONNECTED)
+    }
+    const handleDisconnected = () => {
+        handleNewConnectionState(ConnectionState.DISCONNECTED)
+    }
     const sendMesMessageCommon: SendMesMessageCommon = (number, mesMessage) => {
         const resendUntilAck = () => {
             (getWS() as WebSocket).send(mesMessage)
@@ -74,12 +83,17 @@ export default function useWebSocket<UT extends UserType>({
     }
     const getWS = () => refToWs.current
     const initWS = () => {
+        handleConnecting()
         const ws = new WebSocket(getWsEndpoint())
         ws.onopen = (e) => {
-            onConnection()
+            handleConnected()
         }
         ws.onclose = (e) => {
-            onDisconnection()
+            handleDisconnected()
+        }
+        ws.onerror = (e) => {
+            if (ws.readyState === ws.CONNECTING)
+                handleConnecting()
         }
         ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate<UT>>) => {
             console.log("inbound message: " + inboundMessage)

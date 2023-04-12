@@ -4,9 +4,9 @@ import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
 import {LOCAL_USER_ID} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
-import {AiFillEyeInvisible} from "react-icons/ai"
+import {BsEyeSlashFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
-
+import {ConnectionState} from "../../hooks/useWebSocket";
 
 export type MessageData = { fromUserId: string, toUsersIds?: string[], number: number, body: string, ack: boolean }
 type SendMessage =  (b: string, gi?: string[]) => void
@@ -15,6 +15,7 @@ export type Hide = () => void
 
 type Props<UT extends UserType> = {
     userType: UT
+    connectionState: ConnectionState
     messages: MessageData[]
     usersIds: string[]
     sendMessage: SendMessage
@@ -22,7 +23,7 @@ type Props<UT extends UserType> = {
     hide?: Hide
 }
 
-export default function ChatView<UT extends UserType>({userType, messages, usersIds, sendMessage, containerProps, hide}: Props<UT>) {
+export default function ChatView<UT extends UserType>({userType, connectionState, messages, usersIds, sendMessage, containerProps, hide}: Props<UT>) {
     const isHost = userType === "host"
     const [selectedGuessesIds, setSelectedGuessesIds] = useState<string[]>([])
 
@@ -95,7 +96,7 @@ export default function ChatView<UT extends UserType>({userType, messages, users
 
     return (
         <Container {...containerProps}>
-            <ToolBar> { hide && <AiFillEyeInvisible size={30} style={{cursor: "pointer", color: "black"}} onClick={(e)=> { hide() }}/> }</ToolBar>
+            <ToolBarContainer> { hide && <BsEyeSlashFill size={30} style={{cursor: "pointer", color: "black",margin: "20px"}} onClick={(e)=> { hide() }}/> }<ToolBarRightInnerContainer><ConnectionStateView connectionState={connectionState}/></ToolBarRightInnerContainer> </ToolBarContainer>
             <InnerContainer>
             <UsersContainer>
                 <UsersContainerTitle>online users</UsersContainerTitle>
@@ -141,10 +142,10 @@ const InnerContainer = styled.div`
   flex-direction: row;
   gap: 5px;
 `
-const ToolBar = styled.div`
+const ToolBarContainer = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  flex-direction: row;
+  gap: 15px;
   height: 40px;
   width: 100%;
   border-style: solid;
@@ -152,6 +153,21 @@ const ToolBar = styled.div`
   background-color: #A9A9A9;
   justify-content: center;
   align-items: center;
+`
+const ToolBarRightInnerContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  margin-left: auto;
+`
+
+const ConnectionStateView = styled.span<{connectionState: ConnectionState}>`
+  position: relative;
+  height: 30px;
+  width: 30px;
+  margin: 20px;
+  border-radius: 50%;
+  display: inline-block;
+  background-color: ${({connectionState: cs})=> cs === ConnectionState.DISCONNECTED ? "red" : cs === ConnectionState.CONNECTING ? "yellow" : "green" } ;
 `
 const RightContainer = styled.div`
   display: flex;

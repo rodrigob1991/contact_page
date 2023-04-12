@@ -2,11 +2,14 @@ import {UserType} from "chat-common/src/model/types"
 import {InboundConMessageParts, InboundDisMessageParts, InboundMesMessageParts} from "../../types/chat"
 import ChatView, {ContainerProps, Hide, MessageData} from "./View"
 import useWebSocket, {
+    ConnectionState,
     GuessesIds,
     HandleAckMessage,
     HandleConMessage,
     HandleDisMessage,
-    HandleMesMessage, OnConnection, OnDisconnection, SendMesMessage
+    HandleMesMessage,
+    HandleNewConnectionState,
+    SendMesMessage,
 } from "../../hooks/useWebSocket"
 import {useEffect, useRef, useState} from "react"
 
@@ -16,12 +19,11 @@ export type FirstHandleMesMessage<UT extends UserType> = (mm: InboundMesMessageP
 
 type Props<UT extends UserType> = {
     userType: UT
-    firstOnConnection: OnConnection
-    firstOnDisconnection: OnDisconnection
     firstHandleConMessage: FirstHandleConMessage<UT>
     firstHandleDisMessage: FirstHandleDisMessage<UT>
     firstHandleMesMessage: FirstHandleMesMessage<UT>
     connect: boolean
+    nextHandleNewConnectionState: HandleNewConnectionState
     viewProps: { containerProps: ContainerProps, hide?: Hide }
 }
 
@@ -29,12 +31,11 @@ export const LOCAL_USER_ID = "me"
 
 export default function LiveChat<UT extends UserType>({
                                                           userType,
-                                                          firstOnConnection,
-                                                          firstOnDisconnection,
                                                           firstHandleConMessage,
                                                           firstHandleDisMessage,
                                                           firstHandleMesMessage,
                                                           connect,
+                                                          nextHandleNewConnectionState,
                                                           viewProps
                                                       }: Props<UT>) {
     const [connectedUsers, setConnectedUsers] = useState<string[]>([])
@@ -48,14 +49,20 @@ export default function LiveChat<UT extends UserType>({
             return updatedUser
         })
     }
-    const onConnection = () => {
-        firstOnConnection()
-        setConnectedUser(LOCAL_USER_ID)
+
+    const [connectionState, setConnectionState] = useState(ConnectionState.DISCONNECTED)
+    const handleNewConnectionState: HandleNewConnectionState = (cs) => {
+        setConnectionState(cs)
+        switch (cs) {
+            case ConnectionState.CONNECTED :
+                setConnectedUser(LOCAL_USER_ID)
+                break
+            case ConnectionState.DISCONNECTED :
+                setConnectedUsers([])
+        }
+        nextHandleNewConnectionState(cs)
     }
-    const onDisconnection = () => {
-        firstOnDisconnection()
-        setConnectedUsers([])
-    }
+
     const [messagesData, setMessagesData] = useState<MessageData[]>([])
     const setInboundMessageData = (md: MessageData) => {
         setMessagesData((messagesData) => [...messagesData, md])
@@ -73,7 +80,7 @@ export default function LiveChat<UT extends UserType>({
         })
     }
     useEffect(() => {
-        getMessagesNumbersToSend().forEach((n)=> {
+        getMessagesNumbersToSend().forEach((n) => {
             const {body, number, toUsersIds} = messagesData[n]
             sendMessage(number, body, (toUsersIds ? toUsersIds.map((ui)=> parseInt(ui)): undefined) as GuessesIds<UT>)
         })
@@ -107,18 +114,17 @@ export default function LiveChat<UT extends UserType>({
 
     const sendMessage = useWebSocket({
         userType: userType,
-        onConnection: onConnection,
-        onDisconnection: onDisconnection,
         handleConMessage: handleConMessage,
         handleDisMessage: handleDisMessage,
         handleMesMessage: handleMesMessage,
         handleAckMessage: handleAckMessage,
-        connect: connect
+        connect: connect,
+        handleNewConnectionState: handleNewConnectionState
     }) as  SendMesMessage<UT>
 
     const sendMessageFromView = (body: string, guessesIds?: string[]) => {
         setOutboundMessageData(body, guessesIds)
     }
 
-    return <ChatView userType={userType} usersIds={connectedUsers} messages={messagesData} sendMessage={sendMessageFromView} {...viewProps}/>
+    return <ChatView userType={userType} connectionState={connectionState} usersIds={connectedUsers} messages={messagesData} sendMessage={sendMessageFromView} {...viewProps}/>
 }
