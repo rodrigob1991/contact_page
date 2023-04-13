@@ -10,6 +10,7 @@ type Props = {
 export default function Messenger({userName}: Props) {
     return (
         <Container>
+            <Separator/>
             <GuessLiveChat hostName={userName.substring(0,(()=> { const endIndex = userName.indexOf(" "); return endIndex < 0 ? userName.length : endIndex })())}/>
             <Separator/>
             <SendEmail/>
@@ -22,6 +23,7 @@ const Container = styled.div`
   flex-direction: row;
   height: 100%;
   gap: 20px;
+  margin-right: 10px;
   align-items: center;
    @media (max-width: ${maxWidthSmallestLayout}px) {
     gap: 15px;

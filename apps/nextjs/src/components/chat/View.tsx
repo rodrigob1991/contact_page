@@ -97,7 +97,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
 
     return (
         <Container {...containerProps}>
-            <ToolBarContainer> { hide && <BsEyeSlashFill size={30} style={{cursor: "pointer", color: "black",margin: "20px"}} onClick={(e)=> { hide() }}/> }<ToolBarRightInnerContainer><ConnectionStateView connectionState={connectionState}/></ToolBarRightInnerContainer> </ToolBarContainer>
+            <ToolBarContainer> { hide && <BsEyeSlashFill size={30} style={{position: "absolute", cursor: "pointer", color: "black"}} onClick={(e)=> { hide() }}/> }<ToolBarRightInnerContainer><ConnectionStateView connectionState={connectionState}/></ToolBarRightInnerContainer> </ToolBarContainer>
             <InnerContainer>
             <UsersContainer>
                 <UsersContainerTitle>online users</UsersContainerTitle>

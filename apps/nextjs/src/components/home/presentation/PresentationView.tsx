@@ -5,7 +5,8 @@ import {ImageViewSelector, ProcessSelectedImage} from "../../FormComponents"
 import Image from "next/image"
 import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
 import {Observe} from "../../../pages/user/edit_home"
-import {minWidthFullLayout} from "../../../dimensions";
+import {maxWidthSmallestLayout, minWidthFullLayout} from "../../../dimensions";
+import {mainColor, secondColor} from "../../../colors";
 
 export type GetHtmlElementId = <K extends PresentationHTMLElementIdsKey>(key: K, skillId: (K extends "skills" ? string : undefined)) =>  string
 type EditingProps = {
@@ -55,6 +56,7 @@ export default function PresentationView<VM extends ViewMode>({
                 <Name id={nameHtmlId} contentEditable={editing} ref={ editing ? r => {if (r) (observe as Observe)(r, {mutation: "default"})} : undefined}>
                     {name}
                 </Name>
+                <LogoImage alt={""} src={"/favicon.png"} width={80} height={80}/>
             </NameImageContainer>
             <Introduction id={introductionHtmlId} contentEditable={editing} ref={ editing ? r => {if(r) (observe as Observe)(r, {mutation: "default"})} : undefined}
                                       dangerouslySetInnerHTML={{__html: introduction}}/>
@@ -70,7 +72,7 @@ const Container = styled.div`
   flex-direction: column;
   justify-content: center;
   padding: 20px;
-  background-image: linear-gradient(#00008B,#0000FF);
+  background-image: linear-gradient(${secondColor},${mainColor});
   box-shadow: 5px 10px #888888;
   @media (max-width: ${minWidthFullLayout}px) {
     align-items: center;
@@ -108,7 +110,7 @@ const Name = styled.span`
 const Introduction = styled.span`
   font-weight: bold;
   font-size: 2.1rem;
-  background-color: #778899;
+  background-color: ${secondColor};
   padding: 7px;
   border-radius: 15px;
   border-style: solid;
@@ -122,3 +124,11 @@ const NameImageContainer = styled.div`
   align-items: center;
   gap: 15px;
     `
+const LogoImage = styled(Image)`
+  width: 100px;
+  height: 100px;
+  margin-left: 20px;
+  @media (max-width: ${maxWidthSmallestLayout}px) {
+    margin-left: 5px;
+  }
+`

@@ -6,7 +6,7 @@ import {Pallet} from "../../Pallet"
 import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
 import {Observe} from "../../../pages/user/edit_home"
-import {getStoryBodyJsx} from "../../../utils/Parsers"
+import {secondColor} from "../../../colors";
 
 export type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -46,6 +46,8 @@ export default function StoriesView<M extends ViewMode>({
         updatedStoriesViewStates[index].isOpen = !updatedStoriesViewStates[index].isOpen
         setStoriesViewStates(updatedStoriesViewStates)
     }
+    const getOpenOrCloseStoryButton = (isOpen: boolean, onClick?: (e: React.MouseEvent) => void) => <OpenOrCloseStoryButton size={25} color={secondColor} isOpen={isOpen} onClick={onClick}/>
+
     const getStoriesView = () =>
         storiesViewStates.map(({story: {title, body}, isOpen}, index) => {
            // const JsxBody = getStoryBodyJsx(body)
@@ -53,7 +55,7 @@ export default function StoriesView<M extends ViewMode>({
                 <StoryContainer key={title}>
                     <StoryTitleContainer onClick={(e => openOrCloseStory(index))}>
                         <StoryTitle>{title}</StoryTitle>
-                        <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen}/>
+                        {getOpenOrCloseStoryButton(isOpen)}
                     </StoryTitleContainer>
                     {isOpen && <StoryBody>{body}</StoryBody>}
                 </StoryContainer>
@@ -135,7 +137,7 @@ export default function StoriesView<M extends ViewMode>({
                         <StoryTitle id={htmlIds.title} ref={r => {if(r) (observe as Observe)(r, {mutation: "default"})}} toDelete={toDelete} contentEditable={!toDelete}>
                             {title}
                         </StoryTitle>
-                        <OpenOrCloseStoryButton size={25} color={"#778899"} isOpen={isOpen} onClick={(e => openOrCloseStory(index))}/>
+                        {getOpenOrCloseStoryButton(isOpen, (e) => { openOrCloseStory(index) })}
                         <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20}
                                                handleDelete={() => {handleDeleteStory(idHtml, index, !("id" in story))}}
                                                handleRecover={() => {handleRecoverStory(idHtml, index)}}/>
@@ -171,7 +173,7 @@ const Container = styled.div`
   flex-direction: column;
   padding: 10px;
   gap: 15px;
-  background-color: #778899;
+  background-color: ${secondColor};
   border-style: solid;
   border-color: #FFFFFF;
 `
@@ -194,8 +196,6 @@ const StoriesContainer = styled.ul`
   width: 100%;
   overflow: auto;
   max-height: 50vh;
-  border-style: solid;
-  border-color: #778899;
   padding: 5px;
   background-color: #fff;
   background-image:
@@ -205,7 +205,7 @@ const StoriesContainer = styled.ul`
 const StoryContainer = styled.li`
   list-style-type: none;
   padding-bottom: 15px;
-  border-color: #778899;
+  border-color: ${secondColor};
   border-width: medium;
   border-bottom-style: solid;
   margin-top: 15px;
@@ -230,11 +230,10 @@ const StoryTitleContainer = styled.div`
   cursor: pointer;
 `
 const StoryTitle = styled.span<{ toDelete?: boolean }>`
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
-  color: #778899;
-  text-shadow: 2px 2px 1px #000000;
+  color: ${secondColor};
   padding-bottom: 5px;
   ${props => 
     props.toDelete ? 
