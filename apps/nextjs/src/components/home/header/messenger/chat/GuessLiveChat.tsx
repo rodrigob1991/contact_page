@@ -54,12 +54,12 @@ export default function GuessLiveChat({hostName}: Props) {
 
     return (
         <Container>
-            <ComponentWithTooltip childElement={<Image fill={iconProps.color}/>}
+            <ComponentWithTooltip childElement={<LiveIconStyled fill={iconProps.color}/>}
                                   tooltipText={iconProps.tooltipText}
                                   tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40}
                                   tooltipLeftDeviation={-70}
                                   onClick={handleOnClickLiveIcon}/>
-            <SeeOrUnseeButton see={showView} size={50} color={iconProps.color} onClick={handleOnClickSeeIcon}/>
+            <SeeViewButtonStyled see={showView} size={50} color={iconProps.color} onClick={handleOnClickSeeIcon}/>
             <LiveChat userType={"guess"} viewProps={{containerProps: {show: showView, top: 50, left: 50}, hide: ()=> { setShowView(false) }}}
                       firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage} firstHandleMesMessage={handleMesMessage}
                       nextHandleNewConnectionState={handleNewConnectionState} connect={connect}/>
@@ -74,12 +74,19 @@ const Container = styled.div`
  justify-content: center;
  gap: 15px;
 `
-const Image = styled(LiveIcon)`
+const LiveIconStyled = styled(LiveIcon)`
   width: 85px;
   height:85px;
   cursor: pointer;
   @media (max-width: ${maxWidthSmallestLayout}px) {
     width: 55px;
     height: 55px;
+  }
+`
+const SeeViewButtonStyled = styled(SeeOrUnseeButton)`
+  width: 60px;
+  cursor: pointer;
+  @media (max-width: ${maxWidthSmallestLayout}px) {
+    width: 40px;
   }
 `

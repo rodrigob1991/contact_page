@@ -104,8 +104,8 @@ const initWebSocket = (subscribeToMessages : SubscribeToMessages, publishMessage
 
                 const resendUntilAck = () => {
                     if (connection.connected) {
-                        console.log("outbound message to " + userType + ": " + message)
                         connection.sendUTF(message)
+                        console.log("outbound message to " + userType + ": " + message)
                         setTimeout(() => {
                             isMessageAck(key).then(is => {
                                 if (!is) {
@@ -230,7 +230,13 @@ const initWebSocket = (subscribeToMessages : SubscribeToMessages, publishMessage
 const init = async () => {
     const redisClient = await initRedisConnection()
 
-    const storageHostMemberId = "1"
+    // delete all the data
+    redisClient.flushAll().then()
+
+    const hostSetKey = users.host
+    const hostSetMemberId = "1"
+    const guessSetKey = users.guess
+    const guessCountKey = users.guess + "-count"
 
     const getConDisChannel = (isHostUser: boolean) => messagePrefixes.con + "-" + messagePrefixes.dis + "-" + (isHostUser ? users.host : users.guess)
     const getMessagesChannel = (isHostUser: boolean, guessId?: number) => messagePrefixes.mes + "-" + (isHostUser ? users.host : users.guess + "-" + guessId)
@@ -276,10 +282,10 @@ const init = async () => {
     const newUser: NewUser = (userType) => {
         let promise: Promise<number | void>
         if (userType === users.host) {
-            promise = redisClient.sAdd(users.host, storageHostMemberId)
+            promise = redisClient.sAdd(hostSetKey, hostSetMemberId)
         } else {
-            promise = redisClient.incr(users.guess + "-count").then(guessesCount => {
-                redisClient.sAdd(users.guess, guessesCount + "")
+            promise = redisClient.incr(guessCountKey).then(guessesCount => {
+                redisClient.sAdd(guessSetKey, guessesCount + "")
                 return guessesCount
             })
         }
@@ -288,17 +294,18 @@ const init = async () => {
     const removeUser: RemoveUser = (guessId) => {
         let key, member
         if (guessId) {
-            key = users.guess
+            key = guessSetKey
             member = guessId + ""
         } else {
-            key = users.host
-            member = storageHostMemberId
+            key = hostSetKey
+            member = hostSetMemberId
         }
         redisClient.sRem(key, member)
     }
 
     const getUsers: GetUsers = (userType) => {
-        return redisClient.sMembers(users[userType]).then(ids => ids.map(id => parseInt(id)))
+        const key = userType === users.host ? hostSetKey : guessSetKey
+        return redisClient.sMembers(key).then(ids => ids.map(id => parseInt(id)))
     }
 
     initWebSocket(subscribeToMessages, publishMessage, cacheMessage, removeMessage, isMessageAck, newUser, removeUser, getUsers)

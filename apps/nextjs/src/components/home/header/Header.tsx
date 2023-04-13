@@ -61,8 +61,9 @@ const ContactLinksContainer = styled.div`
 const LogoImage = styled(Image)`
   margin: 20px;
   @media (max-width: ${maxWidthSmallestLayout}px) {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
+    margin: 10px;
   }
 `
 const ContactImage = styled.object`

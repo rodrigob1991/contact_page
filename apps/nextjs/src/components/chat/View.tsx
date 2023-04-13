@@ -6,7 +6,8 @@ import {LOCAL_USER_ID} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
 import {BsEyeSlashFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
-import {ConnectionState} from "../../hooks/useWebSocket";
+import {ConnectionState} from "../../hooks/useWebSocket"
+import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions";
 
 export type MessageData = { fromUserId: string, toUsersIds?: string[], number: number, body: string, ack: boolean }
 type SendMessage =  (b: string, gi?: string[]) => void
@@ -101,7 +102,9 @@ export default function ChatView<UT extends UserType>({userType, connectionState
             <UsersContainer>
                 <UsersContainerTitle>online users</UsersContainerTitle>
                 <hr color={"black"} style={{width:"100%", margin: "0px"}}/>
+                <UsersInnerContainer>
                 {usersIds.map((ui) => <UserView key={ui} color={getUserColor(ui)} onClick={(e) => { handleClickUser(e, ui)}} isHost={isHost} isSelected={isHost && selectedGuessesIds.includes(ui)}> {ui} </UserView>)}
+                </UsersInnerContainer>
             </UsersContainer>
             <RightContainer>
                 <MessagesContainer>
@@ -110,7 +113,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
                     <div ref={messagesEndRef}/>
                 </MessagesContainer>
                 <SendMessageContainer>
-                <TextInput value={messageStr} setValue={setMessageStr} onEnter={handleInputMessage} placeholder={"type message..."} style={{borderStyle: "solid", borderWidth: "medium", borderColor: "black", borderRadius: "10px", fontSize: "23px", fontWeight: "bold", padding: "5px", width: "550px"}}/>
+                <TextInputStyled value={messageStr} setValue={setMessageStr} onEnter={handleInputMessage} placeholder={"type message..."}/>
                     <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={(e) => {handleInputMessage()}}/>
                 </SendMessageContainer>
             </RightContainer>
@@ -127,12 +130,11 @@ const Container = styled.form<ContainerProps>`
   flex-direction: column;
   align-items: center;
   z-index: 1; 
-  position: fixed;
+  position: absolute;
   -webkit-transform: translate(-50%, -50%);
   transform: translate(-50%, -50%);
   border-radius: 10px;
   padding: 10px;
-  overflow: auto; 
   background-color: rgb(0,0,0); 
   background-color: rgba(0,0,0,0.4);
   gap: 5px;
@@ -141,6 +143,16 @@ const InnerContainer = styled.div`
   display: flex;
   flex-direction: row;
   gap: 5px;
+  width: 700px;
+  height: 700px;
+  @media (max-width: ${minWidthFullLayout}px) {
+    width: 500px;
+    height: 500px;
+  }
+  @media (max-width: ${maxWidthSmallestLayout}px) {
+    width: 350px;
+    height: 400px;
+  }
 `
 const ToolBarContainer = styled.div`
   display: flex;
@@ -165,32 +177,38 @@ const ConnectionStateView = styled.span<{connectionState: ConnectionState}>`
   height: 30px;
   width: 30px;
   margin: 20px;
+  border-style: solid;
   border-radius: 50%;
   display: inline-block;
   background-color: ${({connectionState: cs})=> cs === ConnectionState.DISCONNECTED ? "red" : cs === ConnectionState.CONNECTING ? "yellow" : "green" } ;
 `
-const RightContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-`
+
 const UsersContainerTitle = styled.span`
   font-size: 21px;
   font-weight: bold;
   text-align: center;
+   @media (max-width: ${maxWidthSmallestLayout}px) {
+    font-size: 17px;
+  }
 `
 const UsersContainer = styled.div`
-  width: 150px;
-  margin-bottom: 0px;
   display: flex;
-  overflow-y: auto;
   flex-direction: column;
   border-style: solid;
   border-radius: 10px;
-  padding: 10px;
+  padding: 5px;
   background-color: #A9A9A9;
   border-style: solid;
   gap: 10px;
+  margin-bottom: 0px;
+  width: 20%;
+  `
+const UsersInnerContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  width: 100%;
   `
 const UserView = styled.span<{ isHost: boolean, isSelected: boolean }>`
  font-size: 23px;
@@ -200,29 +218,43 @@ const UserView = styled.span<{ isHost: boolean, isSelected: boolean }>`
  border-radius: 15px;
  border-style: solid;
  padding: 5px;
+ width: 100%;
+ overflow: auto;
  ${({color, isHost, isSelected}) =>
     "color: " + color + ";"
     + (isHost ? "cursor: pointer;" : "")
     + (isSelected ? "background-color: green;" : "")
 }
+@media (max-width: ${maxWidthSmallestLayout}px) {
+    font-size: 17px;
+    padding: 2px;
+    border-radius: 10px;
+  }
  `
+const RightContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 80%;
+`
 const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
+  height: 100%;
   border-style: solid;
   border-radius: 10px;
   padding: 10px;
   overflow-y: auto;
-  height: 500px;
-  width: 600px;
   background-color: #DCDCDC;
 `
 const MessageView = styled.label<{ ack: boolean, isLocal: boolean}>`
- display: flex;
+ display: block;
+ width: fit-content;
+ height: fit-content;
+ flex-shrink: 0;
  font-size: 23px;
  font-weight: bold;
  overflow: hidden;
- height: fit-content;
  background-color: #FFFFFF;
  border-radius: 15px;
  border-style: solid;
@@ -234,10 +266,26 @@ const MessageView = styled.label<{ ack: boolean, isLocal: boolean}>`
     + "align-self:" +  (isLocal ? "flex-start" : "flex-end") + ";"
     + "margin-" + (isLocal ? "right" : "left") + ": 40px;"
 }
+@media (max-width: ${maxWidthSmallestLayout}px) {
+    font-size: 19px;
+  }
  `
 const SendMessageContainer = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 5px;
+`
+const TextInputStyled = styled(TextInput)`
+ font-size: 23px;
+ border-style: solid;
+ border-width: medium;
+ border-color: black;
+ border-radius: 10px; 
+ font-weight: bold;
+ padding: 5px; 
+ width: 100%;
+ @media (max-width: ${maxWidthSmallestLayout}px) {
+    font-size: 19px;
+  }
 `

@@ -61,16 +61,18 @@ export default function useWebSocket<UT extends UserType>({
         handleNewConnectionState(ConnectionState.DISCONNECTED)
     }
     const sendMesMessageCommon: SendMesMessageCommon = (number, mesMessage) => {
-        const resendUntilAck = () => {
-            (getWS() as WebSocket).send(mesMessage)
-            setTimeout(() => {
-                if (!isMessageAck(number)) {
-                    resendUntilAck()
-                }
-            }, 5000)
+        if (getWS()) {
+            const resendUntilAck = () => {
+                (getWS() as WebSocket).send(mesMessage)
+                setTimeout(() => {
+                    if (!isMessageAck(number)) {
+                        resendUntilAck()
+                    }
+                }, 5000)
+            }
+            setMessageToAck(number)
+            resendUntilAck()
         }
-        setMessageToAck(number)
-        resendUntilAck()
     }
 
     const [getWsEndpoint, sendMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getAckMessageParts] = userType === "host" ?
