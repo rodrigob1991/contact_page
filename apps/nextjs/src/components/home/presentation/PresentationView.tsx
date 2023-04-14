@@ -5,8 +5,8 @@ import {ImageViewSelector, ProcessSelectedImage} from "../../FormComponents"
 import Image from "next/image"
 import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
 import {Observe} from "../../../pages/user/edit_home"
-import {maxWidthSmallestLayout, minWidthFullLayout} from "../../../dimensions";
-import {mainColor, secondColor} from "../../../colors";
+import {maxWidthSmallestLayout, minWidthFullLayout} from "../../../dimensions"
+import {secondColor} from "../../../colors"
 
 export type GetHtmlElementId = <K extends PresentationHTMLElementIdsKey>(key: K, skillId: (K extends "skills" ? string : undefined)) =>  string
 type EditingProps = {
@@ -72,7 +72,6 @@ const Container = styled.div`
   flex-direction: column;
   justify-content: center;
   padding: 20px;
-  background-image: linear-gradient(${secondColor},${mainColor});
   box-shadow: 5px 10px #888888;
   @media (max-width: ${minWidthFullLayout}px) {
     align-items: center;
@@ -109,7 +108,7 @@ const Name = styled.span`
     `
 const Introduction = styled.span`
   font-weight: bold;
-  font-size: 2.1rem;
+  font-size: 2.5rem;
   background-color: ${secondColor};
   padding: 7px;
   border-radius: 15px;

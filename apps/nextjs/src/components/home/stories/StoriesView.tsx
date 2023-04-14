@@ -171,11 +171,13 @@ export default function StoriesView<M extends ViewMode>({
 const Container = styled.div`
   display: flex;
   flex-direction: column;
+  height: fit-content;
   padding: 10px;
-  gap: 15px;
-  background-color: ${secondColor};
+  overflow: auto;
   border-style: solid;
   border-color: #FFFFFF;
+  gap: 15px;
+  background-color: ${secondColor};
 `
 const TitleContainer = styled.div`
   display: flex;
@@ -195,7 +197,6 @@ const StoriesContainer = styled.ul`
   margin: 0;
   width: 100%;
   overflow: auto;
-  max-height: 50vh;
   padding: 5px;
   background-color: #fff;
   background-image:
@@ -215,7 +216,9 @@ const StoryContainer = styled.li`
 `
 const StoryBody = styled.div`
   color: #696969;
-  font-size: 2.5rem;
+  font-weight: bold;
+  line-height: 1.5;
+  font-size: 3rem;
   font-family: "Lucida Console", "Courier New", monospace;
   padding: 6px;
   block-size: fit-content;
@@ -230,7 +233,7 @@ const StoryTitleContainer = styled.div`
   cursor: pointer;
 `
 const StoryTitle = styled.span<{ toDelete?: boolean }>`
-  font-size: 3rem;
+  font-size: 3.5rem;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
   color: ${secondColor};
