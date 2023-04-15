@@ -199,8 +199,8 @@ const UsersContainer = styled.div`
   padding: 5px;
   background-color: #A9A9A9;
   border-style: solid;
-  gap: 10px;
   margin-bottom: 0px;
+  gap: 5px;
   width: 20%;
   `
 const UsersInnerContainer = styled.div`
@@ -208,6 +208,7 @@ const UsersInnerContainer = styled.div`
   flex-direction: column;
   align-items: center;
   overflow: auto;
+  gap: 5px;
   width: 100%;
   `
 const UserView = styled.span<{ isHost: boolean, isSelected: boolean }>`
