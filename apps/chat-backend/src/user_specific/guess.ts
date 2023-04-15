@@ -11,18 +11,18 @@ import {
     OutboundToHostConMessage,
     OutboundToHostDisMessage
 } from "chat-common/src/message/types"
-import {getCutMessage, getMessage, getMessageParts} from "chat-common/src/message/functions";
+import {getCutMessage, getMessage, getMessageParts, getMessagePrefix} from "chat-common/src/message/functions"
 import ws from "websocket"
-import {messagePrefixes, users} from "chat-common/src/model/constants"
+import {messagePrefixes} from "chat-common/src/model/constants"
+import {InitUserConnection} from "./types"
+import {RedisMessageKey} from "../redis"
+import {HandleInboundAckMessage, HandleInboundMesMessage} from "../app"
 
-export const initGuessConnection = (getGuessId) => {
-    const guessId = await newUser("guess")
-    connection = acceptConnection()
-
-    const sendMessage: SendMessage<"guess"> = (...messages) => {
+export const initGuessConnection : InitUserConnection<"guess"> = async (acceptConnection, newGuess, removeGuess, getHost, publishMessage, subscribeToMessages, removeMessage, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+    const sendMessage = (...messages: OutboundMessageTemplate<"guess">[]) => {
         for (const message of messages) {
             let key: RedisMessageKey<GetMessages<"guess", "out">>
-            const mp = getMessageParts<OutboundMessage<"guess">, "prefix">(message, {prefix: 1}).prefix
+            const mp = getMessagePrefix(message)
             switch (mp) {
                 case "con":
                 case "dis":
@@ -35,34 +35,44 @@ export const initGuessConnection = (getGuessId) => {
                 default:
                     throw new Error("invalid message prefix")
             }
-            sendMessage(key, message)
+            cacheAndSendUntilAck(key, message)
         }
     }
 
-    const handleMessageFromGuess = (m: ws.Message) => {
-        const handleMesMessage: HandleMesMessage<"guess"> = (m) => {
+    const handleInboundMessage = (m: ws.Message) => {
+        const handleInboundMesMessage: HandleInboundMesMessage<"guess"> = (m) => {
             const {number, body} = getMessageParts<InboundFromGuessMesMessage, "number" | "body">(m, {number: 2, body: 3})
             publishMessage<InboundMessageTarget<InboundFromGuessMesMessage>>({prefix: "mes", number: number, guessId: guessId, body: body}, "host", undefined)
         }
-        const handleAckMessage: HandleAckMessage<"guess"> = (a) => {
+        const handleInboundAckMessage: HandleInboundAckMessage<"guess"> = (a) => {
             const {originPrefix, number} = getMessageParts<InboundFromGuessAckMessage, "originPrefix" | "number">(a, {originPrefix: 2, number: 3})
             removeMessage<InboundAckMessageOrigin<"guess">>(`guess:${guessId}:${originPrefix}:${number}`)
             if (originPrefix === messagePrefixes.mes)
                 publishMessage<OutboundToHostAckMessage>({prefix: "ack", number: number, guessId: guessId}, "host", undefined)
         }
-        handleMessage(m, handleMesMessage, handleAckMessage)
+        applyHandleInboundMessage(m, handleInboundMesMessage, handleInboundAckMessage)
     }
 
     const handleGuessDisconnection = (reasonCode: number, description: string) => {
         console.log(`guess ${guessId} disconnected, reason code:${reasonCode}, description: ${description}`)
         publishMessage<OutboundToHostDisMessage>({prefix: "dis", number: Date.now(), guessId: guessId}, "host", undefined)
-        removeUser(guessId)
+        removeGuess(guessId)
     }
 
-    subscribeToMessages(sendMessageToGuess, "guess", guessId)
-    publishMessage<OutboundToHostConMessage>({number: Date.now(), prefix:"con", guessId: guessId}, "host", undefined)
-    connection.on("message", handleMessageFromGuess)
-    connection.on("close", handleGuessDisconnection)
-    getUsers(users.host).then(hostId => { if(hostId.length > 0) sendMessageToGuess(getMessage<OutboundToGuessConMessage>({prefix: "con", number: connectionDate})) })
-}
+    let guessId = -1
+    try {
+        guessId = await newGuess()
+        const [connection, connectionDate] = acceptConnection(true)
+
+        subscribeToMessages(sendMessage, "guess", guessId)
+        publishMessage<OutboundToHostConMessage>({number: Date.now(), prefix: "con", guessId: guessId}, "host", undefined)
+        connection.on("message", handleInboundMessage)
+        connection.on("close", handleGuessDisconnection)
+        getHost().then(isHost => {
+            if (isHost) sendMessage(getMessage<OutboundToGuessConMessage>({prefix: "con", number: connectionDate}))
+        })
+    } catch (e) {
+        acceptConnection(false)
+        console.log(`connection rejected by: ${e}`)
+    }
 }
