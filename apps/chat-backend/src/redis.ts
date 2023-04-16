@@ -15,25 +15,25 @@ export type RedisMessageKey<M extends OutboundMessage[] = GetMessages<UserType, 
 type GuessIdToSubscribe<UT extends UserType> =
     ("guess" extends UT ? MessageParts["guessId"] : never)
     | ("host" extends UT ? undefined : never)
-export type SubscribeToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => void
+export type SubscribeToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => Promise<void>
 type GuessIdToPublish<UT extends UserType, MP extends MessagePrefix> = UT extends "guess" ? MP extends "mes" | "ack" ? MessageParts["guessId"] : undefined : undefined
 // only for one message type, no unions.
-export type PublishMessage = <M extends OutboundMessage>(messageParts: GotAllMessageParts<M>, toUserType: M["userType"], toGuessId: GuessIdToPublish<M["userType"], M["prefix"]>) => void
-type CacheMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>, message: M["template"]) => void
-export type RemoveMessage = <M extends OutboundMessage[]>(key: RedisMessageKey<M>) => void
+export type PublishMessage = <M extends OutboundMessage>(messageParts: GotAllMessageParts<M>, toUserType: M["userType"], toGuessId: GuessIdToPublish<M["userType"], M["prefix"]>) => Promise<void>
+type CacheMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>, message: M["template"]) => Promise<boolean>
+export type RemoveMessage = <M extends OutboundMessage[]>(key: RedisMessageKey<M>) => Promise<boolean>
 type IsMessageAck = <M extends OutboundMessage>(key: RedisMessageKey<[M]>) => Promise<boolean>
-type NewUserResult<UT extends UserType> = Promise<UT extends "guess" ? number : void>
+type NewUserResult<UT extends UserType> = Promise<UT extends "guess" ? number : boolean>
 type NewUser = <UT extends UserType>(userType: UT) => NewUserResult<UT>
-type RemoveUser = (guessId: number | undefined) => Promise<void>
+type RemoveUser = (guessId: number | undefined) => Promise<boolean>
 type GetUsers = (userType: UserType) => Promise<number[]>
 
 export type RedisAPIs = { newUser: NewUser, removeUser: RemoveUser, publishMessage: PublishMessage, subscribeToMessages: SubscribeToMessages, cacheMessage: CacheMessage, isMessageAck: IsMessageAck, removeMessage: RemoveMessage, getUsers: GetUsers }
 
-const initConnection = async () => {
+const initConnection = () => {
     const client = createClient({
         url: process.env.URL,
         username: process.env.REDIS_USERNAME,
-        password: process.env.REDIS_PASSWORD
+        password: process.env.REDIS_PASSWORD,
     })
     client.on('error', (err) => {
         console.error(err)})
@@ -47,15 +47,10 @@ const initConnection = async () => {
         console.log('redis is ready')
     })
 
-    try {
-        await client.connect()
-    } catch (e) {
-        console.log(`could not connect with redis:${e}`)
-    }
-    return client
+    return client.connect().then(() => client)
 }
 
-export const getRedisAPIs = async () => {
+export const initRedis = async () : Promise<RedisAPIs> => {
     const hostSetKey = users.host
     const hostSetMemberId = "1"
     const guessSetKey = users.guess
@@ -64,18 +59,20 @@ export const getRedisAPIs = async () => {
     const getConDisChannel = (isHostUser: boolean) => messagePrefixes.con + "-" + messagePrefixes.dis + "-" + (isHostUser ? users.host : users.guess)
     const getMessagesChannel = (isHostUser: boolean, guessId?: number) => messagePrefixes.mes + "-" + (isHostUser ? users.host : users.guess + "-" + guessId)
 
-    const subscribeToMessages = async <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => {
-        const subscriber = redisClient.duplicate()
-        await subscriber.connect()
-
+    const subscribeToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => {
         const isHostUser = ofUserType === users.host
 
-        await subscriber.subscribe(getConDisChannel(isHostUser), (message, channel) => {
-            sendMessage(message as OutboundMessageTemplate<UT, "con" | "dis">)
-        })
-        await subscriber.subscribe(getMessagesChannel(isHostUser, guessId), (message, channel) => {
-            sendMessage(message as OutboundMessageTemplate<UT, "mes" | "ack">)
-        })
+        const subscriber = redisClient.duplicate()
+
+        return subscriber.connect().then(() =>
+            Promise.all([subscriber.subscribe(getConDisChannel(isHostUser), (message, channel) => {
+                sendMessage(message as OutboundMessageTemplate<UT, "con" | "dis">)
+            }),
+                subscriber.subscribe(getMessagesChannel(isHostUser, guessId), (message, channel) => {
+                    sendMessage(message as OutboundMessageTemplate<UT, "mes" | "ack">)
+                })])
+                .then(() => { console.log(ofUserType + (guessId ? (" " + guessId) : "") + " subscribed to the channels") })
+        )
     }
     const publishMessage: PublishMessage = (parts, toUserType, toGuessId) => {
         let channel
@@ -93,32 +90,43 @@ export const getRedisAPIs = async () => {
             default:
                 throw new Error("should have been enter any case")
         }
-        redisClient.publish(channel, getMessage(parts))
+        const message = getMessage(parts)
+
+        return redisClient.publish(channel, message).then(n => { console.log(n + " " + toUserType + " consumers got the message " + message) })
     }
 
-    const cacheMessage: CacheMessage = (key, message) => {
-        redisClient.set(key, message)
-    }
-    const removeMessage: RemoveMessage = (key) => {
-        redisClient.del(key)
-    }
-    const isMessageAck: IsMessageAck = async (key) => await redisClient.get(key) === null
+    const cacheMessage: CacheMessage = (key, message) => redisClient.set(key, message).then(n => {
+        const cached = n !== null
+        console.log("message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached")
+        return cached
+    })
+
+    const removeMessage: RemoveMessage = (key) => redisClient.del(key).then(n => {
+        const removed = n > 0
+        console.log("message with key " + key + " was " + (removed ? "" : "not ") + "removed")
+        return removed
+    })
+    const isMessageAck: IsMessageAck = (key) => redisClient.get(key).then(m => m === null)
 
     const newUser: NewUser = <UT extends UserType>(userType: UT) => {
         let promise
         if (userType === users.host) {
-            promise = redisClient.sMembers(hostSetKey).then(id => {
-                if (id.length > 0) {
-                    return Promise.reject("already host user connected")
+            promise = redisClient.sMembers(hostSetKey).then(set => {
+                if (set.length > 0) {
+                    console.log("host already in the set")
+                    return false
                 } else {
-                    return redisClient.sAdd(hostSetKey, hostSetMemberId)
+                    return redisClient.sAdd(hostSetKey, hostSetMemberId).then(n => {
+                        const added = n > 0
+                        console.log("host was " + (added ? "" : "not ") + "added")
+                        return added
+                    })
                 }
             })
         } else {
-            promise = redisClient.incr(guessCountKey).then(guessesCount => {
-                redisClient.sAdd(guessSetKey, guessesCount + "")
-                return guessesCount
-            })
+            promise = redisClient.incr(guessCountKey).then(guessesCount =>
+                redisClient.sAdd(guessSetKey, guessesCount + "").then(n => n > 0 ? guessesCount : Promise.reject("guess " + guessesCount + " was not added"))
+            )
         }
         return promise as NewUserResult<UT>
     }
@@ -131,12 +139,19 @@ export const getRedisAPIs = async () => {
             key = hostSetKey
             member = hostSetMemberId
         }
-        return redisClient.sRem(key, member).then()
+        return redisClient.sRem(key, member).then(n => {
+            const removed = n > 0
+            console.log(" user " + (guessId || "host") + " was " + (removed ? "" : "not ") + "removed")
+            return removed
+        })
     }
 
     const getUsers: GetUsers = (userType) => {
         const key = userType === users.host ? hostSetKey : guessSetKey
-        return redisClient.sMembers(key).then(ids => ids.map(id => parseInt(id)))
+        return redisClient.sMembers(key).then(set => {
+            console.log(userType + " connected: " + set)
+            return set.map(id => parseInt(id))
+        })
     }
 
     const redisClient = await initConnection()

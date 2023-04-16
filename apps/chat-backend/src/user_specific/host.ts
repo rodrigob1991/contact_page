@@ -19,7 +19,7 @@ import {HandleInboundAckMessage, HandleInboundMesMessage} from "../app"
 import {InitUserConnection} from "./types"
 
 export const initHostConnection : InitUserConnection<"host">  = async (acceptConnection, newHost, removeHost, getGuesses, publishMessage, subscribeToMessages, removeMessage, cacheAndSendUntilAck, applyHandleInboundMessage) => {
-    const sendMessage = (...messages: OutboundMessageTemplate<"host">[]) => {
+    const sendOutboundMessage = (...messages: OutboundMessageTemplate<"host">[]) => {
         for (const message of messages) {
             let key: RedisMessageKey<GetMessages<"host", "out">>
             const mp = getMessagePrefix(message)
@@ -60,17 +60,17 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
         removeHost()
     }
 
-    try {
-        await newHost()
+    const added = await newHost()
+    if (added) {
         const [connection, connectionDate] = acceptConnection(true)
 
-        subscribeToMessages(sendMessage, "host", undefined)
+        subscribeToMessages(sendOutboundMessage, "host", undefined)
         publishMessage<OutboundToGuessConMessage>({number: Date.now(), prefix: "con"}, "guess", undefined)
+        getGuesses().then(guessesIds => sendOutboundMessage(...guessesIds.map(guessId => getMessage<OutboundToHostConMessage>({prefix: "con", number: connectionDate, guessId: guessId}))))
+
         connection.on("message", handleInboundMessage)
         connection.on("close", handleDisconnection)
-        getGuesses().then(guessesIds => sendMessage(...guessesIds.map(guessId => getMessage<OutboundToHostConMessage>({prefix: "con", number: connectionDate, guessId: guessId}))))
-    } catch (e) {
+    } else {
         acceptConnection(false)
-        console.log(`connection rejected by: ${e}`)
     }
 }

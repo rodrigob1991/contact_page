@@ -12,7 +12,7 @@ import {users} from "chat-common/src/model/constants"
 import {getMessagePrefix} from "chat-common/src/message/functions"
 import {isEmpty} from "utils/src/strings"
 import {getParam} from "utils/src/urls"
-import {getRedisAPIs, RedisAPIs, RedisMessageKey} from "./redis"
+import {initRedis, RedisAPIs, RedisMessageKey} from "./redis"
 import {initHostConnection} from "./user_specific/host"
 import {initGuessConnection} from "./user_specific/guess"
 
@@ -80,7 +80,7 @@ const initWebSocket = (httpServer: Server, {newUser, removeUser, getUsers, publi
                 const sendUntilAck = () => {
                     if (connection.connected) {
                         connection.sendUTF(message)
-                        console.log("outbound message to " + userType + ": " + message)
+                        console.log("sent outbound message to " + userType + ": " + message)
                         setTimeout(() => {
                             isMessageAck(key).then(is => {
                                 if (!is) {
@@ -120,7 +120,7 @@ const initWebSocket = (httpServer: Server, {newUser, removeUser, getUsers, publi
 
 const init = async () => {
     const httpServer = initHttpServer()
-    const redisAPIs = await getRedisAPIs()
+    const redisAPIs = await initRedis()
 
     initWebSocket(httpServer, redisAPIs)
 }

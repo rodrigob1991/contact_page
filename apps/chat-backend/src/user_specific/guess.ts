@@ -19,7 +19,7 @@ import {RedisMessageKey} from "../redis"
 import {HandleInboundAckMessage, HandleInboundMesMessage} from "../app"
 
 export const initGuessConnection : InitUserConnection<"guess"> = async (acceptConnection, newGuess, removeGuess, getHost, publishMessage, subscribeToMessages, removeMessage, cacheAndSendUntilAck, applyHandleInboundMessage) => {
-    const sendMessage = (...messages: OutboundMessageTemplate<"guess">[]) => {
+    const sendOutboundMessage = (...messages: OutboundMessageTemplate<"guess">[]) => {
         for (const message of messages) {
             let key: RedisMessageKey<GetMessages<"guess", "out">>
             const mp = getMessagePrefix(message)
@@ -59,20 +59,16 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
         removeGuess(guessId)
     }
 
-    let guessId = -1
-    try {
-        guessId = await newGuess()
-        const [connection, connectionDate] = acceptConnection(true)
+    const guessId = await newGuess()
 
-        subscribeToMessages(sendMessage, "guess", guessId)
-        publishMessage<OutboundToHostConMessage>({number: Date.now(), prefix: "con", guessId: guessId}, "host", undefined)
-        connection.on("message", handleInboundMessage)
-        connection.on("close", handleGuessDisconnection)
-        getHost().then(isHost => {
-            if (isHost) sendMessage(getMessage<OutboundToGuessConMessage>({prefix: "con", number: connectionDate}))
-        })
-    } catch (e) {
-        acceptConnection(false)
-        console.log(`connection rejected by: ${e}`)
-    }
+    const [connection, connectionDate] = acceptConnection(true)
+
+    subscribeToMessages(sendOutboundMessage, "guess", guessId)
+    publishMessage<OutboundToHostConMessage>({number: Date.now(), prefix: "con", guessId: guessId}, "host", undefined)
+    getHost().then(isHost => {
+        if (isHost) sendOutboundMessage(getMessage<OutboundToGuessConMessage>({prefix: "con", number: connectionDate}))
+    })
+
+    connection.on("message", handleInboundMessage)
+    connection.on("close", handleGuessDisconnection)
 }
