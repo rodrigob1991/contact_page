@@ -1,4 +1,4 @@
-import {RedisMessageKey} from "../redis"
+import {RedisMessageKey, Unsubscribe} from "../redis"
 import {
     GetMessages,
     InboundAckMessageOrigin,
@@ -16,7 +16,7 @@ import {getCutMessage, getMessage, getMessageParts, getMessagePrefix} from "chat
 import ws from "websocket"
 import {messagePrefixes} from "chat-common/src/model/constants"
 import {HandleInboundAckMessage, HandleInboundMesMessage} from "../app"
-import {InitUserConnection} from "./types"
+import {HandleUserDisconnection, InitUserConnection} from "./types"
 
 export const initHostConnection : InitUserConnection<"host">  = async (acceptConnection, newHost, removeHost, getGuesses, publishMessage, subscribeToMessages, removeMessage, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage = (...messages: OutboundMessageTemplate<"host">[]) => {
@@ -54,22 +54,25 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
         applyHandleInboundMessage(m, handleInboundMesMessage, handleInboundAckMessage)
     }
 
-    const handleDisconnection = (reasonCode: number, description: string) => {
+    let unsubscribe : Unsubscribe | undefined
+    const handleDisconnection: HandleUserDisconnection = (reasonCode, description) => {
         console.log(`host disconnected, reason code:${reasonCode}, description: ${description}`)
         publishMessage<OutboundToGuessDisMessage>({prefix: "dis", number: Date.now()}, "guess", undefined)
         removeHost()
+        if (unsubscribe)
+            unsubscribe()
     }
 
     const added = await newHost()
     if (added) {
         const [connection, connectionDate] = acceptConnection(true)
-
-        subscribeToMessages(sendOutboundMessage, "host", undefined)
-        publishMessage<OutboundToGuessConMessage>({number: Date.now(), prefix: "con"}, "guess", undefined)
-        getGuesses().then(guessesIds => sendOutboundMessage(...guessesIds.map(guessId => getMessage<OutboundToHostConMessage>({prefix: "con", number: connectionDate, guessId: guessId}))))
-
         connection.on("message", handleInboundMessage)
         connection.on("close", handleDisconnection)
+
+        subscribeToMessages(sendOutboundMessage, "host", undefined).then(u => { unsubscribe = u })
+        publishMessage<OutboundToGuessConMessage>({number: Date.now(), prefix: "con"}, "guess", undefined)
+        // send outbound con message for each connected guess
+        getGuesses().then(guessesIds => sendOutboundMessage(...guessesIds.map(guessId => getMessage<OutboundToHostConMessage>({prefix: "con", number: connectionDate, guessId: guessId}))))
     } else {
         acceptConnection(false)
     }

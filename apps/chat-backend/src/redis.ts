@@ -15,7 +15,8 @@ export type RedisMessageKey<M extends OutboundMessage[] = GetMessages<UserType, 
 type GuessIdToSubscribe<UT extends UserType> =
     ("guess" extends UT ? MessageParts["guessId"] : never)
     | ("host" extends UT ? undefined : never)
-export type SubscribeToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => Promise<void>
+export type Unsubscribe = () => Promise<void>
+export type SubscribeToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => Promise<Unsubscribe>
 type GuessIdToPublish<UT extends UserType, MP extends MessagePrefix> = UT extends "guess" ? MP extends "mes" | "ack" ? MessageParts["guessId"] : undefined : undefined
 // only for one message type, no unions.
 export type PublishMessage = <M extends OutboundMessage>(messageParts: GotAllMessageParts<M>, toUserType: M["userType"], toGuessId: GuessIdToPublish<M["userType"], M["prefix"]>) => Promise<void>
@@ -63,6 +64,8 @@ export const initRedis = async () : Promise<RedisAPIs> => {
         const isHostUser = ofUserType === users.host
 
         const subscriber = redisClient.duplicate()
+        const log = (action: "subscribed" | "unsubscribed") => { console.log(ofUserType + (guessId ? (" " + guessId) : "") + " " + action + " to the channels") }
+        const unsubscribe: Unsubscribe = () => subscriber.disconnect().then(() => log("unsubscribed"))
 
         return subscriber.connect().then(() =>
             Promise.all([subscriber.subscribe(getConDisChannel(isHostUser), (message, channel) => {
@@ -71,7 +74,10 @@ export const initRedis = async () : Promise<RedisAPIs> => {
                 subscriber.subscribe(getMessagesChannel(isHostUser, guessId), (message, channel) => {
                     sendMessage(message as OutboundMessageTemplate<UT, "mes" | "ack">)
                 })])
-                .then(() => { console.log(ofUserType + (guessId ? (" " + guessId) : "") + " subscribed to the channels") })
+                .then(() => {
+                    log("subscribed")
+                    return unsubscribe
+                })
         )
     }
     const publishMessage: PublishMessage = (parts, toUserType, toGuessId) => {
@@ -149,7 +155,8 @@ export const initRedis = async () : Promise<RedisAPIs> => {
     const getUsers: GetUsers = (userType) => {
         const key = userType === users.host ? hostSetKey : guessSetKey
         return redisClient.sMembers(key).then(set => {
-            console.log(userType + " connected: " + set)
+            const areUsersConnected = set.length > 0
+            console.log((areUsersConnected ? "" : "no ") + userType + " connected" + (areUsersConnected ? ": " + set : ""))
             return set.map(id => parseInt(id))
         })
     }

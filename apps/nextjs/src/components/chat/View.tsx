@@ -7,7 +7,7 @@ import {UserType} from "chat-common/src/model/types"
 import {BsEyeSlashFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
 import {ConnectionState} from "../../hooks/useWebSocket"
-import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions";
+import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions"
 
 export type MessageData = { fromUserId: string, toUsersIds?: string[], number: number, body: string, ack: boolean }
 type SendMessage =  (b: string, gi?: string[]) => void
