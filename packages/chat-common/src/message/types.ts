@@ -5,9 +5,10 @@ type MessageTemplateInstance<MP extends MessagePrefix, MPKS extends MessageParts
     `${MP}${PartTemplate<"originPrefix", MPKS, ":">}${PartTemplate<"number", MPKS, ":">}${PartTemplate<"guessId", MPKS, ":">}${PartTemplate<"body", MPKS, ":">}`
 export type CutMessage<M extends Message[], WC extends MessagePartsKeys> = M extends [infer OM, ...infer RM] ? OM extends Message ? MessageTemplateInstance<OM["prefix"], Exclude<OM["parts"], WC>> | (RM extends Message[] ? CutMessage<RM, WC> : never) : never : never
 
+// HERE IS WHERE IS ESTABLISH WHAT PARTS EACH MESSAGE HAS
 type SpecificMessagePartsKeys<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>> =
     "prefix"
-    | ("in" | "ack" extends MF | MP ? "originPrefix" : never)
+    | ("in" | "user-ack" extends MF | MP ? "originPrefix" : never)
     | "number"
     | ("mes" extends MP ? "body" : never)
     | ("host" extends UT ? "guessId" : never)

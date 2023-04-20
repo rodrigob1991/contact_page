@@ -2,15 +2,15 @@ import styled from "@emotion/styled"
 import React, {useEffect, useRef, useState} from "react"
 import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
-import {LOCAL_USER_ID} from "./LiveChat"
+import {HOST_ID, InboundMessageData, LOCAL_USER_ID, MessageData, OutboundMessageData} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
 import {BsEyeSlashFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
 import {ConnectionState} from "../../hooks/useWebSocket"
 import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions"
 
-export type MessageData = { fromUserId: string, toUsersIds?: string[], number: number, body: string, ack: boolean }
-type SendMessage =  (b: string, gi?: string[]) => void
+type ToGuessesIds<UT extends UserType> = UT extends "host" ? string[] : undefined
+export type SendOutboundMessage<UT extends UserType> =  (body: string, to: ToGuessesIds<UT>) => void
 export type ContainerProps = { show: boolean, left: number, top: number }
 export type Hide = () => void
 
@@ -18,41 +18,30 @@ type Props<UT extends UserType> = {
     userType: UT
     connectionState: ConnectionState
     messages: MessageData[]
-    usersIds: string[]
-    sendMessage: SendMessage
+    connectedUsersIds: string[]
+    sendOutboundMessage: SendOutboundMessage<UT>
     containerProps: ContainerProps
     hide?: Hide
 }
 
-export default function ChatView<UT extends UserType>({userType, connectionState, messages, usersIds, sendMessage, containerProps, hide}: Props<UT>) {
-    const isHost = userType === "host"
-    const [selectedGuessesIds, setSelectedGuessesIds] = useState<string[]>([])
+export default function ChatView<UT extends UserType>({userType, connectionState, messages, connectedUsersIds, sendOutboundMessage, containerProps, hide}: Props<UT>) {
+    const [bodyMessageStr, setBodyMessageStr] = useState("")
+
+    const [selectedConnectedUsersIds, setSelectedConnectedUsersIds] = useState<string[]>([])
+    const addOrRemoveSelectedConnectedUserId = (id: string) => {
+        if (selectedConnectedUsersIds.includes(id)) {
+            setSelectedConnectedUsersIds((sgis) => {
+                const updatedSelectedGuessesIds = [...sgis]
+                updatedSelectedGuessesIds.splice(sgis.findIndex(sgi => sgi === id), 1)
+                return updatedSelectedGuessesIds
+            })
+        } else {
+            setSelectedConnectedUsersIds([...selectedConnectedUsersIds, id])
+        }
+    }
 
     const userColorMapRef = useRef(new Map<string, string>([[LOCAL_USER_ID, "black"]]))
     const getUserColorMap = () => userColorMapRef.current
-
-    const getNewColor = () => {
-        /*const r = Math.floor((Math.random() * 127) + 127)
-        const g = Math.floor((Math.random() * 127) + 127)
-        const b = 1
-
-        const rgb = (r << 16) + (g << 8) + b
-        return `#${rgb.toString(16)}`*/
-        let r, g, b, brightness
-        do {
-            // generate random values for R, G y B
-            r = Math.floor(Math.random() * 256)
-            g = Math.floor(Math.random() * 256)
-            b = Math.floor(Math.random() * 256)
-
-            // calculate the resulted brightness
-            brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b
-        } while (brightness < 0.22)
-
-        const rgb = (r << 16) + (g << 8) + b
-        // return the color on RGB format
-        return `#${rgb.toString(16)}`
-    }
     const getUserColor = (id: string) => {
         let color = getUserColorMap().get(id)
         if (!color) {
@@ -62,33 +51,19 @@ export default function ChatView<UT extends UserType>({userType, connectionState
         return color
     }
 
-    const handleClickUser = (e: React.MouseEvent<HTMLSpanElement>, id: string) => {
-        if (isHost) {
-            if (selectedGuessesIds.includes(id)) {
-                setSelectedGuessesIds((sgis) => {
-                    const updatedSelectedGuessesIds = [...sgis]
-                    updatedSelectedGuessesIds.splice(sgis.findIndex(sgi => sgi === id), 1)
-                    return updatedSelectedGuessesIds
-                })
-            } else {
-                setSelectedGuessesIds([...selectedGuessesIds, id])
-            }
-        }
-    }
+    const isHost = userType === "host"
 
-    const [messageStr, setMessageStr] = useState("")
+    const [handleClickUser, getOutboundMessageView, sendOutboundMessageAccordingUser] = (isHost ? getHostSpecifics(selectedConnectedUsersIds, addOrRemoveSelectedConnectedUserId) : getGuessSpecifics(selectedConnectedUsersIds, addOrRemoveSelectedConnectedUserId)) as GetUserSpecificsReturn<UT>
 
     const handleInputMessage = () => {
-        if (!isEmpty(messageStr)) {
-            if (isHost && selectedGuessesIds.length > 0) {
-                sendMessage(messageStr, selectedGuessesIds)
-                setMessageStr("")
-            } else if (!isHost) {
-                sendMessage(messageStr, undefined)
-                setMessageStr("")
+        if (!isEmpty(bodyMessageStr)) {
+            if (sendOutboundMessageAccordingUser(bodyMessageStr, sendOutboundMessage)) {
+                setBodyMessageStr("")
             }
         }
     }
+    const getInboundMessageView = ({fromUserId, number, body}: InboundMessageData) =>
+        <MessageView key={fromUserId + "-" + number} color={getUserColor(fromUserId)} serverAck={true} isOutbound={false}> {body} </MessageView>
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     useEffect(() => {
@@ -103,23 +78,80 @@ export default function ChatView<UT extends UserType>({userType, connectionState
                 <UsersContainerTitle>online users</UsersContainerTitle>
                 <hr color={"black"} style={{width:"100%", margin: "0px"}}/>
                 <UsersInnerContainer>
-                {usersIds.map((ui) => <UserView key={ui} color={getUserColor(ui)} onClick={(e) => { handleClickUser(e, ui)}} isHost={isHost} isSelected={isHost && selectedGuessesIds.includes(ui)}> {ui} </UserView>)}
+                {connectedUsersIds.map((ui) => <UserView key={ui} color={getUserColor(ui)} onClick={ handleClickUser ? (e) => { handleClickUser(e, ui)} : undefined} isHost={isHost} isSelected={isHost && selectedConnectedUsersIds.includes(ui)}> {ui} </UserView>)}
                 </UsersInnerContainer>
             </UsersContainer>
             <RightContainer>
                 <MessagesContainer>
-                    {messages.map(({fromUserId, toUsersIds, number, body, ack}) =>
-                             <MessageView key={fromUserId + "-" + number} color={getUserColor(fromUserId)} ack={ack} isLocal={fromUserId === LOCAL_USER_ID}> {`${isHost && toUsersIds ? toUsersIds.toString() + " -> " : ""}${body}`} </MessageView>)}
+                    {messages.map((md) => md.flow === "in" ? getInboundMessageView(md) : getOutboundMessageView(md, getUserColor))}
                     <div ref={messagesEndRef}/>
                 </MessagesContainer>
                 <SendMessageContainer>
-                <TextInputStyled value={messageStr} setValue={setMessageStr} onEnter={handleInputMessage} placeholder={"type message..."}/>
-                    <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={(e) => {handleInputMessage()}}/>
+                <TextInputStyled value={bodyMessageStr} setValue={setBodyMessageStr} onEnter={handleInputMessage} placeholder={"type message..."}/>
+                    <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={handleInputMessage}/>
                 </SendMessageContainer>
             </RightContainer>
             </InnerContainer>
         </Container>
     )
+}
+
+const getNewColor = () => {
+    let r, g, b, brightness
+    do {
+        // generate random values for R, G y B
+        r = Math.floor(Math.random() * 256)
+        g = Math.floor(Math.random() * 256)
+        b = Math.floor(Math.random() * 256)
+
+        // calculate the resulted brightness
+        brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    } while (brightness < 0.22)
+
+    const rgb = (r << 16) + (g << 8) + b
+    // return the color on RGB format
+    return `#${rgb.toString(16)}`
+}
+
+type SendOutboundMessageAccordingUser<UT extends UserType> = (b: string, sendOutboundMessage: SendOutboundMessage<UT>) => boolean
+type HandleClickUser<UT extends UserType> = UT extends "host" ? (e: React.MouseEvent<HTMLSpanElement>, id: string) => void : undefined
+type GetOutboundMessageView = (omd: OutboundMessageData, getUserColor: (u: string) => string) => JSX.Element
+type GetUserSpecificsReturn<UT extends UserType> = [HandleClickUser<UT>, GetOutboundMessageView, SendOutboundMessageAccordingUser<UT>]
+type GetUserSpecifics<UT extends UserType> = (selectedConnectedUsersIds: string[], addOrRemoveSelectedConnectedUserId: (id: string) => void) => GetUserSpecificsReturn<UT>
+
+const getHostSpecifics: GetUserSpecifics<"host"> = (selectedConnectedGuessesIds, addOrRemoveSelectedConnectedGuessId) => {
+    const handleClickGuess: HandleClickUser<"host"> = (e: React.MouseEvent<HTMLSpanElement>, id: string) => {
+        addOrRemoveSelectedConnectedGuessId(id)
+    }
+    const getOutboundMessageView : GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) => {
+        const toGuessesIdsViews: JSX.Element[] = []
+        toUsersIds.forEach((acknowledged, userId) => {
+            toGuessesIdsViews.push(<ToGuessIdView key={userId} acknowledged={acknowledged}>{userId}</ToGuessIdView>)
+        })
+        return <MessageView key={LOCAL_USER_ID + "-" + number} color={getUserColor(LOCAL_USER_ID)} serverAck={serverAck}
+                            isOutbound={true}> {toGuessesIdsViews + " -> " + body} </MessageView>
+    }
+
+    const sendOutboundMessageAccordingUser: SendOutboundMessageAccordingUser<"host"> = (b, sendOutboundMessage) => {
+        const send = selectedConnectedGuessesIds.length > 0
+        if (send) {
+            sendOutboundMessage(b, selectedConnectedGuessesIds)
+        }
+        return send
+    }
+
+    return [handleClickGuess, getOutboundMessageView, sendOutboundMessageAccordingUser]
+}
+const getGuessSpecifics: GetUserSpecifics<"guess"> = (selectedConnectedHostIds, addOrRemoveSelectedConnectedHostId) => {
+    const getOutboundMessageView: GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) =>
+        <MessageView key={LOCAL_USER_ID + "-" + number} color={getUserColor(LOCAL_USER_ID)} serverAck={serverAck}
+                     isOutbound={true}> {(toUsersIds.get(HOST_ID) ? "(received)" : "") + body} </MessageView>
+
+    const sendOutboundMessageAccordingUser: SendOutboundMessageAccordingUser<"guess"> = (b, sendOutboundMessage) => {
+        sendOutboundMessage(b, undefined)
+        return true
+    }
+    return [undefined, getOutboundMessageView, sendOutboundMessageAccordingUser]
 }
 
 const Container = styled.form<ContainerProps>`
@@ -248,7 +280,7 @@ const MessagesContainer = styled.div`
   overflow-y: auto;
   background-color: #DCDCDC;
 `
-const MessageView = styled.label<{ ack: boolean, isLocal: boolean}>`
+const MessageView = styled.label<{ serverAck: boolean, isOutbound: boolean}>`
  display: block;
  width: fit-content;
  height: fit-content;
@@ -262,15 +294,18 @@ const MessageView = styled.label<{ ack: boolean, isLocal: boolean}>`
  box-shadow: 4px 4px 3px black;
  margin: 5px;
  padding: 5px;
- ${({color, ack, isLocal}) => "opacity:" + (ack ? 1 : 0.2) + ";" 
+ ${({color, serverAck, isOutbound}) => "opacity:" + (serverAck ? 1 : 0.2) + ";" 
     + ("color:" +  color + ";")
-    + "align-self:" +  (isLocal ? "flex-start" : "flex-end") + ";"
-    + "margin-" + (isLocal ? "right" : "left") + ": 40px;"
+    + "align-self:" +  (isOutbound ? "flex-start" : "flex-end") + ";"
+    + "margin-" + (isOutbound ? "right" : "left") + ": 40px;"
 }
 @media (max-width: ${maxWidthSmallestLayout}px) {
     font-size: 19px;
   }
  `
+const ToGuessIdView = styled.span<{ acknowledged: boolean }>`
+  border-style: ${({acknowledged}) => acknowledged ? "solid" : "none"};
+`
 const SendMessageContainer = styled.div`
   display: flex;
   flex-direction: row;

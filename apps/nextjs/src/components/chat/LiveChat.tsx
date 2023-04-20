@@ -1,17 +1,21 @@
 import {UserType} from "chat-common/src/model/types"
 import {InboundConMessageParts, InboundDisMessageParts, InboundMesMessageParts} from "../../types/chat"
-import ChatView, {ContainerProps, Hide, MessageData} from "./View"
+import ChatView, {ContainerProps, Hide, SendOutboundMessage as SendOutboundMessageFromView} from "./View"
 import useWebSocket, {
     ConnectionState,
-    GuessesIds,
-    HandleAckMessage,
     HandleConMessage,
     HandleDisMessage,
     HandleMesMessage,
     HandleNewConnectionState,
-    SendMesMessage,
+    HandleServerAckMessage,
+    HandleUserAckMessage,
+    IsMessageAckByServer,
 } from "../../hooks/useWebSocket"
 import {useEffect, useRef, useState} from "react"
+
+export type InboundMessageData = { flow: "in", fromUserId: string, number: number, body: string }
+export type OutboundMessageData = { flow: "out", fromUserId: string, number: number, body: string, toUsersIds: Map<number, boolean>, serverAck: boolean }
+export type MessageData = InboundMessageData | OutboundMessageData
 
 export type FirstHandleConMessage<UT extends UserType> = (cm: InboundConMessageParts<UT>) => string
 export type FirstHandleDisMessage<UT extends UserType> = (dm: InboundDisMessageParts<UT>) => string
@@ -27,6 +31,7 @@ type Props<UT extends UserType> = {
     viewProps: { containerProps: ContainerProps, hide?: Hide }
 }
 
+export const HOST_ID = 1
 export const LOCAL_USER_ID = "me"
 
 export default function LiveChat<UT extends UserType>({
@@ -38,15 +43,15 @@ export default function LiveChat<UT extends UserType>({
                                                           nextHandleNewConnectionState,
                                                           viewProps
                                                       }: Props<UT>) {
-    const [connectedUsers, setConnectedUsers] = useState<string[]>([])
-    const setConnectedUser = (user: string) => {
-        setConnectedUsers((users) => [...users, user])
+    const [connectedUsersIds, setConnectedUsersIds] = useState<string[]>([])
+    const setConnectedUserId = (id: string) => {
+        setConnectedUsersIds((ids) => [...ids, id])
     }
-    const removeConnectedUser = (user: string) => {
-        setConnectedUsers((users) => {
-            const updatedUser = [...users]
-            updatedUser.splice(users.findIndex((u) => u === user), 1)
-            return updatedUser
+    const removeConnectedUserId = (id: string) => {
+        setConnectedUsersIds((ids) => {
+            const updatedIds = [...ids]
+            updatedIds.splice(ids.findIndex((currentId) => currentId === id), 1)
+            return updatedIds
         })
     }
 
@@ -55,76 +60,118 @@ export default function LiveChat<UT extends UserType>({
         setConnectionState(cs)
         switch (cs) {
             case ConnectionState.CONNECTED :
-                setConnectedUser(LOCAL_USER_ID)
+                setConnectedUserId(LOCAL_USER_ID)
                 break
             case ConnectionState.DISCONNECTED :
-                setConnectedUsers([])
+                setConnectedUsersIds([])
         }
         nextHandleNewConnectionState(cs)
     }
 
     const [messagesData, setMessagesData] = useState<MessageData[]>([])
-    const setInboundMessageData = (md: MessageData) => {
+    const getOutboundMessageData = (n: number) => {
+        const outboundMessageData = messagesData[n]
+        if (outboundMessageData.flow !== "out") {
+            throw new Error("message " + JSON.stringify(outboundMessageData) + " is not an outbound message")
+        }
+        return outboundMessageData as OutboundMessageData
+    }
+    const updateOutboundMessageData = <K extends keyof OutboundMessageData>(n: number, key: K, value: OutboundMessageData[K]) => {
+        setMessagesData((messages) => {
+            const updatedMessages = [...messages]
+            const outboundMessage = updatedMessages[n]
+            if (!(key in outboundMessage)) {
+                throw new Error("key " + key + " does not belong to " + JSON.stringify(outboundMessage))
+            }
+            (outboundMessage as OutboundMessageData)[key] = value
+            return updatedMessages
+        })
+    }
+    const setInboundMessageData = (md: InboundMessageData) => {
         setMessagesData((messagesData) => [...messagesData, md])
     }
-    const refToMessagesNumbersToSend = useRef<number[]>([])
-    const getMessagesNumbersToSend = () => refToMessagesNumbersToSend.current
+    const refToOutboundMessagesNumbersToSend = useRef<number[]>([])
+    const getOutboundMessagesNumbersToSend = () => refToOutboundMessagesNumbersToSend.current
 
-    const setOutboundMessageData = (body: string, toUsersIds?: string[]) => {
+    const setNewOutboundMessageData = (body: string, toUsersIds: Map<number, boolean>) => {
         setMessagesData((messagesData) => {
             const number = messagesData.length
-            getMessagesNumbersToSend().push(number)
-            const messageData = {fromUserId: LOCAL_USER_ID, toUsersIds: toUsersIds, number: messagesData.length, body: body, ack: false}
-
+            getOutboundMessagesNumbersToSend().push(number)
+            const messageData: OutboundMessageData = {flow: "out", fromUserId: LOCAL_USER_ID, toUsersIds: toUsersIds, number: messagesData.length, body: body, serverAck: false}
             return [...messagesData, messageData]
         })
     }
     useEffect(() => {
-        getMessagesNumbersToSend().forEach((n) => {
-            const {body, number, toUsersIds} = messagesData[n]
-            sendMessage(number, body, (toUsersIds ? toUsersIds.map((ui)=> parseInt(ui)): undefined) as GuessesIds<UT>)
+        getOutboundMessagesNumbersToSend().forEach((n) => {
+            const {body, number, toUsersIds} = getOutboundMessageData(n)
+            sendOutboundMesMessage(number, body, [...toUsersIds.keys()])
         })
-        getMessagesNumbersToSend().splice(0, getMessagesNumbersToSend().length)
-
+        getOutboundMessagesNumbersToSend().splice(0, getOutboundMessagesNumbersToSend().length)
     }, [messagesData])
 
-    const acknowledgeMessage = (number: number) => {
-        setMessagesData((messages) => {
-            const updatedMessages = [...messages]
-            updatedMessages[number].ack = true
-            return updatedMessages
-        })
+    const setMessageAsAcknowledgedByServer = (n: number) => {
+        updateOutboundMessageData(n, "serverAck", true)
+    }
+    const setMessageAsAcknowledgedByUser = (n: number, ui: number) => {
+        const outboundMessageData = messagesData[n]
+        if ("toUsersIds" in outboundMessageData) {
+            updateOutboundMessageData(n, "toUsersIds", outboundMessageData["toUsersIds"].set(ui, true))
+        } else {
+            console.error("should be always a outbound message")
+        }
     }
 
+    const isMessageAckByServer: IsMessageAckByServer = (n) => getOutboundMessageData(n).serverAck
+
     const handleConMessage: HandleConMessage<UT> = (cm) => {
-        const user = firstHandleConMessage(cm)
-        setConnectedUser(user)
+        const userId = firstHandleConMessage(cm)
+        setConnectedUserId(userId)
     }
     const handleDisMessage: HandleDisMessage<UT> = (dm) => {
-        const user = firstHandleDisMessage(dm)
-        removeConnectedUser(user)
+        const userId = firstHandleDisMessage(dm)
+        removeConnectedUserId(userId)
     }
     const handleMesMessage: HandleMesMessage<UT> = (mm) => {
         const userId = firstHandleMesMessage(mm)
-        setInboundMessageData({fromUserId: userId, number: mm.number, body: mm.body, ack: true})
+        setInboundMessageData({flow: "in", fromUserId: userId, number: mm.number, body: mm.body})
     }
-    const handleAckMessage: HandleAckMessage<UT> = (n) => {
-        acknowledgeMessage(n)
+    const handleServerAckMessage: HandleServerAckMessage = (n) => {
+        setMessageAsAcknowledgedByServer(n)
+    }
+    const handleUserAckMessage: HandleUserAckMessage<UT> = (n, ui) => {
+        setMessageAsAcknowledgedByUser(n, ui)
     }
 
-    const sendMessage = useWebSocket({
+    const sendOutboundMesMessage = useWebSocket({
         userType: userType,
         handleConMessage: handleConMessage,
         handleDisMessage: handleDisMessage,
         handleMesMessage: handleMesMessage,
-        handleAckMessage: handleAckMessage,
+        handleServerAckMessage: handleServerAckMessage,
+        handleUserAckMessage: handleUserAckMessage,
+        isMessageAckByServer: isMessageAckByServer,
         connect: connect,
         handleNewConnectionState: handleNewConnectionState
-    }) as  SendMesMessage<UT>
+    })
 
-    const sendMessageFromView = (body: string, guessesIds?: string[]) => {
-        setOutboundMessageData(body, guessesIds)
+    const [sendOutboundMessageFromView] = (userType === "host" ? getHostSpecifics(setNewOutboundMessageData) : getGuessSpecifics(setNewOutboundMessageData)) as GetUserSpecificsReturn<UT>
+
+    return <ChatView userType={userType} connectionState={connectionState} connectedUsersIds={connectedUsersIds} messages={messagesData} sendOutboundMessage={sendOutboundMessageFromView}  {...viewProps}/>
+}
+
+type GetUserSpecificsReturn<UT extends UserType> =  [SendOutboundMessageFromView<UT>]
+type GetUserSpecifics<UT extends UserType> = (setNewOutboundMessageData: (b: string, to: Map<number, boolean>) => void) => GetUserSpecificsReturn<UT>
+
+const getHostSpecifics: GetUserSpecifics<"host"> = (setNewOutboundMessageData) => {
+    const sendOutboundMessageFromView: SendOutboundMessageFromView<"host"> = (body, toGuessesIds) => {
+        setNewOutboundMessageData(body, new Map(toGuessesIds.map(ui => [parseInt(ui), false])))
     }
-
-    return <ChatView userType={userType} connectionState={connectionState} usersIds={connectedUsers} messages={messagesData} sendMessage={sendMessageFromView} {...viewProps}/>
+    return [sendOutboundMessageFromView]
+}
+const getGuessSpecifics: GetUserSpecifics<"guess"> = (setNewOutboundMessageData) => {
+    const sendOutboundMessageFromView: SendOutboundMessageFromView<"guess"> = (body, toUsersIds) => {
+        // toUsersIds will be undefined
+        setNewOutboundMessageData(body, new Map([[HOST_ID, false]]))
+    }
+    return [sendOutboundMessageFromView]
 }
