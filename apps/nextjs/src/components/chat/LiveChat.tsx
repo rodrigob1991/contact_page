@@ -2,7 +2,7 @@ import {UserType} from "chat-common/src/model/types"
 import {InboundConMessageParts, InboundDisMessageParts, InboundMesMessageParts} from "../../types/chat"
 import ChatView, {ContainerProps, Hide, SendOutboundMessage as SendOutboundMessageFromView} from "./View"
 import useWebSocket, {
-    ConnectionState,
+    ConnectionState, GuessId,
     HandleConMessage,
     HandleDisMessage,
     HandleMesMessage,
@@ -113,12 +113,8 @@ export default function LiveChat<UT extends UserType>({
         updateOutboundMessageData(n, "serverAck", true)
     }
     const setMessageAsAcknowledgedByUser = (n: number, ui: number) => {
-        const outboundMessageData = messagesData[n]
-        if ("toUsersIds" in outboundMessageData) {
-            updateOutboundMessageData(n, "toUsersIds", outboundMessageData["toUsersIds"].set(ui, true))
-        } else {
-            console.error("should be always a outbound message")
-        }
+        const outboundMessageData = messagesData[n] as OutboundMessageData
+        updateOutboundMessageData(n, "toUsersIds", outboundMessageData["toUsersIds"].set(ui, true))
     }
 
     const isMessageAckByServer: IsMessageAckByServer = (n) => getOutboundMessageData(n).serverAck
@@ -139,7 +135,7 @@ export default function LiveChat<UT extends UserType>({
         setMessageAsAcknowledgedByServer(n)
     }
     const handleUserAckMessage: HandleUserAckMessage<UT> = (n, ui) => {
-        setMessageAsAcknowledgedByUser(n, ui)
+        setMessageAsAcknowledgedByUser(n, getUserId(ui))
     }
 
     const sendOutboundMesMessage = useWebSocket({
@@ -154,24 +150,29 @@ export default function LiveChat<UT extends UserType>({
         handleNewConnectionState: handleNewConnectionState
     })
 
-    const [sendOutboundMessageFromView] = (userType === "host" ? getHostSpecifics(setNewOutboundMessageData) : getGuessSpecifics(setNewOutboundMessageData)) as GetUserSpecificsReturn<UT>
+    const [sendOutboundMessageFromView, getUserId] = (userType === "host" ? getHostSpecifics(setNewOutboundMessageData) : getGuessSpecifics(setNewOutboundMessageData)) as GetUserSpecificsReturn<UT>
 
     return <ChatView userType={userType} connectionState={connectionState} connectedUsersIds={connectedUsersIds} messages={messagesData} sendOutboundMessage={sendOutboundMessageFromView}  {...viewProps}/>
 }
 
-type GetUserSpecificsReturn<UT extends UserType> =  [SendOutboundMessageFromView<UT>]
+type GetUserId<UT extends UserType> = (gi: GuessId<UT>) => number
+type GetUserSpecificsReturn<UT extends UserType> =  [SendOutboundMessageFromView<UT>, GetUserId<UT>]
 type GetUserSpecifics<UT extends UserType> = (setNewOutboundMessageData: (b: string, to: Map<number, boolean>) => void) => GetUserSpecificsReturn<UT>
 
 const getHostSpecifics: GetUserSpecifics<"host"> = (setNewOutboundMessageData) => {
     const sendOutboundMessageFromView: SendOutboundMessageFromView<"host"> = (body, toGuessesIds) => {
         setNewOutboundMessageData(body, new Map(toGuessesIds.map(ui => [parseInt(ui), false])))
     }
-    return [sendOutboundMessageFromView]
+    const getHostId: GetUserId<"host"> = (gi) => gi
+
+    return [sendOutboundMessageFromView, getHostId]
 }
 const getGuessSpecifics: GetUserSpecifics<"guess"> = (setNewOutboundMessageData) => {
     const sendOutboundMessageFromView: SendOutboundMessageFromView<"guess"> = (body, toUsersIds) => {
         // toUsersIds will be undefined
         setNewOutboundMessageData(body, new Map([[HOST_ID, false]]))
     }
-    return [sendOutboundMessageFromView]
+    const getGuessId: GetUserId<"guess"> = (gi) => HOST_ID
+
+    return [sendOutboundMessageFromView, getGuessId]
 }

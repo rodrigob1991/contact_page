@@ -4,7 +4,7 @@ import LiveChat, {
     FirstHandleMesMessage
 } from "../../components/chat/LiveChat"
 import styled from "@emotion/styled"
-import {HandleNewConnectionState} from "../../hooks/useWebSocket";
+import {HandleNewConnectionState} from "../../hooks/useWebSocket"
 
 type Props = {}
 
