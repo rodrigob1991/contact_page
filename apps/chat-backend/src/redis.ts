@@ -17,7 +17,7 @@ type GuessIdToSubscribe<UT extends UserType> =
     | ("host" extends UT ? undefined : never)
 export type Unsubscribe = () => Promise<void>
 export type SubscribeToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => Promise<Unsubscribe>
-type GuessIdToPublish<UT extends UserType, MP extends MessagePrefix> = UT extends "guess" ? MP extends "mes" | "ack" ? MessageParts["guessId"] : undefined : undefined
+type GuessIdToPublish<UT extends UserType, MP extends MessagePrefix> = UT extends "guess" ? MP extends "mes" | "uack" ? MessageParts["guessId"] : undefined : undefined
 // only for one message type, no unions.
 export type PublishMessage = <M extends OutboundMessage>(messageParts: GotAllMessageParts<M>, toUserType: M["userType"], toGuessId: GuessIdToPublish<M["userType"], M["prefix"]>) => Promise<void>
 type CacheMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>, message: M["template"]) => Promise<boolean>
@@ -72,7 +72,7 @@ export const initRedis = async () : Promise<RedisAPIs> => {
                 sendMessage(message as OutboundMessageTemplate<UT, "con" | "dis">)
             }),
                 subscriber.subscribe(getMessagesChannel(isHostUser, guessId), (message, channel) => {
-                    sendMessage(message as OutboundMessageTemplate<UT, "mes" | "ack">)
+                    sendMessage(message as OutboundMessageTemplate<UT, "mes" | "uack">)
                 })])
                 .then(() => {
                     log("subscribed")
@@ -90,7 +90,7 @@ export const initRedis = async () : Promise<RedisAPIs> => {
                 channel = getConDisChannel(isToHostUser)
                 break
             case "mes":
-            case "ack":
+            case "uack":
                 channel = getMessagesChannel(isToHostUser, toGuessId)
                 break
             default:

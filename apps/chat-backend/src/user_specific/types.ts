@@ -7,4 +7,4 @@ type RemoveUser<UT extends UserType> = UT extends "host" ? () => Promise<boolean
 type GetUsers<UT extends UserType> = () => Promise<UT extends "host" ? number[] : boolean>
 export type HandleUserDisconnection = (reasonCode: number, description: string) => void
 
-export type InitUserConnection<UT extends UserType> = (acceptConnection : AcceptConnection, newUser: NewUser<UT>, removeUser: RemoveUser<UT>, getUsers: GetUsers<UT>, publishMessage: PublishMessage, subscribeToMessages : SubscribeToMessages, removeMessage: RemoveMessage, cacheAndSendUntilAck: CacheAndSendUntilAck,applyHandleInboundMessage: ApplyHandleInboundMessage) => void
+export type InitUserConnection<UT extends UserType> = (acceptConnection : AcceptConnection, newUser: NewUser<UT>, removeUser: RemoveUser<UT>, getUsers: GetUsers<UT>, publishMessage: PublishMessage, subscribeToMessages : SubscribeToMessages, removeMessage: RemoveMessage, cacheAndSendUntilAck: CacheAndSendUntilAck,applyHandleInboundMessage: ApplyHandleInboundMessage<UT>) => void

@@ -2,7 +2,7 @@ import { MessageFlow, MessageParts, MessagePartsKeys, MessagePrefix, UserType } 
 type PartTemplate<MPK extends MessagePartsKeys, MPKS extends MessagePartsKeys, S extends ":" | ""> = MPK extends MPKS ? `${S}${MessageParts[MPK]}` : "";
 type MessageTemplateInstance<MP extends MessagePrefix, MPKS extends MessagePartsKeys> = `${MP}${PartTemplate<"originPrefix", MPKS, ":">}${PartTemplate<"number", MPKS, ":">}${PartTemplate<"guessId", MPKS, ":">}${PartTemplate<"body", MPKS, ":">}`;
 export type CutMessage<M extends Message[], WC extends MessagePartsKeys> = M extends [infer OM, ...infer RM] ? OM extends Message ? MessageTemplateInstance<OM["prefix"], Exclude<OM["parts"], WC>> | (RM extends Message[] ? CutMessage<RM, WC> : never) : never : never;
-type SpecificMessagePartsKeys<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>> = "prefix" | ("in" | "ack" extends MF | MP ? "originPrefix" : never) | "number" | ("mes" extends MP ? "body" : never) | ("host" extends UT ? "guessId" : never);
+type SpecificMessagePartsKeys<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>> = "prefix" | ("in" | "user-ack" extends MF | MP ? "originPrefix" : never) | "number" | ("mes" extends MP ? "body" : never) | ("host" extends UT ? "guessId" : never);
 type SpecificMessagePartsPositions<SMPK extends MessagePartsKeys> = Pick<{
     prefix: 1;
     originPrefix: 2;
@@ -21,30 +21,33 @@ type MessageInstance<UT extends UserType, MF extends MessageFlow, MP extends Mes
 export type OutboundToHostMesMessage = MessageInstance<"host", "out", "mes">;
 export type OutboundToHostConMessage = MessageInstance<"host", "out", "con">;
 export type OutboundToHostDisMessage = MessageInstance<"host", "out", "dis">;
-export type OutboundToHostAckMessage = MessageInstance<"host", "out", "ack">;
+export type OutboundToHostServerAckMessage = MessageInstance<"host", "out", "server-ack">;
+export type OutboundToHostUserAckMessage = MessageInstance<"host", "out", "user-ack">;
 export type OutboundToGuessMesMessage = MessageInstance<"guess", "out", "mes">;
 export type OutboundToGuessConMessage = MessageInstance<"guess", "out", "con">;
 export type OutboundToGuessDisMessage = MessageInstance<"guess", "out", "dis">;
-export type OutboundToGuessAckMessage = MessageInstance<"guess", "out", "ack">;
+export type OutboundToGuessServerAckMessage = MessageInstance<"guess", "out", "server-ack">;
+export type OutboundToGuessUserAckMessage = MessageInstance<"guess", "out", "user-ack">;
 export type OutboundMesMessage<UT extends UserType = UserType> = ("host" extends UT ? OutboundToHostMesMessage : never) | ("guess" extends UT ? OutboundToGuessMesMessage : never);
-export type OutboundAckMessage<UT extends UserType = UserType> = ("host" extends UT ? OutboundToHostAckMessage : never) | ("guess" extends UT ? OutboundToGuessAckMessage : never);
+export type OutboundServerAckMessage<UT extends UserType = UserType> = ("host" extends UT ? OutboundToHostServerAckMessage : never) | ("guess" extends UT ? OutboundToGuessServerAckMessage : never);
+export type OutboundUserAckMessage<UT extends UserType = UserType> = ("host" extends UT ? OutboundToHostUserAckMessage : never) | ("guess" extends UT ? OutboundToGuessUserAckMessage : never);
 export type OutboundConMessage<UT extends UserType = UserType> = ("host" extends UT ? OutboundToHostConMessage : never) | ("guess" extends UT ? OutboundToGuessConMessage : never);
 export type OutboundDisMessage<UT extends UserType = UserType> = ("host" extends UT ? OutboundToHostDisMessage : never) | ("guess" extends UT ? OutboundToGuessDisMessage : never);
-export type OutboundMessage<UT extends UserType = UserType, MP extends MessagePrefix<"out"> = MessagePrefix<"out">> = ("con" extends MP ? OutboundConMessage<UT> : never) | ("dis" extends MP ? OutboundDisMessage<UT> : never) | ("mes" extends MP ? OutboundMesMessage<UT> : never) | ("ack" extends MP ? OutboundAckMessage<UT> : never);
+export type OutboundMessage<UT extends UserType = UserType, MP extends MessagePrefix<"out"> = MessagePrefix<"out">> = ("con" extends MP ? OutboundConMessage<UT> : never) | ("dis" extends MP ? OutboundDisMessage<UT> : never) | ("mes" extends MP ? OutboundMesMessage<UT> : never) | ("server-ack" extends MP ? OutboundServerAckMessage<UT> : never) | ("user-ack" extends MP ? OutboundUserAckMessage<UT> : never);
 export type OutboundMessageParts<UT extends UserType = UserType, MP extends MessagePrefix<"out"> = MessagePrefix<"out">> = OutboundMessage<UT, MP>["parts"];
 export type OutboundMessageTemplate<UT extends UserType = UserType, MP extends MessagePrefix<"out"> = MessagePrefix<"out">> = OutboundMessage<UT, MP>["template"];
 export type InboundFromHostMesMessage = MessageInstance<"host", "in", "mes">;
-export type InboundFromHostAckMessage = MessageInstance<"host", "in", "ack">;
+export type InboundFromHostAckMessage = MessageInstance<"host", "in", "user-ack">;
 export type InboundFromGuessMesMessage = MessageInstance<"guess", "in", "mes">;
-export type InboundFromGuessAckMessage = MessageInstance<"guess", "in", "ack">;
+export type InboundFromGuessAckMessage = MessageInstance<"guess", "in", "user-ack">;
 export type InboundMesMessage<UT extends UserType = UserType> = ("host" extends UT ? InboundFromHostMesMessage : never) | ("guess" extends UT ? InboundFromGuessMesMessage : never);
 export type InboundAckMessage<UT extends UserType = UserType> = ("host" extends UT ? InboundFromHostAckMessage : never) | ("guess" extends UT ? InboundFromGuessAckMessage : never);
-export type InboundMessage<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = ("mes" extends MP ? InboundMesMessage<UT> : never) | ("ack" extends MP ? InboundAckMessage<UT> : never);
+export type InboundMessage<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = ("mes" extends MP ? InboundMesMessage<UT> : never) | ("user-ack" extends MP ? InboundAckMessage<UT> : never);
 export type InboundMessageParts<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = InboundMessage<UT, MP>["parts"];
 export type InboundMessageTemplate<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = InboundMessage<UT, MP>["template"];
 export type InboundMessageTarget<M extends InboundMessage, UT = M["userType"]> = OutboundMessage<UserType extends M["userType"] ? M["userType"] : Exclude<UserType, UT>, M["prefix"]>;
 export type InboundAckMessageOrigin<UT extends UserType = UserType, OP extends MessagePrefix<"out"> = MessagePrefix<"out">> = GetMessages<UT, "out", OP>;
-export type Message<UT extends UserType = UserType, MF extends MessageFlow = MessageFlow, MP extends MessagePrefix<MF> = MessagePrefix<MF>> = ("in" extends MF ? InboundMessage<UT, Exclude<MP, "con" | "dis">> : never) | ("out" extends MF ? OutboundMessage<UT, MP> : never);
+export type Message<UT extends UserType = UserType, MF extends MessageFlow = MessageFlow, MP extends MessagePrefix<MF> = MessagePrefix<MF>> = ("in" extends MF ? InboundMessage<UT, Exclude<MP, "con" | "dis" | "server-ack">> : never) | ("out" extends MF ? OutboundMessage<UT, MP> : never);
 export type MessagePartsPositions<UT extends UserType = UserType, MF extends MessageFlow = MessageFlow, MP extends MessagePrefix<MF> = MessagePrefix<MF>> = Message<UT, MF, MP>["positions"];
 export type MessageTemplate<UT extends UserType = UserType, MF extends MessageFlow = MessageFlow, MP extends MessagePrefix<MF> = MessagePrefix<MF>> = Message<UT, MF, MP>["template"];
 type FilterMessage<M extends Message, UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>> = M["userType"] | M["flow"] | M["prefix"] extends UT | MF | MP ? [M] : [];
@@ -52,11 +55,13 @@ export type GetMessages<UT extends UserType = UserType, MF extends MessageFlow =
     ...FilterMessage<OutboundToHostMesMessage, UT, MF, MP>,
     ...FilterMessage<OutboundToHostConMessage, UT, MF, MP>,
     ...FilterMessage<OutboundToHostDisMessage, UT, MF, MP>,
-    ...FilterMessage<OutboundToHostAckMessage, UT, MF, MP>,
+    ...FilterMessage<OutboundToHostServerAckMessage, UT, MF, MP>,
+    ...FilterMessage<OutboundToHostUserAckMessage, UT, MF, MP>,
     ...FilterMessage<OutboundToGuessMesMessage, UT, MF, MP>,
     ...FilterMessage<OutboundToGuessConMessage, UT, MF, MP>,
     ...FilterMessage<OutboundToGuessDisMessage, UT, MF, MP>,
-    ...FilterMessage<OutboundToGuessAckMessage, UT, MF, MP>,
+    ...FilterMessage<OutboundToGuessServerAckMessage, UT, MF, MP>,
+    ...FilterMessage<OutboundToGuessUserAckMessage, UT, MF, MP>,
     ...FilterMessage<InboundFromHostMesMessage, UT, MF, MP>,
     ...FilterMessage<InboundFromHostAckMessage, UT, MF, MP>,
     ...FilterMessage<InboundFromGuessMesMessage, UT, MF, MP>,

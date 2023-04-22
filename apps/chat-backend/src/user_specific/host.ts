@@ -7,10 +7,11 @@ import {
     InboundMessageTarget,
     OutboundMessage,
     OutboundMessageTemplate,
-    OutboundToGuessAckMessage,
     OutboundToGuessConMessage,
     OutboundToGuessDisMessage,
-    OutboundToHostConMessage
+    OutboundToGuessUserAckMessage,
+    OutboundToHostConMessage,
+    OutboundToHostServerAckMessage
 } from "chat-common/src/message/types"
 import {getCutMessage, getMessage, getMessageParts, getMessagePrefix} from "chat-common/src/message/functions"
 import ws from "websocket"
@@ -26,8 +27,8 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
             switch (mp) {
                 case "con":
                 case "dis":
-                case "ack":
-                    key = `host:${message as OutboundMessageTemplate<"host", "con" | "dis" | "ack">}`
+                case "uack":
+                    key = `host:${message as OutboundMessageTemplate<"host", "con" | "dis" | "uack">}`
                     break
                 case "mes":
                     key = `host:${getCutMessage<OutboundMessage<"host", "mes">, "body">(message as OutboundMessageTemplate<"host", "mes">, {body: 4}, 4)}`
@@ -35,7 +36,7 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
                 default:
                     throw new Error("invalid message prefix")
             }
-            cacheAndSendUntilAck(key, message)
+            cacheAndSendUntilAck<GetMessages<"host", "out">>(key, message)
         }
     }
 
@@ -43,11 +44,12 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
         const handleInboundMesMessage: HandleInboundMesMessage<"host"> = (m) => {
             const {number, guessId: toGuessId, body} = getMessageParts<InboundFromHostMesMessage, "number" | "guessId" | "body">(m, {number: 2, guessId: 3, body: 4})
             publishMessage<InboundMessageTarget<InboundFromHostMesMessage>>({prefix: "mes", number: number, body: body}, "guess", toGuessId)
+            return getMessage<OutboundToHostServerAckMessage>({prefix: "sack", number: number, guessId: toGuessId})
         }
         const handleInboundAckMessage: HandleInboundAckMessage<"host"> = (a) => {
             const {originPrefix, number, guessId: fromGuessId} = getMessageParts<InboundFromHostAckMessage, "number" | "guessId" | "originPrefix">(a, {originPrefix: 2, number: 3, guessId: 4})
             if (originPrefix === messagePrefixes.mes) {
-                publishMessage<OutboundToGuessAckMessage>({prefix: "ack", number: number}, "guess", fromGuessId)
+                publishMessage<OutboundToGuessUserAckMessage>({prefix: "uack", number: number}, "guess", fromGuessId)
             }
             removeMessage<InboundAckMessageOrigin<"host">>(`host:${originPrefix}:${number}:${fromGuessId}`)
         }

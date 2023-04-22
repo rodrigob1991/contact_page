@@ -6,7 +6,9 @@ import {
     InboundAckMessage,
     InboundMesMessage,
     InboundMessageTemplate,
-    OutboundMessageTemplate
+    OutboundMessage,
+    OutboundMessageTemplate,
+    OutboundServerAckMessage
 } from "chat-common/src/message/types"
 import {users} from "chat-common/src/model/constants"
 import {getMessagePrefix} from "chat-common/src/message/functions"
@@ -19,11 +21,11 @@ import {initGuessConnection} from "./user_specific/guess"
 type AcceptConnectionReturn<A extends boolean> = A extends true ? [ws.connection, number] : void
 export type AcceptConnection = <A extends boolean>(accept: A) => AcceptConnectionReturn<A>
 
-export type CacheAndSendUntilAck = (key: RedisMessageKey, message: OutboundMessageTemplate) => void
+export type CacheAndSendUntilAck = <M extends OutboundMessage[]>(key: RedisMessageKey<M>, message: M[number]["template"]) => void
 
-export type HandleInboundMesMessage<UT extends UserType> = (m: InboundMessageTemplate<UT, "mes">) => void
-export type HandleInboundAckMessage<UT extends UserType> = (a: InboundMessageTemplate<UT, "ack">) => void
-export type ApplyHandleInboundMessage = <UT extends UserType>(wsMessage: ws.Message, handleMesMessage: HandleInboundMesMessage<UT>, handleAckMessage: HandleInboundAckMessage<UT>) => void
+export type HandleInboundMesMessage<UT extends UserType> = (m: InboundMessageTemplate<UT, "mes">) => OutboundServerAckMessage<UT>["template"]
+export type HandleInboundAckMessage<UT extends UserType> = (a: InboundMessageTemplate<UT, "uack">) => void
+export type ApplyHandleInboundMessage<UT extends UserType=UserType> = (wsMessage: ws.Message, handleMesMessage: HandleInboundMesMessage<UT>, handleAckMessage: HandleInboundAckMessage<UT>) => void
 
 export type SendMessage<UT extends UserType> = <MP extends MessagePrefix>(...message: OutboundMessageTemplate<UT, MP>[]) => void
 
@@ -93,16 +95,15 @@ const initWebSocket = (httpServer: Server, {newUser, removeUser, getUsers, publi
                 sendUntilAck()
             }
 
-            const applyHandleInboundMessage: ApplyHandleInboundMessage = (wsMessage: ws.Message, handleInboundMesMessage, handleInboundAckMessage) => {
+            const applyHandleInboundMessage: ApplyHandleInboundMessage = (wsMessage, handleInboundMesMessage, handleInboundAckMessage) => {
                 const message = (wsMessage as IUtf8Message).utf8Data as InboundMessageTemplate
                 const prefix = getMessagePrefix(message)
                 switch (prefix) {
                     case "mes":
-                        // @ts-ignore
-                        handleInboundMesMessage(message as InboundMesMessage["template"])
+                        const ackMessage = handleInboundMesMessage(message as InboundMesMessage["template"])
+                        connection.sendUTF(ackMessage)
                         break
-                    case "ack":
-                        // @ts-ignore
+                    case "uack":
                         handleInboundAckMessage(message as InboundAckMessage["template"])
                         break
                 }
@@ -110,9 +111,9 @@ const initWebSocket = (httpServer: Server, {newUser, removeUser, getUsers, publi
             }
 
             if (userType === users.host) {
-                initHostConnection(acceptConnection, () => newUser("host"), () => removeUser(undefined), () => getUsers("guess"), publishMessage, subscribeToMessages, removeMessage, cacheAndSendUntilAck, applyHandleInboundMessage)
+                initHostConnection(acceptConnection, () => newUser("host"), () => removeUser(undefined), () => getUsers("guess"), publishMessage, subscribeToMessages, removeMessage, cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
             } else {
-                initGuessConnection(acceptConnection, () => newUser("guess"), (guessId) => removeUser(guessId), () => getUsers("host").then(s => s.length > 0), publishMessage, subscribeToMessages, removeMessage, cacheAndSendUntilAck, applyHandleInboundMessage)
+                initGuessConnection(acceptConnection, () => newUser("guess"), (guessId) => removeUser(guessId), () => getUsers("host").then(s => s.length > 0), publishMessage, subscribeToMessages, removeMessage, cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)
             }
         }
     })
@@ -126,4 +127,4 @@ const init = async () => {
 }
 
 dotenv.config()
-init().then().catch(e => console.log(`error: ${e}`))
+init().then(() => console.log("chat backend running...")).catch(e => console.log(`error: ${e}`))

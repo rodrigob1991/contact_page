@@ -10,7 +10,8 @@ export declare const messagePrefixes: {
     readonly con: "con";
     readonly dis: "dis";
     readonly mes: "mes";
-    readonly ack: "ack";
+    readonly serverAck: "server-ack";
+    readonly userAck: "user-ack";
 };
 export declare const messageParts: {
     readonly prefix: "prefix";

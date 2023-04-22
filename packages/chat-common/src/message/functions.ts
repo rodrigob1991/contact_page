@@ -28,33 +28,34 @@ export const getMessage = <M extends Message>(parts: GotAllMessageParts<M>) => {
     return message as M["template"]
 }
 
+const getPartSeparatorIndex = (message: string, occurrence: number) => getIndexOnOccurrence(message, ":", occurrence)
+
 export const getMessagePrefix = <M extends MessageTemplate>(m: M) => {
-    return m.substring(0, 3) as (M extends `${infer MP}:${any}` ? MP : never)
+    return m.substring(0, getPartSeparatorIndex(m, 1)) as (M extends `${infer MP}:${any}` ? MP : never)
 }
 
 export const getMessageParts = <M extends Message, CMPP extends CommonMessagePartsPositions<M>=CommonMessagePartsPositions<M>>(m: M["template"], whatGet: AnyMessagePartsPositions<M, CMPP>) => {
     const parts: any = {}
-    const getPartSeparatorIndex = (occurrence: number) => getIndexOnOccurrence(m, ":", occurrence)
     let firstSeparatorIndex
     let finalSeparatorIndex
     if (messageParts.prefix in whatGet)
-        parts["prefix"] = m.substring(0, 3)
+        parts["prefix"] = m.substring(0, getPartSeparatorIndex(m, 1))
     if (messageParts.originPrefix in whatGet)
-        parts["originPrefix"] = m.substring(4, 7)
+        parts["originPrefix"] = m.substring(getPartSeparatorIndex(m, 1) + 1, getPartSeparatorIndex(m, 2))
     if (messageParts.number in whatGet) {
         const numberPosition = whatGet.number as 2 | 3
-        firstSeparatorIndex = getPartSeparatorIndex(numberPosition - 1)
-        finalSeparatorIndex = getPartSeparatorIndex(numberPosition)
+        firstSeparatorIndex = getPartSeparatorIndex(m,numberPosition - 1)
+        finalSeparatorIndex = getPartSeparatorIndex(m, numberPosition)
         parts["number"] =  parseInt(m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex))
     }
     if (messageParts.guessId in whatGet) {
         const guessIdPosition = whatGet.guessId as 3 | 4
-        firstSeparatorIndex = getPartSeparatorIndex(guessIdPosition - 1)
-        finalSeparatorIndex = getPartSeparatorIndex(guessIdPosition)
+        firstSeparatorIndex = getPartSeparatorIndex(m,guessIdPosition - 1)
+        finalSeparatorIndex = getPartSeparatorIndex(m, guessIdPosition)
         parts["guessId"] = parseInt(m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex))
     }
     if (messageParts.body in whatGet) {
-        firstSeparatorIndex = getPartSeparatorIndex((whatGet.body as 3 | 4) - 1)
+        firstSeparatorIndex = getPartSeparatorIndex(m,(whatGet.body as 3 | 4) - 1)
         parts["body"] = m.substring(firstSeparatorIndex + 1, m.length)
     }
 
@@ -66,21 +67,19 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
     let position = 0
     let cutSize = 0
     let cutCount = 0
-    let partStartIndex = 0
-    let partEndIndex = 0
     const findPartIndex = (start = true) => {
         const currentPosition = position - cutCount
         let index
         if (currentPosition === 1 && start) {
             index = 0
         } else if (start) {
-            index = getIndexOnOccurrence(cutMessage, ":", currentPosition - 1) + 1
+            index = getPartSeparatorIndex(cutMessage, currentPosition - 1) + 1
         } else {
-            index = position === lastPosition ? cutMessage.length : getIndexOnOccurrence(cutMessage, ":", currentPosition) - 1
+            index = position === lastPosition ? cutMessage.length : getPartSeparatorIndex(cutMessage, currentPosition) - 1
         }
         return index
     }
-    const cut = () => {
+    const cut = (partStartIndex = findPartIndex(), partEndIndex = findPartIndex(false)) => {
         let cutStartIndex = partStartIndex - (position === lastPosition ? 1 : 0)
         let cutEndIndex = partEndIndex + (position === lastPosition ? 0 : 2)
         cutMessage = cutMessage.substring(0, cutStartIndex ) + cutMessage.substring(cutEndIndex)
@@ -90,32 +89,23 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
 
     if (messageParts.prefix in whatCut) {
         position = 1
-        partEndIndex = 2
-        cut()
+        cut(0)
     }
     if (messageParts.originPrefix in whatCut) {
         position = 2
-        partStartIndex = 4 - cutSize
-        partEndIndex = 6 - cutSize
         cut()
     }
     if (messageParts.number in whatCut) {
         position = whatCut.number as 2 | 3
-        partStartIndex = findPartIndex()
-        partEndIndex = findPartIndex(false)
         cut()
     }
     if (messageParts.guessId in whatCut) {
         position = whatCut.guessId as 3 | 4
-        partStartIndex = findPartIndex()
-        partEndIndex = findPartIndex(false)
         cut()
     }
     if (messageParts.body in whatCut) {
         position = whatCut.body as 3 | 4
-        partStartIndex = findPartIndex()
-        partEndIndex = cutMessage.length
-        cut()
+        cut(undefined, cutMessage.length)
     }
 
     return cutMessage as CutMessage<[M], CMPP>

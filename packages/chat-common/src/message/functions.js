@@ -18,33 +18,33 @@ const getMessage = (parts) => {
     return message;
 };
 exports.getMessage = getMessage;
+const getPartSeparatorIndex = (message, occurrence) => (0, strings_1.getIndexOnOccurrence)(message, ":", occurrence);
 const getMessagePrefix = (m) => {
-    return m.substring(0, 3);
+    return m.substring(0, getPartSeparatorIndex(m, 1));
 };
 exports.getMessagePrefix = getMessagePrefix;
 const getMessageParts = (m, whatGet) => {
     const parts = {};
-    const getPartSeparatorIndex = (occurrence) => (0, strings_1.getIndexOnOccurrence)(m, ":", occurrence);
     let firstSeparatorIndex;
     let finalSeparatorIndex;
     if (constants_1.messageParts.prefix in whatGet)
-        parts["prefix"] = m.substring(0, 3);
+        parts["prefix"] = m.substring(0, getPartSeparatorIndex(m, 1));
     if (constants_1.messageParts.originPrefix in whatGet)
-        parts["originPrefix"] = m.substring(4, 7);
+        parts["originPrefix"] = m.substring(getPartSeparatorIndex(m, 1) + 1, getPartSeparatorIndex(m, 2));
     if (constants_1.messageParts.number in whatGet) {
         const numberPosition = whatGet.number;
-        firstSeparatorIndex = getPartSeparatorIndex(numberPosition - 1);
-        finalSeparatorIndex = getPartSeparatorIndex(numberPosition);
+        firstSeparatorIndex = getPartSeparatorIndex(m, numberPosition - 1);
+        finalSeparatorIndex = getPartSeparatorIndex(m, numberPosition);
         parts["number"] = parseInt(m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex));
     }
     if (constants_1.messageParts.guessId in whatGet) {
         const guessIdPosition = whatGet.guessId;
-        firstSeparatorIndex = getPartSeparatorIndex(guessIdPosition - 1);
-        finalSeparatorIndex = getPartSeparatorIndex(guessIdPosition);
+        firstSeparatorIndex = getPartSeparatorIndex(m, guessIdPosition - 1);
+        finalSeparatorIndex = getPartSeparatorIndex(m, guessIdPosition);
         parts["guessId"] = parseInt(m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex));
     }
     if (constants_1.messageParts.body in whatGet) {
-        firstSeparatorIndex = getPartSeparatorIndex(whatGet.body - 1);
+        firstSeparatorIndex = getPartSeparatorIndex(m, whatGet.body - 1);
         parts["body"] = m.substring(firstSeparatorIndex + 1, m.length);
     }
     return parts;
@@ -55,8 +55,6 @@ const getCutMessage = (m, whatCut, lastPosition) => {
     let position = 0;
     let cutSize = 0;
     let cutCount = 0;
-    let partStartIndex = 0;
-    let partEndIndex = 0;
     const findPartIndex = (start = true) => {
         const currentPosition = position - cutCount;
         let index;
@@ -64,14 +62,14 @@ const getCutMessage = (m, whatCut, lastPosition) => {
             index = 0;
         }
         else if (start) {
-            index = (0, strings_1.getIndexOnOccurrence)(cutMessage, ":", currentPosition - 1) + 1;
+            index = getPartSeparatorIndex(cutMessage, currentPosition - 1) + 1;
         }
         else {
-            index = position === lastPosition ? cutMessage.length : (0, strings_1.getIndexOnOccurrence)(cutMessage, ":", currentPosition) - 1;
+            index = position === lastPosition ? cutMessage.length : getPartSeparatorIndex(cutMessage, currentPosition) - 1;
         }
         return index;
     };
-    const cut = () => {
+    const cut = (partStartIndex = findPartIndex(), partEndIndex = findPartIndex(false)) => {
         let cutStartIndex = partStartIndex - (position === lastPosition ? 1 : 0);
         let cutEndIndex = partEndIndex + (position === lastPosition ? 0 : 2);
         cutMessage = cutMessage.substring(0, cutStartIndex) + cutMessage.substring(cutEndIndex);
@@ -80,32 +78,23 @@ const getCutMessage = (m, whatCut, lastPosition) => {
     };
     if (constants_1.messageParts.prefix in whatCut) {
         position = 1;
-        partEndIndex = 2;
-        cut();
+        cut(0);
     }
     if (constants_1.messageParts.originPrefix in whatCut) {
         position = 2;
-        partStartIndex = 4 - cutSize;
-        partEndIndex = 6 - cutSize;
         cut();
     }
     if (constants_1.messageParts.number in whatCut) {
         position = whatCut.number;
-        partStartIndex = findPartIndex();
-        partEndIndex = findPartIndex(false);
         cut();
     }
     if (constants_1.messageParts.guessId in whatCut) {
         position = whatCut.guessId;
-        partStartIndex = findPartIndex();
-        partEndIndex = findPartIndex(false);
         cut();
     }
     if (constants_1.messageParts.body in whatCut) {
         position = whatCut.body;
-        partStartIndex = findPartIndex();
-        partEndIndex = cutMessage.length;
-        cut();
+        cut(undefined, cutMessage.length);
     }
     return cutMessage;
 };
