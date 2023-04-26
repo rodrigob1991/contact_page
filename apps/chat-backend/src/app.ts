@@ -18,7 +18,7 @@ import {initRedis, RedisAPIs, RedisMessageKey} from "./redis"
 import {initHostConnection} from "./user_specific/host"
 import {initGuessConnection} from "./user_specific/guess"
 
-type AcceptConnectionReturn<A extends boolean> = A extends true ? [ws.connection, number] : void
+type AcceptConnectionReturn<A extends boolean> = A extends true ? [ws.connection, number] : undefined
 export type AcceptConnection = <A extends boolean>(accept: A) => AcceptConnectionReturn<A>
 
 export type CacheAndSendUntilAck = <M extends OutboundMessage[]>(key: RedisMessageKey<M>, message: M[number]["template"]) => void
@@ -71,7 +71,7 @@ const initWebSocket = (httpServer: Server, {newUser, removeUser, getUsers, publi
                     console.log((connectionDate) + " connection accepted")
                     tupleOrVoid = [connection, connectionDate]
                 } else {
-                    tupleOrVoid = request.reject()
+                    request.reject()
                 }
                 return tupleOrVoid as AcceptConnectionReturn<A>
             }

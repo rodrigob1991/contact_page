@@ -20,8 +20,7 @@ export default function HostLiveChat({}: Props) {
         return mm.guessId.toString()
     }
 
-    const handleNewConnectionState: HandleNewConnectionState = (cs) => {
-    }
+    const handleNewConnectionState: HandleNewConnectionState = (cs) => {}
 
     return (
         <Container>

@@ -4,7 +4,7 @@ import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
 import {HOST_ID, InboundMessageData, LOCAL_USER_ID, MessageData, OutboundMessageData} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
-import {BsEyeSlashFill} from "react-icons/bs"
+import {BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
 import {ConnectionState} from "../../hooks/useWebSocket"
 import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions"
@@ -63,7 +63,9 @@ export default function ChatView<UT extends UserType>({userType, connectionState
         }
     }
     const getInboundMessageView = ({fromUserId, number, body}: InboundMessageData) =>
-        <MessageView key={fromUserId + "-" + number} color={getUserColor(fromUserId)} serverAck={true} isOutbound={false}> {body} </MessageView>
+        <MessageView key={fromUserId + "-" + number} isOutbound={false}>
+        <MessageBody serverAck={true} color={getUserColor(fromUserId)}> {body} </MessageBody>
+        </MessageView>
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     useEffect(() => {
@@ -124,12 +126,16 @@ const getHostSpecifics: GetUserSpecifics<"host"> = (selectedConnectedGuessesIds,
         addOrRemoveSelectedConnectedGuessId(id)
     }
     const getOutboundMessageView : GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) => {
+        const hostColor = getUserColor(LOCAL_USER_ID)
+
         const toGuessesIdsViews: JSX.Element[] = []
-        toUsersIds.forEach((acknowledged, userId) => {
-            toGuessesIdsViews.push(<ToGuessIdView key={userId} acknowledged={acknowledged}>{userId}</ToGuessIdView>)
+        toUsersIds.forEach((userAck, userId) => {
+            toGuessesIdsViews.push(<ToGuessIdView key={userId} userAck={userAck} color={ getUserColor(userId.toString())}> {userId} </ToGuessIdView>)
         })
-        return <MessageView key={LOCAL_USER_ID + "-" + number} color={getUserColor(LOCAL_USER_ID)} serverAck={serverAck}
-                            isOutbound={true}> {toGuessesIdsViews + " -> " + body} </MessageView>
+        return <MessageView key={LOCAL_USER_ID + "-" + number} isOutbound={true}>
+               {toGuessesIdsViews}
+               <MessageBody color={hostColor} serverAck={serverAck}> {body} </MessageBody>
+               </MessageView>
     }
 
     const sendOutboundMessageAccordingUser: SendOutboundMessageAccordingUser<"host"> = (b, sendOutboundMessage) => {
@@ -142,10 +148,14 @@ const getHostSpecifics: GetUserSpecifics<"host"> = (selectedConnectedGuessesIds,
 
     return [handleClickGuess, getOutboundMessageView, sendOutboundMessageAccordingUser]
 }
-const getGuessSpecifics: GetUserSpecifics<"guess"> = (selectedConnectedHostIds, addOrRemoveSelectedConnectedHostId) => {
+const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
+    //<BsFillEnvelopeXFill style={iconStyleProps}/>
+    const iconStyleProps = { minWidth: "15px", minHeight: "15px", marginTop: "5px", marginRight: "2px" }
     const getOutboundMessageView: GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) =>
-        <MessageView key={LOCAL_USER_ID + "-" + number} color={getUserColor(LOCAL_USER_ID)} serverAck={serverAck}
-                     isOutbound={true}> {(toUsersIds.get(HOST_ID) ? "(received)" : "") + body} </MessageView>
+        <MessageView key={LOCAL_USER_ID + "-" + number} isOutbound={true}>
+            {toUsersIds.get(HOST_ID) ? <BsFillEnvelopeOpenFill style={iconStyleProps}/> : <BsFillEnvelopeFill style={iconStyleProps}/>}
+            <MessageBody color={getUserColor(LOCAL_USER_ID)} serverAck={serverAck}>{body} </MessageBody>
+        </MessageView>
 
     const sendOutboundMessageAccordingUser: SendOutboundMessageAccordingUser<"guess"> = (b, sendOutboundMessage) => {
         sendOutboundMessage(b, undefined)
@@ -206,8 +216,8 @@ const ToolBarRightInnerContainer = styled.div`
 
 const ConnectionStateView = styled.span<{connectionState: ConnectionState}>`
   position: relative;
-  height: 30px;
-  width: 30px;
+  height: 25px;
+  width: 25px;
   margin: 20px;
   border-style: solid;
   border-radius: 50%;
@@ -276,35 +286,48 @@ const MessagesContainer = styled.div`
   height: 100%;
   border-style: solid;
   border-radius: 10px;
-  padding: 10px;
+  padding: 5px;
+  gap: 5px;
   overflow-y: auto;
   background-color: #DCDCDC;
 `
-const MessageView = styled.label<{ serverAck: boolean, isOutbound: boolean}>`
- display: block;
+const MessageView = styled.div<{ isOutbound: boolean}>`
+ ${({isOutbound}) =>
+    "align-self:" +  (isOutbound ? "flex-start" : "flex-end") + ";"
+    + "margin-" + (isOutbound ? "right" : "left") + ": 40px;"}
+ display: flex;
  width: fit-content;
  height: fit-content;
  flex-shrink: 0;
- font-size: 23px;
  font-weight: bold;
  overflow: hidden;
+ `
+const MessageBody = styled.div<{ serverAck: boolean}>`
+ ${({color, serverAck}) => 
+    "opacity:" + (serverAck ? 1 : 0.2) + ";"
+    + ("color:" +  color + ";")}
  background-color: #FFFFFF;
  border-radius: 15px;
  border-style: solid;
- box-shadow: 4px 4px 3px black;
- margin: 5px;
- padding: 5px;
- ${({color, serverAck, isOutbound}) => "opacity:" + (serverAck ? 1 : 0.2) + ";" 
-    + ("color:" +  color + ";")
-    + "align-self:" +  (isOutbound ? "flex-start" : "flex-end") + ";"
-    + "margin-" + (isOutbound ? "right" : "left") + ": 40px;"
-}
-@media (max-width: ${maxWidthSmallestLayout}px) {
+ padding: 3px;
+ font-size: 23px;
+ @media (max-width: ${maxWidthSmallestLayout}px) {
     font-size: 19px;
   }
- `
-const ToGuessIdView = styled.span<{ acknowledged: boolean }>`
-  border-style: ${({acknowledged}) => acknowledged ? "solid" : "none"};
+`
+const ToGuessIdView = styled.span<{ userAck: boolean }>`
+   ${({userAck, color}) =>
+    "color: " + color + ";"
+    + (!userAck ? "text-decoration-line: line-through;" : "")}
+    background-color: #FFFFFF;
+    border-radius: 15px;
+    border-style: solid;
+    height: fit-content;
+    font-size: 20px;
+    padding: 1px;
+    @media (max-width: ${maxWidthSmallestLayout}px) {
+        font-size: 17px;
+      }
 `
 const SendMessageContainer = styled.div`
   display: flex;

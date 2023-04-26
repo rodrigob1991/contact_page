@@ -27,6 +27,7 @@ export type HandleMesMessage<UT extends UserType> =  (mm: InboundMesMessageParts
 export type HandleServerAckMessage =  (n: number) => void
 export type HandleUserAckMessage<UT extends UserType> = (n: number, gi: GuessId<UT>) => void
 export type IsMessageAckByServer = (n: number) => boolean
+export type AddPendingToUserAckMessage = (n: number, ui: number) => void
 
 export type GuessesIds<UT extends UserType> = UT extends "host" ? number[] : undefined
 export type GuessId<UT extends UserType> = UT extends "host" ? number : undefined
@@ -42,6 +43,7 @@ export type Props<UT extends UserType> = {
     handleServerAckMessage: HandleServerAckMessage
     handleUserAckMessage: HandleUserAckMessage<UT>
     isMessageAckByServer: IsMessageAckByServer
+    addPendingToUserAckMessage: AddPendingToUserAckMessage
     connect: boolean
     handleNewConnectionState: HandleNewConnectionState
 }
@@ -54,6 +56,7 @@ export default function useWebSocket<UT extends UserType>({
                                                               handleServerAckMessage,
                                                               handleUserAckMessage,
                                                               isMessageAckByServer,
+                                                              addPendingToUserAckMessage,
                                                               connect,
                                                               handleNewConnectionState,
                                                           }: Props<UT>) {
@@ -153,7 +156,7 @@ export default function useWebSocket<UT extends UserType>({
                         }
                     }, 5000)
                 }
-                //setMessageToAck(number)
+                addPendingToUserAckMessage(number, userId)
                 resendUntilAck()
             }
         }

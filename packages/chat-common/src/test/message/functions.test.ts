@@ -4,19 +4,17 @@ import {
     GotAllMessageParts,
     InboundFromGuessAckMessage,
     InboundFromGuessMesMessage, InboundFromHostAckMessage, InboundFromHostMesMessage, Message,
-    OutboundToGuessAckMessage,
     OutboundToGuessConMessage,
     OutboundToGuessDisMessage,
-    OutboundToGuessMesMessage,
-    OutboundToHostAckMessage,
+    OutboundToGuessMesMessage, OutboundToGuessServerAckMessage, OutboundToGuessUserAckMessage,
     OutboundToHostConMessage,
     OutboundToHostDisMessage,
-    OutboundToHostMesMessage
+    OutboundToHostMesMessage, OutboundToHostServerAckMessage, OutboundToHostUserAckMessage
 } from "../../message/types"
 import {messagePrefixes} from "../../model/constants"
 import {getMessageParts} from "../../message/functions"
 
-const {con: conPrefix, dis: disPrefix, mes: mesPrefix, ack: ackPrefix} = messagePrefixes
+const {con: conPrefix, dis: disPrefix, mes: mesPrefix, sack: sackPrefix, uack: uackPrefix} = messagePrefixes
 const hardcodeParts = {originPrefix: "mes" as MessagePrefix, number: 2346544, guessId: 1522, body: "something to say"}
 const {originPrefix, number, guessId, body} = hardcodeParts
 
@@ -41,10 +39,15 @@ const expectedMesToGuessMessageParts: GotAllMessageParts<OutboundToGuessMesMessa
 const gotMesToGuessMessageParts = getMessageParts<OutboundToGuessMesMessage>(mesToGuessMessage, {prefix: 1, number: 2, body: 3})
 equalParts<OutboundToGuessMesMessage>(expectedMesToGuessMessageParts, gotMesToGuessMessageParts, "mes", "guess", "out")
 
-const ackToGuessMessage: OutboundToGuessAckMessage["template"] = `${ackPrefix}:${number}`
-const expectedAckToGuessMessageParts: GotAllMessageParts<OutboundToGuessAckMessage> = {prefix: ackPrefix, number: number}
-const gotAckToGuessMessageParts = getMessageParts<OutboundToGuessAckMessage>(ackToGuessMessage, {prefix: 1, number: 2})
-equalParts<OutboundToGuessAckMessage>(expectedAckToGuessMessageParts, gotAckToGuessMessageParts, "ack", "guess", "out")
+const uackToGuessMessage: OutboundToGuessUserAckMessage["template"] = `${uackPrefix}:${number}`
+const expectedUackToGuessMessageParts: GotAllMessageParts<OutboundToGuessUserAckMessage> = {prefix: uackPrefix, number: number}
+const gotUackToGuessMessageParts = getMessageParts<OutboundToGuessUserAckMessage>(uackToGuessMessage, {prefix: 1, number: 2})
+equalParts<OutboundToGuessUserAckMessage>(expectedUackToGuessMessageParts, gotUackToGuessMessageParts, "uack", "guess", "out")
+
+const sackToGuessMessage: OutboundToGuessServerAckMessage["template"] = `${sackPrefix}:${number}`
+const expectedSackToGuessMessageParts: GotAllMessageParts<OutboundToGuessServerAckMessage> = {prefix: sackPrefix, number: number}
+const gotSackToGuessMessageParts = getMessageParts<OutboundToGuessServerAckMessage>(sackToGuessMessage, {prefix: 1, number: 2})
+equalParts<OutboundToGuessServerAckMessage>(expectedSackToGuessMessageParts, gotSackToGuessMessageParts, "sack", "guess", "out")
 
 const conToHostMessage: OutboundToHostConMessage["template"] = `${conPrefix}:${number}:${guessId}`
 const expectedConToHostMessageParts: GotAllMessageParts<OutboundToHostConMessage> = {prefix: conPrefix, number: number, guessId: guessId}
@@ -61,27 +64,32 @@ const expectedMesToHostMessageParts: GotAllMessageParts<OutboundToHostMesMessage
 const gotMesToHostMessageParts = getMessageParts<OutboundToHostMesMessage>(mesToHostMessage, {prefix: 1, number: 2, guessId: 3, body: 4})
 equalParts<OutboundToHostMesMessage>(expectedMesToHostMessageParts, gotMesToHostMessageParts, "mes", "host", "out")
 
-const ackToHostMessage: OutboundToHostAckMessage["template"] = `${ackPrefix}:${number}:${guessId}`
-const expectedAckToHostMessageParts: GotAllMessageParts<OutboundToHostAckMessage> = {prefix: ackPrefix, number: number, guessId: guessId}
-const gotAckToHostMessageParts = getMessageParts<OutboundToHostAckMessage>(ackToHostMessage, {prefix: 1, number: 2, guessId: 3})
-equalParts<OutboundToHostAckMessage>(expectedAckToHostMessageParts, gotAckToHostMessageParts, "ack", "host", "out")
+const uackToHostMessage: OutboundToHostUserAckMessage["template"] = `${uackPrefix}:${number}:${guessId}`
+const expectedUackToHostMessageParts: GotAllMessageParts<OutboundToHostUserAckMessage> = {prefix: uackPrefix, number: number, guessId: guessId}
+const gotUackToHostMessageParts = getMessageParts<OutboundToHostUserAckMessage>(uackToHostMessage, {prefix: 1, number: 2, guessId: 3})
+equalParts<OutboundToHostUserAckMessage>(expectedUackToHostMessageParts, gotUackToHostMessageParts, "uack", "host", "out")
+
+const sackToHostMessage: OutboundToHostServerAckMessage["template"] = `${sackPrefix}:${number}:${guessId}`
+const expectedSackToHostMessageParts: GotAllMessageParts<OutboundToHostServerAckMessage> = {prefix: sackPrefix, number: number, guessId: guessId}
+const gotSackToHostMessageParts = getMessageParts<OutboundToHostServerAckMessage>(sackToHostMessage, {prefix: 1, number: 2, guessId: 3})
+equalParts<OutboundToHostServerAckMessage>(expectedSackToHostMessageParts, gotSackToHostMessageParts, "sack", "host", "out")
 
 const mesFromGuessMessage: InboundFromGuessMesMessage["template"] = `${mesPrefix}:${number}:${body}`
 const expectedMesFromGuessMessageParts: GotAllMessageParts<InboundFromGuessMesMessage> = {prefix: mesPrefix, number: number, body: body}
 const gotMesFromGuessMessageParts = getMessageParts<InboundFromGuessMesMessage>(mesFromGuessMessage, {prefix: 1, number: 2, body: 3})
 equalParts<InboundFromGuessMesMessage>(expectedMesFromGuessMessageParts, gotMesFromGuessMessageParts, "mes", "guess", "in")
 
-const ackFromGuessMessage: InboundFromGuessAckMessage["template"] = `${ackPrefix}:${originPrefix}:${number}`
-const expectedAckFromGuessMessageParts: GotAllMessageParts<InboundFromGuessAckMessage> = {prefix: ackPrefix, originPrefix: originPrefix, number: number}
+const ackFromGuessMessage: InboundFromGuessAckMessage["template"] = `${uackPrefix}:${originPrefix}:${number}`
+const expectedAckFromGuessMessageParts: GotAllMessageParts<InboundFromGuessAckMessage> = {prefix: uackPrefix, originPrefix: originPrefix, number: number}
 const gotAckFromGuessMessageParts = getMessageParts<InboundFromGuessAckMessage>(ackFromGuessMessage, {prefix: 1,originPrefix: 2, number: 3})
-equalParts<InboundFromGuessAckMessage>(expectedAckFromGuessMessageParts, gotAckFromGuessMessageParts, "ack", "guess", "in")
+equalParts<InboundFromGuessAckMessage>(expectedAckFromGuessMessageParts, gotAckFromGuessMessageParts, "uack", "guess", "in")
 
 const mesFromHostMessage: InboundFromHostMesMessage["template"] = `${mesPrefix}:${number}:${guessId}:${body}`
 const expectedMesFromHostMessageParts: GotAllMessageParts<InboundFromHostMesMessage> = {prefix: mesPrefix, number: number, guessId: guessId, body: body}
 const gotMesFromHostMessageParts = getMessageParts<InboundFromHostMesMessage>(mesFromHostMessage, {prefix: 1, number: 2, guessId: 3, body: 4})
 equalParts<InboundFromHostMesMessage>(expectedMesFromHostMessageParts, gotMesFromHostMessageParts, "mes", "host", "in")
 
-const ackFromHostMessage: InboundFromHostAckMessage["template"] = `${ackPrefix}:${originPrefix}:${number}:${guessId}`
-const expectedAckFromHostMessageParts: GotAllMessageParts<InboundFromHostAckMessage> = {prefix: ackPrefix, originPrefix: originPrefix, number: number, guessId: guessId}
+const ackFromHostMessage: InboundFromHostAckMessage["template"] = `${uackPrefix}:${originPrefix}:${number}:${guessId}`
+const expectedAckFromHostMessageParts: GotAllMessageParts<InboundFromHostAckMessage> = {prefix: uackPrefix, originPrefix: originPrefix, number: number, guessId: guessId}
 const gotAckFromHostMessageParts = getMessageParts<InboundFromHostAckMessage>(ackFromHostMessage, {prefix: 1, originPrefix: 2, number: 3, guessId: 4})
-equalParts<InboundFromHostAckMessage>(expectedAckFromHostMessageParts, gotAckFromHostMessageParts, "ack", "host", "in")
+equalParts<InboundFromHostAckMessage>(expectedAckFromHostMessageParts, gotAckFromHostMessageParts, "uack", "host", "in")

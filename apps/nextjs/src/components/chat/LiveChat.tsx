@@ -2,7 +2,9 @@ import {UserType} from "chat-common/src/model/types"
 import {InboundConMessageParts, InboundDisMessageParts, InboundMesMessageParts} from "../../types/chat"
 import ChatView, {ContainerProps, Hide, SendOutboundMessage as SendOutboundMessageFromView} from "./View"
 import useWebSocket, {
-    ConnectionState, GuessId,
+    AddPendingToUserAckMessage,
+    ConnectionState,
+    GuessId,
     HandleConMessage,
     HandleDisMessage,
     HandleMesMessage,
@@ -14,7 +16,10 @@ import useWebSocket, {
 import {useEffect, useRef, useState} from "react"
 
 export type InboundMessageData = { flow: "in", fromUserId: string, number: number, body: string }
-export type OutboundMessageData = { flow: "out", fromUserId: string, number: number, body: string, toUsersIds: Map<number, boolean>, serverAck: boolean }
+const userAckStates = {pen: "pen", ack: "ack", nack: "nack"} as const
+type UserAckState = typeof userAckStates[keyof typeof userAckStates]
+type ToUsersId = Map<number, UserAckState>
+export type OutboundMessageData = { flow: "out", fromUserId: string, number: number, body: string, toUsersIds: ToUsersId, serverAck: boolean }
 export type MessageData = InboundMessageData | OutboundMessageData
 
 export type FirstHandleConMessage<UT extends UserType> = (cm: InboundConMessageParts<UT>) => string
@@ -63,6 +68,7 @@ export default function LiveChat<UT extends UserType>({
                 setConnectedUserId(LOCAL_USER_ID)
                 break
             case ConnectionState.DISCONNECTED :
+                setAllMessagesAsNack()
                 setConnectedUsersIds([])
         }
         nextHandleNewConnectionState(cs)
@@ -87,17 +93,18 @@ export default function LiveChat<UT extends UserType>({
             return updatedMessages
         })
     }
+
     const setInboundMessageData = (md: InboundMessageData) => {
         setMessagesData((messagesData) => [...messagesData, md])
     }
     const refToOutboundMessagesNumbersToSend = useRef<number[]>([])
     const getOutboundMessagesNumbersToSend = () => refToOutboundMessagesNumbersToSend.current
 
-    const setNewOutboundMessageData = (body: string, toUsersIds: Map<number, boolean>) => {
+    const setNewOutboundMessageData: SetNewOutboundMessageData = (body, toUsersIds) => {
         setMessagesData((messagesData) => {
             const number = messagesData.length
             getOutboundMessagesNumbersToSend().push(number)
-            const messageData: OutboundMessageData = {flow: "out", fromUserId: LOCAL_USER_ID, toUsersIds: toUsersIds, number: messagesData.length, body: body, serverAck: false}
+            const messageData: OutboundMessageData = {flow: "out", fromUserId: LOCAL_USER_ID, toUsersIds: new Map(toUsersIds.map(ui => [ui, "pen"])), number: number, body: body, serverAck: false}
             return [...messagesData, messageData]
         })
     }
@@ -109,15 +116,69 @@ export default function LiveChat<UT extends UserType>({
         getOutboundMessagesNumbersToSend().splice(0, getOutboundMessagesNumbersToSend().length)
     }, [messagesData])
 
-    const setMessageAsAcknowledgedByServer = (n: number) => {
-        updateOutboundMessageData(n, "serverAck", true)
+    const setMessageAsAcknowledgedByServer = (number: number) => {
+        updateOutboundMessageData(number, "serverAck", true)
     }
-    const setMessageAsAcknowledgedByUser = (n: number, ui: number) => {
-        const outboundMessageData = messagesData[n] as OutboundMessageData
-        updateOutboundMessageData(n, "toUsersIds", outboundMessageData["toUsersIds"].set(ui, true))
-    }
-
     const isMessageAckByServer: IsMessageAckByServer = (n) => getOutboundMessageData(n).serverAck
+
+    const setMessageAsAcknowledgedByUser = (number: number, userId: number) => {
+        removePendingToUserAckMessage(number, userId)
+        setMessagesData((messagesData) => {
+            const updatedMessages = [...messagesData]
+            const outboundMessage = updatedMessages[number] as OutboundMessageData
+            if (!("toUsersIds" in outboundMessage)) {
+                throw new Error("key toUsersIds is not in " + JSON.stringify(outboundMessage))
+            }
+            outboundMessage["toUsersIds"].set(userId, "ack")
+
+            return updatedMessages
+        })
+    }
+    const usersPendingToAckMessagesRef = useRef(new Map<number, number[]>)
+    const getUsersPendingToAckMessages = () => usersPendingToAckMessagesRef.current
+    const addPendingToUserAckMessage : AddPendingToUserAckMessage = (number, userId) => {
+        let pendingMessages = getUsersPendingToAckMessages().get(userId)
+        if (!pendingMessages)
+            pendingMessages = []
+        pendingMessages.push(number)
+    }
+    const removePendingToUserAckMessage = (number: number, userId: number) => {
+        let pendingMessages = getUsersPendingToAckMessages().get(userId)
+        if (pendingMessages) {
+            const index = pendingMessages.findIndex(n => n === number)
+            if (index >= 0)
+                pendingMessages.splice(index, 1)
+            if (pendingMessages.length === 0) {
+                getUsersPendingToAckMessages().delete(userId)
+            }
+        }
+    }
+    // IF NOT USER ID MARK ALL USERS PENDING TO ACK MESSAGES AS NACK
+    const setMessagesAsNack = (indexesByUserId: [[number, number[]]]) => {
+        setMessagesData((messagesData) => {
+            const updatedMessagesData = [...messagesData]
+            for (const [userId, indexes] of indexesByUserId) {
+                for (const index of indexes) {
+                    const messageData = updatedMessagesData[index] as OutboundMessageData
+                    if (messageData.toUsersIds.get(userId) === "pen") {
+                        messageData.toUsersIds.set(userId, "nack")
+                    }
+                }
+            }
+            return updatedMessagesData
+        })
+    }
+    const setAllMessagesAsNack = () => {
+        if (getUsersPendingToAckMessages().size > 0) {
+            setMessagesAsNack([...getUsersPendingToAckMessages().entries()] as [[number, number[]]])
+        }
+    }
+    const setUserMessagesAsNack = (userId: number) => {
+        const pendingToAckMessages = getUsersPendingToAckMessages().get(userId)
+        if (pendingToAckMessages) {
+            setMessagesAsNack([[userId, pendingToAckMessages]])
+        }
+    }
 
     const handleConMessage: HandleConMessage<UT> = (cm) => {
         const userId = firstHandleConMessage(cm)
@@ -125,6 +186,7 @@ export default function LiveChat<UT extends UserType>({
     }
     const handleDisMessage: HandleDisMessage<UT> = (dm) => {
         const userId = firstHandleDisMessage(dm)
+        setUserMessagesAsNack(getExternalUserId(userId))
         removeConnectedUserId(userId)
     }
     const handleMesMessage: HandleMesMessage<UT> = (mm) => {
@@ -135,7 +197,7 @@ export default function LiveChat<UT extends UserType>({
         setMessageAsAcknowledgedByServer(n)
     }
     const handleUserAckMessage: HandleUserAckMessage<UT> = (n, ui) => {
-        setMessageAsAcknowledgedByUser(n, getUserId(ui))
+        setMessageAsAcknowledgedByUser(n, getExternalUserId(ui))
     }
 
     const sendOutboundMesMessage = useWebSocket({
@@ -146,33 +208,35 @@ export default function LiveChat<UT extends UserType>({
         handleServerAckMessage: handleServerAckMessage,
         handleUserAckMessage: handleUserAckMessage,
         isMessageAckByServer: isMessageAckByServer,
+        addPendingToUserAckMessage: addPendingToUserAckMessage,
         connect: connect,
         handleNewConnectionState: handleNewConnectionState
     })
 
-    const [sendOutboundMessageFromView, getUserId] = (userType === "host" ? getHostSpecifics(setNewOutboundMessageData) : getGuessSpecifics(setNewOutboundMessageData)) as GetUserSpecificsReturn<UT>
+    const [sendOutboundMessageFromView, getExternalUserId] = (userType === "host" ? getHostSpecifics(setNewOutboundMessageData) : getGuessSpecifics(setNewOutboundMessageData)) as GetUserSpecificsReturn<UT>
 
     return <ChatView userType={userType} connectionState={connectionState} connectedUsersIds={connectedUsersIds} messages={messagesData} sendOutboundMessage={sendOutboundMessageFromView}  {...viewProps}/>
 }
 
-type GetUserId<UT extends UserType> = (gi: GuessId<UT>) => number
-type GetUserSpecificsReturn<UT extends UserType> =  [SendOutboundMessageFromView<UT>, GetUserId<UT>]
-type GetUserSpecifics<UT extends UserType> = (setNewOutboundMessageData: (b: string, to: Map<number, boolean>) => void) => GetUserSpecificsReturn<UT>
+type SetNewOutboundMessageData = (b: string, to: number[]) => void
+type GetExternalUserId<UT extends UserType> = (ui: GuessId<UT> | string ) => number
+type GetUserSpecificsReturn<UT extends UserType> =  [SendOutboundMessageFromView<UT>, GetExternalUserId<UT>]
+type GetUserSpecifics<UT extends UserType> = (setNewOutboundMessageData: SetNewOutboundMessageData) => GetUserSpecificsReturn<UT>
 
 const getHostSpecifics: GetUserSpecifics<"host"> = (setNewOutboundMessageData) => {
     const sendOutboundMessageFromView: SendOutboundMessageFromView<"host"> = (body, toGuessesIds) => {
-        setNewOutboundMessageData(body, new Map(toGuessesIds.map(ui => [parseInt(ui), false])))
+        setNewOutboundMessageData(body, toGuessesIds.map(ui => parseInt(ui)))
     }
-    const getHostId: GetUserId<"host"> = (gi) => gi
+    const getGuessId: GetExternalUserId<"host"> = (gi) => typeof gi === "string" ? parseInt(gi) : gi
 
-    return [sendOutboundMessageFromView, getHostId]
+    return [sendOutboundMessageFromView, getGuessId]
 }
 const getGuessSpecifics: GetUserSpecifics<"guess"> = (setNewOutboundMessageData) => {
     const sendOutboundMessageFromView: SendOutboundMessageFromView<"guess"> = (body, toUsersIds) => {
         // toUsersIds will be undefined
-        setNewOutboundMessageData(body, new Map([[HOST_ID, false]]))
+        setNewOutboundMessageData(body, [HOST_ID])
     }
-    const getGuessId: GetUserId<"guess"> = (gi) => HOST_ID
+    const getHostId: GetExternalUserId<"guess"> = () => HOST_ID
 
-    return [sendOutboundMessageFromView, getGuessId]
+    return [sendOutboundMessageFromView, getHostId]
 }
