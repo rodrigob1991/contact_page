@@ -2,7 +2,7 @@ import {UserType} from "chat-common/src/model/types"
 import {InboundConMessageParts, InboundDisMessageParts, InboundMesMessageParts} from "../../types/chat"
 import ChatView, {ContainerProps, Hide, SendOutboundMessage as SendOutboundMessageFromView} from "./View"
 import useWebSocket, {
-    AddPendingToUserAckMessage,
+    AddPendingUserAckMessage,
     ConnectionState,
     GuessId,
     HandleConMessage,
@@ -17,7 +17,7 @@ import {useEffect, useRef, useState} from "react"
 
 export type InboundMessageData = { flow: "in", fromUserId: string, number: number, body: string }
 const userAckStates = {pen: "pen", ack: "ack", nack: "nack"} as const
-type UserAckState = typeof userAckStates[keyof typeof userAckStates]
+export type UserAckState = typeof userAckStates[keyof typeof userAckStates]
 type ToUsersId = Map<number, UserAckState>
 export type OutboundMessageData = { flow: "out", fromUserId: string, number: number, body: string, toUsersIds: ToUsersId, serverAck: boolean }
 export type MessageData = InboundMessageData | OutboundMessageData
@@ -122,7 +122,7 @@ export default function LiveChat<UT extends UserType>({
     const isMessageAckByServer: IsMessageAckByServer = (n) => getOutboundMessageData(n).serverAck
 
     const setMessageAsAcknowledgedByUser = (number: number, userId: number) => {
-        removePendingToUserAckMessage(number, userId)
+        removePendingUserAckMessage(number, userId)
         setMessagesData((messagesData) => {
             const updatedMessages = [...messagesData]
             const outboundMessage = updatedMessages[number] as OutboundMessageData
@@ -134,22 +134,24 @@ export default function LiveChat<UT extends UserType>({
             return updatedMessages
         })
     }
-    const usersPendingToAckMessagesRef = useRef(new Map<number, number[]>)
-    const getUsersPendingToAckMessages = () => usersPendingToAckMessagesRef.current
-    const addPendingToUserAckMessage : AddPendingToUserAckMessage = (number, userId) => {
-        let pendingMessages = getUsersPendingToAckMessages().get(userId)
-        if (!pendingMessages)
+    const pendingUserAckMessagesRef = useRef(new Map<number, number[]>)
+    const getPendingUserAckMessages = () => pendingUserAckMessagesRef.current
+    const addPendingUserAckMessage: AddPendingUserAckMessage = (number, userId) => {
+        let pendingMessages = getPendingUserAckMessages().get(userId)
+        if (!pendingMessages) {
             pendingMessages = []
+            getPendingUserAckMessages().set(userId, pendingMessages)
+        }
         pendingMessages.push(number)
     }
-    const removePendingToUserAckMessage = (number: number, userId: number) => {
-        let pendingMessages = getUsersPendingToAckMessages().get(userId)
+    const removePendingUserAckMessage = (number: number, userId: number) => {
+        let pendingMessages = getPendingUserAckMessages().get(userId)
         if (pendingMessages) {
             const index = pendingMessages.findIndex(n => n === number)
             if (index >= 0)
                 pendingMessages.splice(index, 1)
             if (pendingMessages.length === 0) {
-                getUsersPendingToAckMessages().delete(userId)
+                getPendingUserAckMessages().delete(userId)
             }
         }
     }
@@ -169,12 +171,12 @@ export default function LiveChat<UT extends UserType>({
         })
     }
     const setAllMessagesAsNack = () => {
-        if (getUsersPendingToAckMessages().size > 0) {
-            setMessagesAsNack([...getUsersPendingToAckMessages().entries()] as [[number, number[]]])
+        if (getPendingUserAckMessages().size > 0) {
+            setMessagesAsNack([...getPendingUserAckMessages().entries()] as [[number, number[]]])
         }
     }
     const setUserMessagesAsNack = (userId: number) => {
-        const pendingToAckMessages = getUsersPendingToAckMessages().get(userId)
+        const pendingToAckMessages = getPendingUserAckMessages().get(userId)
         if (pendingToAckMessages) {
             setMessagesAsNack([[userId, pendingToAckMessages]])
         }
@@ -208,7 +210,7 @@ export default function LiveChat<UT extends UserType>({
         handleServerAckMessage: handleServerAckMessage,
         handleUserAckMessage: handleUserAckMessage,
         isMessageAckByServer: isMessageAckByServer,
-        addPendingToUserAckMessage: addPendingToUserAckMessage,
+        addPendingUserAckMessage: addPendingUserAckMessage,
         connect: connect,
         handleNewConnectionState: handleNewConnectionState
     })

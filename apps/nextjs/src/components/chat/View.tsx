@@ -2,9 +2,9 @@ import styled from "@emotion/styled"
 import React, {useEffect, useRef, useState} from "react"
 import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
-import {HOST_ID, InboundMessageData, LOCAL_USER_ID, MessageData, OutboundMessageData} from "./LiveChat"
+import {HOST_ID, InboundMessageData, LOCAL_USER_ID, MessageData, OutboundMessageData, UserAckState} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
-import {BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill} from "react-icons/bs"
+import {BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
 import {ConnectionState} from "../../hooks/useWebSocket"
 import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions"
@@ -149,13 +149,14 @@ const getHostSpecifics: GetUserSpecifics<"host"> = (selectedConnectedGuessesIds,
     return [handleClickGuess, getOutboundMessageView, sendOutboundMessageAccordingUser]
 }
 const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
-    //<BsFillEnvelopeXFill style={iconStyleProps}/>
-    const iconStyleProps = { minWidth: "15px", minHeight: "15px", marginTop: "5px", marginRight: "2px" }
-    const getOutboundMessageView: GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) =>
-        <MessageView key={LOCAL_USER_ID + "-" + number} isOutbound={true}>
-            {toUsersIds.get(HOST_ID) ? <BsFillEnvelopeOpenFill style={iconStyleProps}/> : <BsFillEnvelopeFill style={iconStyleProps}/>}
-            <MessageBody color={getUserColor(LOCAL_USER_ID)} serverAck={serverAck}>{body} </MessageBody>
-        </MessageView>
+    const iconStyleProps = {style: {minWidth: "15px", minHeight: "15px", marginTop: "5px", marginRight: "2px"}}
+    const getOutboundMessageView: GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) => {
+        const hostAckState = toUsersIds.get(HOST_ID)
+       return <MessageView key={LOCAL_USER_ID + "-" + number} isOutbound={true}>
+                {hostAckState === "pen" ? <BsFillEnvelopeFill {...iconStyleProps}/> : hostAckState === "ack" ? <BsFillEnvelopeOpenFill {...iconStyleProps}/> : <BsFillEnvelopeXFill {...iconStyleProps}/>}
+                <MessageBody color={getUserColor(LOCAL_USER_ID)} serverAck={serverAck}>{body} </MessageBody>
+             </MessageView>
+    }
 
     const sendOutboundMessageAccordingUser: SendOutboundMessageAccordingUser<"guess"> = (b, sendOutboundMessage) => {
         sendOutboundMessage(b, undefined)
@@ -315,13 +316,12 @@ const MessageBody = styled.div<{ serverAck: boolean}>`
     font-size: 19px;
   }
 `
-const ToGuessIdView = styled.span<{ userAck: boolean }>`
+const ToGuessIdView = styled.span<{ userAck: UserAckState }>`
    ${({userAck, color}) =>
     "color: " + color + ";"
-    + (!userAck ? "text-decoration-line: line-through;" : "")}
+    + "border-style: " +  (userAck === "pen" ? "dashed" : userAck === "ack" ?  "solid" : "dotted") + ";"}
     background-color: #FFFFFF;
     border-radius: 15px;
-    border-style: solid;
     height: fit-content;
     font-size: 20px;
     padding: 1px;
