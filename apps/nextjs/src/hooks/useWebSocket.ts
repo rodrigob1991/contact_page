@@ -77,6 +77,10 @@ export default function useWebSocket<UT extends UserType>({
         refToWs.current = ws
     }
     const getWS = () => refToWs.current
+    const isConnected = () => {
+        const ws = getWS()
+        return ws && ws.readyState === ws.OPEN
+    }
     const initWS = () => {
         handleConnecting()
         const ws = new WebSocket(getWsEndpoint())
@@ -139,16 +143,10 @@ export default function useWebSocket<UT extends UserType>({
         }
         , [connect])
 
-    /*const ackMessagesRef = useRef<boolean[]>([])
-    const getAckMessages = () => ackMessagesRef.current
-    const setMessageToAck = (n: number) => { getAckMessages()[n] = false }
-    const setMessageAlreadyAck = (n: number) => { getAckMessages()[n] = true }
-    const isMessageAck = (n: number) => getAckMessages()[n]*/
-
     const sendOutboundMesMessage: SendOutboundMesMessage = (number, body, usersIds) => {
         for (const userId of usersIds) {
-            if (getWS()) {
-                const resendUntilAck = () => {
+            const resendUntilAck = () => {
+                if (isConnected()) {
                     (getWS() as WebSocket).send(getOutboundMesMessage(number, userId, body))
                     setTimeout(() => {
                         if (!isMessageAckByServer(number)) {
@@ -156,9 +154,9 @@ export default function useWebSocket<UT extends UserType>({
                         }
                     }, 5000)
                 }
-                addPendingUserAckMessage(number, userId)
-                resendUntilAck()
             }
+            addPendingUserAckMessage(number, userId)
+            resendUntilAck()
         }
     }
     return sendOutboundMesMessage

@@ -1,6 +1,5 @@
 import {
     GetMessages,
-    InboundAckMessageOrigin,
     InboundFromGuessAckMessage,
     InboundFromGuessMesMessage,
     InboundMessageTarget,
@@ -13,25 +12,25 @@ import {
     OutboundToHostUserAckMessage
 } from "chat-common/src/message/types"
 import {getCutMessage, getMessage, getMessageParts, getMessagePrefix} from "chat-common/src/message/functions"
-import ws from "websocket"
 import {messagePrefixes} from "chat-common/src/model/constants"
-import {HandleUserDisconnection, InitUserConnection} from "./types"
-import {RedisMessageKey, Unsubscribe} from "../redis"
-import {HandleInboundAckMessage, HandleInboundMesMessage} from "../app"
+import {InitUserConnection} from "./types"
+import {RedisMessageKey} from "../redis"
+import {HandleDisconnection, HandleInboundAckMessage, HandleInboundMesMessage, HandleInboundMessage} from "../app"
 
-export const initGuessConnection : InitUserConnection<"guess"> = async (acceptConnection, newGuess, removeGuess, getHost, publishMessage, subscribeToMessages, removeMessage, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+export const initGuessConnection : InitUserConnection<"guess"> = async (acceptConnection, newGuess, removeGuess, getHost, publishGuessMessage, subscribeGuessToMessages, getGuessCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage = (...messages: OutboundMessageTemplate<"guess">[]) => {
         for (const message of messages) {
+            const keyPrefix = `guess:${guessId}:` as const
             let key: RedisMessageKey<GetMessages<"guess", "out">>
             const mp = getMessagePrefix(message)
             switch (mp) {
                 case "con":
                 case "dis":
                 case "uack":
-                    key = `guess:${guessId}:${message as OutboundMessageTemplate<"guess", "con" | "dis" | "uack">}`
+                    key = `${keyPrefix}${message as OutboundMessageTemplate<"guess", "con" | "dis" | "uack">}`
                     break
                 case "mes":
-                    key = `guess:${guessId}:${getCutMessage<OutboundMessage<"guess", "mes">, "body">(message as OutboundMessageTemplate<"guess", "mes">, {body: 3}, 3)}`
+                    key = `${keyPrefix}${getCutMessage<OutboundMessage<"guess", "mes">, "body">(message as OutboundMessageTemplate<"guess", "mes">, {body: 3}, 3)}`
                     break
                 default:
                     throw new Error("invalid message prefix")
@@ -40,38 +39,36 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
         }
     }
 
-    const handleInboundMessage = (m: ws.Message) => {
+    const handleInboundMessage: HandleInboundMessage = (m) => {
         const handleInboundMesMessage: HandleInboundMesMessage<"guess"> = (m) => {
             const {number, body} = getMessageParts<InboundFromGuessMesMessage, "number" | "body">(m, {number: 2, body: 3})
-            publishMessage<InboundMessageTarget<InboundFromGuessMesMessage>>({prefix: "mes", number: number, guessId: guessId, body: body}, "host", undefined)
+            publishGuessMessage<InboundMessageTarget<InboundFromGuessMesMessage>>({prefix: "mes" as "mes", number: number, guessId: guessId, body: body})
             return getMessage<OutboundToGuessServerAckMessage>({prefix: "sack", number: number})
         }
         const handleInboundAckMessage: HandleInboundAckMessage<"guess"> = (a) => {
             const {originPrefix, number} = getMessageParts<InboundFromGuessAckMessage, "originPrefix" | "number">(a, {originPrefix: 2, number: 3})
-            removeMessage<InboundAckMessageOrigin<"guess">>(`guess:${guessId}:${originPrefix}:${number}`)
-            if (originPrefix === messagePrefixes.mes)
-                publishMessage<OutboundToHostUserAckMessage>({prefix: "uack", number: number, guessId: guessId}, "host", undefined)
+            if (originPrefix === messagePrefixes.mes) {
+                publishGuessMessage<OutboundToHostUserAckMessage>({prefix: "uack", number: number, guessId: guessId})
+            }
+            return `guess:${guessId}:${originPrefix}:${number}`
         }
         applyHandleInboundMessage(m, handleInboundMesMessage, handleInboundAckMessage)
     }
 
-    let unsubscribe : Unsubscribe | undefined
-    const handleDisconnection: HandleUserDisconnection = (reasonCode, description) => {
+    const handleDisconnection: HandleDisconnection = (reasonCode, description) => {
         console.log(`guess ${guessId} disconnected, reason code:${reasonCode}, description: ${description}`)
-        publishMessage<OutboundToHostDisMessage>({prefix: "dis", number: Date.now(), guessId: guessId}, "host", undefined)
+        publishGuessMessage<OutboundToHostDisMessage>({prefix: "dis", number: Date.now(), guessId: guessId})
         removeGuess(guessId)
-        if (unsubscribe)
-            unsubscribe()
     }
 
     const guessId = await newGuess()
 
-    const [connection, connectionDate] = acceptConnection(true)
-    connection.on("message", handleInboundMessage)
-    connection.on("close", handleDisconnection)
+    const connectionDate = acceptConnection(handleInboundMessage, handleDisconnection, true, guessId)
 
-    subscribeToMessages(sendOutboundMessage, "guess", guessId).then(u => { unsubscribe = u })
-    publishMessage<OutboundToHostConMessage>({number: Date.now(), prefix: "con", guessId: guessId}, "host", undefined)
-    // send outbound con message if host connected
-    getHost().then(isHost => { if (isHost) sendOutboundMessage(getMessage<OutboundToGuessConMessage>({prefix: "con", number: connectionDate})) })
+    subscribeGuessToMessages(sendOutboundMessage, guessId)
+    // publish guess connection
+    publishGuessMessage<OutboundToHostConMessage>({number: Date.now(), prefix: "con", guessId: guessId})
+    // send outbound message if host is connected
+    getHost().then(isHost => { if (isHost) sendOutboundMessage(getMessage<OutboundToGuessConMessage>({prefix: "con", number: connectionDate}))})
+    getGuessCachedMesMessages(guessId).then(mesMessages => sendOutboundMessage(...mesMessages))
 }

@@ -2,7 +2,15 @@ import styled from "@emotion/styled"
 import React, {useEffect, useRef, useState} from "react"
 import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
-import {HOST_ID, InboundMessageData, LOCAL_USER_ID, MessageData, OutboundMessageData, UserAckState} from "./LiveChat"
+import {
+    ConnectedUser,
+    HOST_ID,
+    InboundMessageData,
+    LOCAL_USER_ID,
+    MessageData,
+    OutboundMessageData,
+    UserAckState
+} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
 import {BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
@@ -10,7 +18,7 @@ import {ConnectionState} from "../../hooks/useWebSocket"
 import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions"
 
 type ToGuessesIds<UT extends UserType> = UT extends "host" ? string[] : undefined
-export type SendOutboundMessage<UT extends UserType> =  (body: string, to: ToGuessesIds<UT>) => void
+export type SendOutboundMessage<UT extends UserType> =  (body: string) => boolean
 export type ContainerProps = { show: boolean, left: number, top: number }
 export type Hide = () => void
 
@@ -18,27 +26,15 @@ type Props<UT extends UserType> = {
     userType: UT
     connectionState: ConnectionState
     messages: MessageData[]
-    connectedUsersIds: string[]
+    connectedUsers: ConnectedUser[]
+    selectOrUnselectConnectedUser: SelectOrUnselectConnectedUser
     sendOutboundMessage: SendOutboundMessage<UT>
     containerProps: ContainerProps
     hide?: Hide
 }
 
-export default function ChatView<UT extends UserType>({userType, connectionState, messages, connectedUsersIds, sendOutboundMessage, containerProps, hide}: Props<UT>) {
+export default function ChatView<UT extends UserType>({userType, connectionState, messages, connectedUsers, selectOrUnselectConnectedUser, sendOutboundMessage, containerProps, hide}: Props<UT>) {
     const [bodyMessageStr, setBodyMessageStr] = useState("")
-
-    const [selectedConnectedUsersIds, setSelectedConnectedUsersIds] = useState<string[]>([])
-    const addOrRemoveSelectedConnectedUserId = (id: string) => {
-        if (selectedConnectedUsersIds.includes(id)) {
-            setSelectedConnectedUsersIds((sgis) => {
-                const updatedSelectedGuessesIds = [...sgis]
-                updatedSelectedGuessesIds.splice(sgis.findIndex(sgi => sgi === id), 1)
-                return updatedSelectedGuessesIds
-            })
-        } else {
-            setSelectedConnectedUsersIds([...selectedConnectedUsersIds, id])
-        }
-    }
 
     const userColorMapRef = useRef(new Map<string, string>([[LOCAL_USER_ID, "black"]]))
     const getUserColorMap = () => userColorMapRef.current
@@ -53,11 +49,11 @@ export default function ChatView<UT extends UserType>({userType, connectionState
 
     const isHost = userType === "host"
 
-    const [handleClickUser, getOutboundMessageView, sendOutboundMessageAccordingUser] = (isHost ? getHostSpecifics(selectedConnectedUsersIds, addOrRemoveSelectedConnectedUserId) : getGuessSpecifics(selectedConnectedUsersIds, addOrRemoveSelectedConnectedUserId)) as GetUserSpecificsReturn<UT>
+    const [handleClickUser, getOutboundMessageView] = (isHost ? getHostSpecifics(selectOrUnselectConnectedUser) : getGuessSpecifics(selectOrUnselectConnectedUser)) as GetUserSpecificsReturn<UT>
 
     const handleInputMessage = () => {
         if (!isEmpty(bodyMessageStr)) {
-            if (sendOutboundMessageAccordingUser(bodyMessageStr, sendOutboundMessage)) {
+            if (sendOutboundMessage(bodyMessageStr)) {
                 setBodyMessageStr("")
             }
         }
@@ -80,7 +76,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
                 <UsersContainerTitle>online users</UsersContainerTitle>
                 <hr color={"black"} style={{width:"100%", margin: "0px"}}/>
                 <UsersInnerContainer>
-                {connectedUsersIds.map((ui) => <UserView key={ui} color={getUserColor(ui)} onClick={ handleClickUser ? (e) => { handleClickUser(e, ui)} : undefined} isHost={isHost} isSelected={isHost && selectedConnectedUsersIds.includes(ui)}> {ui} </UserView>)}
+                {connectedUsers.map(({id, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected}> {id} </UserView>)}
                 </UsersInnerContainer>
             </UsersContainer>
             <RightContainer>
@@ -115,15 +111,15 @@ const getNewColor = () => {
     return `#${rgb.toString(16)}`
 }
 
-type SendOutboundMessageAccordingUser<UT extends UserType> = (b: string, sendOutboundMessage: SendOutboundMessage<UT>) => boolean
-type HandleClickUser<UT extends UserType> = UT extends "host" ? (e: React.MouseEvent<HTMLSpanElement>, id: string) => void : undefined
+export type SelectOrUnselectConnectedUser = (index: number) => void
+type HandleClickUser<UT extends UserType> = UT extends "host" ? (e: React.MouseEvent<HTMLSpanElement>, index: number) => void : undefined
 type GetOutboundMessageView = (omd: OutboundMessageData, getUserColor: (u: string) => string) => JSX.Element
-type GetUserSpecificsReturn<UT extends UserType> = [HandleClickUser<UT>, GetOutboundMessageView, SendOutboundMessageAccordingUser<UT>]
-type GetUserSpecifics<UT extends UserType> = (selectedConnectedUsersIds: string[], addOrRemoveSelectedConnectedUserId: (id: string) => void) => GetUserSpecificsReturn<UT>
+type GetUserSpecificsReturn<UT extends UserType> = [HandleClickUser<UT>, GetOutboundMessageView]
+type GetUserSpecifics<UT extends UserType> = (selectOrUnselectConnectedUser: SelectOrUnselectConnectedUser) => GetUserSpecificsReturn<UT>
 
-const getHostSpecifics: GetUserSpecifics<"host"> = (selectedConnectedGuessesIds, addOrRemoveSelectedConnectedGuessId) => {
-    const handleClickGuess: HandleClickUser<"host"> = (e: React.MouseEvent<HTMLSpanElement>, id: string) => {
-        addOrRemoveSelectedConnectedGuessId(id)
+const getHostSpecifics: GetUserSpecifics<"host"> = (selectOrUnselectConnectedUser) => {
+    const handleClickGuess: HandleClickUser<"host"> = (e, index) => {
+        selectOrUnselectConnectedUser(index)
     }
     const getOutboundMessageView : GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) => {
         const hostColor = getUserColor(LOCAL_USER_ID)
@@ -138,15 +134,7 @@ const getHostSpecifics: GetUserSpecifics<"host"> = (selectedConnectedGuessesIds,
                </MessageView>
     }
 
-    const sendOutboundMessageAccordingUser: SendOutboundMessageAccordingUser<"host"> = (b, sendOutboundMessage) => {
-        const send = selectedConnectedGuessesIds.length > 0
-        if (send) {
-            sendOutboundMessage(b, selectedConnectedGuessesIds)
-        }
-        return send
-    }
-
-    return [handleClickGuess, getOutboundMessageView, sendOutboundMessageAccordingUser]
+    return [handleClickGuess, getOutboundMessageView]
 }
 const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
     const iconStyleProps = {style: {minWidth: "15px", minHeight: "15px", marginTop: "5px", marginRight: "2px"}}
@@ -158,11 +146,7 @@ const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
              </MessageView>
     }
 
-    const sendOutboundMessageAccordingUser: SendOutboundMessageAccordingUser<"guess"> = (b, sendOutboundMessage) => {
-        sendOutboundMessage(b, undefined)
-        return true
-    }
-    return [undefined, getOutboundMessageView, sendOutboundMessageAccordingUser]
+    return [undefined, getOutboundMessageView]
 }
 
 const Container = styled.form<ContainerProps>`

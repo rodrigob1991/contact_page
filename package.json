@@ -18,6 +18,7 @@
     "nextjs": "yarn workspace nextjs",
     "chat-backend": "yarn workspace chat-backend",
     "utils": "yarn workspace utils",
-    "chat-common": "yarn workspace chat-common"
+    "chat-common": "yarn workspace chat-common",
+    "dev": "gnome-terminal --tab --title=chat-backend -e 'yarn chat-backend dev' --tab --title=nextjs -e 'yarn nextjs dev'"
   }
 }
