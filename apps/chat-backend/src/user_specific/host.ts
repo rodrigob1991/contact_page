@@ -61,17 +61,18 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
         removeHost()
     }
 
-    const added = await newHost()
-    if (added) {
-        const connectionDate = acceptConnection(handleInboundMessage, handleDisconnection, true)
-
-        subscribeHostToMessages(sendOutboundMessage)
+    try {
+        await newHost()
+        await Promise.all([subscribeHostToMessages(sendOutboundMessage),
+            // send outbound message for each connected guess
+            getGuesses().then(guessesIds => sendOutboundMessage(...guessesIds.map(guessId => getMessage<OutboundToHostConMessage>({prefix: "con", number: Date.now(), guessId: guessId})))),
+            getHostCachedMesMessages().then(mesMessages => sendOutboundMessage(...mesMessages))])
         // publish host connection
-        publishHostMessage<OutboundToGuessConMessage>({number: Date.now(), prefix: "con"}, undefined)
-        // send outbound message for each connected guess
-        getGuesses().then(guessesIds => sendOutboundMessage(...guessesIds.map(guessId => getMessage<OutboundToHostConMessage>({prefix: "con", number: connectionDate, guessId: guessId}))))
-        getHostCachedMesMessages().then(mesMessages => sendOutboundMessage(...mesMessages))
-    } else {
-        acceptConnection(undefined, undefined,false)
+        await publishHostMessage<OutboundToGuessConMessage>({number: Date.now(), prefix: "con"}, undefined)
+
+        acceptConnection(handleInboundMessage, handleDisconnection, true)
+    } catch (e) {
+        acceptConnection(undefined, undefined, false)
+        console.log(`failed to initiate host connection: ${e}`)
     }
 }

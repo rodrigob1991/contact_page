@@ -20,6 +20,7 @@ import {
 } from "../types/chat"
 import {useEffect, useRef} from "react"
 import {getMessage, getMessageParts, getMessagePrefix} from "chat-common/src/message/functions"
+import {paths} from "chat-common/src/model/constants"
 
 export type HandleConMessage<UT extends UserType> =  (cm: InboundConMessageParts<UT>) => void
 export type HandleDisMessage<UT extends UserType> =  (dm: InboundDisMessageParts<UT>) => void
@@ -172,7 +173,7 @@ type GetUserSpecificsReturn<UT extends UserType> = [() => string, GetOutboundMes
 type GetUserSpecifics<UT extends UserType> = () => GetUserSpecificsReturn<UT>
 
 const getHostSpecifics : GetUserSpecifics<"host"> = () => {
-    const getWsEndpoint = () => process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT + "?host_token=" + localStorage.getItem("host_token")
+    const getWsEndpoint = () => process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT + paths.host
     const getOutboundMesMessage: GetOutboundMesMessage<"host"> = (number, guessId, body) => getMessage<OutboundFromHostMesMessage>({prefix: "mes", number: number, body: body, guessId: guessId})
     const getConMessageParts: GetConMessageParts<"host"> = (icm) => {
         const parts = getMessageParts<InboundConMessage<"host">>(icm, {prefix: 1, number: 2, guessId: 3})
@@ -202,7 +203,7 @@ const getHostSpecifics : GetUserSpecifics<"host"> = () => {
 }
 
 const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
-    const getWsEndpoint = () => process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT as string
+    const getWsEndpoint = () => process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT + paths.guess
     const getOutboundMesMessage: GetOutboundMesMessage<"guess"> = (number, guessId, body) => getMessage<OutboundFromGuessMesMessage>({prefix: "mes", number: number, body: body})
     const getConMessageParts: GetConMessageParts<"guess"> = (icm) => {
         const parts = getMessageParts<InboundConMessage<"guess">>(icm, {prefix: 1, number: 2})

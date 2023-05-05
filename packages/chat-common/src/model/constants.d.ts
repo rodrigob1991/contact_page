@@ -20,3 +20,7 @@ export declare const messageParts: {
     readonly guessId: "guessId";
     readonly body: "body";
 };
+export declare const paths: {
+    readonly host: "/host";
+    readonly guess: "/guess";
+};

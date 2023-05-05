@@ -25,8 +25,9 @@ type GetCachedMesMessages = (guessId: number | undefined) => Promise<OutboundMes
 type CacheMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>, message: M["template"]) => Promise<boolean>
 export type RemoveMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>) => Promise<boolean>
 type IsMessageAck = <M extends OutboundMessage>(key: RedisMessageKey<[M]>) => Promise<boolean>
-type NewUserResult<UT extends UserType> = Promise<UT extends "guess" ? number : boolean>
-type NewUser = <UT extends UserType>(userType: UT) => NewUserResult<UT>
+type NewUserResult<UT extends UserType> = Promise<UT extends "guess" ? number : void>
+type NewUserGuessId<UT extends UserType> = (UT extends "guess" ? number : never) | undefined
+type NewUser = <UT extends UserType>(userType: UT, guessId: NewUserGuessId<UT>) => NewUserResult<UT>
 type RemoveUser = (guessId: number | undefined) => Promise<boolean>
 type GetUsers = (userType: UserType) => Promise<number[]>
 
@@ -60,16 +61,20 @@ export const initRedis = () : RedisAPIs => {
     const guessSetKey = users.guess
     const guessCountKey = users.guess + "-count"
 
+    const getHandleError = (fn: Function) => (reason: string) => Promise.reject("redis error: " + fn.name + " failed, " + reason)
+
     const getConDisChannel = (isHostUser: boolean) => messagePrefixes.con + "-" + messagePrefixes.dis + "-" + (isHostUser ? users.host : users.guess)
     const getMessagesChannel = (isHostUser: boolean, guessId?: number) => messagePrefixes.mes + "-" + (isHostUser ? users.host : users.guess + "-" + guessId)
 
-    let unsubscribeToMessages: UnsubscribeToMessages = () => Promise.resolve()
+    let unsubscribeToMessages: UnsubscribeToMessages = () => Promise.reject("unsubscribed was not initialized")
+    const callUnsubscribeToMessages = () => unsubscribeToMessages()
+
     const subscribeUserToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => {
         const isHostUser = ofUserType === users.host
 
         const subscriber = redisClient.duplicate()
-        const log = (action: "subscribed" | "unsubscribed") => { console.log(ofUserType + (guessId ? (" " + guessId) : "") + " " + action + " to the channels") }
-        unsubscribeToMessages = () => subscriber.disconnect().then(() => log("unsubscribed"))
+        const log = (action: "subscribed" | "unsubscribed") => { console.log(ofUserType + (guessId !== undefined ? (" " + guessId) : "") + " " + action + " to the channels") }
+        unsubscribeToMessages = () => subscriber.disconnect().then(() => log("unsubscribed")).catch(getHandleError(unsubscribeToMessages))
 
         return subscriber.connect().then(() =>
             Promise.all([subscriber.subscribe(getConDisChannel(isHostUser), (message, channel) => {
@@ -80,8 +85,8 @@ export const initRedis = () : RedisAPIs => {
                 })])
                 .then(() => {
                     log("subscribed")
-                })
-        )
+                }))
+            .catch(getHandleError(subscribeUserToMessages))
     }
     const publishMessage: PublishMessage = (parts, toUserType, toGuessId) => {
         let channel
@@ -101,50 +106,66 @@ export const initRedis = () : RedisAPIs => {
         }
         const message = getMessage(parts)
 
-        return redisClient.publish(channel, message).then(n => { console.log(n + " " + toUserType + " consumers got the message " + message) })
+        return redisClient.publish(channel, message)
+            .then(n => { console.log(n + " " + toUserType + " consumers got the message " + message) })
+            .catch(getHandleError(publishMessage))
     }
 
     const cacheMessage: CacheMessage = (key, message) => redisClient.set(key, message).then(n => {
         const cached = n !== null
         console.log("message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached")
         return cached
-    })
+    }).catch(getHandleError(cacheMessage))
 
     const getCachedMesMessages: GetCachedMesMessages = (guessId) => {
-        const keyPrefix = (guessId ? users.guess + ":" + guessId : users.host) + ":mes:"
+        const keyPrefix = (guessId !== undefined ? users.guess + ":" + guessId : users.host) + ":mes:"
         return redisClient.keys(keyPrefix + "*")
-            .then(keys => redisClient.mGet(keys)
-                .then(messages => messages as OutboundMesMessage["template"][]))
+            .then(keys => keys.length > 0 ? redisClient.mGet(keys)
+                .then(messages => messages as OutboundMesMessage["template"][]) : [])
+            .catch(getHandleError(getCachedMesMessages))
     }
 
     const removeMessage: RemoveMessage = (key) => redisClient.del(key).then(n => {
         const removed = n > 0
         console.log("message with key " + key + " was " + (removed ? "" : "not ") + "removed")
-        return removed
-    })
-    const isMessageAck: IsMessageAck = (key) => redisClient.get(key).then(m => m === null)
+        return removed})
+        .catch(getHandleError(removeMessage))
 
-    const newUser: NewUser = <UT extends UserType>(userType: UT) => {
+    const isMessageAck: IsMessageAck = (key) => redisClient.get(key).then(m => m === null).catch(getHandleError(isMessageAck))
+
+    const newUser: NewUser = <UT extends UserType>(userType: UT, guessId: NewUserGuessId<UT>) => {
         let promise
         if (userType === users.host) {
             promise = redisClient.sMembers(hostSetKey).then(set => {
                 if (set.length > 0) {
-                    console.log("host already in the set")
-                    return false
+                    return Promise.reject("host already in the set")
                 } else {
                     return redisClient.sAdd(hostSetKey, hostSetMemberId).then(n => {
                         const added = n > 0
-                        console.log("host was " + (added ? "" : "not ") + "added")
-                        return added
+                        if (added)
+                            console.log("host was added")
+                        else
+                            return Promise.reject("host was not added")
                     })
                 }
             })
         } else {
-            promise = redisClient.incr(guessCountKey).then(guessesCount =>
-                redisClient.sAdd(guessSetKey, guessesCount + "").then(n => n > 0 ? guessesCount : Promise.reject("guess " + guessesCount + " was not added"))
+            const newGuess = guessId === undefined
+            promise = (newGuess ? redisClient.incr(guessCountKey) : Promise.resolve(guessId)).then(guessId =>
+                redisClient.sAdd(guessSetKey, guessId + "").then(n => {
+                    let result
+                    const added = n > 0
+                    if (added) {
+                        console.log((newGuess ? "new " : "") + "guess " + guessId + " added")
+                        result = guessId
+                    } else {
+                        result = Promise.reject("guess " + guessId + (newGuess ? " was not" : " already") + " added")
+                    }
+                    return result
+                })
             )
         }
-        return promise as NewUserResult<UT>
+        return promise.catch(getHandleError(newUser)) as NewUserResult<UT>
     }
     const removeUser: RemoveUser = (guessId) => {
         let key, member
@@ -157,9 +178,9 @@ export const initRedis = () : RedisAPIs => {
         }
         return redisClient.sRem(key, member).then(n => {
             const removed = n > 0
-            console.log(" user " + (guessId || "host") + " was " + (removed ? "" : "not ") + "removed")
-            return removed
-        })
+            console.log((guessId === undefined ? "host" : "guess " + guessId) + " was " + (removed ? "" : "not ") + "removed")
+            return removed})
+            .catch(getHandleError(removeUser))
     }
 
     const getUsers: GetUsers = (userType) => {
@@ -167,13 +188,13 @@ export const initRedis = () : RedisAPIs => {
         return redisClient.sMembers(key).then(set => {
             const areUsersConnected = set.length > 0
             console.log((areUsersConnected ? "" : "no ") + userType + " connected" + (areUsersConnected ? ": " + set : ""))
-            return set.map(id => parseInt(id))
-        })
+            return set.map(id => parseInt(id))})
+            .catch(getHandleError(getUsers))
     }
 
     const redisClient = initConnection()
     // delete all the data
     redisClient.flushAll().then((r) => console.log("all redis data deleted, reply: " + r))
 
-    return  { newUser: newUser, removeUser: removeUser, publishMessage: publishMessage, subscribeUserToMessages: subscribeUserToMessages, unsubscribeToMessages: unsubscribeToMessages, cacheMessage: cacheMessage, getCachedMesMessages: getCachedMesMessages, removeMessage: removeMessage, isMessageAck: isMessageAck, getUsers: getUsers }
+    return  { newUser: newUser, removeUser: removeUser, publishMessage: publishMessage, subscribeUserToMessages: subscribeUserToMessages, unsubscribeToMessages: callUnsubscribeToMessages, cacheMessage: cacheMessage, getCachedMesMessages: getCachedMesMessages, removeMessage: removeMessage, isMessageAck: isMessageAck, getUsers: getUsers }
 }

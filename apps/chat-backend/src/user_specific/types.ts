@@ -3,7 +3,7 @@ import {AcceptConnection, ApplyHandleInboundMessage, CacheAndSendUntilAck, SendM
 import {GuessIdToPublish, RemoveMessage} from "../redis"
 import {GotAllMessageParts, OutboundMessage} from "chat-common/src/message/types"
 
-type NewUser<UT extends UserType> = () => Promise<UT extends "host" ? boolean : number>
+type NewUser<UT extends UserType> = () => Promise<UT extends "host" ? void : number>
 type RemoveUser<UT extends UserType> = UT extends "host" ? () => Promise<boolean> : (guessId: number) => Promise<boolean>
 type GetUsers<UT extends UserType> = () => Promise<UT extends "host" ? number[] : boolean>
 type SubscribeUserToMessages<UT extends UserType> = UT extends "host" ? (sm: SendMessage<UT>) => Promise<void> : (sm: SendMessage<UT>, gi: number) => Promise<void>
