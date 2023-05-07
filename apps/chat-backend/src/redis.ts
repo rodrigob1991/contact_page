@@ -9,7 +9,7 @@ import {
 } from "chat-common/src/message/types"
 import {getMessage} from "chat-common/src/message/functions"
 import {MessageParts, MessagePrefix, UserType} from "chat-common/src/model/types"
-import {SendMessage} from "./app"
+import {log, SendMessage} from "./app"
 import {createClient} from "redis"
 
 export type RedisMessageKey<M extends OutboundMessage[] = GetMessages<UserType, "out", MessagePrefix<"out">>> = M extends [infer OM, ...infer RM] ? OM extends OutboundMessage ? `${OM["userType"]}${OM["userType"] extends "guess" ? `:${MessageParts["guessId"]}` : ""}:${CutMessage<[OM], "body">}` | (RM extends OutboundMessage[] ? RedisMessageKey<RM> : never) : never : never
@@ -40,15 +40,15 @@ const initConnection = () => {
         password: process.env.REDIS_PASSWORD,
     })
     client.on('error', (err) => {
-        console.error(err)})
+        log(err)})
     client.on('connect', () => {
-        console.log('connected with redis')
+        log('connected with redis')
     })
     client.on('reconnecting', () => {
-        console.log('reconnecting with redis')
+        log('reconnecting with redis')
     })
     client.on('ready', () => {
-        console.log('redis is ready')
+        log('redis is ready')
     })
     client.connect()
 
@@ -73,8 +73,7 @@ export const initRedis = () : RedisAPIs => {
         const isHostUser = ofUserType === users.host
 
         const subscriber = redisClient.duplicate()
-        const log = (action: "subscribed" | "unsubscribed") => { console.log(ofUserType + (guessId !== undefined ? (" " + guessId) : "") + " " + action + " to the channels") }
-        unsubscribeToMessages = () => subscriber.disconnect().then(() => log("unsubscribed")).catch(getHandleError(unsubscribeToMessages))
+        unsubscribeToMessages = () => subscriber.disconnect().then(() => log("subscribed to the channels", ofUserType, guessId)).catch(getHandleError(unsubscribeToMessages))
 
         return subscriber.connect().then(() =>
             Promise.all([subscriber.subscribe(getConDisChannel(isHostUser), (message, channel) => {
@@ -84,7 +83,7 @@ export const initRedis = () : RedisAPIs => {
                     sendMessage(message as OutboundMessageTemplate<UT, "mes" | "uack">)
                 })])
                 .then(() => {
-                    log("subscribed")
+                    log("unsubscribed to the channels", ofUserType, guessId)
                 }))
             .catch(getHandleError(subscribeUserToMessages))
     }
@@ -107,13 +106,13 @@ export const initRedis = () : RedisAPIs => {
         const message = getMessage(parts)
 
         return redisClient.publish(channel, message)
-            .then(n => { console.log(n + " " + toUserType + " consumers got the message " + message) })
+            .then(n => { log(n + " " + toUserType + " consumers got the message " + message) })
             .catch(getHandleError(publishMessage))
     }
 
     const cacheMessage: CacheMessage = (key, message) => redisClient.set(key, message).then(n => {
         const cached = n !== null
-        console.log("message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached")
+        log("message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached")
         return cached
     }).catch(getHandleError(cacheMessage))
 
@@ -127,7 +126,7 @@ export const initRedis = () : RedisAPIs => {
 
     const removeMessage: RemoveMessage = (key) => redisClient.del(key).then(n => {
         const removed = n > 0
-        console.log("message with key " + key + " was " + (removed ? "" : "not ") + "removed")
+        log("message with key " + key + " was " + (removed ? "" : "not ") + "removed")
         return removed})
         .catch(getHandleError(removeMessage))
 
@@ -143,7 +142,7 @@ export const initRedis = () : RedisAPIs => {
                     return redisClient.sAdd(hostSetKey, hostSetMemberId).then(n => {
                         const added = n > 0
                         if (added)
-                            console.log("host was added")
+                            log("added", "host")
                         else
                             return Promise.reject("host was not added")
                     })
@@ -156,7 +155,7 @@ export const initRedis = () : RedisAPIs => {
                     let result
                     const added = n > 0
                     if (added) {
-                        console.log((newGuess ? "new " : "") + "guess " + guessId + " added")
+                        log((newGuess ? "new " : "") + "added", "guess", guessId)
                         result = guessId
                     } else {
                         result = Promise.reject("guess " + guessId + (newGuess ? " was not" : " already") + " added")
@@ -178,7 +177,7 @@ export const initRedis = () : RedisAPIs => {
         }
         return redisClient.sRem(key, member).then(n => {
             const removed = n > 0
-            console.log((guessId === undefined ? "host" : "guess " + guessId) + " was " + (removed ? "" : "not ") + "removed")
+            log(" was " + (removed ? "" : "not ") + "removed", guessId === undefined ? "host" : "guess", guessId)
             return removed})
             .catch(getHandleError(removeUser))
     }
@@ -187,14 +186,14 @@ export const initRedis = () : RedisAPIs => {
         const key = userType === users.host ? hostSetKey : guessSetKey
         return redisClient.sMembers(key).then(set => {
             const areUsersConnected = set.length > 0
-            console.log((areUsersConnected ? "" : "no ") + userType + " connected" + (areUsersConnected ? ": " + set : ""))
+            log((areUsersConnected ? "" : "no ") + userType + " connected" + (areUsersConnected ? ": " + set : ""))
             return set.map(id => parseInt(id))})
             .catch(getHandleError(getUsers))
     }
 
     const redisClient = initConnection()
     // delete all the data
-    redisClient.flushAll().then((r) => console.log("all redis data deleted, reply: " + r))
+    redisClient.flushAll().then((r) => log("all redis data deleted, reply: " + r))
 
     return  { newUser: newUser, removeUser: removeUser, publishMessage: publishMessage, subscribeUserToMessages: subscribeUserToMessages, unsubscribeToMessages: callUnsubscribeToMessages, cacheMessage: cacheMessage, getCachedMesMessages: getCachedMesMessages, removeMessage: removeMessage, isMessageAck: isMessageAck, getUsers: getUsers }
 }

@@ -14,10 +14,12 @@ import {
 } from "chat-common/src/message/types"
 import {getCutMessage, getMessage, getMessageParts, getMessagePrefix} from "chat-common/src/message/functions"
 import {messagePrefixes} from "chat-common/src/model/constants"
-import {HandleDisconnection, HandleInboundAckMessage, HandleInboundMesMessage, HandleInboundMessage} from "../app"
+import {HandleDisconnection, HandleInboundAckMessage, HandleInboundMesMessage, HandleInboundMessage, log as appLog} from "../app"
 import {InitUserConnection} from "./types"
 
-export const initHostConnection : InitUserConnection<"host">  = async (acceptConnection, newHost, removeHost, getGuesses, publishHostMessage, subscribeHostToMessages, getHostCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+const log = (msg: string) => { appLog(msg, "host") }
+
+export const initHostConnection : InitUserConnection<"host">  = async (acceptConnection, closeConnection, newHost, removeHost, getGuesses, publishHostMessage, subscribeHostToMessages, getHostCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage = (...messages: OutboundMessageTemplate<"host">[]) => {
         for (const message of messages) {
             const keyPrefix = `host:` as const
@@ -56,23 +58,29 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
     }
 
     const handleDisconnection: HandleDisconnection = (reasonCode, description) => {
-        console.log(`host disconnected, reason code:${reasonCode}, description: ${description}`)
+        log(`disconnected, reason code:${reasonCode}, description: ${description}`)
         publishHostMessage<OutboundToGuessDisMessage>({prefix: "dis", number: Date.now()},undefined)
         removeHost()
     }
 
+    let connectionAccepted = false
     try {
         await newHost()
-        await Promise.all([subscribeHostToMessages(sendOutboundMessage),
-            // send outbound message for each connected guess
-            getGuesses().then(guessesIds => sendOutboundMessage(...guessesIds.map(guessId => getMessage<OutboundToHostConMessage>({prefix: "con", number: Date.now(), guessId: guessId})))),
-            getHostCachedMesMessages().then(mesMessages => sendOutboundMessage(...mesMessages))])
-        // publish host connection
-        await publishHostMessage<OutboundToGuessConMessage>({number: Date.now(), prefix: "con"}, undefined)
-
-        acceptConnection(handleInboundMessage, handleDisconnection, true)
+        acceptConnection(true, handleInboundMessage, handleDisconnection, undefined)
+        connectionAccepted = true
     } catch (e) {
-        acceptConnection(undefined, undefined, false)
-        console.log(`failed to initiate host connection: ${e}`)
+        acceptConnection(false, undefined, undefined, e as string)
     }
+    if (connectionAccepted)
+        try {
+            await Promise.all([
+                subscribeHostToMessages(sendOutboundMessage),
+                // send outbound message for each connected guess
+                getGuesses().then(guessesIds => sendOutboundMessage(...guessesIds.map(guessId => getMessage<OutboundToHostConMessage>({prefix: "con", number: Date.now(), guessId: guessId})))),
+                getHostCachedMesMessages().then(mesMessages => sendOutboundMessage(...mesMessages)),
+                // publish host connection
+                publishHostMessage<OutboundToGuessConMessage>({number: Date.now(), prefix: "con"}, undefined)])
+        } catch (e) {
+            closeConnection(e as string)
+        }
 }

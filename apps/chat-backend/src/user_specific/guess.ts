@@ -15,9 +15,17 @@ import {getCutMessage, getMessage, getMessageParts, getMessagePrefix} from "chat
 import {messagePrefixes} from "chat-common/src/model/constants"
 import {InitUserConnection} from "./types"
 import {RedisMessageKey} from "../redis"
-import {HandleDisconnection, HandleInboundAckMessage, HandleInboundMesMessage, HandleInboundMessage} from "../app"
+import {
+    HandleDisconnection,
+    HandleInboundAckMessage,
+    HandleInboundMesMessage,
+    HandleInboundMessage,
+    log as appLog
+} from "../app"
 
-export const initGuessConnection : InitUserConnection<"guess"> = async (acceptConnection, newGuess, removeGuess, getHost, publishGuessMessage, subscribeGuessToMessages, getGuessCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+const log = (msg: string, guessId: number) => { appLog(msg, "guess", guessId) }
+
+export const initGuessConnection : InitUserConnection<"guess"> = async (acceptConnection, closeConnection, newGuess, removeGuess, getHost, publishGuessMessage, subscribeGuessToMessages, getGuessCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage = (...messages: OutboundMessageTemplate<"guess">[]) => {
         for (const message of messages) {
             const keyPrefix = `guess:${guessId}:` as const
@@ -35,7 +43,7 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
                 default:
                     throw new Error("invalid message prefix")
             }
-            cacheAndSendUntilAck<GetMessages<"guess", "out">>(key, message)
+            cacheAndSendUntilAck<GetMessages<"guess", "out">>(key, message, guessId)
         }
     }
 
@@ -52,28 +60,34 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
             }
             return `guess:${guessId}:${originPrefix}:${number}`
         }
-        applyHandleInboundMessage(m, handleInboundMesMessage, handleInboundAckMessage)
+        applyHandleInboundMessage(m, handleInboundMesMessage, handleInboundAckMessage, guessId)
     }
 
     const handleDisconnection: HandleDisconnection = (reasonCode, description) => {
-        console.log(`guess ${guessId} disconnected, reason code:${reasonCode}, description: ${description}`)
+        log(`disconnected, reason code:${reasonCode}, description: ${description}`, guessId)
         publishGuessMessage<OutboundToHostDisMessage>({prefix: "dis", number: Date.now(), guessId: guessId})
         removeGuess(guessId)
     }
 
-    let guessId : number
+    let guessId = -1
+    let connectionAccepted = false
     try {
         guessId = await newGuess()
-        await Promise.all([subscribeGuessToMessages(sendOutboundMessage, guessId),
-            // send outbound message if host is connected
-            getHost().then(isHost => {if (isHost) sendOutboundMessage(getMessage<OutboundToGuessConMessage>({prefix: "con", number: Date.now()}))}),
-            getGuessCachedMesMessages(guessId).then(mesMessages => sendOutboundMessage(...mesMessages))])
-        // publish guess connection
-        await publishGuessMessage<OutboundToHostConMessage>({number: Date.now(), prefix: "con", guessId: guessId})
-
-        acceptConnection(handleInboundMessage, handleDisconnection, true, guessId)
+        acceptConnection(true, handleInboundMessage, handleDisconnection,  undefined, guessId)
+        connectionAccepted = true
     } catch (e) {
-        acceptConnection(undefined, undefined, false, undefined)
-        console.log(`failed to initiate guess connection:${e}`)
+        acceptConnection(false, undefined, undefined, e as string, guessId)
     }
+    if (connectionAccepted)
+        try {
+            await Promise.all([
+                subscribeGuessToMessages(sendOutboundMessage, guessId),
+                // send outbound message if host is connected
+                getHost().then(isHost => {if (isHost) sendOutboundMessage(getMessage<OutboundToGuessConMessage>({prefix: "con", number: Date.now()}))}),
+                getGuessCachedMesMessages(guessId).then(mesMessages => sendOutboundMessage(...mesMessages)),
+                // publish guess connection
+                publishGuessMessage<OutboundToHostConMessage>({number: Date.now(), prefix: "con", guessId: guessId})])
+        } catch (e) {
+            closeConnection(e as string, guessId)
+        }
 }

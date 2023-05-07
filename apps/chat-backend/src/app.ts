@@ -6,7 +6,8 @@ import {
     GotAllMessageParts,
     InboundAckMessage,
     InboundMesMessage,
-    InboundMessageTemplate, OutboundMesMessage,
+    InboundMessageTemplate,
+    OutboundMesMessage,
     OutboundMessage,
     OutboundMessageTemplate,
     OutboundServerAckMessage
@@ -14,61 +15,62 @@ import {
 import {paths, users} from "chat-common/src/model/constants"
 import {getMessagePrefix} from "chat-common/src/message/functions"
 import {isEmpty} from "utils/src/strings"
-import {getParam} from "utils/src/urls"
 import {GuessIdToPublish, initRedis, RedisAPIs, RedisMessageKey} from "./redis"
 import {initHostConnection} from "./user_specific/host"
 import {initGuessConnection} from "./user_specific/guess"
+import {ApplyHandleInboundMessage} from "./user_specific/types"
 
-type IfTrueT<B extends boolean, T> = B extends true ? T : undefined
-export type AcceptConnection = <A extends boolean>(him: IfTrueT<A, HandleInboundMessage> , hd: IfTrueT<A, HandleDisconnection>, accept: A, gi?: IfTrueT<A, number>) => void
-
-export type CacheAndSendUntilAck = <M extends OutboundMessage[]>(key: RedisMessageKey<M>, message: M[number]["template"]) => void
+type IfTrueT<B extends boolean, T, O=undefined> = B extends true ? T : O
+export type AcceptConnection = <A extends boolean>(accept: A, him: IfTrueT<A, HandleInboundMessage> , hd: IfTrueT<A, HandleDisconnection>, reason: IfTrueT<A, undefined, string>, guessId?: number) => void
+export type CloseConnection = (reason?: string, guessId?: number) => void
 
 export type HandleDisconnection = (reasonCode: number, description: string) => void
 export type HandleInboundMessage = (m: ws.Message) => void
 export type HandleInboundMesMessage<UT extends UserType> = (m: InboundMessageTemplate<UT, "mes">) => OutboundServerAckMessage<UT>["template"]
 export type HandleInboundAckMessage<UT extends UserType> = (a: InboundMessageTemplate<UT, "uack">) => RedisMessageKey<[OutboundMessage<UT>]>
-export type ApplyHandleInboundMessage<UT extends UserType=UserType> = (wsMessage: ws.Message, handleMesMessage: HandleInboundMesMessage<UT>, handleAckMessage: HandleInboundAckMessage<UT>) => void
 
 export type SendMessage<UT extends UserType> = <MP extends MessagePrefix>(...message: OutboundMessageTemplate<UT, MP>[]) => void
 
+export const log = (msg: string, userType?: UserType, guessId?: number) => {console.log((userType ? (userType + (guessId === undefined ? "" : " " + guessId)) + " : " : "") + msg + " : " + new Date())}
+
 const initHttpServer = () => {
     const httpServer = http.createServer((request, response) => {
-        console.log((new Date()) + ' Received request for ' + request.url)
         response.writeHead(404)
         response.end()
     })
     httpServer.listen(process.env.PORT, () => {
-        console.log((new Date()) + 'http server is listening')
+        log("http server is listening on port " + process.env.PORT)
     })
-
     return httpServer
-}
-const getUserType = (url: string | undefined) => {
-    const hostToken =  url ? getParam(url, "host_token") : ""
-    const userType: UserType = !isEmpty(hostToken) && hostToken === process.env.HOST_TOKEN ? users.host : users.guess
-    return userType
 }
 
 type Cookies = ws.ICookie[]
-const hostTokenCookieName = "host"
-const guessIdCookieName = "guess"
+const hostCookieName = "host"
+const guessCookieName = "guess"
 
-const getCookiesValues = (coovkies: Cookies): [UserType, number | undefined] => {
+const getCookiesValues = (cookies: Cookies, forHost: boolean): [UserType, number | undefined] => {
     let userType: UserType = users.guess
     let guessId
-    for (const cookie of cookies) {
-        console.log("COOKIE, NAME: " + cookie.name + " VALUE: " + cookie.value)
-        switch (cookie.name) {
-            case hostTokenCookieName:
-                const hostToken = cookie.value
-                if (!isEmpty(hostToken) && hostToken === process.env.HOST_TOKEN)
-                    userType = users.host
-                break
-            case guessIdCookieName:
-                guessId = parseInt(cookie.value)
-                break
+
+    const cookieTargetName = forHost ? hostCookieName : guessCookieName
+    const whenHostCookieNameMatch = (value: string) => {
+        if (!isEmpty(value) && value === process.env.HOST_TOKEN)
+            userType = users.host
+    }
+    const whenGuessCookieNameMatch = (value: string) => {
+        guessId = parseInt(value)
+    }
+    const whenCookieNameMatch = forHost ? whenHostCookieNameMatch : whenGuessCookieNameMatch
+
+    let index = 0
+    let found = false
+    while (!found && index < cookies.length) {
+        const {name, value} = cookies[index]
+        if (name === cookieTargetName) {
+            whenCookieNameMatch(value)
+            found = true
         }
+        index++
     }
     return [userType, guessId]
 }
@@ -76,7 +78,7 @@ const getCookiesValues = (coovkies: Cookies): [UserType, number | undefined] => 
 const newGuessCookies = (guessId: number | undefined): Cookies => {
     const cookies = []
     if (guessId !== undefined) {
-        cookies.push({name: guessIdCookieName, value: "" + guessId, path: paths.guess})
+        cookies.push({name: guessCookieName, value: "" + guessId, path: paths.guess})
     }
     return cookies
 }
@@ -84,7 +86,6 @@ const newHostCookies = (): Cookies => {
     return []
 }
 const originIsAllowed = (origin: string) => {
-    console.log("ORIGIN: " + origin)
     return true
 }
 
@@ -92,33 +93,37 @@ const handleRequest = (request: ws.request, {newUser, removeUser, getUsers, publ
     const origin = request.origin
     if (!originIsAllowed(origin)) {
         request.reject()
-        console.log(`connection from origin ${origin} rejected.`)
+        log(`connection from origin ${origin} rejected.`)
     } else {
-        const [userType, guessId] = getCookiesValues(request.cookies)
+        const [userType, cookieGuessId] = getCookiesValues(request.cookies, request.httpRequest.url === paths.host)
 
         let connection : ws.connection
-        const acceptConnection: AcceptConnection = (him, hd, accept, gi) => {
+        const acceptConnection: AcceptConnection = (accept, him, hd, reason, guessId) => {
             if (accept) {
-                connection = request.accept(undefined, origin, userType === "host" ? newHostCookies() : newGuessCookies(gi))
+                connection = request.accept(undefined, origin, userType === "host" ? newHostCookies() : newGuessCookies(guessId))
                 connection.on("message", him as HandleInboundMessage)
                 connection.on("close", (reasonCode, description) => {
                     (hd as HandleDisconnection)(reasonCode,description)
                     unsubscribeToMessages()
                 })
-                console.log(Date.now() + " connection accepted")
+                log("connection accepted", userType, guessId)
             } else {
-                request.reject()
-                unsubscribeToMessages()
+                request.reject(412, reason)
+                log(" connection was rejected," + reason, userType, guessId)
             }
         }
+        const closeConnection: CloseConnection = (reason, guessId) => {
+            connection.close(500, reason)
+            log(" connection was closed," + reason, userType, guessId)
+        }
 
-        const cacheAndSendUntilAck: CacheAndSendUntilAck = (key, message) => {
+        const cacheAndSendUntilAck = (key: RedisMessageKey, message: OutboundMessageTemplate, guessId?: number) => {
             cacheMessage(key, message)
 
             const sendUntilAck = () => {
                 if (connection?.connected) {
                     connection.sendUTF(message)
-                    console.log("sent outbound message to " + userType + ": " + message)
+                    log("sent outbound message " + message, userType, guessId)
                     setTimeout(() => {
                         isMessageAck(key).then(is => {
                             if (!is) {
@@ -131,26 +136,26 @@ const handleRequest = (request: ws.request, {newUser, removeUser, getUsers, publ
             sendUntilAck()
         }
 
-        const applyHandleInboundMessage: ApplyHandleInboundMessage = (wsMessage, handleInboundMesMessage, handleInboundAckMessage) => {
+        const applyHandleInboundMessage = (wsMessage: ws.Message, handleMesMessage: HandleInboundMesMessage<UserType>, handleAckMessage: HandleInboundAckMessage<UserType>, guessId?: number) => {
             const message = (wsMessage as IUtf8Message).utf8Data as InboundMessageTemplate
             const prefix = getMessagePrefix(message)
             switch (prefix) {
                 case "mes":
-                    const ackMessage = handleInboundMesMessage(message as InboundMesMessage["template"])
+                    const ackMessage = handleMesMessage(message as InboundMesMessage["template"])
                     connection.sendUTF(ackMessage)
                     break
                 case "uack":
-                    const messageKey = handleInboundAckMessage(message as InboundAckMessage["template"])
+                    const messageKey = handleAckMessage(message as InboundAckMessage["template"])
                     removeMessage(messageKey)
                     break
             }
-            console.log((new Date()) + " inbound message from " + userType + ": " + message)
+            log("inbound message " + message, userType, guessId)
         }
 
         if (userType === users.host) {
-            initHostConnection(acceptConnection, () => newUser("host", undefined), () => removeUser(undefined), () => getUsers("guess"), (mp, toGuessId) => publishMessage(mp, "guess", toGuessId),(sm) => subscribeUserToMessages(sm, "host", undefined), () => getCachedMesMessages(undefined) as Promise<OutboundMesMessage<"host">["template"][]>, cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
+            initHostConnection(acceptConnection, closeConnection, () => newUser("host", undefined), () => removeUser(undefined), () => getUsers("guess"), (mp, toGuessId) => publishMessage(mp, "guess", toGuessId),(sm) => subscribeUserToMessages(sm, "host", undefined), () => getCachedMesMessages(undefined) as Promise<OutboundMesMessage<"host">["template"][]>, cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
         } else {
-            initGuessConnection(acceptConnection, () =>  newUser("guess", guessId), (guessId) => removeUser(guessId), () => getUsers("host").then(s => s.length > 0),<M extends OutboundMessage<"host">>(mp: GotAllMessageParts<M>) => publishMessage(mp,"host", undefined as GuessIdToPublish<M["userType"], M["prefix"]>),(sm, gi) => subscribeUserToMessages(sm, "guess", gi), (gi) => getCachedMesMessages(gi) as Promise<OutboundMesMessage<"guess">["template"][]>, cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)
+            initGuessConnection(acceptConnection, closeConnection, () =>  newUser("guess", cookieGuessId), (guessId) => removeUser(guessId), () => getUsers("host").then(s => s.length > 0),<M extends OutboundMessage<"host">>(mp: GotAllMessageParts<M>) => publishMessage(mp,"host", undefined as GuessIdToPublish<M["userType"], M["prefix"]>),(sm, gi) => subscribeUserToMessages(sm, "guess", gi), (gi) => getCachedMesMessages(gi) as Promise<OutboundMesMessage<"guess">["template"][]>, cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)
         }
     }
 }
