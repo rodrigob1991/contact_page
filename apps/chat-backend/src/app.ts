@@ -89,7 +89,7 @@ const originIsAllowed = (origin: string) => {
     return true
 }
 
-const handleRequest = (request: ws.request, {newUser, removeUser, getUsers, publishMessage, subscribeUserToMessages, unsubscribeToMessages, cacheMessage, getCachedMesMessages, removeMessage, isMessageAck}: RedisAPIs) => {
+const handleRequest = (request: ws.request, {newUser, removeUser, getUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMesMessages, removeMessage, isMessageAck}: RedisAPIs) => {
     const origin = request.origin
     if (!originIsAllowed(origin)) {
         request.reject()
@@ -102,10 +102,7 @@ const handleRequest = (request: ws.request, {newUser, removeUser, getUsers, publ
             if (accept) {
                 connection = request.accept(undefined, origin, userType === "host" ? newHostCookies() : newGuessCookies(guessId))
                 connection.on("message", him as HandleInboundMessage)
-                connection.on("close", (reasonCode, description) => {
-                    (hd as HandleDisconnection)(reasonCode,description)
-                    unsubscribeToMessages().catch((r) => {log(r, userType, guessId)})
-                })
+                connection.on("close", hd as HandleDisconnection)
                 log("connection accepted", userType, guessId)
             } else {
                 request.reject(412, reason)
@@ -154,9 +151,9 @@ const handleRequest = (request: ws.request, {newUser, removeUser, getUsers, publ
         }
 
         if (userType === users.host) {
-            initHostConnection(acceptConnection, closeConnection, () => newUser("host", undefined), () => removeUser(undefined), () => getUsers("guess"), (mp, toGuessId) => publishMessage(mp, "guess", toGuessId),(sm) => subscribeUserToMessages(sm, "host", undefined), () => getCachedMesMessages(undefined) as Promise<OutboundMesMessage<"host">["template"][]>, cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
+            initHostConnection(acceptConnection, closeConnection, () => newUser("host", undefined), () => removeUser(undefined), () => getUsers("guess"), (mp, toGuessId) => publishMessage(mp, "guess", toGuessId),(sm) => handleUserSubscriptionToMessages(sm, "host", undefined), () => getCachedMesMessages(undefined) as Promise<OutboundMesMessage<"host">["template"][]>, cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
         } else {
-            initGuessConnection(acceptConnection, closeConnection, () =>  newUser("guess", cookieGuessId), (guessId) => removeUser(guessId), (toGuessId) => getUsers("host", toGuessId).then(s => s.length > 0),<M extends OutboundMessage<"host">>(mp: GotAllMessageParts<M>) => publishMessage(mp,"host", undefined as GuessIdToPublish<M["userType"], M["prefix"]>),(sm, gi) => subscribeUserToMessages(sm, "guess", gi), (gi) => getCachedMesMessages(gi) as Promise<OutboundMesMessage<"guess">["template"][]>, cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)
+            initGuessConnection(acceptConnection, closeConnection, () =>  newUser("guess", cookieGuessId), (guessId) => removeUser(guessId), (toGuessId) => getUsers("host", toGuessId).then(s => s.length > 0),<M extends OutboundMessage<"host">>(mp: GotAllMessageParts<M>) => publishMessage(mp,"host", undefined as GuessIdToPublish<M["userType"], M["prefix"]>),(sm, gi) => handleUserSubscriptionToMessages(sm, "guess", gi), (gi) => getCachedMesMessages(gi) as Promise<OutboundMesMessage<"guess">["template"][]>, cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)
         }
     }
 }

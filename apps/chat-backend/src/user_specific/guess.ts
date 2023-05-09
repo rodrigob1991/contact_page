@@ -14,7 +14,7 @@ import {
 import {getCutMessage, getMessage, getMessageParts, getMessagePrefix} from "chat-common/src/message/functions"
 import {messagePrefixes} from "chat-common/src/model/constants"
 import {InitUserConnection} from "./types"
-import {RedisMessageKey} from "../redis"
+import {RedisMessageKey, UnsubscribeToMessages} from "../redis"
 import {
     HandleDisconnection,
     HandleInboundAckMessage,
@@ -25,7 +25,7 @@ import {
 
 const log = (msg: string, guessId: number) => { appLog(msg, "guess", guessId) }
 
-export const initGuessConnection : InitUserConnection<"guess"> = async (acceptConnection, closeConnection, newGuess, removeGuess, getHost, publishGuessMessage, subscribeGuessToMessages, getGuessCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+export const initGuessConnection : InitUserConnection<"guess"> = async (acceptConnection, closeConnection, newGuess, removeGuess, getHost, publishGuessMessage, handleGuessSubscriptionToMessages, getGuessCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage = (...messages: OutboundMessageTemplate<"guess">[]) => {
         const promises: Promise<void>[] = []
         for (const message of messages) {
@@ -46,6 +46,7 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
             }
             promises.push(cacheAndSendUntilAck<GetMessages<"guess", "out">>(key, message, guessId))
         }
+        // maybe instead use Promise.allSettled
         return Promise.all(promises).then(() => {})
     }
 
@@ -66,10 +67,13 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
     }
 
     const handleDisconnection: HandleDisconnection = (reasonCode, description) => {
+        Promise.allSettled([removeGuess(guessId), unsubscribe(), publishGuessMessage<OutboundToHostDisMessage>({prefix: "dis", number: Date.now(), guessId: guessId})])
+            .then(results => {results.forEach(r => {if (r.status === "rejected") log("failure on disconnection, " + r.reason, guessId)})})
         log(`disconnected, reason code:${reasonCode}, description: ${description}`, guessId)
-        publishGuessMessage<OutboundToHostDisMessage>({prefix: "dis", number: Date.now(), guessId: guessId})
-        removeGuess(guessId)
     }
+
+    let subscribe
+    let unsubscribe: UnsubscribeToMessages = () => Promise.resolve()
 
     let guessId = -1
     let connectionAccepted = false
@@ -82,8 +86,9 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
     }
     if (connectionAccepted)
         try {
+            [subscribe, unsubscribe] = handleGuessSubscriptionToMessages(sendOutboundMessage, guessId)
             await Promise.all([
-                subscribeGuessToMessages(sendOutboundMessage, guessId),
+                subscribe(),
                 // send outbound message if host is connected
                 getHost(guessId).then(isHost => {if (isHost) sendOutboundMessage(getMessage<OutboundToGuessConMessage>({prefix: "con", number: Date.now()}))}),
                 getGuessCachedMesMessages(guessId).then(mesMessages => sendOutboundMessage(...mesMessages)),

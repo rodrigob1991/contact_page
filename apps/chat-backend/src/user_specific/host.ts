@@ -1,4 +1,4 @@
-import {RedisMessageKey} from "../redis"
+import {RedisMessageKey, UnsubscribeToMessages} from "../redis"
 import {
     GetMessages,
     InboundFromHostAckMessage,
@@ -14,12 +14,18 @@ import {
 } from "chat-common/src/message/types"
 import {getCutMessage, getMessage, getMessageParts, getMessagePrefix} from "chat-common/src/message/functions"
 import {messagePrefixes} from "chat-common/src/model/constants"
-import {HandleDisconnection, HandleInboundAckMessage, HandleInboundMesMessage, HandleInboundMessage, log as appLog} from "../app"
+import {
+    HandleDisconnection,
+    HandleInboundAckMessage,
+    HandleInboundMesMessage,
+    HandleInboundMessage,
+    log as appLog
+} from "../app"
 import {InitUserConnection} from "./types"
 
 const log = (msg: string) => { appLog(msg, "host") }
 
-export const initHostConnection : InitUserConnection<"host">  = async (acceptConnection, closeConnection, newHost, removeHost, getGuesses, publishHostMessage, subscribeHostToMessages, getHostCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+export const initHostConnection : InitUserConnection<"host">  = async (acceptConnection, closeConnection, newHost, removeHost, getGuesses, publishHostMessage, handleHostSubscriptionToMessages, getHostCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage = (...messages: OutboundMessageTemplate<"host">[]) => {
         const promises: Promise<void>[] = []
         for (const message of messages) {
@@ -40,6 +46,7 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
             }
             promises.push(cacheAndSendUntilAck<GetMessages<"host", "out">>(key, message))
         }
+        // maybe instead use Promise.allSettled
         return Promise.all(promises).then(() => {})
     }
 
@@ -58,12 +65,14 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
         }
         applyHandleInboundMessage(m, handleInboundMesMessage, handleInboundAckMessage)
     }
-
     const handleDisconnection: HandleDisconnection = (reasonCode, description) => {
+        Promise.allSettled([removeHost(), unsubscribe(), publishHostMessage<OutboundToGuessDisMessage>({prefix: "dis", number: Date.now()}, undefined)])
+            .then(results => {results.forEach(r => {if (r.status === "rejected") log("failure on disconnection, " + r.reason)})})
         log(`disconnected, reason code:${reasonCode}, description: ${description}`)
-        publishHostMessage<OutboundToGuessDisMessage>({prefix: "dis", number: Date.now()},undefined)
-        removeHost()
     }
+
+    let subscribe
+    let unsubscribe: UnsubscribeToMessages = () => Promise.resolve()
 
     let connectionAccepted = false
     try {
@@ -75,8 +84,9 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
     }
     if (connectionAccepted)
         try {
+            [subscribe, unsubscribe] =  handleHostSubscriptionToMessages(sendOutboundMessage)
             await Promise.all([
-                subscribeHostToMessages(sendOutboundMessage),
+                subscribe(),
                 // send outbound message for each connected guess
                 getGuesses().then(guessesIds => sendOutboundMessage(...guessesIds.map(guessId => getMessage<OutboundToHostConMessage>({prefix: "con", number: Date.now(), guessId: guessId})))),
                 getHostCachedMesMessages().then(mesMessages => sendOutboundMessage(...mesMessages)),

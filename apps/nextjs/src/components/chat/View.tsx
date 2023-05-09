@@ -3,12 +3,12 @@ import React, {useEffect, useRef, useState} from "react"
 import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
 import {
-    ConnectedUser,
     HOST_ID,
     InboundMessageData,
     LOCAL_USER_ID,
     MessageData,
     OutboundMessageData,
+    User,
     UserAckState
 } from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
@@ -26,14 +26,14 @@ type Props<UT extends UserType> = {
     userType: UT
     connectionState: ConnectionState
     messages: MessageData[]
-    connectedUsers: ConnectedUser[]
-    selectOrUnselectConnectedUser: SelectOrUnselectConnectedUser
+    users: User[]
+    selectOrUnselectUser: SelectOrUnselectUser
     sendOutboundMessage: SendOutboundMessage<UT>
     containerProps: ContainerProps
     hide?: Hide
 }
 
-export default function ChatView<UT extends UserType>({userType, connectionState, messages, connectedUsers, selectOrUnselectConnectedUser, sendOutboundMessage, containerProps, hide}: Props<UT>) {
+export default function ChatView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, sendOutboundMessage, containerProps, hide}: Props<UT>) {
     const [bodyMessageStr, setBodyMessageStr] = useState("")
 
     const userColorMapRef = useRef(new Map<string, string>([[LOCAL_USER_ID, "black"]]))
@@ -49,7 +49,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
 
     const isHost = userType === "host"
 
-    const [handleClickUser, getOutboundMessageView] = (isHost ? getHostSpecifics(selectOrUnselectConnectedUser) : getGuessSpecifics(selectOrUnselectConnectedUser)) as GetUserSpecificsReturn<UT>
+    const [handleClickUser, getOutboundMessageView] = (isHost ? getHostSpecifics(selectOrUnselectUser) : getGuessSpecifics(selectOrUnselectUser)) as GetUserSpecificsReturn<UT>
 
     const handleInputMessage = () => {
         if (!isEmpty(bodyMessageStr)) {
@@ -76,7 +76,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
                 <UsersContainerTitle>online users</UsersContainerTitle>
                 <hr color={"black"} style={{width:"100%", margin: "0px"}}/>
                 <UsersInnerContainer>
-                {connectedUsers.map(({id, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected}> {id} </UserView>)}
+                {users.map(({id, connected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={connected}> {id} </UserView>)}
                 </UsersInnerContainer>
             </UsersContainer>
             <RightContainer>
@@ -111,15 +111,15 @@ const getNewColor = () => {
     return `#${rgb.toString(16)}`
 }
 
-export type SelectOrUnselectConnectedUser = (index: number) => void
+export type SelectOrUnselectUser = (index: number) => void
 type HandleClickUser<UT extends UserType> = UT extends "host" ? (e: React.MouseEvent<HTMLSpanElement>, index: number) => void : undefined
 type GetOutboundMessageView = (omd: OutboundMessageData, getUserColor: (u: string) => string) => JSX.Element
 type GetUserSpecificsReturn<UT extends UserType> = [HandleClickUser<UT>, GetOutboundMessageView]
-type GetUserSpecifics<UT extends UserType> = (selectOrUnselectConnectedUser: SelectOrUnselectConnectedUser) => GetUserSpecificsReturn<UT>
+type GetUserSpecifics<UT extends UserType> = (selectOrUnselectUser: SelectOrUnselectUser) => GetUserSpecificsReturn<UT>
 
-const getHostSpecifics: GetUserSpecifics<"host"> = (selectOrUnselectConnectedUser) => {
+const getHostSpecifics: GetUserSpecifics<"host"> = (selectOrUnselectUser) => {
     const handleClickGuess: HandleClickUser<"host"> = (e, index) => {
-        selectOrUnselectConnectedUser(index)
+        selectOrUnselectUser(index)
     }
     const getOutboundMessageView : GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) => {
         const hostColor = getUserColor(LOCAL_USER_ID)
@@ -238,7 +238,7 @@ const UsersInnerContainer = styled.div`
   gap: 5px;
   width: 100%;
   `
-const UserView = styled.span<{ isHost: boolean, isSelected: boolean }>`
+const UserView = styled.span<{ isHost: boolean, isConnected: boolean, isSelected: boolean }>`
  font-size: 23px;
  font-weight: bold;
  text-align: center;
@@ -248,9 +248,10 @@ const UserView = styled.span<{ isHost: boolean, isSelected: boolean }>`
  padding: 5px;
  width: 100%;
  overflow: auto;
- ${({color, isHost, isSelected}) =>
+ ${({color, isHost, isConnected, isSelected}) =>
     "color: " + color + ";"
     + (isHost ? "cursor: pointer;" : "")
+    +  "opacity:" + (isConnected ? 1 : 0.2) + ";"
     + (isSelected ? "background-color: green;" : "")
 }
 @media (max-width: ${maxWidthSmallestLayout}px) {

@@ -16,8 +16,10 @@ export type RedisMessageKey<M extends OutboundMessage[] = GetMessages<UserType, 
 type GuessIdToSubscribe<UT extends UserType> =
     ("guess" extends UT ? MessageParts["guessId"] : never)
     | ("host" extends UT ? undefined : never)
+export type SubscribeToMessages = () => Promise<void>
 export type UnsubscribeToMessages = () => Promise<void>
-export type SubscribeUserToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => Promise<void>
+export type HandleUserSubscriptionToMessagesReturn = [SubscribeToMessages, UnsubscribeToMessages]
+export type HandleUserSubscriptionToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => HandleUserSubscriptionToMessagesReturn
 export type GuessIdToPublish<UT extends UserType, MP extends MessagePrefix> = UT extends "guess" ? MP extends "mes" | "uack" ? MessageParts["guessId"] : undefined : undefined
 // only for one message type, no unions.
 export type PublishMessage = <M extends OutboundMessage>(messageParts: GotAllMessageParts<M>, toUserType: M["userType"], toGuessId: GuessIdToPublish<M["userType"], M["prefix"]>) => Promise<void>
@@ -28,10 +30,10 @@ type IsMessageAck = <M extends OutboundMessage>(key: RedisMessageKey<[M]>) => Pr
 type NewUserResult<UT extends UserType> = Promise<UT extends "guess" ? number : void>
 type NewUserGuessId<UT extends UserType> = (UT extends "guess" ? number : never) | undefined
 type NewUser = <UT extends UserType>(userType: UT, guessId: NewUserGuessId<UT>) => NewUserResult<UT>
-type RemoveUser = (guessId: number | undefined) => Promise<boolean>
+type RemoveUser = (guessId: number | undefined) => Promise<void>
 type GetUsers = (userType: UserType, toGuessId?: number) => Promise<number[]>
 
-export type RedisAPIs = { newUser: NewUser, removeUser: RemoveUser, publishMessage: PublishMessage, subscribeUserToMessages: SubscribeUserToMessages, unsubscribeToMessages: UnsubscribeToMessages, cacheMessage: CacheMessage, getCachedMesMessages: GetCachedMesMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck, getUsers: GetUsers }
+export type RedisAPIs = { newUser: NewUser, removeUser: RemoveUser, publishMessage: PublishMessage, handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages, cacheMessage: CacheMessage, getCachedMesMessages: GetCachedMesMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck, getUsers: GetUsers }
 
 const initConnection = () => {
     const client = createClient({
@@ -67,18 +69,17 @@ export const initRedis = () : RedisAPIs => {
     const getMessagesChannel = (isHostUser: boolean, guessId?: number) => messagePrefixes.mes + "-" + (isHostUser ? users.host : users.guess + "-" + guessId)
 
     // THIS CAN BE MISTAKEN WHEN SIMULTANEOUS CONNECTIONS, RACE CONDITIONS CAN OCCURS
-    let unsubscribeToMessages: UnsubscribeToMessages = () => Promise.reject("unsubscribed was not initialized")
+    /*let unsubscribeToMessages: UnsubscribeToMessages = () => Promise.reject("unsubscribed was not initialized")
     const callUnsubscribeToMessages = () => unsubscribeToMessages()
-
-    const subscribeUserToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => {
+*/
+    const handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => {
         const isHostUser = ofUserType === users.host
 
         const subscriber = redisClient.duplicate()
-        unsubscribeToMessages = () => subscriber.disconnect().then(() => log("unsubscribed to the channels", ofUserType, guessId)).catch(getHandleError(unsubscribeToMessages))
 
         const logErrorSendMessage = (message: string, reason: string) => {log("could not send message " + message + ", " + reason, ofUserType, guessId)}
 
-        return subscriber.connect().then(() =>
+        const subscribe = () => subscriber.connect().then(() =>
             Promise.all([subscriber.subscribe(getConDisChannel(isHostUser), (message, channel) => {
                 sendMessage(message as OutboundMessageTemplate<UT, "con" | "dis">).catch((r)=> {logErrorSendMessage(message, r)})
             }),
@@ -88,7 +89,10 @@ export const initRedis = () : RedisAPIs => {
                 .then(() => {
                     log("subscribed to the channels", ofUserType, guessId)
                 }))
-            .catch(getHandleError(subscribeUserToMessages))
+            .catch(getHandleError(subscribe))
+        const unsubscribe = () => subscriber.disconnect().then(() => log("unsubscribed to the channels", ofUserType, guessId)).catch(getHandleError(unsubscribe))
+
+        return [subscribe, unsubscribe]
     }
     const publishMessage: PublishMessage = (parts, toUserType, toGuessId) => {
         let channel
@@ -178,19 +182,20 @@ export const initRedis = () : RedisAPIs => {
         return promise.catch(getHandleError(newUser)) as NewUserResult<UT>
     }
     const removeUser: RemoveUser = (guessId) => {
-        let key, member
+        let key, member, userType: UserType
         if (guessId) {
             key = guessSetKey
             member = guessId + ""
+            userType = "guess"
         } else {
             key = hostSetKey
             member = hostSetMemberId
+            userType = "host"
         }
         return redisClient.sRem(key, member).then(n => {
-            const removed = n > 0
-            log(" was " + (removed ? "" : "not ") + "removed", guessId === undefined ? "host" : "guess", guessId)
-            return removed})
-            .catch(getHandleError(removeUser))
+            if (n > 0) log("was removed", userType, guessId)
+            else return Promise.reject(userType + (guessId ? " " + guessId : "") + " was not removed")
+        }).catch(getHandleError(removeUser))
     }
 
     const getUsers: GetUsers = (userType, toGuessId) => {
@@ -206,5 +211,5 @@ export const initRedis = () : RedisAPIs => {
     // delete all the data
     redisClient.flushAll().then((r) => log("all redis data deleted, reply: " + r))
 
-    return  { newUser: newUser, removeUser: removeUser, publishMessage: publishMessage, subscribeUserToMessages: subscribeUserToMessages, unsubscribeToMessages: callUnsubscribeToMessages, cacheMessage: cacheMessage, getCachedMesMessages: getCachedMesMessages, removeMessage: removeMessage, isMessageAck: isMessageAck, getUsers: getUsers }
+    return  { newUser: newUser, removeUser: removeUser, publishMessage: publishMessage, handleUserSubscriptionToMessages: handleUserSubscriptionToMessages, cacheMessage: cacheMessage, getCachedMesMessages: getCachedMesMessages, removeMessage: removeMessage, isMessageAck: isMessageAck, getUsers: getUsers }
 }

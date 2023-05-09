@@ -3,7 +3,7 @@ import {InboundConMessageParts, InboundDisMessageParts, InboundMesMessageParts} 
 import ChatView, {
     ContainerProps,
     Hide,
-    SelectOrUnselectConnectedUser,
+    SelectOrUnselectUser,
     SendOutboundMessage as SendOutboundMessageFromView
 } from "./View"
 import useWebSocket, {
@@ -43,7 +43,7 @@ type Props<UT extends UserType> = {
 
 export const HOST_ID = 1
 
-export type ConnectedUser = { id: string, selected: boolean }
+export type User = { id: string, connected: boolean, selected: boolean }
 export const LOCAL_USER_ID = "me"
 
 export default function LiveChat<UT extends UserType>({
@@ -55,27 +55,76 @@ export default function LiveChat<UT extends UserType>({
                                                           nextHandleNewConnectionState,
                                                           viewProps
                                                       }: Props<UT>) {
-    const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([])
-    const setConnectedUser = (id: string) => {
-        setConnectedUsers((users) => [...users, {id: id, selected: false}])
+    const usersIdsKey = "usersIds-" + userType
+    const messagesDataKey = "messagesData-" + userType
+
+    const handleBeforeUnload = (e:  BeforeUnloadEvent) => {
+        //alert(JSON.stringify(users.map(u => u.id)))
+        console.log("users ids store " + JSON.stringify(users.map(u => u.id)))
+        localStorage.setItem(usersIdsKey, JSON.stringify(users.map(u => u.id)))
+        console.log("messages data store " + JSON.stringify(messagesData))
+        localStorage.setItem(messagesDataKey, JSON.stringify(messagesData))
     }
-    const removeConnectedUser = (id: string) => {
-        setConnectedUsers((users) => {
+
+    useEffect(() => {
+        const usersIdsJson = localStorage.getItem(usersIdsKey)
+        console.log("users ids stored " + usersIdsJson)
+        if (usersIdsJson)
+            setUsers((JSON.parse(usersIdsJson) as string[]).map(id => ({id: id, connected: false, selected: false})))
+
+        const messagesJson = localStorage.getItem(messagesDataKey)
+        console.log("messages data stored " + messagesJson)
+        if (messagesJson)
+            setMessagesData(JSON.parse(messagesJson))
+
+        window.addEventListener("beforeunload", handleBeforeUnload)
+
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload)
+        }
+    }, [])
+
+    const [users, setUsers] = useState<User[]>([])
+    const setConnectedUser = (id: string) => {
+        setUsers((users) => {
             const updatedUsers = [...users]
-            updatedUsers.splice(users.findIndex((user) => user.id === id), 1)
+            const user = updatedUsers.find(u => u.id === id)
+            if (user) {
+                user.connected = true
+            } else {
+                updatedUsers.push({id: id, connected: true, selected: false})
+            }
             return updatedUsers
         })
     }
-    const selectOrUnselectConnectedUser: SelectOrUnselectConnectedUser = (index) => {
-        setConnectedUsers((connectedUsers) => {
-            const updatedConnectedUsers = [...connectedUsers]
-            const targetConnectedUser = updatedConnectedUsers[index]
-            targetConnectedUser.selected = !targetConnectedUser.selected
-
-            return updatedConnectedUsers
+    const setDisconnectedUser = (id: string) => {
+        setUsers((users) => {
+            const updatedUsers = [...users]
+            const user = updatedUsers.find(u => u.id === id)
+            // should always exist
+            if (user) {
+                user.connected = false
+            }
+            return updatedUsers
         })
     }
-    const getSelectedConnectedUsers = () => connectedUsers.filter(u => u.selected)
+    const setDisconnectedUsers = () => {
+        setUsers((users) => {
+            const updatedUsers = [...users]
+            updatedUsers.forEach(u => u.connected = false)
+            return updatedUsers
+        })
+    }
+    const selectOrUnselectUser: SelectOrUnselectUser = (index) => {
+        setUsers((users) => {
+            const updatedUsers = [...users]
+            const user = updatedUsers[index]
+            user.selected = !user.selected
+
+            return updatedUsers
+        })
+    }
+    const getSelectedUsers = () => users.filter(u => u.selected)
 
     const [connectionState, setConnectionState] = useState(ConnectionState.DISCONNECTED)
     const handleNewConnectionState: HandleNewConnectionState = (cs) => {
@@ -85,8 +134,8 @@ export default function LiveChat<UT extends UserType>({
                 setConnectedUser(LOCAL_USER_ID)
                 break
             case ConnectionState.DISCONNECTED :
-                setAllMessagesAsNack()
-                setConnectedUsers([])
+                //setAllMessagesAsNack()
+                setDisconnectedUsers()
         }
         nextHandleNewConnectionState(cs)
     }
@@ -173,7 +222,7 @@ export default function LiveChat<UT extends UserType>({
         }
     }
     // IF NOT USER ID MARK ALL USERS PENDING TO ACK MESSAGES AS NACK
-    const setMessagesAsNack = (indexesByUserId: [[number, number[]]]) => {
+    /*const setMessagesAsNack = (indexesByUserId: [[number, number[]]]) => {
         setMessagesData((messagesData) => {
             const updatedMessagesData = [...messagesData]
             for (const [userId, indexes] of indexesByUserId) {
@@ -197,7 +246,7 @@ export default function LiveChat<UT extends UserType>({
         if (pendingToAckMessages) {
             setMessagesAsNack([[userId, pendingToAckMessages]])
         }
-    }
+    }*/
 
     const handleConMessage: HandleConMessage<UT> = (cm) => {
         const userId = firstHandleConMessage(cm)
@@ -205,8 +254,8 @@ export default function LiveChat<UT extends UserType>({
     }
     const handleDisMessage: HandleDisMessage<UT> = (dm) => {
         const userId = firstHandleDisMessage(dm)
-        setUserMessagesAsNack(getExternalUserId(userId))
-        removeConnectedUser(userId)
+        //setUserMessagesAsNack(getExternalUserId(userId))
+        setDisconnectedUser(userId)
     }
     const handleMesMessage: HandleMesMessage<UT> = (mm) => {
         const userId = firstHandleMesMessage(mm)
@@ -232,23 +281,23 @@ export default function LiveChat<UT extends UserType>({
         handleNewConnectionState: handleNewConnectionState
     })
 
-    const [sendOutboundMessageFromView, getExternalUserId] = (userType === "host" ? getHostSpecifics(setNewOutboundMessageData, getSelectedConnectedUsers) : getGuessSpecifics(setNewOutboundMessageData, undefined)) as GetUserSpecificsReturn<UT>
+    const [sendOutboundMessageFromView, getExternalUserId] = (userType === "host" ? getHostSpecifics(setNewOutboundMessageData, getSelectedUsers) : getGuessSpecifics(setNewOutboundMessageData, undefined)) as GetUserSpecificsReturn<UT>
 
-    return <ChatView userType={userType} connectionState={connectionState} connectedUsers={connectedUsers} selectOrUnselectConnectedUser={selectOrUnselectConnectedUser} messages={messagesData} sendOutboundMessage={sendOutboundMessageFromView}  {...viewProps}/>
+    return <ChatView userType={userType} connectionState={connectionState} users={users} selectOrUnselectUser={selectOrUnselectUser} messages={messagesData} sendOutboundMessage={sendOutboundMessageFromView}  {...viewProps}/>
 }
 
-type GetSelectedConnectedUser<UT extends UserType> = UT extends "host" ? () => ConnectedUser[] : undefined
+type GetSelectedUser<UT extends UserType> = UT extends "host" ? () => User[] : undefined
 type SetNewOutboundMessageData = (b: string, to: number[]) => void
 type GetExternalUserId<UT extends UserType> = (ui: GuessId<UT> | string ) => number
 type GetUserSpecificsReturn<UT extends UserType> =  [SendOutboundMessageFromView<UT>, GetExternalUserId<UT>]
-type GetUserSpecifics<UT extends UserType> = (setNewOutboundMessageData: SetNewOutboundMessageData, getSelectedConnectedUser: GetSelectedConnectedUser<UT>) => GetUserSpecificsReturn<UT>
+type GetUserSpecifics<UT extends UserType> = (setNewOutboundMessageData: SetNewOutboundMessageData, getSelectedConnectedUser: GetSelectedUser<UT>) => GetUserSpecificsReturn<UT>
 
-const getHostSpecifics: GetUserSpecifics<"host"> = (setNewOutboundMessageData, getSelectedConnectedGuesses) => {
+const getHostSpecifics: GetUserSpecifics<"host"> = (setNewOutboundMessageData, getSelectedGuesses) => {
     const sendOutboundMessageFromView: SendOutboundMessageFromView<"host"> = (body) => {
-        const selectedConnectedGuesses = getSelectedConnectedGuesses()
-        const areSomeSelected = selectedConnectedGuesses.length > 0
+        const selectedGuesses = getSelectedGuesses()
+        const areSomeSelected = selectedGuesses.length > 0
         if (areSomeSelected) {
-            setNewOutboundMessageData(body, selectedConnectedGuesses.map(u => parseInt(u.id)))
+            setNewOutboundMessageData(body, selectedGuesses.map(u => parseInt(u.id)))
         }
         return areSomeSelected
     }
