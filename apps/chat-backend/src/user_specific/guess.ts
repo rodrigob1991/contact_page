@@ -27,6 +27,7 @@ const log = (msg: string, guessId: number) => { appLog(msg, "guess", guessId) }
 
 export const initGuessConnection : InitUserConnection<"guess"> = async (acceptConnection, closeConnection, newGuess, removeGuess, getHost, publishGuessMessage, subscribeGuessToMessages, getGuessCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage = (...messages: OutboundMessageTemplate<"guess">[]) => {
+        const promises: Promise<void>[] = []
         for (const message of messages) {
             const keyPrefix = `guess:${guessId}:` as const
             let key: RedisMessageKey<GetMessages<"guess", "out">>
@@ -43,8 +44,9 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
                 default:
                     throw new Error("invalid message prefix")
             }
-            cacheAndSendUntilAck<GetMessages<"guess", "out">>(key, message, guessId)
+            promises.push(cacheAndSendUntilAck<GetMessages<"guess", "out">>(key, message, guessId))
         }
+        return Promise.all(promises).then(() => {})
     }
 
     const handleInboundMessage: HandleInboundMessage = (m) => {
@@ -83,7 +85,7 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
             await Promise.all([
                 subscribeGuessToMessages(sendOutboundMessage, guessId),
                 // send outbound message if host is connected
-                getHost().then(isHost => {if (isHost) sendOutboundMessage(getMessage<OutboundToGuessConMessage>({prefix: "con", number: Date.now()}))}),
+                getHost(guessId).then(isHost => {if (isHost) sendOutboundMessage(getMessage<OutboundToGuessConMessage>({prefix: "con", number: Date.now()}))}),
                 getGuessCachedMesMessages(guessId).then(mesMessages => sendOutboundMessage(...mesMessages)),
                 // publish guess connection
                 publishGuessMessage<OutboundToHostConMessage>({number: Date.now(), prefix: "con", guessId: guessId})])

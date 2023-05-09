@@ -21,6 +21,7 @@ const log = (msg: string) => { appLog(msg, "host") }
 
 export const initHostConnection : InitUserConnection<"host">  = async (acceptConnection, closeConnection, newHost, removeHost, getGuesses, publishHostMessage, subscribeHostToMessages, getHostCachedMesMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage = (...messages: OutboundMessageTemplate<"host">[]) => {
+        const promises: Promise<void>[] = []
         for (const message of messages) {
             const keyPrefix = `host:` as const
             let key: RedisMessageKey<GetMessages<"host", "out">>
@@ -37,8 +38,9 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
                 default:
                     throw new Error("invalid message prefix")
             }
-            cacheAndSendUntilAck<GetMessages<"host", "out">>(key, message)
+            promises.push(cacheAndSendUntilAck<GetMessages<"host", "out">>(key, message))
         }
+        return Promise.all(promises).then(() => {})
     }
 
     const handleInboundMessage: HandleInboundMessage = (m) => {

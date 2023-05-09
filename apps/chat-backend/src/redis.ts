@@ -29,7 +29,7 @@ type NewUserResult<UT extends UserType> = Promise<UT extends "guess" ? number : 
 type NewUserGuessId<UT extends UserType> = (UT extends "guess" ? number : never) | undefined
 type NewUser = <UT extends UserType>(userType: UT, guessId: NewUserGuessId<UT>) => NewUserResult<UT>
 type RemoveUser = (guessId: number | undefined) => Promise<boolean>
-type GetUsers = (userType: UserType) => Promise<number[]>
+type GetUsers = (userType: UserType, toGuessId?: number) => Promise<number[]>
 
 export type RedisAPIs = { newUser: NewUser, removeUser: RemoveUser, publishMessage: PublishMessage, subscribeUserToMessages: SubscribeUserToMessages, unsubscribeToMessages: UnsubscribeToMessages, cacheMessage: CacheMessage, getCachedMesMessages: GetCachedMesMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck, getUsers: GetUsers }
 
@@ -66,6 +66,7 @@ export const initRedis = () : RedisAPIs => {
     const getConDisChannel = (isHostUser: boolean) => messagePrefixes.con + "-" + messagePrefixes.dis + "-" + (isHostUser ? users.host : users.guess)
     const getMessagesChannel = (isHostUser: boolean, guessId?: number) => messagePrefixes.mes + "-" + (isHostUser ? users.host : users.guess + "-" + guessId)
 
+    // THIS CAN BE MISTAKEN WHEN SIMULTANEOUS CONNECTIONS, RACE CONDITIONS CAN OCCURS
     let unsubscribeToMessages: UnsubscribeToMessages = () => Promise.reject("unsubscribed was not initialized")
     const callUnsubscribeToMessages = () => unsubscribeToMessages()
 
@@ -73,17 +74,19 @@ export const initRedis = () : RedisAPIs => {
         const isHostUser = ofUserType === users.host
 
         const subscriber = redisClient.duplicate()
-        unsubscribeToMessages = () => subscriber.disconnect().then(() => log("subscribed to the channels", ofUserType, guessId)).catch(getHandleError(unsubscribeToMessages))
+        unsubscribeToMessages = () => subscriber.disconnect().then(() => log("unsubscribed to the channels", ofUserType, guessId)).catch(getHandleError(unsubscribeToMessages))
+
+        const logErrorSendMessage = (message: string, reason: string) => {log("could not send message " + message + ", " + reason, ofUserType, guessId)}
 
         return subscriber.connect().then(() =>
             Promise.all([subscriber.subscribe(getConDisChannel(isHostUser), (message, channel) => {
-                sendMessage(message as OutboundMessageTemplate<UT, "con" | "dis">)
+                sendMessage(message as OutboundMessageTemplate<UT, "con" | "dis">).catch((r)=> {logErrorSendMessage(message, r)})
             }),
                 subscriber.subscribe(getMessagesChannel(isHostUser, guessId), (message, channel) => {
-                    sendMessage(message as OutboundMessageTemplate<UT, "mes" | "uack">)
+                    sendMessage(message as OutboundMessageTemplate<UT, "mes" | "uack">).catch((r)=> {logErrorSendMessage(message, r)})
                 })])
                 .then(() => {
-                    log("unsubscribed to the channels", ofUserType, guessId)
+                    log("subscribed to the channels", ofUserType, guessId)
                 }))
             .catch(getHandleError(subscribeUserToMessages))
     }
@@ -106,7 +109,7 @@ export const initRedis = () : RedisAPIs => {
         const message = getMessage(parts)
 
         return redisClient.publish(channel, message)
-            .then(n => { log(n + " " + toUserType + " consumers got the message " + message) })
+            .then(n => { log(n + " " + toUserType + " got the published message " + message, isToHostUser ? "guess" : "host", isToHostUser ? (parts as GotAllMessageParts<OutboundMessage<"host">>).guessId : undefined) })
             .catch(getHandleError(publishMessage))
     }
 
@@ -117,10 +120,14 @@ export const initRedis = () : RedisAPIs => {
     }).catch(getHandleError(cacheMessage))
 
     const getCachedMesMessages: GetCachedMesMessages = (guessId) => {
-        const keyPrefix = (guessId !== undefined ? users.guess + ":" + guessId : users.host) + ":mes:"
+        const userType = guessId === undefined ? users.host : users.guess
+        const keyPrefix = userType + (userType === "guess" ? ":" + guessId : "") + ":" + messagePrefixes.mes + ":"
         return redisClient.keys(keyPrefix + "*")
             .then(keys => keys.length > 0 ? redisClient.mGet(keys)
-                .then(messages => messages as OutboundMesMessage["template"][]) : [])
+                .then(messages => {
+                    log("got cached messages: " + messages, userType, guessId)
+                    return messages as OutboundMesMessage["template"][]
+                }) : [])
             .catch(getHandleError(getCachedMesMessages))
     }
 
@@ -130,7 +137,11 @@ export const initRedis = () : RedisAPIs => {
         return removed})
         .catch(getHandleError(removeMessage))
 
-    const isMessageAck: IsMessageAck = (key) => redisClient.get(key).then(m => m === null).catch(getHandleError(isMessageAck))
+    const isMessageAck: IsMessageAck = (key) => redisClient.get(key).then(m => {
+        const exist = m !== null
+        log("message with key " + key + " was" + (exist ? " not" : "") + " acknowledged")
+        return !exist
+    }).catch(getHandleError(isMessageAck))
 
     const newUser: NewUser = <UT extends UserType>(userType: UT, guessId: NewUserGuessId<UT>) => {
         let promise
@@ -182,11 +193,11 @@ export const initRedis = () : RedisAPIs => {
             .catch(getHandleError(removeUser))
     }
 
-    const getUsers: GetUsers = (userType) => {
+    const getUsers: GetUsers = (userType, toGuessId) => {
         const key = userType === users.host ? hostSetKey : guessSetKey
         return redisClient.sMembers(key).then(set => {
             const areUsersConnected = set.length > 0
-            log((areUsersConnected ? "" : "no ") + userType + " connected" + (areUsersConnected ? ": " + set : ""))
+            log((areUsersConnected ? "" : "no ") + userType + " connected" + (areUsersConnected ? ": " + set : ""),userType === "host" ? "guess" : "host", toGuessId)
             return set.map(id => parseInt(id))})
             .catch(getHandleError(getUsers))
     }
