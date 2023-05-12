@@ -1,4 +1,4 @@
-import { MessageFlow, MessageParts, MessagePartsKeys, MessagePrefix, UserType } from "../model/types";
+import { MessageFlow, MessageParts, MessagePartsKeys, MessagePrefix, TheOtherUserType, UserType } from "../model/types";
 type PartTemplate<MPK extends MessagePartsKeys, MPKS extends MessagePartsKeys, S extends ":" | ""> = MPK extends MPKS ? `${S}${MessageParts[MPK]}` : "";
 type MessageTemplateInstance<MP extends MessagePrefix, MPKS extends MessagePartsKeys> = `${MP}${PartTemplate<"originPrefix", MPKS, ":">}${PartTemplate<"number", MPKS, ":">}${PartTemplate<"guessId", MPKS, ":">}${PartTemplate<"body", MPKS, ":">}`;
 export type CutMessage<M extends Message[], WC extends MessagePartsKeys> = M extends [infer OM, ...infer RM] ? OM extends Message ? MessageTemplateInstance<OM["prefix"], Exclude<OM["parts"], WC>> | (RM extends Message[] ? CutMessage<RM, WC> : never) : never : never;
@@ -45,7 +45,7 @@ export type InboundAckMessage<UT extends UserType = UserType> = ("host" extends 
 export type InboundMessage<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = ("mes" extends MP ? InboundMesMessage<UT> : never) | ("uack" extends MP ? InboundAckMessage<UT> : never);
 export type InboundMessageParts<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = InboundMessage<UT, MP>["parts"];
 export type InboundMessageTemplate<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = InboundMessage<UT, MP>["template"];
-export type InboundMessageTarget<M extends InboundMessage, UT = M["userType"]> = OutboundMessage<UserType extends M["userType"] ? M["userType"] : Exclude<UserType, UT>, M["prefix"]>;
+export type InboundMessageTarget<M extends InboundMessage, UT extends UserType = M["userType"]> = OutboundMessage<TheOtherUserType<UT>, M["prefix"]>;
 export type InboundAckMessageOrigin<UT extends UserType = UserType, OP extends MessagePrefix<"out"> = MessagePrefix<"out">> = GetMessages<UT, "out", OP>;
 export type Message<UT extends UserType = UserType, MF extends MessageFlow = MessageFlow, MP extends MessagePrefix<MF> = MessagePrefix<MF>> = ("in" extends MF ? InboundMessage<UT, Exclude<MP, "con" | "dis" | "sack">> : never) | ("out" extends MF ? OutboundMessage<UT, MP> : never);
 export type MessagePartsPositions<UT extends UserType = UserType, MF extends MessageFlow = MessageFlow, MP extends MessagePrefix<MF> = MessagePrefix<MF>> = Message<UT, MF, MP>["positions"];

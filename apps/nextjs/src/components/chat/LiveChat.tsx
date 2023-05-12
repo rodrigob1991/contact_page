@@ -55,35 +55,6 @@ export default function LiveChat<UT extends UserType>({
                                                           nextHandleNewConnectionState,
                                                           viewProps
                                                       }: Props<UT>) {
-    const usersIdsKey = "usersIds-" + userType
-    const messagesDataKey = "messagesData-" + userType
-
-    const handleBeforeUnload = (e:  BeforeUnloadEvent) => {
-        //alert(JSON.stringify(users.map(u => u.id)))
-        console.log("users ids store " + JSON.stringify(users.map(u => u.id)))
-        localStorage.setItem(usersIdsKey, JSON.stringify(users.map(u => u.id)))
-        console.log("messages data store " + JSON.stringify(messagesData))
-        localStorage.setItem(messagesDataKey, JSON.stringify(messagesData))
-    }
-
-    useEffect(() => {
-        const usersIdsJson = localStorage.getItem(usersIdsKey)
-        console.log("users ids stored " + usersIdsJson)
-        if (usersIdsJson)
-            setUsers((JSON.parse(usersIdsJson) as string[]).map(id => ({id: id, connected: false, selected: false})))
-
-        const messagesJson = localStorage.getItem(messagesDataKey)
-        console.log("messages data stored " + messagesJson)
-        if (messagesJson)
-            setMessagesData(JSON.parse(messagesJson))
-
-        window.addEventListener("beforeunload", handleBeforeUnload)
-
-        return () => {
-            window.removeEventListener("beforeunload", handleBeforeUnload)
-        }
-    }, [])
-
     const [users, setUsers] = useState<User[]>([])
     const setConnectedUser = (id: string) => {
         setUsers((users) => {
@@ -247,6 +218,31 @@ export default function LiveChat<UT extends UserType>({
             setMessagesAsNack([[userId, pendingToAckMessages]])
         }
     }*/
+    const usersIdsKey = "usersIds-" + userType
+    const messagesDataKey = "messagesData-" + userType
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        console.log("users ids store " + JSON.stringify(users.map(u => u.id)))
+        localStorage.setItem(usersIdsKey, JSON.stringify(users.map(u => u.id)))
+        console.log("messages data store " + JSON.stringify(messagesData))
+        localStorage.setItem(messagesDataKey, JSON.stringify(messagesData.map(md => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: toUsersIds.entries()}))(md))))
+    }
+    useEffect(() => {
+        const usersIdsJson = localStorage.getItem(usersIdsKey)
+        console.log("users ids stored " + usersIdsJson)
+        if (usersIdsJson)
+            setUsers((JSON.parse(usersIdsJson) as string[]).map(id => ({id: id, connected: false, selected: false})))
+
+        const messagesJson = localStorage.getItem(messagesDataKey)
+        console.log("messages data stored " + messagesJson)
+        if (messagesJson)
+            setMessagesData(JSON.parse(messagesJson).map((md: any) => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: new Map(toUsersIds)}))(md)))
+    }, [])
+    useEffect(() => {
+        window.addEventListener("beforeunload", handleBeforeUnload)
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload)
+        }
+    }, [users, messagesData])
 
     const handleConMessage: HandleConMessage<UT> = (cm) => {
         const userId = firstHandleConMessage(cm)

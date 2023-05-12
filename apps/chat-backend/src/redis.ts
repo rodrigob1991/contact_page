@@ -13,18 +13,16 @@ import {log, SendMessage} from "./app"
 import {createClient} from "redis"
 
 export type RedisMessageKey<M extends OutboundMessage[] = GetMessages<UserType, "out", MessagePrefix<"out">>> = M extends [infer OM, ...infer RM] ? OM extends OutboundMessage ? `${OM["userType"]}${OM["userType"] extends "guess" ? `:${MessageParts["guessId"]}` : ""}:${CutMessage<[OM], "body">}` | (RM extends OutboundMessage[] ? RedisMessageKey<RM> : never) : never : never
-type GuessIdToSubscribe<UT extends UserType> =
-    ("guess" extends UT ? MessageParts["guessId"] : never)
-    | ("host" extends UT ? undefined : never)
+type GuessIdToSubscribe<UT extends UserType> = "guess" extends UT ? MessageParts["guessId"] : undefined
 export type SubscribeToMessages = () => Promise<void>
 export type UnsubscribeToMessages = () => Promise<void>
 export type HandleUserSubscriptionToMessagesReturn = [SubscribeToMessages, UnsubscribeToMessages]
-export type HandleUserSubscriptionToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => HandleUserSubscriptionToMessagesReturn
+export type HandleUserSubscriptionToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, guessId: GuessIdToSubscribe<UT>) => HandleUserSubscriptionToMessagesReturn
 export type GuessIdToPublish<UT extends UserType, MP extends MessagePrefix> = UT extends "guess" ? MP extends "mes" | "uack" ? MessageParts["guessId"] : undefined : undefined
 // only for one message type, no unions.
 export type PublishMessage = <M extends OutboundMessage>(messageParts: GotAllMessageParts<M>, toUserType: M["userType"], toGuessId: GuessIdToPublish<M["userType"], M["prefix"]>) => Promise<void>
 type GetCachedMesMessages = (guessId: number | undefined) => Promise<OutboundMesMessage["template"][]>
-type CacheMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>, message: M["template"]) => Promise<boolean>
+type CacheMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>, message: M["template"]) => Promise<void>
 export type RemoveMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>) => Promise<boolean>
 type IsMessageAck = <M extends OutboundMessage>(key: RedisMessageKey<[M]>) => Promise<boolean>
 type NewUserResult<UT extends UserType> = Promise<UT extends "guess" ? number : void>
@@ -68,11 +66,8 @@ export const initRedis = () : RedisAPIs => {
     const getConDisChannel = (isHostUser: boolean) => messagePrefixes.con + "-" + messagePrefixes.dis + "-" + (isHostUser ? users.host : users.guess)
     const getMessagesChannel = (isHostUser: boolean, guessId?: number) => messagePrefixes.mes + "-" + (isHostUser ? users.host : users.guess + "-" + guessId)
 
-    // THIS CAN BE MISTAKEN WHEN SIMULTANEOUS CONNECTIONS, RACE CONDITIONS CAN OCCURS
-    /*let unsubscribeToMessages: UnsubscribeToMessages = () => Promise.reject("unsubscribed was not initialized")
-    const callUnsubscribeToMessages = () => unsubscribeToMessages()
-*/
-    const handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, ofUserType: UT, guessId: GuessIdToSubscribe<UT>) => {
+    const handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages = <UT extends UserType>(sendMessage: SendMessage<UT>, guessId: GuessIdToSubscribe<UT>) => {
+        const ofUserType = guessId === undefined ? "host" : "guess"
         const isHostUser = ofUserType === users.host
 
         const subscriber = redisClient.duplicate()
@@ -81,10 +76,12 @@ export const initRedis = () : RedisAPIs => {
 
         const subscribe = () => subscriber.connect().then(() =>
             Promise.all([subscriber.subscribe(getConDisChannel(isHostUser), (message, channel) => {
-                sendMessage(message as OutboundMessageTemplate<UT, "con" | "dis">).catch((r)=> {logErrorSendMessage(message, r)})
+                // @ts-ignore
+                sendMessage(true, message as OutboundMessageTemplate<UT, "con" | "dis">).catch((r)=> {logErrorSendMessage(message, r)})
             }),
                 subscriber.subscribe(getMessagesChannel(isHostUser, guessId), (message, channel) => {
-                    sendMessage(message as OutboundMessageTemplate<UT, "mes" | "uack">).catch((r)=> {logErrorSendMessage(message, r)})
+                    // @ts-ignore
+                    sendMessage(false, message as OutboundMessageTemplate<UT, "mes" | "uack">).catch((r)=> {logErrorSendMessage(message, r)})
                 })])
                 .then(() => {
                     log("subscribed to the channels", ofUserType, guessId)
@@ -119,8 +116,10 @@ export const initRedis = () : RedisAPIs => {
 
     const cacheMessage: CacheMessage = (key, message) => redisClient.set(key, message).then(n => {
         const cached = n !== null
-        log("message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached")
-        return cached
+        const msg = "message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached"
+        if (cached)
+            log(msg)
+        else return Promise.reject(msg)
     }).catch(getHandleError(cacheMessage))
 
     const getCachedMesMessages: GetCachedMesMessages = (guessId) => {
@@ -211,5 +210,5 @@ export const initRedis = () : RedisAPIs => {
     // delete all the data
     redisClient.flushAll().then((r) => log("all redis data deleted, reply: " + r))
 
-    return  { newUser: newUser, removeUser: removeUser, publishMessage: publishMessage, handleUserSubscriptionToMessages: handleUserSubscriptionToMessages, cacheMessage: cacheMessage, getCachedMesMessages: getCachedMesMessages, removeMessage: removeMessage, isMessageAck: isMessageAck, getUsers: getUsers }
+    return  { newUser, removeUser, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMesMessages, removeMessage, isMessageAck, getUsers }
 }
