@@ -20,8 +20,8 @@ export const getMessage = <M extends Message>(parts: GotAllMessageParts<M>) => {
         message += ":" + parts.originPrefix
     if (messageParts.number in parts)
         message += ":" + parts.number
-    if (messageParts.guessId in parts)
-        message += ":" + parts.guessId
+    if (messageParts.userId in parts)
+        message += ":" + parts.userId
     if (messageParts.body in parts)
         message += ":" + parts.body
 
@@ -46,13 +46,13 @@ export const getMessageParts = <M extends Message, CMPP extends CommonMessagePar
         const numberPosition = whatGet.number as 2 | 3
         firstSeparatorIndex = getPartSeparatorIndex(m,numberPosition - 1)
         finalSeparatorIndex = getPartSeparatorIndex(m, numberPosition)
-        parts["number"] =  parseInt(m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex))
+        parts["number"] =  +m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex)
     }
-    if (messageParts.guessId in whatGet) {
-        const guessIdPosition = whatGet.guessId as 3 | 4
+    if (messageParts.userId in whatGet) {
+        const guessIdPosition = whatGet.userId as 3 | 4
         firstSeparatorIndex = getPartSeparatorIndex(m,guessIdPosition - 1)
         finalSeparatorIndex = getPartSeparatorIndex(m, guessIdPosition)
-        parts["guessId"] = parseInt(m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex))
+        parts["userId"] = +m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex)
     }
     if (messageParts.body in whatGet) {
         firstSeparatorIndex = getPartSeparatorIndex(m,(whatGet.body as 3 | 4) - 1)
@@ -86,7 +86,6 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
         cutSize += cutEndIndex - cutStartIndex
         cutCount ++
     }
-
     if (messageParts.prefix in whatCut) {
         position = 1
         cut(0)
@@ -99,8 +98,8 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
         position = whatCut.number as 2 | 3
         cut()
     }
-    if (messageParts.guessId in whatCut) {
-        position = whatCut.guessId as 3 | 4
+    if (messageParts.userId in whatCut) {
+        position = whatCut.userId as 3 | 4
         cut()
     }
     if (messageParts.body in whatCut) {

@@ -26,7 +26,7 @@ export type HandleConMessage<UT extends UserType> =  (cm: InboundConMessageParts
 export type HandleDisMessage<UT extends UserType> =  (dm: InboundDisMessageParts<UT>) => void
 export type HandleMesMessage<UT extends UserType> =  (mm: InboundMesMessageParts<UT>) => void
 export type HandleServerAckMessage =  (n: number) => void
-export type HandleUserAckMessage<UT extends UserType> = (n: number, gi: GuessId<UT>) => void
+export type HandleUserAckMessage = (n: number, ui: number) => void
 export type IsMessageAckByServer = (n: number) => boolean
 export type AddPendingUserAckMessage = (n: number, ui: number) => void
 
@@ -42,7 +42,7 @@ export type Props<UT extends UserType> = {
     handleDisMessage: HandleDisMessage<UT>
     handleMesMessage: HandleMesMessage<UT>
     handleServerAckMessage: HandleServerAckMessage
-    handleUserAckMessage: HandleUserAckMessage<UT>
+    handleUserAckMessage: HandleUserAckMessage
     isMessageAckByServer: IsMessageAckByServer
     addPendingUserAckMessage: AddPendingUserAckMessage
     connect: boolean
@@ -119,7 +119,7 @@ export default function useWebSocket<UT extends UserType>({
                     break
                 case "uack":
                     [parts, outboundAckMessage] = getUserAckMessageParts(inboundMessage as InboundUserAckMessage<UT>["template"])
-                    handleUserAckMessage(parts.number, ("guessId" in parts ? parts.guessId : undefined) as GuessId<UT>)
+                    handleUserAckMessage(parts.number, parts.userId)
                     break
                 default:
                     throw new Error("invalid inbound message")
@@ -163,7 +163,7 @@ export default function useWebSocket<UT extends UserType>({
     return sendOutboundMesMessage
 }
 
-type GetOutboundMesMessage<UT extends UserType> = (number : number, guessId: number, body: string) => OutboundMesMessage<UT>["template"]
+type GetOutboundMesMessage<UT extends UserType> = (number : number, userId: number, body: string) => OutboundMesMessage<UT>["template"]
 type GetConMessageParts<UT extends UserType> = (icm: InboundConMessage<UT>["template"]) => [InboundConMessageParts<UT>, OutboundAckMessage<UT>["template"]]
 type GetDisMessageParts<UT extends UserType> = (idm: InboundDisMessage<UT>["template"]) => [InboundDisMessageParts<UT>, OutboundAckMessage<UT>["template"]]
 type GetMesMessageParts<UT extends UserType> = (imm: InboundMesMessage<UT>["template"]) => [InboundMesMessageParts<UT>, OutboundAckMessage<UT>["template"]]
@@ -174,28 +174,28 @@ type GetUserSpecifics<UT extends UserType> = () => GetUserSpecificsReturn<UT>
 
 const getHostSpecifics : GetUserSpecifics<"host"> = () => {
     const getWsEndpoint = () => process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT + paths.host
-    const getOutboundMesMessage: GetOutboundMesMessage<"host"> = (number, guessId, body) => getMessage<OutboundFromHostMesMessage>({prefix: "mes", number: number, body: body, guessId: guessId})
+    const getOutboundMesMessage: GetOutboundMesMessage<"host"> = (number, guessId, body) => getMessage<OutboundFromHostMesMessage>({prefix: "mes", number: number, body: body, userId: guessId})
     const getConMessageParts: GetConMessageParts<"host"> = (icm) => {
-        const parts = getMessageParts<InboundConMessage<"host">>(icm, {prefix: 1, number: 2, guessId: 3})
-        const ack = getMessage<OutboundFromHostAckMessage>({prefix: "uack", originPrefix: "con", number: parts.number, guessId: parts.guessId})
+        const parts = getMessageParts<InboundConMessage<"host">>(icm, {prefix: 1, number: 2, userId: 3})
+        const ack = getMessage<OutboundFromHostAckMessage>({prefix: "uack", originPrefix: "con", number: parts.number, userId: parts.userId})
         return [parts, ack]
     }
     const getDisMessageParts: GetDisMessageParts<"host"> = (idm) => {
-        const parts = getMessageParts<InboundDisMessage<"host">>(idm, {prefix: 1, number: 2, guessId: 3})
-        const ack = getMessage<OutboundFromHostAckMessage>({prefix: "uack", originPrefix: "dis", number: parts.number, guessId: parts.guessId})
+        const parts = getMessageParts<InboundDisMessage<"host">>(idm, {prefix: 1, number: 2, userId: 3})
+        const ack = getMessage<OutboundFromHostAckMessage>({prefix: "uack", originPrefix: "dis", number: parts.number, userId: parts.userId})
         return [parts, ack]
     }
     const getMesMessageParts: GetMesMessageParts<"host"> = (imm) => {
-        const parts = getMessageParts<InboundMesMessage<"host">>(imm, {prefix: 1, number: 2, guessId: 3, body: 4})
-        const ack = getMessage<OutboundFromHostAckMessage>({prefix: "uack", originPrefix: "mes", number: parts.number, guessId: parts.guessId})
+        const parts = getMessageParts<InboundMesMessage<"host">>(imm, {prefix: 1, number: 2, userId: 3, body: 4})
+        const ack = getMessage<OutboundFromHostAckMessage>({prefix: "uack", originPrefix: "mes", number: parts.number, userId: parts.userId})
         return [parts, ack]
     }
     const getServerAckMessageParts: GetServerAckMessageParts<"host"> = (isam) =>
-        getMessageParts<InboundServerAckMessage<"host">>(isam, {prefix: 1, number: 2, guessId: 3})
+        getMessageParts<InboundServerAckMessage<"host">>(isam, {prefix: 1, number: 2, userId: 3})
 
     const getGuessAckMessageParts: GetUserAckMessageParts<"host"> = (iuam) => {
-        const parts = getMessageParts<InboundUserAckMessage<"host">>(iuam, {prefix: 1, number: 2, guessId: 3})
-        const ack = getMessage<OutboundFromHostAckMessage>({prefix: "uack", originPrefix: "uack", number: parts.number, guessId: parts.guessId})
+        const parts = getMessageParts<InboundUserAckMessage<"host">>(iuam, {prefix: 1, number: 2, userId: 3})
+        const ack = getMessage<OutboundFromHostAckMessage>({prefix: "uack", originPrefix: "uack", number: parts.number, userId: parts.userId})
         return [parts, ack]
     }
 
@@ -204,28 +204,28 @@ const getHostSpecifics : GetUserSpecifics<"host"> = () => {
 
 const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
     const getWsEndpoint = () => process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT + paths.guess
-    const getOutboundMesMessage: GetOutboundMesMessage<"guess"> = (number, guessId, body) => getMessage<OutboundFromGuessMesMessage>({prefix: "mes", number: number, body: body})
+    const getOutboundMesMessage: GetOutboundMesMessage<"guess"> = (number, hostId, body) => getMessage<OutboundFromGuessMesMessage>({prefix: "mes", number: number, userId: hostId, body: body})
     const getConMessageParts: GetConMessageParts<"guess"> = (icm) => {
-        const parts = getMessageParts<InboundConMessage<"guess">>(icm, {prefix: 1, number: 2})
-        const ack = getMessage<OutboundFromGuessAckMessage>({prefix: "uack", originPrefix: "con", number: parts.number})
+        const parts = getMessageParts<InboundConMessage<"guess">>(icm, {prefix: 1, number: 2, userId: 3})
+        const ack = getMessage<OutboundFromGuessAckMessage>({prefix: "uack", originPrefix: "con", number: parts.number, userId: parts.userId})
         return [parts, ack]
     }
     const getDisMessageParts: GetDisMessageParts<"guess"> = (idm) => {
-        const parts = getMessageParts<InboundDisMessage<"guess">>(idm, {prefix: 1, number: 2})
-        const ack = getMessage<OutboundFromGuessAckMessage>({prefix: "uack", originPrefix: "dis", number: parts.number})
+        const parts = getMessageParts<InboundDisMessage<"guess">>(idm, {prefix: 1, number: 2, userId: 3})
+        const ack = getMessage<OutboundFromGuessAckMessage>({prefix: "uack", originPrefix: "dis", number: parts.number, userId: parts.userId})
         return [parts, ack]
     }
     const getMesMessageParts: GetMesMessageParts<"guess"> = (imm) => {
-        const parts = getMessageParts<InboundMesMessage<"guess">>(imm, {prefix: 1, number: 2, body: 3})
-        const ack = getMessage<OutboundFromGuessAckMessage>({prefix: "uack", originPrefix: "mes", number: parts.number})
+        const parts = getMessageParts<InboundMesMessage<"guess">>(imm, {prefix: 1, number: 2, userId: 3, body: 4})
+        const ack = getMessage<OutboundFromGuessAckMessage>({prefix: "uack", originPrefix: "mes", number: parts.number, userId: parts.userId})
         return [parts, ack]
     }
     const getServerAckMessageParts: GetServerAckMessageParts<"guess"> = (isam) =>
-        getMessageParts<InboundServerAckMessage<"guess">>(isam, {prefix: 1, number: 2})
+        getMessageParts<InboundServerAckMessage<"guess">>(isam, {prefix: 1, number: 2, userId: 3})
 
     const getHostAckMessageParts: GetUserAckMessageParts<"guess"> = (iuam) => {
-        const parts =  getMessageParts<InboundUserAckMessage<"guess">>(iuam, {prefix: 1, number: 2})
-        const ack = getMessage<OutboundFromGuessAckMessage>({prefix: "uack", originPrefix: "uack", number: parts.number})
+        const parts =  getMessageParts<InboundUserAckMessage<"guess">>(iuam, {prefix: 1, number: 2, userId: 3})
+        const ack = getMessage<OutboundFromGuessAckMessage>({prefix: "uack", originPrefix: "uack", number: parts.number, userId: parts.userId})
         return [parts, ack]
     }
 

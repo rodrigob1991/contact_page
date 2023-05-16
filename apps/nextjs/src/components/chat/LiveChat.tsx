@@ -9,7 +9,6 @@ import ChatView, {
 import useWebSocket, {
     AddPendingUserAckMessage,
     ConnectionState,
-    GuessId,
     HandleConMessage,
     HandleDisMessage,
     HandleMesMessage,
@@ -43,7 +42,7 @@ type Props<UT extends UserType> = {
 
 export const HOST_ID = 1
 
-export type User = { id: string, connected: boolean, selected: boolean }
+export type User = { id: number, name: string, connected: boolean, selected: boolean }
 export const LOCAL_USER_ID = "me"
 
 export default function LiveChat<UT extends UserType>({
@@ -224,7 +223,7 @@ export default function LiveChat<UT extends UserType>({
         console.log("users ids store " + JSON.stringify(users.map(u => u.id)))
         localStorage.setItem(usersIdsKey, JSON.stringify(users.map(u => u.id)))
         console.log("messages data store " + JSON.stringify(messagesData))
-        localStorage.setItem(messagesDataKey, JSON.stringify(messagesData.map(md => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: toUsersIds.entries()}))(md))))
+        localStorage.setItem(messagesDataKey, JSON.stringify(messagesData.map(md => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: Array.from(toUsersIds.entries())}))(md))))
     }
     useEffect(() => {
         const usersIdsJson = localStorage.getItem(usersIdsKey)
@@ -260,8 +259,8 @@ export default function LiveChat<UT extends UserType>({
     const handleServerAckMessage: HandleServerAckMessage = (n) => {
         setMessageAsAcknowledgedByServer(n)
     }
-    const handleUserAckMessage: HandleUserAckMessage<UT> = (n, ui) => {
-        setMessageAsAcknowledgedByUser(n, getExternalUserId(ui))
+    const handleUserAckMessage: HandleUserAckMessage = (n, ui) => {
+        setMessageAsAcknowledgedByUser(n, ui)
     }
 
     const sendOutboundMesMessage = useWebSocket({
@@ -277,15 +276,14 @@ export default function LiveChat<UT extends UserType>({
         handleNewConnectionState: handleNewConnectionState
     })
 
-    const [sendOutboundMessageFromView, getExternalUserId] = (userType === "host" ? getHostSpecifics(setNewOutboundMessageData, getSelectedUsers) : getGuessSpecifics(setNewOutboundMessageData, undefined)) as GetUserSpecificsReturn<UT>
+    const [sendOutboundMessageFromView] = (userType === "host" ? getHostSpecifics(setNewOutboundMessageData, getSelectedUsers) : getGuessSpecifics(setNewOutboundMessageData, undefined)) as GetUserSpecificsReturn<UT>
 
     return <ChatView userType={userType} connectionState={connectionState} users={users} selectOrUnselectUser={selectOrUnselectUser} messages={messagesData} sendOutboundMessage={sendOutboundMessageFromView}  {...viewProps}/>
 }
 
 type GetSelectedUser<UT extends UserType> = UT extends "host" ? () => User[] : undefined
 type SetNewOutboundMessageData = (b: string, to: number[]) => void
-type GetExternalUserId<UT extends UserType> = (ui: GuessId<UT> | string ) => number
-type GetUserSpecificsReturn<UT extends UserType> =  [SendOutboundMessageFromView<UT>, GetExternalUserId<UT>]
+type GetUserSpecificsReturn<UT extends UserType> =  [SendOutboundMessageFromView<UT>]
 type GetUserSpecifics<UT extends UserType> = (setNewOutboundMessageData: SetNewOutboundMessageData, getSelectedConnectedUser: GetSelectedUser<UT>) => GetUserSpecificsReturn<UT>
 
 const getHostSpecifics: GetUserSpecifics<"host"> = (setNewOutboundMessageData, getSelectedGuesses) => {
@@ -297,16 +295,12 @@ const getHostSpecifics: GetUserSpecifics<"host"> = (setNewOutboundMessageData, g
         }
         return areSomeSelected
     }
-    const getGuessId: GetExternalUserId<"host"> = (gi) => typeof gi === "string" ? parseInt(gi) : gi
-
-    return [sendOutboundMessageFromView, getGuessId]
+    return [sendOutboundMessageFromView]
 }
 const getGuessSpecifics: GetUserSpecifics<"guess"> = (setNewOutboundMessageData) => {
     const sendOutboundMessageFromView: SendOutboundMessageFromView<"guess"> = (body) => {
         setNewOutboundMessageData(body, [HOST_ID])
         return true
     }
-    const getHostId: GetExternalUserId<"guess"> = () => HOST_ID
-
-    return [sendOutboundMessageFromView, getHostId]
+    return [sendOutboundMessageFromView]
 }

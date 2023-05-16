@@ -2,7 +2,7 @@ import {MessageFlow, MessageParts, MessagePartsKeys, MessagePrefix, TheOtherUser
 
 type PartTemplate<MPK extends MessagePartsKeys, MPKS extends MessagePartsKeys, S extends ":" | ""> = MPK extends MPKS ? `${S}${MessageParts[MPK]}` : ""
 type MessageTemplateInstance<MP extends MessagePrefix, MPKS extends MessagePartsKeys> =
-    `${MP}${PartTemplate<"originPrefix", MPKS, ":">}${PartTemplate<"number", MPKS, ":">}${PartTemplate<"guessId", MPKS, ":">}${PartTemplate<"body", MPKS, ":">}`
+    `${MP}${PartTemplate<"originPrefix", MPKS, ":">}${PartTemplate<"number", MPKS, ":">}${PartTemplate<"userId", MPKS, ":">}${PartTemplate<"body", MPKS, ":">}`
 export type CutMessage<M extends Message[], WC extends MessagePartsKeys> = M extends [infer OM, ...infer RM] ? OM extends Message ? MessageTemplateInstance<OM["prefix"], Exclude<OM["parts"], WC>> | (RM extends Message[] ? CutMessage<RM, WC> : never) : never : never
 
 // HERE IS WHERE IS ESTABLISHED WHAT PARTS EACH MESSAGE HAS
@@ -10,10 +10,10 @@ type SpecificMessagePartsKeys<UT extends UserType, MF extends MessageFlow, MP ex
     "prefix"
     | ("in" | "uack" extends MF | MP ? "originPrefix" : never)
     | "number"
+    | "userId"
     | ("mes" extends MP ? "body" : never)
-    | ("host" extends UT ? "guessId" : never)
 
-type SpecificMessagePartsPositions<SMPK extends MessagePartsKeys> = Pick<{ prefix: 1, originPrefix: 2, number: "originPrefix" extends SMPK ? 3 : 2, guessId: "originPrefix" extends SMPK ? 4 : 3, body: "guessId" extends SMPK ? 4 : 3 }, SMPK>
+type SpecificMessagePartsPositions<SMPK extends MessagePartsKeys> = Pick<{ prefix: 1, originPrefix: 2, number: "originPrefix" extends SMPK ? 3 : 2, userId: "originPrefix" extends SMPK ? 4 : 3, body: "userId" extends SMPK ? 4 : 3 }, SMPK>
 type MessageInstance<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>, SMPK extends SpecificMessagePartsKeys<UT, MF, MP> = SpecificMessagePartsKeys<UT, MF, MP>> = { userType: UT, flow: MF, prefix: MP, parts: SMPK, positions: SpecificMessagePartsPositions<SMPK>, template: MessageTemplateInstance<MP, SMPK> }
 
 export type OutboundToHostMesMessage = MessageInstance<"host", "out", "mes">
