@@ -1,14 +1,14 @@
 import { MessageFlow, MessageParts, MessagePartsKeys, MessagePrefix, TheOtherUserType, UserType } from "../model/types";
 type PartTemplate<MPK extends MessagePartsKeys, MPKS extends MessagePartsKeys, S extends ":" | ""> = MPK extends MPKS ? `${S}${MessageParts[MPK]}` : "";
-type MessageTemplateInstance<MP extends MessagePrefix, MPKS extends MessagePartsKeys> = `${MP}${PartTemplate<"originPrefix", MPKS, ":">}${PartTemplate<"number", MPKS, ":">}${PartTemplate<"guessId", MPKS, ":">}${PartTemplate<"body", MPKS, ":">}`;
+type MessageTemplateInstance<MP extends MessagePrefix, MPKS extends MessagePartsKeys> = `${MP}${PartTemplate<"originPrefix", MPKS, ":">}${PartTemplate<"number", MPKS, ":">}${PartTemplate<"userId", MPKS, ":">}${PartTemplate<"body", MPKS, ":">}`;
 export type CutMessage<M extends Message[], WC extends MessagePartsKeys> = M extends [infer OM, ...infer RM] ? OM extends Message ? MessageTemplateInstance<OM["prefix"], Exclude<OM["parts"], WC>> | (RM extends Message[] ? CutMessage<RM, WC> : never) : never : never;
-type SpecificMessagePartsKeys<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>> = "prefix" | ("in" | "uack" extends MF | MP ? "originPrefix" : never) | "number" | ("mes" extends MP ? "body" : never) | ("host" extends UT ? "guessId" : never);
+type SpecificMessagePartsKeys<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>> = "prefix" | ("in" | "uack" extends MF | MP ? "originPrefix" : never) | "number" | "userId" | ("mes" extends MP ? "body" : never);
 type SpecificMessagePartsPositions<SMPK extends MessagePartsKeys> = Pick<{
     prefix: 1;
     originPrefix: 2;
     number: "originPrefix" extends SMPK ? 3 : 2;
-    guessId: "originPrefix" extends SMPK ? 4 : 3;
-    body: "guessId" extends SMPK ? 4 : 3;
+    userId: "originPrefix" extends SMPK ? 4 : 3;
+    body: "userId" extends SMPK ? 4 : 3;
 }, SMPK>;
 type MessageInstance<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>, SMPK extends SpecificMessagePartsKeys<UT, MF, MP> = SpecificMessagePartsKeys<UT, MF, MP>> = {
     userType: UT;
@@ -34,7 +34,7 @@ export type OutboundUserAckMessage<UT extends UserType = UserType> = ("host" ext
 export type OutboundConMessage<UT extends UserType = UserType> = ("host" extends UT ? OutboundToHostConMessage : never) | ("guess" extends UT ? OutboundToGuessConMessage : never);
 export type OutboundDisMessage<UT extends UserType = UserType> = ("host" extends UT ? OutboundToHostDisMessage : never) | ("guess" extends UT ? OutboundToGuessDisMessage : never);
 export type OutboundMessage<UT extends UserType = UserType, MP extends MessagePrefix<"out"> = MessagePrefix<"out">> = ("con" extends MP ? OutboundConMessage<UT> : never) | ("dis" extends MP ? OutboundDisMessage<UT> : never) | ("mes" extends MP ? OutboundMesMessage<UT> : never) | ("sack" extends MP ? OutboundServerAckMessage<UT> : never) | ("uack" extends MP ? OutboundUserAckMessage<UT> : never);
-export type OutboundMessageParts<UT extends UserType = UserType, MP extends MessagePrefix<"out"> = MessagePrefix<"out">> = OutboundMessage<UT, MP>["parts"];
+export type OutboundMessagePartsKeys<UT extends UserType = UserType, MP extends MessagePrefix<"out"> = MessagePrefix<"out">> = OutboundMessage<UT, MP>["parts"];
 export type OutboundMessageTemplate<UT extends UserType = UserType, MP extends MessagePrefix<"out"> = MessagePrefix<"out">> = OutboundMessage<UT, MP>["template"];
 export type InboundFromHostMesMessage = MessageInstance<"host", "in", "mes">;
 export type InboundFromHostAckMessage = MessageInstance<"host", "in", "uack">;
@@ -43,7 +43,7 @@ export type InboundFromGuessAckMessage = MessageInstance<"guess", "in", "uack">;
 export type InboundMesMessage<UT extends UserType = UserType> = ("host" extends UT ? InboundFromHostMesMessage : never) | ("guess" extends UT ? InboundFromGuessMesMessage : never);
 export type InboundAckMessage<UT extends UserType = UserType> = ("host" extends UT ? InboundFromHostAckMessage : never) | ("guess" extends UT ? InboundFromGuessAckMessage : never);
 export type InboundMessage<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = ("mes" extends MP ? InboundMesMessage<UT> : never) | ("uack" extends MP ? InboundAckMessage<UT> : never);
-export type InboundMessageParts<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = InboundMessage<UT, MP>["parts"];
+export type InboundMessagePartsKeys<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = InboundMessage<UT, MP>["parts"];
 export type InboundMessageTemplate<UT extends UserType = UserType, MP extends MessagePrefix<"in"> = MessagePrefix<"in">> = InboundMessage<UT, MP>["template"];
 export type InboundMessageTarget<M extends InboundMessage, UT extends UserType = M["userType"]> = OutboundMessage<TheOtherUserType<UT>, M["prefix"]>;
 export type InboundAckMessageOrigin<UT extends UserType = UserType, OP extends MessagePrefix<"out"> = MessagePrefix<"out">> = GetMessages<UT, "out", OP>;
@@ -77,6 +77,6 @@ export type GotMessageParts<M extends Message, CMPP extends CommonMessagePartsPo
     [K in CMPP]: K extends "prefix" ? M["prefix"] : MessageParts[K];
 };
 export type GotAllMessageParts<M extends Message> = {
-    [K in keyof M["positions"] | "prefix"]: K extends "prefix" ? M["prefix"] : K extends MessagePartsKeys ? MessageParts[K] : never;
+    [K in keyof M["positions"]]: K extends "prefix" ? M["prefix"] : K extends MessagePartsKeys ? MessageParts[K] : never;
 };
 export {};

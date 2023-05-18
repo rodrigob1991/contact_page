@@ -96,7 +96,7 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
         acceptConnection(true, handleInboundMessage, handleDisconnection,  undefined, guessId)
         connectionAccepted = true
     } catch (e) {
-        acceptConnection(false, undefined, undefined, e as string, guessId)
+        acceptConnection(false, undefined, undefined,"error initializing guess : " + e, guessId)
     }
     if (connectionAccepted)
         try {
@@ -109,6 +109,6 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
                 // publish guess connection
                 publishGuessMessage<OutboundToHostConMessage>(undefined,{prefix: "con", number: connectionDate,userId: guessId})])
         } catch (e) {
-            closeConnection(e as string, guessId)
+            closeConnection("error initializing guess : " + e)
         }
 }

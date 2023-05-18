@@ -1,21 +1,27 @@
 import {expect, test} from "@jest/globals"
-import {MessagePrefix} from "../../model/types"
 import {
     GotAllMessageParts,
     InboundFromGuessAckMessage,
-    InboundFromGuessMesMessage, InboundFromHostAckMessage, InboundFromHostMesMessage, Message,
+    InboundFromGuessMesMessage,
+    InboundFromHostAckMessage,
+    InboundFromHostMesMessage,
+    Message,
     OutboundToGuessConMessage,
     OutboundToGuessDisMessage,
-    OutboundToGuessMesMessage, OutboundToGuessServerAckMessage, OutboundToGuessUserAckMessage,
+    OutboundToGuessMesMessage,
+    OutboundToGuessServerAckMessage,
+    OutboundToGuessUserAckMessage,
     OutboundToHostConMessage,
     OutboundToHostDisMessage,
-    OutboundToHostMesMessage, OutboundToHostServerAckMessage, OutboundToHostUserAckMessage
+    OutboundToHostMesMessage,
+    OutboundToHostServerAckMessage,
+    OutboundToHostUserAckMessage
 } from "../../message/types"
 import {messagePrefixes} from "../../model/constants"
 import {getMessageParts} from "../../message/functions"
 
 const {con: conPrefix, dis: disPrefix, mes: mesPrefix, sack: sackPrefix, uack: uackPrefix} = messagePrefixes
-const hardcodeParts = {originPrefix: "mes" as MessagePrefix, number: 2346544, userId: 1522, body: "something to say"}
+const hardcodeParts = {originPrefix: "mes" as "mes", number: 2346544, userId: 1522, body: "something to say"}
 const {originPrefix, number, userId, body} = hardcodeParts
 
 const equalParts = <M extends Message, GMP = GotAllMessageParts<M>>(expectedParts: GMP, gotParts: GMP, prefix: M["prefix"], userType: M["userType"], flow: M["flow"]) => {

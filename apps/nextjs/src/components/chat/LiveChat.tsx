@@ -278,7 +278,7 @@ export default function LiveChat<UT extends UserType>({
     })
 
     const setNewOutboundMessageDataFromView: SetNewOutboundMessageDataFromView = (body) => {
-        const targetUsers = users.filter(isTargetUser)
+        const targetUsers = users.filter((u) => u.id !== LOCAL_USER_ID && isTargetUser(u))
         const setMessage = targetUsers.length > 0
         if (setMessage) {
             setNewOutboundMessageData(body, targetUsers.map(tu => tu.id))

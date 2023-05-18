@@ -18,16 +18,15 @@ import {isEmpty} from "utils/src/strings"
 import {initRedis, RedisAPIs, RedisMessageKey} from "./redis"
 import {initHostConnection} from "./user_specific/host"
 import {initGuessConnection} from "./user_specific/guess"
-import {ApplyHandleInboundMessage} from "./user_specific/types"
 
 type IfTrueT<B extends boolean, T, O=undefined> = B extends true ? T : O
-export type AcceptConnection = <A extends boolean>(accept: A, him: IfTrueT<A, HandleInboundMessage> , hd: IfTrueT<A, HandleDisconnection>, reason: IfTrueT<A, undefined, string>, id?: number) => void
-export type CloseConnection = (reason?: string, guessId?: number) => void
+export type AcceptConnection = <A extends boolean>(accept: A, him: IfTrueT<A, HandleInboundMessage> , hd: IfTrueT<A, HandleDisconnection>, reason: IfTrueT<A, undefined, string>, userId?: number) => void
+export type CloseConnection = (reason?: string) => void
 
 export type HandleDisconnection = (reasonCode: number, description: string) => void
 export type HandleInboundMessage = (m: ws.Message) => void
-export type HandleInboundMesMessage<UT extends UserType> = (m: InboundMessageTemplate<UT, "mes">) => [OutboundServerAckMessage<UT>["template"], RedisMessageKey<[InboundMessageTarget<InboundMesMessage<UT>>]>, InboundMessageTarget<InboundMesMessage<UT>>["template"], () => Promise<void>]
-export type HandleInboundAckMessage<UT extends UserType> = (a: InboundMessageTemplate<UT, "uack">) => [OriginPrefix, RedisMessageKey<[OutboundMessage<UT>]>, RedisMessageKey<[OutboundUserAckMessage<TheOtherUserType<UT>>]> | undefined, OutboundUserAckMessage<TheOtherUserType<UT>>["template"] | undefined, (() => Promise<void>) | undefined]
+export type HandleInboundMesMessage<UT extends UserType=UserType> = { [K in UT]: (m: InboundMessageTemplate<K, "mes">) => [OutboundServerAckMessage<UT>["template"], RedisMessageKey<[InboundMessageTarget<InboundMesMessage<UT>>]>, InboundMessageTarget<InboundMesMessage<UT>>["template"], () => Promise<void>] }[UT]
+export type HandleInboundAckMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<UT, "uack">) => [OriginPrefix, RedisMessageKey<[OutboundMessage<UT>]>, RedisMessageKey<[OutboundUserAckMessage<TheOtherUserType<UT>>]> | undefined, OutboundUserAckMessage<TheOtherUserType<UT>>["template"] | undefined, (() => Promise<void>) | undefined]}[UT]
 
 export type SendMessage<UT extends UserType> = (cache: boolean, ...message: OutboundMessageTemplate<UT>[]) => Promise<void>
 
@@ -45,8 +44,8 @@ const initHttpServer = () => {
 }
 
 type Cookies = ws.ICookie[]
-const hostCookieNamePrefix = "host"
-const guessCookieName = "guess"
+const hostCookieNamePrefix = users.host
+const guessCookieName = users.guess
 
 const getCookiesValues = (cookies: Cookies, forHost: boolean): [UserType, number | undefined] => {
     let userType: UserType = users.guess
@@ -80,7 +79,7 @@ const getCookiesValues = (cookies: Cookies, forHost: boolean): [UserType, number
     const processCookie = forHost ? processHostCookie : processGuessCookie
 
     let index = 0
-    while (!processCookie(cookies[index]) && index < cookies.length) {
+    while (index < cookies.length && !processCookie(cookies[index])) {
         index++
     }
     return [userType, id]
@@ -106,7 +105,7 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
         request.reject()
         log(`connection from origin ${origin} rejected.`)
     } else {
-        const [userType, userId] = getCookiesValues(request.cookies, request.httpRequest.url === paths.host)
+        const [userType, cookieUserId] = getCookiesValues(request.cookies, request.httpRequest.url === paths.host)
 
         let connection : ws.connection
         const acceptConnection: AcceptConnection = (accept, him, hd, reason, userId) => {
@@ -114,13 +113,13 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
                 connection = request.accept(undefined, origin, userType === "host" ? newHostCookies() : newGuessCookies(userId))
                 connection.on("message", him as HandleInboundMessage)
                 connection.on("close", hd as HandleDisconnection)
-                log("connection accepted", userType, userId)
+                log("connection accepted", userType, cookieUserId ?? userId)
             } else {
                 request.reject(412, reason)
-                log(" connection was rejected," + reason, userType, userId)
+                log(" connection was rejected," + reason, userType,cookieUserId ?? userId)
             }
         }
-        const closeConnection: CloseConnection = (reason, guessId) => {
+        const closeConnection: CloseConnection = (reason) => {
             connection.close(ws.connection.CLOSE_REASON_GOING_AWAY, reason)
         }
 
@@ -142,7 +141,7 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
             return (cache ? cacheMessage(userType, userId, messagePrefix, key, message) : Promise.resolve()).then(sendUntilAck)
         }
 
-        const applyHandleInboundMessage = (wsMessage: ws.Message, handleMesMessage: HandleInboundMesMessage<UserType>, handleAckMessage: HandleInboundAckMessage<UserType>, userId: number) => {
+        const applyHandleInboundMessage = (wsMessage: ws.Message, handleMesMessage: HandleInboundMesMessage, handleAckMessage: HandleInboundAckMessage, userId: number) => {
             const catchError = (reason: string) => {log("error handling inbound message, " + reason, userType, userId)}
 
             const message = (wsMessage as IUtf8Message).utf8Data as InboundMessageTemplate
@@ -173,9 +172,9 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
         }
 
         if (userType === users.host) {
-            initHostConnection(acceptConnection, closeConnection, () => addConnectedUser("host", userId as number), (hostId) => removeConnectedUser("host", hostId), (toHostId) => getConnectedUsers("host", toHostId), (guessId, mp) => publishMessage("guess", guessId, mp),(hostId, sm) => handleUserSubscriptionToMessages("host", hostId, sm), (hi, wp) => getCachedMessages("host", hi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
+            initHostConnection(acceptConnection, closeConnection, () => addConnectedUser("host", cookieUserId as number), (hostId) => removeConnectedUser("host", hostId), (toHostId) => getConnectedUsers("host", toHostId), (guessId, mp) => publishMessage("guess", guessId, mp),(hostId, sm) => handleUserSubscriptionToMessages("host", hostId, sm), (hi, wp) => getCachedMessages("host", hi, wp), cacheAndSendUntilAck, (wsm,himm,hiam) => { applyHandleInboundMessage(wsm, himm, hiam, cookieUserId as number)})
         } else {
-            initGuessConnection(acceptConnection, closeConnection, () =>  addConnectedUser("guess", userId), (guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId),(hostId,mp) => publishMessage("host", hostId, mp),(guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi,wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)
+            initGuessConnection(acceptConnection, closeConnection, () =>  addConnectedUser("guess", cookieUserId), (guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId),(hostId,mp) => publishMessage("host", hostId, mp),(guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi,wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage)
         }
     }
 }

@@ -24,7 +24,7 @@ import {
 } from "../app"
 import {InitUserConnection} from "./types"
 
-const log = (msg: string, id: number) => { appLog(msg, "host") }
+const log = (msg: string, id: number) => { appLog(msg, "host", id) }
 
 export const initHostConnection : InitUserConnection<"host">  = async (acceptConnection, closeConnection, addConnectedHost, removeConnectedHost, getConnectedGuesses, publishHostMessage, handleHostSubscriptionToMessages, getHostCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage : SendMessage<"host"> = (cache, ...messages) => {
@@ -96,7 +96,7 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
         acceptConnection(true, handleInboundMessage, handleDisconnection, undefined)
         connectionAccepted = true
     } catch (e) {
-        acceptConnection(false, undefined, undefined, e as string)
+        acceptConnection(false, undefined, undefined,"error initializing host : " + e)
     }
     if (connectionAccepted)
         try {
@@ -109,6 +109,6 @@ export const initHostConnection : InitUserConnection<"host">  = async (acceptCon
                 // publish host connection
                 publishHostMessage<OutboundToGuessConMessage>(undefined,{prefix: "con", number: connectionDate, userId: hostId})])
         } catch (e) {
-            closeConnection(e as string)
+            closeConnection("error initializing host : " + e)
         }
 }

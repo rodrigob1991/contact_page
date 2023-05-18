@@ -64,8 +64,6 @@ export const initRedis = () : RedisAPIs => {
     const connectedGuessesHashKey = "connected:guesses"
     const getConnectedUsersHashKey = (userType: UserType) => userType === "host" ?  connectedHostsHashKey : connectedGuessesHashKey
 
-    const getConnectedUserHashField = (userType: UserType, id: number) => userType + ":" + id
-
     const getMessagesHashKey = (userType: UserType, userId: number, messagePrefix: MessagePrefix) => userType + ":" + userId + ":" + messagePrefix + ":messages"
 
     const getHandleError = (fn: Function) => (reason: string) => Promise.reject("redis error: " + fn.name + " failed, " + reason)
@@ -135,7 +133,8 @@ export const initRedis = () : RedisAPIs => {
         for (const prefix in whatPrefixes) {
             promises[prefix] = redisClient.hVals(getMessagesHashKey(userType, userId, prefix as MessagePrefix))
                 .then(messages => {
-                    log("got " + prefix + " messages cached: " + messages, userType, userId)
+                    const number = messages.length
+                    log("got " + number + " " + prefix + " messages cached" + (number > 0 ? ": " + messages : ""), userType, userId)
                     return messages
                 }).catch(getHandleError(getCachedMessages))
         }
@@ -161,7 +160,7 @@ export const initRedis = () : RedisAPIs => {
     const addConnectedUser: AddConnectedUser = (userType, id) => {
         const setConnectedUser = (firstTime: "first time" | "", id: number) => {
             const date = Date.now()
-            return redisClient.hSetNX(getConnectedUsersHashKey(userType), getConnectedUserHashField(userType, id), date.toString()).then(added => {
+            return redisClient.hSetNX(getConnectedUsersHashKey(userType), id.toString(), date.toString()).then(added => {
                 if (added) {
                     log(firstTime +  " connected", userType, id)
                     return {id: id, date: date}
@@ -179,7 +178,7 @@ export const initRedis = () : RedisAPIs => {
         return promise.catch(getHandleError(addConnectedUser))
     }
     const removeConnectedUser: RemoveConnectedUser = (userType, id) => {
-        return redisClient.hDel(getConnectedUsersHashKey(userType), getConnectedUserHashField(userType, id)).then(n => {
+        return redisClient.hDel(getConnectedUsersHashKey(userType), id.toString()).then(n => {
             if (n > 0) log("was removed", userType, id)
             else return Promise.reject(userType + " " + id + " was not removed")
         }).catch(getHandleError(removeConnectedUser))
@@ -189,8 +188,9 @@ export const initRedis = () : RedisAPIs => {
         const ofUserType = toUserType === "host" ? "guess" : "host"
         return redisClient.hGetAll(getConnectedUsersHashKey(ofUserType)).then(fields => {
             const fieldsEntries = Object.entries(fields)
+            const usersConnectedNumber = fieldsEntries.length
             const areUsersConnected = fieldsEntries.length > 0
-            log((areUsersConnected ? "" : "no ") + ofUserType + " connected " + fields.toString(), toUserType, toUserId)
+            log((areUsersConnected ? usersConnectedNumber : "no") + " " + ofUserType + " connected " + (areUsersConnected ? fieldsEntries : ""), toUserType, toUserId)
             return fieldsEntries.map(([idStr, dateStr]) => [+idStr, +dateStr] as [number, number])
         }).catch(getHandleError(getConnectedUsers))
     }

@@ -17,7 +17,7 @@ export declare const messageParts: {
     readonly prefix: "prefix";
     readonly originPrefix: "originPrefix";
     readonly number: "number";
-    readonly guessId: "guessId";
+    readonly userId: "userId";
     readonly body: "body";
 };
 export declare const paths: {

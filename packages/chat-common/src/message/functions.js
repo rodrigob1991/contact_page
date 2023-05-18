@@ -11,8 +11,8 @@ const getMessage = (parts) => {
         message += ":" + parts.originPrefix;
     if (constants_1.messageParts.number in parts)
         message += ":" + parts.number;
-    if (constants_1.messageParts.guessId in parts)
-        message += ":" + parts.guessId;
+    if (constants_1.messageParts.userId in parts)
+        message += ":" + parts.userId;
     if (constants_1.messageParts.body in parts)
         message += ":" + parts.body;
     return message;
@@ -35,13 +35,13 @@ const getMessageParts = (m, whatGet) => {
         const numberPosition = whatGet.number;
         firstSeparatorIndex = getPartSeparatorIndex(m, numberPosition - 1);
         finalSeparatorIndex = getPartSeparatorIndex(m, numberPosition);
-        parts["number"] = parseInt(m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex));
+        parts["number"] = +m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex);
     }
-    if (constants_1.messageParts.guessId in whatGet) {
-        const guessIdPosition = whatGet.guessId;
+    if (constants_1.messageParts.userId in whatGet) {
+        const guessIdPosition = whatGet.userId;
         firstSeparatorIndex = getPartSeparatorIndex(m, guessIdPosition - 1);
         finalSeparatorIndex = getPartSeparatorIndex(m, guessIdPosition);
-        parts["guessId"] = parseInt(m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex));
+        parts["userId"] = +m.substring(firstSeparatorIndex + 1, finalSeparatorIndex < 0 ? m.length : finalSeparatorIndex);
     }
     if (constants_1.messageParts.body in whatGet) {
         firstSeparatorIndex = getPartSeparatorIndex(m, whatGet.body - 1);
@@ -88,8 +88,8 @@ const getCutMessage = (m, whatCut, lastPosition) => {
         position = whatCut.number;
         cut();
     }
-    if (constants_1.messageParts.guessId in whatCut) {
-        position = whatCut.guessId;
+    if (constants_1.messageParts.userId in whatCut) {
+        position = whatCut.userId;
         cut();
     }
     if (constants_1.messageParts.body in whatCut) {

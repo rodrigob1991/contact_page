@@ -4,5 +4,5 @@ exports.paths = exports.messageParts = exports.messagePrefixes = exports.message
 exports.users = { host: "host", guess: "guess" };
 exports.messageFlows = { in: "in", out: "out" };
 exports.messagePrefixes = { con: "con", dis: "dis", mes: "mes", sack: "sack", uack: "uack" };
-exports.messageParts = { prefix: "prefix", originPrefix: "originPrefix", number: "number", guessId: "guessId", body: "body" };
+exports.messageParts = { prefix: "prefix", originPrefix: "originPrefix", number: "number", userId: "userId", body: "body" };
 exports.paths = { host: "/host", guess: "/guess" };
