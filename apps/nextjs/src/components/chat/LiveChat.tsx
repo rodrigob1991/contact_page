@@ -4,7 +4,7 @@ import ChatView, {
     ContainerProps,
     Hide,
     SelectOrUnselectUser,
-    SendOutboundMessage as SendOutboundMessageFromView
+    SetNewOutboundMessageData as SetNewOutboundMessageDataFromView
 } from "./View"
 import useWebSocket, {
     AddPendingUserAckMessage,
@@ -19,15 +19,20 @@ import useWebSocket, {
 } from "../../hooks/useWebSocket"
 import {useEffect, useRef, useState} from "react"
 
-export type InboundMessageData = { flow: "in", fromUserId: string, number: number, body: string }
+type MessageDataCommon = { fromUserId: number, fromUserName: string, number: number, body: string}
+export type InboundMessageData = { flow: "in" } & MessageDataCommon
 const userAckStates = {pen: "pen", ack: "ack", nack: "nack"} as const
 export type UserAckState = typeof userAckStates[keyof typeof userAckStates]
 type ToUsersId = Map<number, UserAckState>
-export type OutboundMessageData = { flow: "out", fromUserId: string, number: number, body: string, toUsersIds: ToUsersId, serverAck: boolean }
+export type OutboundMessageData = { flow: "out", toUsersIds: ToUsersId, serverAck: boolean } & MessageDataCommon
 export type MessageData = InboundMessageData | OutboundMessageData
 
+export type User = { id: number, name: string, connected: boolean, selected: boolean }
+export const LOCAL_USER_ID = -1
+export const LOCAL_USER_NAME = "me"
+
 export type FirstHandleConMessage<UT extends UserType> = (cm: InboundConMessageParts<UT>) => string
-export type FirstHandleDisMessage<UT extends UserType> = (dm: InboundDisMessageParts<UT>) => string
+export type FirstHandleDisMessage<UT extends UserType> = (dm: InboundDisMessageParts<UT>) => void
 export type FirstHandleMesMessage<UT extends UserType> = (mm: InboundMesMessageParts<UT>) => string
 
 type Props<UT extends UserType> = {
@@ -39,11 +44,7 @@ type Props<UT extends UserType> = {
     nextHandleNewConnectionState: HandleNewConnectionState
     viewProps: { containerProps: ContainerProps, hide?: Hide }
 }
-
-export const HOST_ID = 1
-
-export type User = { id: number, name: string, connected: boolean, selected: boolean }
-export const LOCAL_USER_ID = "me"
+//export const HOST_ID = 1
 
 export default function LiveChat<UT extends UserType>({
                                                           userType,
@@ -55,19 +56,19 @@ export default function LiveChat<UT extends UserType>({
                                                           viewProps
                                                       }: Props<UT>) {
     const [users, setUsers] = useState<User[]>([])
-    const setConnectedUser = (id: string) => {
+    const setConnectedUser = (id: number, name: string) => {
         setUsers((users) => {
             const updatedUsers = [...users]
             const user = updatedUsers.find(u => u.id === id)
             if (user) {
                 user.connected = true
             } else {
-                updatedUsers.push({id: id, connected: true, selected: false})
+                updatedUsers.push({id, name, connected: true, selected: false})
             }
             return updatedUsers
         })
     }
-    const setDisconnectedUser = (id: string) => {
+    const setDisconnectedUser = (id: number) => {
         setUsers((users) => {
             const updatedUsers = [...users]
             const user = updatedUsers.find(u => u.id === id)
@@ -94,14 +95,14 @@ export default function LiveChat<UT extends UserType>({
             return updatedUsers
         })
     }
-    const getSelectedUsers = () => users.filter(u => u.selected)
+    //const getSelectedUsers = () => users.filter(u => u.selected)
 
     const [connectionState, setConnectionState] = useState(ConnectionState.DISCONNECTED)
     const handleNewConnectionState: HandleNewConnectionState = (cs) => {
         setConnectionState(cs)
         switch (cs) {
             case ConnectionState.CONNECTED :
-                setConnectedUser(LOCAL_USER_ID)
+                setConnectedUser(LOCAL_USER_ID, LOCAL_USER_NAME)
                 break
             case ConnectionState.DISCONNECTED :
                 //setAllMessagesAsNack()
@@ -136,11 +137,11 @@ export default function LiveChat<UT extends UserType>({
     const refToOutboundMessagesNumbersToSend = useRef<number[]>([])
     const getOutboundMessagesNumbersToSend = () => refToOutboundMessagesNumbersToSend.current
 
-    const setNewOutboundMessageData: SetNewOutboundMessageData = (body, toUsersIds) => {
+    const setNewOutboundMessageData = (body: string, toUsersIds: number[]) => {
         setMessagesData((messagesData) => {
             const number = messagesData.length
             getOutboundMessagesNumbersToSend().push(number)
-            const messageData: OutboundMessageData = {flow: "out", fromUserId: LOCAL_USER_ID, toUsersIds: new Map(toUsersIds.map(ui => [ui, "pen"])), number: number, body: body, serverAck: false}
+            const messageData: OutboundMessageData = {flow: "out", fromUserId: LOCAL_USER_ID, fromUserName: LOCAL_USER_NAME, toUsersIds: new Map(toUsersIds.map(ui => [ui, "pen"])), number: number, body: body, serverAck: false}
             return [...messagesData, messageData]
         })
     }
@@ -221,7 +222,7 @@ export default function LiveChat<UT extends UserType>({
     const messagesDataKey = "messagesData-" + userType
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
         console.log("users ids store " + JSON.stringify(users.map(u => u.id)))
-        localStorage.setItem(usersIdsKey, JSON.stringify(users.map(u => u.id)))
+        localStorage.setItem(usersIdsKey, JSON.stringify(users.map(({id, name}) => [id, name])))
         console.log("messages data store " + JSON.stringify(messagesData))
         localStorage.setItem(messagesDataKey, JSON.stringify(messagesData.map(md => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: Array.from(toUsersIds.entries())}))(md))))
     }
@@ -229,12 +230,12 @@ export default function LiveChat<UT extends UserType>({
         const usersIdsJson = localStorage.getItem(usersIdsKey)
         console.log("users ids stored " + usersIdsJson)
         if (usersIdsJson)
-            setUsers((JSON.parse(usersIdsJson) as string[]).map(id => ({id: id, connected: false, selected: false})))
+            setUsers((JSON.parse(usersIdsJson) as [number, string][]).map(([id, name]) => ({id, name, connected: false, selected: false})))
 
         const messagesJson = localStorage.getItem(messagesDataKey)
         console.log("messages data stored " + messagesJson)
         if (messagesJson)
-            setMessagesData(JSON.parse(messagesJson).map((md: any) => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: new Map(toUsersIds)}))(md)))
+            setMessagesData(JSON.parse(messagesJson).map((md: MessageData) => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: new Map(toUsersIds)}))(md)))
     }, [])
     useEffect(() => {
         window.addEventListener("beforeunload", handleBeforeUnload)
@@ -244,17 +245,17 @@ export default function LiveChat<UT extends UserType>({
     }, [users, messagesData])
 
     const handleConMessage: HandleConMessage<UT> = (cm) => {
-        const userId = firstHandleConMessage(cm)
-        setConnectedUser(userId)
+        const userName = firstHandleConMessage(cm)
+        setConnectedUser(cm.userId, userName)
     }
-    const handleDisMessage: HandleDisMessage<UT> = (dm) => {
-        const userId = firstHandleDisMessage(dm)
+    const handleDisMessage: HandleDisMessage<UT> = ({userId}) => {
+        //const userId = firstHandleDisMessage(dm)
         //setUserMessagesAsNack(getExternalUserId(userId))
         setDisconnectedUser(userId)
     }
     const handleMesMessage: HandleMesMessage<UT> = (mm) => {
-        const userId = firstHandleMesMessage(mm)
-        setInboundMessageData({flow: "in", fromUserId: userId, number: mm.number, body: mm.body})
+        const userName = firstHandleMesMessage(mm)
+        setInboundMessageData({flow: "in", fromUserId: mm.userId, fromUserName: userName, number: mm.number, body: mm.body})
     }
     const handleServerAckMessage: HandleServerAckMessage = (n) => {
         setMessageAsAcknowledgedByServer(n)
@@ -276,31 +277,29 @@ export default function LiveChat<UT extends UserType>({
         handleNewConnectionState: handleNewConnectionState
     })
 
-    const [sendOutboundMessageFromView] = (userType === "host" ? getHostSpecifics(setNewOutboundMessageData, getSelectedUsers) : getGuessSpecifics(setNewOutboundMessageData, undefined)) as GetUserSpecificsReturn<UT>
-
-    return <ChatView userType={userType} connectionState={connectionState} users={users} selectOrUnselectUser={selectOrUnselectUser} messages={messagesData} sendOutboundMessage={sendOutboundMessageFromView}  {...viewProps}/>
-}
-
-type GetSelectedUser<UT extends UserType> = UT extends "host" ? () => User[] : undefined
-type SetNewOutboundMessageData = (b: string, to: number[]) => void
-type GetUserSpecificsReturn<UT extends UserType> =  [SendOutboundMessageFromView<UT>]
-type GetUserSpecifics<UT extends UserType> = (setNewOutboundMessageData: SetNewOutboundMessageData, getSelectedConnectedUser: GetSelectedUser<UT>) => GetUserSpecificsReturn<UT>
-
-const getHostSpecifics: GetUserSpecifics<"host"> = (setNewOutboundMessageData, getSelectedGuesses) => {
-    const sendOutboundMessageFromView: SendOutboundMessageFromView<"host"> = (body) => {
-        const selectedGuesses = getSelectedGuesses()
-        const areSomeSelected = selectedGuesses.length > 0
-        if (areSomeSelected) {
-            setNewOutboundMessageData(body, selectedGuesses.map(u => parseInt(u.id)))
+    const setNewOutboundMessageDataFromView: SetNewOutboundMessageDataFromView = (body) => {
+        const targetUsers = users.filter(isTargetUser)
+        const setMessage = targetUsers.length > 0
+        if (setMessage) {
+            setNewOutboundMessageData(body, targetUsers.map(tu => tu.id))
         }
-        return areSomeSelected
+        return setMessage
     }
-    return [sendOutboundMessageFromView]
+
+    const [isTargetUser] = userType === "host" ? getHostSpecifics() : getGuessSpecifics()
+
+    return <ChatView userType={userType} connectionState={connectionState} users={users} selectOrUnselectUser={selectOrUnselectUser} messages={messagesData} setNewOutboundMessageData={setNewOutboundMessageDataFromView}  {...viewProps}/>
 }
-const getGuessSpecifics: GetUserSpecifics<"guess"> = (setNewOutboundMessageData) => {
-    const sendOutboundMessageFromView: SendOutboundMessageFromView<"guess"> = (body) => {
-        setNewOutboundMessageData(body, [HOST_ID])
-        return true
-    }
-    return [sendOutboundMessageFromView]
+
+type IsTargetUser = (user: User) => boolean
+type GetUserSpecificsReturn = [IsTargetUser]
+type GetUserSpecifics<UT extends UserType> = () => GetUserSpecificsReturn
+
+const getHostSpecifics: GetUserSpecifics<"host"> = () => {
+    const isTargetUser: IsTargetUser = (u) => u.selected
+    return [isTargetUser]
+}
+const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
+    const isTargetUser: IsTargetUser = (u) => true
+    return [isTargetUser]
 }

@@ -4,7 +4,6 @@ import React, {useState} from "react"
 import styled from "@emotion/styled"
 import LiveIcon from "/public/live.svg"
 import {maxWidthSmallestLayout} from "../../../../../dimensions"
-import {SeeOrUnseeButton} from "../../../../Buttons"
 import {ConnectionState, HandleNewConnectionState} from "../../../../../hooks/useWebSocket"
 import {BsFillChatSquareTextFill} from "react-icons/bs"
 
@@ -50,7 +49,6 @@ export default function GuessLiveChat({hostName}: Props) {
         return hostName
     }
     const handleDisMessage: FirstHandleDisMessage<"guess"> = (dm) => {
-        return hostName
     }
     const handleMesMessage: FirstHandleMesMessage<"guess"> = (mm) => {
         return hostName

@@ -2,15 +2,7 @@ import styled from "@emotion/styled"
 import React, {useEffect, useRef, useState} from "react"
 import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
-import {
-    HOST_ID,
-    InboundMessageData,
-    LOCAL_USER_ID,
-    MessageData,
-    OutboundMessageData,
-    User,
-    UserAckState
-} from "./LiveChat"
+import {InboundMessageData, LOCAL_USER_ID, MessageData, OutboundMessageData, User, UserAckState} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
 import {BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
@@ -18,7 +10,7 @@ import {ConnectionState} from "../../hooks/useWebSocket"
 import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions"
 
 type ToGuessesIds<UT extends UserType> = UT extends "host" ? string[] : undefined
-export type SendOutboundMessage<UT extends UserType> =  (body: string) => boolean
+export type SetNewOutboundMessageData =  (body: string) => boolean
 export type ContainerProps = { show: boolean, left: number, top: number }
 export type Hide = () => void
 
@@ -28,17 +20,17 @@ type Props<UT extends UserType> = {
     messages: MessageData[]
     users: User[]
     selectOrUnselectUser: SelectOrUnselectUser
-    sendOutboundMessage: SendOutboundMessage<UT>
+    setNewOutboundMessageData: SetNewOutboundMessageData
     containerProps: ContainerProps
     hide?: Hide
 }
 
-export default function ChatView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, sendOutboundMessage, containerProps, hide}: Props<UT>) {
+export default function ChatView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, setNewOutboundMessageData, containerProps, hide}: Props<UT>) {
     const [bodyMessageStr, setBodyMessageStr] = useState("")
 
-    const userColorMapRef = useRef(new Map<string, string>([[LOCAL_USER_ID, "black"]]))
+    const userColorMapRef = useRef(new Map<number, string>([[LOCAL_USER_ID, "black"]]))
     const getUserColorMap = () => userColorMapRef.current
-    const getUserColor = (id: string) => {
+    const getUserColor = (id: number) => {
         let color = getUserColorMap().get(id)
         if (!color) {
             color = getNewColor()
@@ -53,7 +45,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
 
     const handleInputMessage = () => {
         if (!isEmpty(bodyMessageStr)) {
-            if (sendOutboundMessage(bodyMessageStr)) {
+            if (setNewOutboundMessageData(bodyMessageStr)) {
                 setBodyMessageStr("")
             }
         }
@@ -76,7 +68,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
                 <UsersContainerTitle>online users</UsersContainerTitle>
                 <hr color={"black"} style={{width:"100%", margin: "0px"}}/>
                 <UsersInnerContainer>
-                {users.map(({id, connected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={connected}> {id} </UserView>)}
+                {users.map(({id, name, connected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={connected}> {name} </UserView>)}
                 </UsersInnerContainer>
             </UsersContainer>
             <RightContainer>
@@ -113,7 +105,7 @@ const getNewColor = () => {
 
 export type SelectOrUnselectUser = (index: number) => void
 type HandleClickUser<UT extends UserType> = UT extends "host" ? (e: React.MouseEvent<HTMLSpanElement>, index: number) => void : undefined
-type GetOutboundMessageView = (omd: OutboundMessageData, getUserColor: (u: string) => string) => JSX.Element
+type GetOutboundMessageView = (omd: OutboundMessageData, getUserColor: (u: number) => string) => JSX.Element
 type GetUserSpecificsReturn<UT extends UserType> = [HandleClickUser<UT>, GetOutboundMessageView]
 type GetUserSpecifics<UT extends UserType> = (selectOrUnselectUser: SelectOrUnselectUser) => GetUserSpecificsReturn<UT>
 
@@ -126,7 +118,7 @@ const getHostSpecifics: GetUserSpecifics<"host"> = (selectOrUnselectUser) => {
 
         const toGuessesIdsViews: JSX.Element[] = []
         toUsersIds.forEach((userAck, userId) => {
-            toGuessesIdsViews.push(<ToGuessIdView key={userId} userAck={userAck} color={ getUserColor(userId.toString())}> {userId} </ToGuessIdView>)
+            toGuessesIdsViews.push(<ToGuessIdView key={userId} userAck={userAck} color={ getUserColor(userId)}> {userId} </ToGuessIdView>)
         })
         return <MessageView key={LOCAL_USER_ID + "-" + number} isOutbound={true}>
                {toGuessesIdsViews}
@@ -139,13 +131,13 @@ const getHostSpecifics: GetUserSpecifics<"host"> = (selectOrUnselectUser) => {
 const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
     const iconStyleProps = {style: {minWidth: "15px", minHeight: "15px", marginTop: "5px", marginRight: "2px"}}
     const getOutboundMessageView: GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) => {
-        const hostAckState = toUsersIds.get(HOST_ID)
-       return <MessageView key={LOCAL_USER_ID + "-" + number} isOutbound={true}>
-                {hostAckState === "pen" ? <BsFillEnvelopeFill {...iconStyleProps}/> : hostAckState === "ack" ? <BsFillEnvelopeOpenFill {...iconStyleProps}/> : <BsFillEnvelopeXFill {...iconStyleProps}/>}
-                <MessageBody color={getUserColor(LOCAL_USER_ID)} serverAck={serverAck}>{body} </MessageBody>
-             </MessageView>
+        const hostAckState = toUsersIds.values().next().value
+        return <MessageView key={LOCAL_USER_ID + "-" + number} isOutbound={true}>
+            {hostAckState === "pen" ? <BsFillEnvelopeFill {...iconStyleProps}/> : hostAckState === "ack" ?
+                <BsFillEnvelopeOpenFill {...iconStyleProps}/> : <BsFillEnvelopeXFill {...iconStyleProps}/>}
+            <MessageBody color={getUserColor(LOCAL_USER_ID)} serverAck={serverAck}>{body} </MessageBody>
+        </MessageView>
     }
-
     return [undefined, getOutboundMessageView]
 }
 

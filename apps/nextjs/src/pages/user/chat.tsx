@@ -6,18 +6,18 @@ import LiveChat, {
 import styled from "@emotion/styled"
 import {HandleNewConnectionState} from "../../hooks/useWebSocket"
 
+const guessNamePrefix = "guess"
+
 type Props = {}
 
 export default function HostLiveChat({}: Props) {
-
-    const handleConMessage: FirstHandleConMessage<"host"> = (cm) => {
-        return cm.guessId.toString()
+    const handleConMessage: FirstHandleConMessage<"host"> = ({userId: guessId}) => {
+        return guessNamePrefix + guessId
     }
-    const handleDisMessage: FirstHandleDisMessage<"host"> = (dm) => {
-        return dm.guessId.toString()
+    const handleDisMessage: FirstHandleDisMessage<"host"> = ({userId: guessId}) => {
     }
-    const handleMesMessage: FirstHandleMesMessage<"host"> = (mm) => {
-        return mm.guessId.toString()
+    const handleMesMessage: FirstHandleMesMessage<"host"> = ({userId: guessId}) => {
+        return guessNamePrefix + guessId
     }
 
     const handleNewConnectionState: HandleNewConnectionState = (cs) => {}

@@ -15,7 +15,7 @@ import {
     OutboundConMessage as OutboundConMessageImp,
     OutboundDisMessage as OutboundDisMessageImp,
     OutboundMessage as OutboundMessageImp,
-    OutboundMessageParts as OutboundMessagePartsImp,
+    OutboundMessagePartsKeys as OutboundMessagePartsKeysImp,
     OutboundMessageTemplate as OutboundMessageTemplateImp,
     InboundFromHostMesMessage as InboundFromHostMesMessageImp,
     InboundFromHostAckMessage as InboundFromHostAckMessageImp,
@@ -24,7 +24,7 @@ import {
     InboundMesMessage as InboundMesMessageImp,
     InboundAckMessage as InboundAckMessageImp,
     InboundMessage as InboundMessageImp,
-    InboundMessageParts as InboundMessagePartsImp,
+    InboundMessagePartsKeys as InboundMessagePartsKeysImp,
     InboundMessageTemplate as InboundMessageTemplateImp,
     Message as MessageImp,
     MessagePartsPositions as MessagePartsPositionsImp,
@@ -52,7 +52,7 @@ export type  InboundServerAckMessage<UT extends UserType> = OutboundServerAckMes
 export type  InboundConMessage<UT extends UserType> = OutboundConMessageImp<UT>
 export type  InboundDisMessage<UT extends UserType> = OutboundDisMessageImp<UT>
 export type  InboundMessage<UT extends UserType=UserType, MP extends MessagePrefix<"in">=MessagePrefix<"in">> = OutboundMessageImp<UT,MP>
-export type  InboundMessageParts = OutboundMessagePartsImp
+export type  InboundMessagePartsKeys = OutboundMessagePartsKeysImp
 export type  InboundMessageTemplate<UT extends UserType=UserType, MP extends MessagePrefix<"in">=MessagePrefix<"in">> = OutboundMessageTemplateImp<UT,MP>
 
 export type  OutboundFromHostMesMessage = InboundFromHostMesMessageImp
@@ -62,7 +62,7 @@ export type  OutboundFromGuessAckMessage = InboundFromGuessAckMessageImp
 export type  OutboundMesMessage<UT extends UserType=UserType> = InboundMesMessageImp<UT>
 export type  OutboundAckMessage<UT extends UserType=UserType>  = InboundAckMessageImp<UT>
 export type  OutboundMessage<UT extends UserType=UserType, MP extends MessagePrefix<"out">=MessagePrefix<"out">>  = InboundMessageImp<UT, MP>
-export type  OutboundMessageParts = InboundMessagePartsImp
+export type  OutboundMessagePartsKeys = InboundMessagePartsKeysImp
 export type  OutboundMessageTemplate<UT extends UserType = UserType, MP extends MessagePrefix<"out"> = MessagePrefix<"out">> = InboundMessageTemplateImp<UT, MP>
 
 export type InboundConMessageParts<UT extends UserType> = GotAllMessageParts<InboundConMessage<UT>>
@@ -70,3 +70,4 @@ export type InboundDisMessageParts<UT extends UserType> = GotAllMessageParts<Inb
 export type InboundMesMessageParts<UT extends UserType> = GotAllMessageParts<InboundMesMessage<UT>>
 export type InboundUserAckMessageParts<UT extends UserType> = GotAllMessageParts<InboundUserAckMessage<UT>>
 export type InboundServerAckMessageParts<UT extends UserType> = GotAllMessageParts<InboundServerAckMessage<UT>>
+export type InboundMessageParts<UT extends UserType=UserType> = GotAllMessageParts<InboundMessage<UT>>

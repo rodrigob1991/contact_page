@@ -3,7 +3,6 @@ import {
     CutMessage,
     GetMessages,
     GotAllMessageParts,
-    OutboundMesMessage,
     OutboundMessage,
     OutboundMessageTemplate
 } from "chat-common/src/message/types"
@@ -11,6 +10,7 @@ import {getMessage} from "chat-common/src/message/functions"
 import {MessagePrefix, UserType} from "chat-common/src/model/types"
 import {log, SendMessage} from "./app"
 import {createClient} from "redis"
+import {AnyPropertiesCombination} from "utils/src/types"
 
 export type RedisMessageKey<M extends OutboundMessage[] = GetMessages<UserType, "out", MessagePrefix<"out">>> = M extends [infer OM, ...infer RM] ? OM extends OutboundMessage ? `${OM["userType"]}:${number}:${CutMessage<[OM], "body">}` | (RM extends OutboundMessage[] ? RedisMessageKey<RM> : never) : never : never
 export type SubscribeToMessages = () => Promise<void>
@@ -20,10 +20,12 @@ export type HandleUserSubscriptionToMessages = <UT extends UserType>(ofUserType:
 export type UserIdToPublish<MP extends MessagePrefix<"out">> = MP extends "mes" | "uack" ? number : undefined
 // only for one message type, no unions.
 export type PublishMessage = <M extends OutboundMessage>(toUserType: M["userType"], toUserId: UserIdToPublish<M["prefix"]>, messageParts: GotAllMessageParts<M>) => Promise<void>
-type GetCachedMesMessages = <UT extends UserType>(userType: UT, userId: number) => Promise<OutboundMesMessage<UT>["template"][]>
-type CacheMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>, message: M["template"]) => Promise<void>
-export type RemoveMessage = <M extends OutboundMessage>(key: RedisMessageKey<[M]>) => Promise<boolean>
-type IsMessageAck = <M extends OutboundMessage>(key: RedisMessageKey<[M]>) => Promise<boolean>
+export type  WhatPrefixes = AnyPropertiesCombination<{ [K in MessagePrefix<"out">]: true }>
+export type GetCachedMessagesResult<UT extends UserType, WP extends WhatPrefixes> = {[P in keyof WP & MessagePrefix<"out">]: Promise<OutboundMessage<UT, P>["template"][]>}
+type GetCachedMessages = <UT extends UserType, WP extends WhatPrefixes>(userType: UT, userId: number, whatPrefixes: WP) => GetCachedMessagesResult<UT, WP>
+type CacheMessage = <M extends OutboundMessage>(userType: M["userType"], userId: number, messagePrefix: M["prefix"], key: RedisMessageKey<[M]>, message: M["template"]) => Promise<void>
+export type RemoveMessage = <M extends OutboundMessage>(userType: M["userType"], userId: number, messagePrefix: M["prefix"], key: RedisMessageKey<[M]>) => Promise<boolean>
+type IsMessageAck = <M extends OutboundMessage>(userType: M["userType"], userId: number, messagePrefix: M["prefix"], key: RedisMessageKey<[M]>) => Promise<boolean>
 type UserId<UT extends UserType> = number | (UT extends "guess" ? undefined : never)
 export type AddConnectedUserResult = Promise<{id: number, date: number}>
 type AddConnectedUser = <UT extends UserType>(userType: UT, id: UserId<UT>) => AddConnectedUserResult
@@ -31,7 +33,7 @@ type RemoveConnectedUser = <UT extends UserType>(userType: UT, id: number) => Pr
 export type GetConnectedUsersResult = Promise<[number, number][]>
 type GetConnectedUsers = (toUserType: UserType, toUserId: number) => GetConnectedUsersResult
 
-export type RedisAPIs = { addConnectedUser: AddConnectedUser, removeConnectedUser: RemoveConnectedUser, getConnectedUsers: GetConnectedUsers,  publishMessage: PublishMessage, handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages, cacheMessage: CacheMessage, getCachedMesMessages: GetCachedMesMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck}
+export type RedisAPIs = { addConnectedUser: AddConnectedUser, removeConnectedUser: RemoveConnectedUser, getConnectedUsers: GetConnectedUsers,  publishMessage: PublishMessage, handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages, cacheMessage: CacheMessage, getCachedMessages: GetCachedMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck}
 
 const initConnection = () => {
     const client = createClient({
@@ -64,20 +66,7 @@ export const initRedis = () : RedisAPIs => {
 
     const getConnectedUserHashField = (userType: UserType, id: number) => userType + ":" + id
 
-    const conMessagesHashSuffix = ":" + messagePrefixes.con + ":messages"
-    const disMessagesHashSuffix = ":" + messagePrefixes.dis + ":messages"
-    const mesMessagesHashSuffix = ":" + messagePrefixes.mes + ":messages"
-    const uackMessagesHashSuffix = ":" + messagePrefixes.uack + ":messages"
-
-    const hostConMessagesHash = users.host + conMessagesHashSuffix
-    const hostDisMessagesHash = users.host + disMessagesHashSuffix
-    const hostMesMessagesHash = users.host + mesMessagesHashSuffix
-    const hostUackMessagesHash= users.host + uackMessagesHashSuffix
-
-    const getGuessConMessagesHash = (guessId: number) => users.guess + ":" + guessId + conMessagesHashSuffix
-    const getGuessDisMessagesHash = (guessId: number) => users.guess + ":" + guessId + disMessagesHashSuffix
-    const getGuessMesMessagesHash = (guessId: number) => users.guess + ":" + guessId + mesMessagesHashSuffix
-    const getGuessUackMessagesHash = (guessId: number) => users.guess + ":" + guessId + uackMessagesHashSuffix
+    const getMessagesHashKey = (userType: UserType, userId: number, messagePrefix: MessagePrefix) => userType + ":" + userId + ":" + messagePrefix + ":messages"
 
     const getHandleError = (fn: Function) => (reason: string) => Promise.reject("redis error: " + fn.name + " failed, " + reason)
 
@@ -122,7 +111,8 @@ export const initRedis = () : RedisAPIs => {
                 channel = getMessagesChannel(isToHostUser, toUserId as number)
                 break
             default:
-                throw new Error("should have been enter any case")
+                throw new Error("y" +
+                    "should have been enter any case")
         }
         const message = getMessage(parts)
 
@@ -131,36 +121,42 @@ export const initRedis = () : RedisAPIs => {
             .catch(getHandleError(publishMessage))
     }
 
-    const cacheMessage: CacheMessage = (key, message) => redisClient.set(key, message).then(n => {
-        const cached = n !== null
-        const msg = "message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached"
-        if (cached)
-            log(msg)
-        else return Promise.reject(msg)
-    }).catch(getHandleError(cacheMessage))
+    const cacheMessage: CacheMessage = (userType, userId, messagePrefix, key, message) =>
+        redisClient.hSet(getMessagesHashKey(userType, userId, messagePrefix), key, message).then(n => {
+            const cached = n > 0
+            const msg = "message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached"
+            if (cached)
+                log(msg, userType, userId)
+            else return Promise.reject(userType + " : " + userId + " : " + msg)
+        }).catch(getHandleError(cacheMessage))
 
-    const getCachedMesMessages: GetCachedMesMessages = (userType, userId) => {
-        const keyPrefix = userType + (userType === "guess" ? ":" + gueId : "") + ":" + messagePrefixes.mes + ":"
-        return redisClient.keys(keyPrefix + "*")
-            .then(keys => keys.length > 0 ? redisClient.mGet(keys)
+    const getCachedMessages: GetCachedMessages = (userType, userId, whatPrefixes) => {
+        const promises: any = {}
+        for (const prefix in whatPrefixes) {
+            promises[prefix] = redisClient.hVals(getMessagesHashKey(userType, userId, prefix as MessagePrefix))
                 .then(messages => {
-                    log("got cached messages: " + messages, userType, guessId)
-                    return messages as OutboundMesMessage["template"][]
-                }) : [])
-            .catch(getHandleError(getCachedMesMessages))
+                    log("got " + prefix + " messages cached: " + messages, userType, userId)
+                    return messages
+                }).catch(getHandleError(getCachedMessages))
+        }
+        return promises as GetCachedMessagesResult<typeof userType, typeof whatPrefixes>
     }
 
-    const removeMessage: RemoveMessage = (key) => redisClient.del(key).then(n => {
-        const removed = n > 0
-        log("message with key " + key + " was " + (removed ? "" : "not ") + "removed")
-        return removed})
-        .catch(getHandleError(removeMessage))
+    // maybe reject the promise if the message was not removed
+    const removeMessage: RemoveMessage = (userType, userId, messagePrefix, key) =>
+        redisClient.hDel(getMessagesHashKey(userType, userId, messagePrefix), key)
+            .then(n => {
+                const removed = n > 0
+                log("message with key " + key + " was " + (removed ? "" : "not ") + "removed", userType, userId)
+                return removed
+            }).catch(getHandleError(removeMessage))
 
-    const isMessageAck: IsMessageAck = (key) => redisClient.get(key).then(m => {
-        const exist = m !== null
-        log("message with key " + key + " was" + (exist ? " not" : "") + " acknowledged")
-        return !exist
-    }).catch(getHandleError(isMessageAck))
+    const isMessageAck: IsMessageAck = (userType, userId, messagePrefix, key) =>
+        redisClient.hExists(getMessagesHashKey(userType, userId, messagePrefix), key)
+            .then(exist => {
+                log("message with key " + key + " was" + (exist ? " not" : "") + " acknowledged", userType, userId)
+                return !exist
+            }).catch(getHandleError(isMessageAck))
 
     const addConnectedUser: AddConnectedUser = (userType, id) => {
         const setConnectedUser = (firstTime: "first time" | "", id: number) => {
@@ -203,5 +199,5 @@ export const initRedis = () : RedisAPIs => {
     // delete all the data
     redisClient.flushAll().then((r) => log("all redis data deleted, reply: " + r))
 
-    return  { addConnectedUser, removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMesMessages, removeMessage, isMessageAck }
+    return  { addConnectedUser, removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck }
 }
