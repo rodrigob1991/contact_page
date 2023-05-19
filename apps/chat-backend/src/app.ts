@@ -25,8 +25,8 @@ export type CloseConnection = (reason?: string) => void
 
 export type HandleDisconnection = (reasonCode: number, description: string) => void
 export type HandleInboundMessage = (m: ws.Message) => void
-export type HandleInboundMesMessage<UT extends UserType=UserType> = { [K in UT]: (m: InboundMessageTemplate<K, "mes">) => [OutboundServerAckMessage<UT>["template"], RedisMessageKey<[InboundMessageTarget<InboundMesMessage<UT>>]>, InboundMessageTarget<InboundMesMessage<UT>>["template"], () => Promise<void>] }[UT]
-export type HandleInboundAckMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<UT, "uack">) => [OriginPrefix, RedisMessageKey<[OutboundMessage<UT>]>, RedisMessageKey<[OutboundUserAckMessage<TheOtherUserType<UT>>]> | undefined, OutboundUserAckMessage<TheOtherUserType<UT>>["template"] | undefined, (() => Promise<void>) | undefined]}[UT]
+export type HandleInboundMesMessage<UT extends UserType=UserType> = { [K in UT]: (m: InboundMessageTemplate<K, "mes">) => [OutboundServerAckMessage<UT>["template"], number, RedisMessageKey<[InboundMessageTarget<InboundMesMessage<UT>>]>, InboundMessageTarget<InboundMesMessage<UT>>["template"], () => Promise<void>] }[UT]
+export type HandleInboundAckMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<UT, "uack">) => [OriginPrefix, RedisMessageKey<[OutboundMessage<UT>]>, number, RedisMessageKey<[OutboundUserAckMessage<TheOtherUserType<UT>>]> | undefined, OutboundUserAckMessage<TheOtherUserType<UT>>["template"] | undefined, (() => Promise<void>) | undefined]}[UT]
 
 export type SendMessage<UT extends UserType> = (cache: boolean, ...message: OutboundMessageTemplate<UT>[]) => Promise<void>
 
@@ -106,6 +106,7 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
         log(`connection from origin ${origin} rejected.`)
     } else {
         const [userType, cookieUserId] = getCookiesValues(request.cookies, request.httpRequest.url === paths.host)
+        const oppositeUserType = userType === "host" ? "guess" : "host"
 
         let connection : ws.connection
         const acceptConnection: AcceptConnection = (accept, him, hd, reason, userId) => {
@@ -147,26 +148,28 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
             const message = (wsMessage as IUtf8Message).utf8Data as InboundMessageTemplate
             const prefix = getMessagePrefix(message)
             switch (prefix) {
-                case "mes":
-                    const [outboundSackMessage, outboundMesMessageKey, outboundMesMessage, publishOutboundMesMessage] = handleMesMessage(message as InboundMesMessage["template"])
+                case "mes": {
+                    const [outboundSackMessage, oppositeUserId, outboundMesMessageKey, outboundMesMessage, publishOutboundMesMessage] = handleMesMessage(message as InboundMesMessage["template"])
                     publishOutboundMesMessage().catch(catchError)
                     // only send outbound sack message when the outbound mes message is cache
-                    cacheMessage(userType, userId, "mes", outboundMesMessageKey, outboundMesMessage).then(() => connection.sendUTF(outboundSackMessage)).catch(catchError)
+                    cacheMessage(oppositeUserType, oppositeUserId, "mes", outboundMesMessageKey, outboundMesMessage).then(() => connection.sendUTF(outboundSackMessage)).catch(catchError)
                     break
-                case "uack":
-                    const [originOutboundMessagePrefix, originOutboundMessageKey, outboundUackMessageKey, outboundUackMessage, publishOutboundUackMessage] = handleAckMessage(message as InboundAckMessage["template"])
+                }
+                case "uack": {
+                    const [originOutboundMessagePrefix, originOutboundMessageKey, oppositeUserId, outboundUackMessageKey, outboundUackMessage, publishOutboundUackMessage] = handleAckMessage(message as InboundAckMessage["template"])
                     const removeOriginMessage = () => removeMessage(userType, userId, originOutboundMessagePrefix, originOutboundMessageKey).catch(catchError)
                     if (outboundUackMessageKey) {
                         (publishOutboundUackMessage as () => Promise<void>)().catch(catchError)
                         // this is when a user ack a mes message
                         // i only remove the outbound mes message if the outbound uack message published to the sender is cache, so to ensure the sender will know that his was received
                         // if cache fail the outbound mes message will continue being send and has to be ack again, repeating this process
-                        cacheMessage(userType, userId, "uack", outboundUackMessageKey, outboundUackMessage as OutboundUserAckMessage["template"]).then(removeOriginMessage)
+                        cacheMessage(oppositeUserType, oppositeUserId, "uack", outboundUackMessageKey, outboundUackMessage as OutboundUserAckMessage["template"]).then(removeOriginMessage)
                     } else {
                         // the user ack a con dis or uack message
                         removeOriginMessage()
                     }
                     break
+                }
             }
             log("inbound message " + message, userType, userId)
         }

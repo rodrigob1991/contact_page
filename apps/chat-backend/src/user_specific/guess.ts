@@ -58,7 +58,7 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
             const outboundToHostMesMessageKey = `host:${hostId}:mes:${number}:${guessId}` as const
             const outboundToHostMesMessage = getMessage<InboundMessageTarget<InboundFromGuessMesMessage>>(outboundToHostMesMessageParts)
             const publishOutboundToHostMesMessage = () => publishGuessMessage<InboundMessageTarget<InboundFromGuessMesMessage>>(hostId, outboundToHostMesMessageParts)
-            return [outboundToGuessSackMessage, outboundToHostMesMessageKey, outboundToHostMesMessage, publishOutboundToHostMesMessage]
+            return [outboundToGuessSackMessage, hostId, outboundToHostMesMessageKey, outboundToHostMesMessage, publishOutboundToHostMesMessage]
         }
         const handleInboundAckMessage: HandleInboundAckMessage<"guess"> = (a) => {
             const {originPrefix, number, userId: hostId} = getMessageParts<InboundFromGuessAckMessage, "originPrefix" | "number" | "userId">(a, {originPrefix: 2, number: 3, userId: 4})
@@ -72,7 +72,7 @@ export const initGuessConnection : InitUserConnection<"guess"> = async (acceptCo
                 outboundToHostUackMessage = getMessage<OutboundToHostUserAckMessage>(outboundToHostUackMessageParts)
                 publishOutboundToHostUackMessage = () => publishGuessMessage<OutboundToHostUserAckMessage>(hostId, outboundToHostUackMessageParts)
             }
-            return [originPrefix, outboundToGuessMessageKey, outboundToHostUackMessageKey, outboundToHostUackMessage, publishOutboundToHostUackMessage]
+            return [originPrefix, outboundToGuessMessageKey, hostId, outboundToHostUackMessageKey, outboundToHostUackMessage, publishOutboundToHostUackMessage]
         }
         applyHandleInboundMessage(m, handleInboundMesMessage, handleInboundAckMessage, guessId)
     }
