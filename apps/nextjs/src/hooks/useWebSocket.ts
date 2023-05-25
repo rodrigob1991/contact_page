@@ -74,12 +74,14 @@ export default function useWebSocket<UT extends UserType>({
     }
 
     type InboundMessagePartsToFormId = { prefix: MessagePrefix<"in">, number: number, userId: number }
-    const refToInboundMessagesIdsSet = useRef(new Set<string>())
+    const refToInboundConDisMessagesIdsSet = useRef(new Set<string>())
+    const refToInboundMesUackMessagesIdsSet = useRef(new Set<string>())
+    const getInboundMessagesIdsSet = (prefix: MessagePrefix<"in">) => (prefix === "con" || prefix ===  "dis") ? refToInboundConDisMessagesIdsSet.current : refToInboundMesUackMessagesIdsSet.current
     const getInboundMessageId = ({prefix, number, userId}: InboundMessagePartsToFormId) => prefix + ":" + number + ":" + userId
     const setMessageAsReceived = (parts: InboundMessagePartsToFormId) => {
-        refToInboundMessagesIdsSet.current.add(getInboundMessageId(parts))
+        getInboundMessagesIdsSet(parts.prefix).add(getInboundMessageId(parts))
     }
-    const messageWasNotReceived = (parts: InboundMessagePartsToFormId) => !refToInboundMessagesIdsSet.current.has(getInboundMessageId(parts))
+    const messageWasNotReceived = (parts: InboundMessagePartsToFormId) => !getInboundMessagesIdsSet(parts.prefix).has(getInboundMessageId(parts))
 
     const refToWs = useRef<WebSocket>()
     const setWS = (ws: WebSocket) => {
@@ -156,6 +158,7 @@ export default function useWebSocket<UT extends UserType>({
     }
     const closeWS = () => {
         getWS()?.close()
+        getInboundMessagesIdsSet("con").clear()
     }
 
     useEffect(() => {

@@ -2,14 +2,22 @@ import styled from "@emotion/styled"
 import React, {useEffect, useRef, useState} from "react"
 import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
-import {InboundMessageData, LOCAL_USER_ID, MessageData, OutboundMessageData, User, UserAckState} from "./LiveChat"
+import {
+    GetUserColor,
+    InboundMessageData,
+    LOCAL_USER_ID,
+    MessageData,
+    OutboundMessageData,
+    SelectOrUnselectUser,
+    User,
+    UserAckState
+} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
 import {BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
 import {ConnectionState} from "../../hooks/useWebSocket"
 import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions"
 
-type ToGuessesIds<UT extends UserType> = UT extends "host" ? string[] : undefined
 export type SetNewOutboundMessageData =  (body: string) => boolean
 export type ContainerProps = { show: boolean, left: number, top: number }
 export type Hide = () => void
@@ -20,33 +28,23 @@ type Props<UT extends UserType> = {
     messages: MessageData[]
     users: User[]
     selectOrUnselectUser: SelectOrUnselectUser
+    getUserColor: GetUserColor
     setNewOutboundMessageData: SetNewOutboundMessageData
     containerProps: ContainerProps
     hide?: Hide
 }
 
-export default function ChatView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, setNewOutboundMessageData, containerProps, hide}: Props<UT>) {
-    const [bodyMessageStr, setBodyMessageStr] = useState("")
-
-    const userColorMapRef = useRef(new Map<number, string>([[LOCAL_USER_ID, "black"]]))
-    const getUserColorMap = () => userColorMapRef.current
-    const getUserColor = (id: number) => {
-        let color = getUserColorMap().get(id)
-        if (!color) {
-            color = getNewColor()
-            getUserColorMap().set(id, color)
-        }
-        return color
-    }
-
+export default function ChatView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setNewOutboundMessageData, containerProps, hide}: Props<UT>) {
     const isHost = userType === "host"
+
+    const [messageBody, setMessageBody] = useState("")
 
     const [handleClickUser, getOutboundMessageView] = (isHost ? getHostSpecifics(selectOrUnselectUser) : getGuessSpecifics(selectOrUnselectUser)) as GetUserSpecificsReturn<UT>
 
     const handleInputMessage = () => {
-        if (!isEmpty(bodyMessageStr)) {
-            if (setNewOutboundMessageData(bodyMessageStr)) {
-                setBodyMessageStr("")
+        if (!isEmpty(messageBody)) {
+            if (setNewOutboundMessageData(messageBody)) {
+                setMessageBody("")
             }
         }
     }
@@ -68,7 +66,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
                 <UsersContainerTitle>online users</UsersContainerTitle>
                 <hr color={"black"} style={{width:"100%", margin: "0px"}}/>
                 <UsersInnerContainer>
-                {users.map(({id, name, connected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={connected}> {name} </UserView>)}
+                {users.map(({id, name, connectedCount, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={connectedCount > 0}> {name} </UserView>)}
                 </UsersInnerContainer>
             </UsersContainer>
             <RightContainer>
@@ -77,7 +75,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
                     <div ref={messagesEndRef}/>
                 </MessagesContainer>
                 <SendMessageContainer>
-                <TextInputStyled value={bodyMessageStr} setValue={setBodyMessageStr} onEnter={handleInputMessage} placeholder={"type message..."}/>
+                <TextInputStyled value={messageBody} setValue={setMessageBody} onEnter={handleInputMessage} placeholder={"type message..."}/>
                     <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={handleInputMessage}/>
                 </SendMessageContainer>
             </RightContainer>
@@ -86,24 +84,6 @@ export default function ChatView<UT extends UserType>({userType, connectionState
     )
 }
 
-const getNewColor = () => {
-    let r, g, b, brightness
-    do {
-        // generate random values for R, G y B
-        r = Math.floor(Math.random() * 256)
-        g = Math.floor(Math.random() * 256)
-        b = Math.floor(Math.random() * 256)
-
-        // calculate the resulted brightness
-        brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b
-    } while (brightness < 0.22)
-
-    const rgb = (r << 16) + (g << 8) + b
-    // return the color on RGB format
-    return `#${rgb.toString(16)}`
-}
-
-export type SelectOrUnselectUser = (index: number) => void
 type HandleClickUser<UT extends UserType> = UT extends "host" ? (e: React.MouseEvent<HTMLSpanElement>, index: number) => void : undefined
 type GetOutboundMessageView = (omd: OutboundMessageData, getUserColor: (u: number) => string) => JSX.Element
 type GetUserSpecificsReturn<UT extends UserType> = [HandleClickUser<UT>, GetOutboundMessageView]

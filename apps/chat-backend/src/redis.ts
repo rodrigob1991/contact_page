@@ -115,7 +115,7 @@ export const initRedis = () : RedisAPIs => {
         const message = getMessage(parts)
 
         return redisClient.publish(channel, message)
-            .then(n => { log(n + " " + toUserType + " got the published message " + message, isToHostUser ? "guess" : "host", parts.userId)})
+            .then(n => { log(n + " " + toUserType + " gotten the published message " + message, isToHostUser ? "guess" : "host", parts.userId)})
             .catch(getHandleError(publishMessage))
     }
 
@@ -134,7 +134,7 @@ export const initRedis = () : RedisAPIs => {
             promises[prefix] = redisClient.hVals(getMessagesHashKey(userType, userId, prefix as MessagePrefix))
                 .then(messages => {
                     const number = messages.length
-                    log("got " + number + " " + prefix + " messages cached" + (number > 0 ? ": " + messages : ""), userType, userId)
+                    log(number + " " + prefix + " messages cached gotten" + (number > 0 ? ": " + messages : ""), userType, userId)
                     return messages
                 }).catch(getHandleError(getCachedMessages))
         }
@@ -158,11 +158,11 @@ export const initRedis = () : RedisAPIs => {
             }).catch(getHandleError(isMessageAck))
 
     const addConnectedUser: AddConnectedUser = (userType, id) => {
-        const setConnectedUser = (firstTime: "first time" | "", id: number) => {
+        const setConnectedUser = (firstTime: boolean, id: number) => {
             const date = Date.now()
             return redisClient.hSetNX(getConnectedUsersHashKey(userType), id.toString(), date.toString()).then(added => {
                 if (added) {
-                    log(firstTime +  " connected", userType, id)
+                    log((firstTime ? "first time " : "") +  "added to connected hash", userType, id)
                     return {id: id, date: date}
                 } else {
                     return Promise.reject(userType + " " + id + " was not added to connected hash")
@@ -171,16 +171,16 @@ export const initRedis = () : RedisAPIs => {
         }
         let promise
         if (userType === "host") {
-            promise = setConnectedUser("", id as number)
+            promise = setConnectedUser(false, id as number)
         } else {
-            promise = (id === undefined ? redisClient.incr(guessCountKey).then<[number, "first time"]>(newGuessId => [newGuessId, "first time"]) : Promise.resolve<[number, ""]>([id, ""])).then(([guessId, firstTime]) => setConnectedUser(firstTime, guessId))
+            promise = (id === undefined ? redisClient.incr(guessCountKey).then<[number, true]>(newGuessId => [newGuessId, true]) : Promise.resolve<[number, false]>([id, false])).then(([guessId, firstTime]) => setConnectedUser(firstTime, guessId))
         }
         return promise.catch(getHandleError(addConnectedUser))
     }
     const removeConnectedUser: RemoveConnectedUser = (userType, id) => {
         return redisClient.hDel(getConnectedUsersHashKey(userType), id.toString()).then(n => {
-            if (n > 0) log("was removed", userType, id)
-            else return Promise.reject(userType + " " + id + " was not removed")
+            if (n > 0) log("was removed from connected hash", userType, id)
+            else return Promise.reject(userType + " " + id + " was not removed from connected hash")
         }).catch(getHandleError(removeConnectedUser))
     }
 
@@ -190,7 +190,7 @@ export const initRedis = () : RedisAPIs => {
             const fieldsEntries = Object.entries(fields)
             const usersConnectedNumber = fieldsEntries.length
             const areUsersConnected = fieldsEntries.length > 0
-            log((areUsersConnected ? usersConnectedNumber : "no") + " " + ofUserType + " connected " + (areUsersConnected ? fieldsEntries : ""), toUserType, toUserId)
+            log((areUsersConnected ? usersConnectedNumber : "no") + " " + ofUserType + " in connected hash: " + (areUsersConnected ? fieldsEntries : ""), toUserType, toUserId)
             return fieldsEntries.map(([idStr, dateStr]) => [+idStr, +dateStr] as [number, number])
         }).catch(getHandleError(getConnectedUsers))
     }

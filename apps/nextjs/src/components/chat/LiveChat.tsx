@@ -3,7 +3,6 @@ import {InboundConMessageParts, InboundDisMessageParts, InboundMesMessageParts} 
 import ChatView, {
     ContainerProps,
     Hide,
-    SelectOrUnselectUser,
     SetNewOutboundMessageData as SetNewOutboundMessageDataFromView
 } from "./View"
 import useWebSocket, {
@@ -27,19 +26,22 @@ type ToUsersId = Map<number, UserAckState>
 export type OutboundMessageData = { flow: "out", toUsersIds: ToUsersId, serverAck: boolean } & MessageDataCommon
 export type MessageData = InboundMessageData | OutboundMessageData
 
-export type User = { id: number, name: string, connected: boolean, selected: boolean }
+export type User = { id: number, name: string, connectedCount: number, selected: boolean, color: string}
 export const LOCAL_USER_ID = -1
 export const LOCAL_USER_NAME = "me"
+export type SelectOrUnselectUser = (index: number) => void
+export type GetUserColor = (id: number) => string
 
-export type FirstHandleConMessage<UT extends UserType> = (cm: InboundConMessageParts<UT>) => string
+export type FirstHandleConMessage<UT extends UserType> = (cm: InboundConMessageParts<UT>) => void
 export type FirstHandleDisMessage<UT extends UserType> = (dm: InboundDisMessageParts<UT>) => void
-export type FirstHandleMesMessage<UT extends UserType> = (mm: InboundMesMessageParts<UT>) => string
+export type FirstHandleMesMessage<UT extends UserType> = (mm: InboundMesMessageParts<UT>) => void
 
 type Props<UT extends UserType> = {
     userType: UT
     firstHandleConMessage: FirstHandleConMessage<UT>
     firstHandleDisMessage: FirstHandleDisMessage<UT>
     firstHandleMesMessage: FirstHandleMesMessage<UT>
+    getOppositeUserName: (id: number) => string
     connect: boolean
     nextHandleNewConnectionState: HandleNewConnectionState
     viewProps: { containerProps: ContainerProps, hide?: Hide }
@@ -52,37 +54,34 @@ export default function LiveChat<UT extends UserType>({
                                                           firstHandleDisMessage,
                                                           firstHandleMesMessage,
                                                           connect,
+                                                          getOppositeUserName,
                                                           nextHandleNewConnectionState,
                                                           viewProps
                                                       }: Props<UT>) {
     const [users, setUsers] = useState<User[]>([])
-    const setConnectedUser = (id: number, name: string) => {
+    const setUserConnectedCount = (id: number, name: string, isCon: boolean) => {
         setUsers((users) => {
             const updatedUsers = [...users]
             const user = updatedUsers.find(u => u.id === id)
+            const count = isCon ? 1 : -1
             if (user) {
-                user.connected = true
+                user.connectedCount += count
             } else {
-                updatedUsers.push({id, name, connected: true, selected: false})
+                updatedUsers.push({id, name, connectedCount: count, selected: false, color: getUserColor(id)})
             }
             return updatedUsers
         })
     }
-    const setDisconnectedUser = (id: number) => {
-        setUsers((users) => {
-            const updatedUsers = [...users]
-            const user = updatedUsers.find(u => u.id === id)
-            // should always exist
-            if (user) {
-                user.connected = false
-            }
-            return updatedUsers
-        })
+    const setConnectedUser = (id: number, name: string) => {
+        setUserConnectedCount(id, name, true)
+    }
+    const setDisconnectedUser = (id: number, name: string) => {
+        setUserConnectedCount(id, name, false)
     }
     const setDisconnectedUsers = () => {
         setUsers((users) => {
             const updatedUsers = [...users]
-            updatedUsers.forEach(u => u.connected = false)
+            updatedUsers.forEach(u => u.connectedCount = 0)
             return updatedUsers
         })
     }
@@ -95,17 +94,41 @@ export default function LiveChat<UT extends UserType>({
             return updatedUsers
         })
     }
-    //const getSelectedUsers = () => users.filter(u => u.selected)
+    const userColorMapRef = useRef(new Map<number, string>([[LOCAL_USER_ID, "black"]]))
+    const getUserColorMap = () => userColorMapRef.current
+    const getUserColor: GetUserColor = (id) => {
+        let color = getUserColorMap().get(id)
+        if (!color) {
+            color = getNewColor()
+            getUserColorMap().set(id, color)
+        }
+        return color
+    }
+    const getNewColor = () => {
+        let r, g, b, brightness
+        do {
+            // generate random values for R, G y B
+            r = Math.floor(Math.random() * 256)
+            g = Math.floor(Math.random() * 256)
+            b = Math.floor(Math.random() * 256)
+
+            // calculate the resulted brightness
+            brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        } while (brightness < 0.22)
+
+        const rgb = (r << 16) + (g << 8) + b
+        // return the color on RGB format
+        return `#${rgb.toString(16)}`
+    }
 
     const [connectionState, setConnectionState] = useState(ConnectionState.DISCONNECTED)
     const handleNewConnectionState: HandleNewConnectionState = (cs) => {
         setConnectionState(cs)
         switch (cs) {
             case ConnectionState.CONNECTED :
-                setConnectedUser(LOCAL_USER_ID, LOCAL_USER_NAME)
+                setUserConnectedCount(LOCAL_USER_ID, LOCAL_USER_NAME, true)
                 break
             case ConnectionState.DISCONNECTED :
-                //setAllMessagesAsNack()
                 setDisconnectedUsers()
         }
         nextHandleNewConnectionState(cs)
@@ -192,48 +215,26 @@ export default function LiveChat<UT extends UserType>({
             }
         }
     }
-    // IF NOT USER ID MARK ALL USERS PENDING TO ACK MESSAGES AS NACK
-    /*const setMessagesAsNack = (indexesByUserId: [[number, number[]]]) => {
-        setMessagesData((messagesData) => {
-            const updatedMessagesData = [...messagesData]
-            for (const [userId, indexes] of indexesByUserId) {
-                for (const index of indexes) {
-                    const messageData = updatedMessagesData[index] as OutboundMessageData
-                    if (messageData.toUsersIds.get(userId) === "pen") {
-                        messageData.toUsersIds.set(userId, "nack")
-                    }
-                }
-            }
-            return updatedMessagesData
-        })
-    }
-    const setAllMessagesAsNack = () => {
-        if (getPendingUserAckMessages().size > 0) {
-            setMessagesAsNack([...getPendingUserAckMessages().entries()] as [[number, number[]]])
-        }
-    }
-    const setUserMessagesAsNack = (userId: number) => {
-        const pendingToAckMessages = getPendingUserAckMessages().get(userId)
-        if (pendingToAckMessages) {
-            setMessagesAsNack([[userId, pendingToAckMessages]])
-        }
-    }*/
-    const usersIdsKey = "usersIds-" + userType
-    const messagesDataKey = "messagesData-" + userType
+
+    const usersLocalStorageKey = "users:" + userType
+    const messagesLocalStorageKey = "messagesData:" + userType
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-        console.log("users ids store " + JSON.stringify(users.map(u => u.id)))
-        localStorage.setItem(usersIdsKey, JSON.stringify(users.map(({id, name}) => [id, name])))
-        console.log("messages data store " + JSON.stringify(messagesData))
-        localStorage.setItem(messagesDataKey, JSON.stringify(messagesData.map(md => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: Array.from(toUsersIds.entries())}))(md))))
+        localStorage.setItem(usersLocalStorageKey, JSON.stringify(users.map(({id, name, color}) => [id, name, color])))
+        localStorage.setItem(messagesLocalStorageKey, JSON.stringify(messagesData.map(md => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: Array.from(toUsersIds.entries())}))(md))))
     }
     useEffect(() => {
-        const usersIdsJson = localStorage.getItem(usersIdsKey)
-        console.log("users ids stored " + usersIdsJson)
-        if (usersIdsJson)
-            setUsers((JSON.parse(usersIdsJson) as [number, string][]).map(([id, name]) => ({id, name, connected: false, selected: false})))
+        const usersJson = localStorage.getItem(usersLocalStorageKey)
+        if (usersJson) {
+            const users: User[] = [];
+            (JSON.parse(usersJson) as [number, string, string][])
+                .forEach(([id, name, color]) => {
+                    users.push({id, name, connectedCount: 0, selected: false, color: color})
+                    getUserColorMap().set(id, color)
+                })
+            setUsers(users)
+        }
 
-        const messagesJson = localStorage.getItem(messagesDataKey)
-        console.log("messages data stored " + messagesJson)
+        const messagesJson = localStorage.getItem(messagesLocalStorageKey)
         if (messagesJson)
             setMessagesData(JSON.parse(messagesJson).map((md: MessageData) => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: new Map(toUsersIds)}))(md)))
     }, [])
@@ -245,17 +246,16 @@ export default function LiveChat<UT extends UserType>({
     }, [users, messagesData])
 
     const handleConMessage: HandleConMessage<UT> = (cm) => {
-        const userName = firstHandleConMessage(cm)
-        setConnectedUser(cm.userId, userName)
+        firstHandleConMessage(cm)
+        setConnectedUser(cm.userId, getOppositeUserName(cm.userId))
     }
-    const handleDisMessage: HandleDisMessage<UT> = ({userId}) => {
-        //const userId = firstHandleDisMessage(dm)
-        //setUserMessagesAsNack(getExternalUserId(userId))
-        setDisconnectedUser(userId)
+    const handleDisMessage: HandleDisMessage<UT> = (dm) => {
+        firstHandleDisMessage(dm)
+        setDisconnectedUser(dm.userId, getOppositeUserName(dm.userId))
     }
     const handleMesMessage: HandleMesMessage<UT> = (mm) => {
-        const userName = firstHandleMesMessage(mm)
-        setInboundMessageData({flow: "in", fromUserId: mm.userId, fromUserName: userName, number: mm.number, body: mm.body})
+        firstHandleMesMessage(mm)
+        setInboundMessageData({flow: "in", fromUserId: mm.userId, fromUserName: getOppositeUserName(mm.userId), number: mm.number, body: mm.body})
     }
     const handleServerAckMessage: HandleServerAckMessage = (n) => {
         setMessageAsAcknowledgedByServer(n)
@@ -288,7 +288,7 @@ export default function LiveChat<UT extends UserType>({
 
     const [isTargetUser] = userType === "host" ? getHostSpecifics() : getGuessSpecifics()
 
-    return <ChatView userType={userType} connectionState={connectionState} users={users} selectOrUnselectUser={selectOrUnselectUser} messages={messagesData} setNewOutboundMessageData={setNewOutboundMessageDataFromView}  {...viewProps}/>
+    return <ChatView userType={userType} connectionState={connectionState} users={users} selectOrUnselectUser={selectOrUnselectUser} getUserColor={getUserColor} messages={messagesData} setNewOutboundMessageData={setNewOutboundMessageDataFromView}  {...viewProps}/>
 }
 
 type IsTargetUser = (user: User) => boolean

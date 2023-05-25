@@ -46,13 +46,13 @@ export default function GuessLiveChat({hostName}: Props) {
     const [iconProps, setIconProps] = useState(disconnectedIconProps)
 
     const handleConMessage: FirstHandleConMessage<"guess"> = (cm) => {
-        return hostName
     }
     const handleDisMessage: FirstHandleDisMessage<"guess"> = (dm) => {
     }
     const handleMesMessage: FirstHandleMesMessage<"guess"> = (mm) => {
-        return hostName
     }
+
+    const getHostName = (id: number) => hostName
 
     return (
         <Container>
@@ -64,7 +64,7 @@ export default function GuessLiveChat({hostName}: Props) {
             { (showIconChatView && !showChatView) && <ChatViewIconStyled visibility={0} size={50} fill={"white"} onClick={handleOnClickIconChatView}/>}
             <LiveChat userType={"guess"} viewProps={{containerProps: {show: showChatView, top: 50, left: 50}, hide: ()=> { setShowChatView(false) }}}
                       firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage} firstHandleMesMessage={handleMesMessage}
-                      nextHandleNewConnectionState={handleNewConnectionState} connect={connect}/>
+                      nextHandleNewConnectionState={handleNewConnectionState} connect={connect} getOppositeUserName={getHostName}/>
         </Container>
     )
 }
