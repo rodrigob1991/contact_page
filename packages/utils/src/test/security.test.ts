@@ -1,12 +1,23 @@
 import {expect, test} from "@jest/globals"
 import {decrypt, encrypt} from "../security"
 
-const secretKey = "`+¨^^Ñ*.fsd8,"
+const getRandomNumber = (min: number, max: number) => {
+    return Math.floor(Math.random() * (max - min + 1)) + min
+}
+const getStrings = (min: number, max: number) => {
+    const length = getRandomNumber(min, max)
+    const bytes: number[] = []
+    for (let i = 0; i < length; i++) {
+        bytes.push(getRandomNumber(33, 126))
+    }
+    return Buffer.from(bytes).toString("utf-8")
+}
 
-const firstTextToEncode = "Ñ0p098qw4"
-const firstTextEncoded = encrypt(secretKey, firstTextToEncode)
-console.log("ENCRYPTED: " + firstTextEncoded)
-
-test("correctly decode " + firstTextEncoded, () => {
-    expect(decrypt(secretKey, firstTextEncoded)).toEqual(firstTextToEncode)
-})
+for (let i = 0; i < 10000 ; i++) {
+    const secret = getStrings(5, 50)
+    const target = getStrings(1, 30)
+    const encrypted = encrypt(secret, target)
+    test("failed to decode " + encrypted, () => {
+        expect(decrypt(secret, encrypted)).toEqual(target)
+    })
+}
