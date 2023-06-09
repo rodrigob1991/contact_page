@@ -18,6 +18,7 @@ import {isEmpty} from "utils/src/strings"
 import {initRedis, RedisAPIs, RedisMessageKey} from "./redis"
 import {initHostConnection} from "./user_specific/host"
 import {initGuessConnection} from "./user_specific/guess"
+import {decrypt, encrypt} from "utils/src/security"
 
 type IfTrueT<B extends boolean, T, O=undefined> = B extends true ? T : O
 export type AcceptConnection = <A extends boolean>(accept: A, him: IfTrueT<A, HandleInboundMessage> , hd: IfTrueT<A, HandleDisconnection>, reason: IfTrueT<A, undefined, string>, userId?: number) => void
@@ -69,9 +70,12 @@ const getCookiesValues = (cookies: Cookies, forHost: boolean): [UserType, number
     const processGuessCookie = ({name, value}: ws.ICookie) => {
         let found = false
         if (name === guessCookieName) {
-            found = true
-            userType = "guess"
-            id = parseInt(value)
+            const decryptedId = decrypt(process.env.ENCRIPTION_SECRET_KEY as string, value)
+            if (decryptedId.succeed) {
+                found = true
+                userType = "guess"
+                id = parseInt(decryptedId.output)
+            }
         }
         return found
     }
@@ -88,7 +92,7 @@ const getCookiesValues = (cookies: Cookies, forHost: boolean): [UserType, number
 const newGuessCookies = (guessId: number | undefined): Cookies => {
     const cookies = []
     if (guessId !== undefined) {
-        cookies.push({name: guessCookieName, value: "" + guessId, path: paths.guess})
+        cookies.push({name: guessCookieName, value: encrypt(process.env.ENCRIPTION_SECRET_KEY as string, guessId.toString()), path: paths.guess})
     }
     return cookies
 }
@@ -111,7 +115,9 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
         let connection : ws.connection
         const acceptConnection: AcceptConnection = (accept, him, hd, reason, userId) => {
             if (accept) {
-                connection = request.accept(undefined, origin, userType === "host" ? newHostCookies() : newGuessCookies(userId))
+                const cookies = userType === "host" ? newHostCookies() : newGuessCookies(userId)
+                log("cookies: " + JSON.stringify(cookies), userType, userId)
+                connection = request.accept(undefined, origin, cookies)
                 connection.on("message", him as HandleInboundMessage)
                 connection.on("close", hd as HandleDisconnection)
                 log("connection accepted", userType, cookieUserId ?? userId)

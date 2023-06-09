@@ -51,12 +51,12 @@ export default function PresentationView<VM extends ViewMode>({
             <NameImageIntroductionContainer>
             <NameImageContainer>
                 {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processSelectedImage={processSelectedImage} src={imageDataUrl}/>
-                         : <Image alt={""} src={imageDataUrl || ""} width={100} height={90} layout={"intrinsic"}/>
+                         : <StyledImage alt={""} src={imageDataUrl || ""} width={100} height={90} layout={"intrinsic"}/>
                 }
                 <Name id={nameHtmlId} contentEditable={editing} ref={ editing ? r => {if (r) (observe as Observe)(r, {mutation: "default"})} : undefined}>
                     {name}
                 </Name>
-                <LogoImage alt={""} src={"/favicon.png"} width={80} height={80}/>
+                <StyledImage alt={""} src={"/favicon.png"} width={80} height={80}/>
             </NameImageContainer>
             <Introduction id={introductionHtmlId} contentEditable={editing} ref={ editing ? r => {if(r) (observe as Observe)(r, {mutation: "default"})} : undefined}
                                       dangerouslySetInnerHTML={{__html: introduction}}/>
@@ -123,11 +123,13 @@ const NameImageContainer = styled.div`
   align-items: center;
   gap: 15px;
     `
-const LogoImage = styled(Image)`
-  width: 100px;
-  height: 100px;
+const StyledImage = styled(Image)`
+  width: 120px;
+  height: 120px;
   margin-left: 20px;
   @media (max-width: ${maxWidthSmallestLayout}px) {
     margin-left: 5px;
+    width: 75px;
+    height: 75px;
   }
 `

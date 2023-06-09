@@ -1,4 +1,4 @@
-type Bits = { value: number, length: number }
+export type Bits = { value: number, length: number }
 
 /*
  sum each bit from the less significant until length
@@ -21,7 +21,7 @@ export const sumRightBits = ({value, length}: Bits) => {
 export const joinBits = (...bitsArray: Bits[]) => {
     let union = 0
     for (const {value, length} of bitsArray) {
-        union += (union << length) || (value & ((1 << length) - 1))
+        union = (union << length) | (value & ((1 << length) - 1))
     }
     return union
 }
