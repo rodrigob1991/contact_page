@@ -7,11 +7,7 @@ import Header from "../components/home/header/Header"
 import {useEffect, useState} from "react"
 import {maxWidthSmallestLayout} from "../dimensions"
 import Head from "next/head"
-<<<<<<< HEAD:src/pages/index.tsx
-import {getStoryBodyJsx} from "../utils/Parsers";
-=======
 import {getStoryBodyJsx} from "../utils/Parsers"
->>>>>>> dev:apps/nextjs/src/pages/index.tsx
 
 export const HomeRoute = "/"
 
@@ -47,13 +43,8 @@ export default function Home({presentation= {name:"", introduction: "", skills: 
           <link rel="shortcut icon" href="favicon.png" />
       </Head>
       <Container>
-<<<<<<< HEAD:src/pages/index.tsx
-          <Header/>
-          <PresentationView presentation={presentation || {name:"", introduction: "", skills: [], image: undefined}}/>
-=======
           <Header userName={presentation.name}/>
           <PresentationView presentation={presentation}/>
->>>>>>> dev:apps/nextjs/src/pages/index.tsx
           <StoriesView stories={stories.map(s=> {return {...(({body, ...rest})=> rest)(s),body:getStoryBodyJsx(s.body)}})}/>
           <Footer>
           </Footer>
