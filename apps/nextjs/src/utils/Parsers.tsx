@@ -1,11 +1,5 @@
-<<<<<<< HEAD:src/utils/Parsers.tsx
-import {getIndexOnOccurrence, isEmpty} from "./Strings"
-import React from "react"
-=======
 import {getIndexOnOccurrence, isEmpty} from "utils/src/strings"
 import React from "react"
-import {firstCharAfterEqualAndSpaces} from "utils/src/regularExpressions"
->>>>>>> dev:apps/nextjs/src/utils/Parsers.tsx
 import Image from "next/image"
 
 export const getStoryBodyJsx = (storyBodyHtml: string) => {
