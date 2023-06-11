@@ -61,7 +61,7 @@ export default function useWebSocket<UT extends UserType>({
                                                               connect,
                                                               handleNewConnectionState,
                                                           }: Props<UT>) {
-    const [getWsEndpoint, getOutboundMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getServerAckMessageParts, getUserAckMessageParts] = (userType === "host" ? getHostSpecifics() : getGuessSpecifics()) as GetUserSpecificsReturn<UT>
+    const [path, getOutboundMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getServerAckMessageParts, getUserAckMessageParts] = (userType === "host" ? getHostSpecifics() : getGuessSpecifics()) as GetUserSpecificsReturn<UT>
 
     const handleConnecting = () => {
         handleNewConnectionState(ConnectionState.CONNECTING)
@@ -93,68 +93,73 @@ export default function useWebSocket<UT extends UserType>({
         return ws && ws.readyState === ws.OPEN
     }
     const initWS = () => {
-        handleConnecting()
-        const ws = new WebSocket(getWsEndpoint())
-        ws.onopen = (e) => {
-            handleConnected()
-        }
-        ws.onclose = (e) => {
-            handleDisconnected()
-        }
-        ws.onerror = (e) => {
-            if (ws.readyState === ws.CONNECTING)
-                handleConnecting()
-        }
-        ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate<UT>>) => {
-            console.log("inbound message: " + inboundMessage)
-            const ackMessage = (outboundAckMessage: string) => { ws.send(outboundAckMessage) }
-
-            const prefix = getMessagePrefix(inboundMessage)
-            switch (prefix) {
-                case "con":
-                    const [conParts, outboundConAckMessage] = getConMessageParts(inboundMessage as InboundConMessage<UT>["template"])
-                    if (messageWasNotReceived(conParts)) {
-                        handleConMessage(conParts)
-                        setMessageAsReceived(conParts)
-                    }
-                    ackMessage(outboundConAckMessage)
-                    break
-                case "dis":
-                    const [disParts, outboundDisAckMessage] = getDisMessageParts(inboundMessage as InboundDisMessage<UT>["template"])
-                    if (messageWasNotReceived(disParts)) {
-                        handleDisMessage(disParts)
-                        setMessageAsReceived(disParts)
-                    }
-                    ackMessage(outboundDisAckMessage)
-                    break
-                case "mes":
-                    const [mesParts, outboundMesAckMessage] = getMesMessageParts(inboundMessage as InboundMesMessage<UT>["template"])
-                    if (messageWasNotReceived(mesParts)) {
-                        handleMesMessage(mesParts)
-                        setMessageAsReceived(mesParts)
-                    }
-                    ackMessage(outboundMesAckMessage)
-                    break
-                case "uack":
-                    const [uackParts, outboundUAckAckMessage] = getUserAckMessageParts(inboundMessage as InboundUserAckMessage<UT>["template"])
-                    if (messageWasNotReceived(uackParts)) {
-                        handleUserAckMessage(uackParts.number, uackParts.userId)
-                        setMessageAsReceived(uackParts)
-                    }
-                    ackMessage(outboundUAckAckMessage)
-                    break
-                case "sack":
-                    const sackParts = getServerAckMessageParts(inboundMessage as InboundServerAckMessage<UT>["template"])
-                    if (messageWasNotReceived(sackParts)) {
-                        handleServerAckMessage(sackParts.number)
-                        setMessageAsReceived(sackParts)
-                    }
-                    break
-                default:
-                    throw new Error("invalid inbound message")
+        const endpoint = process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT
+        if (endpoint) {
+            handleConnecting()
+            const ws = new WebSocket(endpoint + path)
+            ws.onopen = (e) => {
+                handleConnected()
             }
+            ws.onclose = (e) => {
+                handleDisconnected()
+            }
+            ws.onerror = (e) => {
+                if (ws.readyState === ws.CONNECTING)
+                    handleConnecting()
+            }
+            ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate<UT>>) => {
+                console.log("inbound message: " + inboundMessage)
+                const ackMessage = (outboundAckMessage: string) => {
+                    ws.send(outboundAckMessage)
+                }
+
+                const prefix = getMessagePrefix(inboundMessage)
+                switch (prefix) {
+                    case "con":
+                        const [conParts, outboundConAckMessage] = getConMessageParts(inboundMessage as InboundConMessage<UT>["template"])
+                        if (messageWasNotReceived(conParts)) {
+                            handleConMessage(conParts)
+                            setMessageAsReceived(conParts)
+                        }
+                        ackMessage(outboundConAckMessage)
+                        break
+                    case "dis":
+                        const [disParts, outboundDisAckMessage] = getDisMessageParts(inboundMessage as InboundDisMessage<UT>["template"])
+                        if (messageWasNotReceived(disParts)) {
+                            handleDisMessage(disParts)
+                            setMessageAsReceived(disParts)
+                        }
+                        ackMessage(outboundDisAckMessage)
+                        break
+                    case "mes":
+                        const [mesParts, outboundMesAckMessage] = getMesMessageParts(inboundMessage as InboundMesMessage<UT>["template"])
+                        if (messageWasNotReceived(mesParts)) {
+                            handleMesMessage(mesParts)
+                            setMessageAsReceived(mesParts)
+                        }
+                        ackMessage(outboundMesAckMessage)
+                        break
+                    case "uack":
+                        const [uackParts, outboundUAckAckMessage] = getUserAckMessageParts(inboundMessage as InboundUserAckMessage<UT>["template"])
+                        if (messageWasNotReceived(uackParts)) {
+                            handleUserAckMessage(uackParts.number, uackParts.userId)
+                            setMessageAsReceived(uackParts)
+                        }
+                        ackMessage(outboundUAckAckMessage)
+                        break
+                    case "sack":
+                        const sackParts = getServerAckMessageParts(inboundMessage as InboundServerAckMessage<UT>["template"])
+                        if (messageWasNotReceived(sackParts)) {
+                            handleServerAckMessage(sackParts.number)
+                            setMessageAsReceived(sackParts)
+                        }
+                        break
+                    default:
+                        throw new Error("invalid inbound message")
+                }
+            }
+            setWS(ws)
         }
-        setWS(ws)
     }
     const closeWS = () => {
         getWS()?.close()
@@ -196,11 +201,11 @@ type GetDisMessageParts<UT extends UserType> = (idm: InboundDisMessage<UT>["temp
 type GetMesMessageParts<UT extends UserType> = (imm: InboundMesMessage<UT>["template"]) => [InboundMesMessageParts<UT>, OutboundAckMessage<UT>["template"]]
 type GetServerAckMessageParts<UT extends UserType> = (iam: InboundServerAckMessage<UT>["template"]) => InboundServerAckMessageParts<UT>
 type GetUserAckMessageParts<UT extends UserType> = (iam: InboundUserAckMessage<UT>["template"]) => [InboundUserAckMessageParts<UT>, OutboundAckMessage<UT>["template"]]
-type GetUserSpecificsReturn<UT extends UserType> = [() => string, GetOutboundMesMessage<UT>, GetConMessageParts<UT>, GetDisMessageParts<UT>, GetMesMessageParts<UT>, GetServerAckMessageParts<UT>, GetUserAckMessageParts<UT>]
+type GetUserSpecificsReturn<UT extends UserType> = [string, GetOutboundMesMessage<UT>, GetConMessageParts<UT>, GetDisMessageParts<UT>, GetMesMessageParts<UT>, GetServerAckMessageParts<UT>, GetUserAckMessageParts<UT>]
 type GetUserSpecifics<UT extends UserType> = () => GetUserSpecificsReturn<UT>
 
 const getHostSpecifics : GetUserSpecifics<"host"> = () => {
-    const getWsEndpoint = () => process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT + paths.host
+    const path = paths.host
     const getOutboundMesMessage: GetOutboundMesMessage<"host"> = (number, guessId, body) => getMessage<OutboundFromHostMesMessage>({prefix: "mes", number: number, body: body, userId: guessId})
     const getConMessageParts: GetConMessageParts<"host"> = (icm) => {
         const parts = getMessageParts<InboundConMessage<"host">>(icm, {prefix: 1, number: 2, userId: 3})
@@ -226,11 +231,11 @@ const getHostSpecifics : GetUserSpecifics<"host"> = () => {
         return [parts, ack]
     }
 
-    return [getWsEndpoint, getOutboundMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getServerAckMessageParts, getGuessAckMessageParts]
+    return [path, getOutboundMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getServerAckMessageParts, getGuessAckMessageParts]
 }
 
 const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
-    const getWsEndpoint = () => process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT + paths.guess
+    const path = paths.guess
     const getOutboundMesMessage: GetOutboundMesMessage<"guess"> = (number, hostId, body) => getMessage<OutboundFromGuessMesMessage>({prefix: "mes", number: number, userId: hostId, body: body})
     const getConMessageParts: GetConMessageParts<"guess"> = (icm) => {
         const parts = getMessageParts<InboundConMessage<"guess">>(icm, {prefix: 1, number: 2, userId: 3})
@@ -256,5 +261,5 @@ const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
         return [parts, ack]
     }
 
-    return [getWsEndpoint, getOutboundMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getServerAckMessageParts, getHostAckMessageParts]
+    return [path, getOutboundMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getServerAckMessageParts, getHostAckMessageParts]
 }
