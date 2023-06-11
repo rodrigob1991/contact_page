@@ -1,4 +1,4 @@
-import {NewStory, Story, StoryHTMLElementIds, ViewMode} from "../../../types/home"
+import {NewStory, Story, StoryHTMLElementIds, StoryWithJSXBody, ViewMode} from "../../../types/home"
 import React, {useEffect, useRef, useState} from "react"
 import styled from "@emotion/styled"
 import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../../Buttons"
@@ -6,9 +6,9 @@ import {Pallet} from "../../Pallet"
 import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
 import {Observe} from "../../../pages/user/edit_home"
-import {secondColor} from "../../../colors";
+import {secondColor} from "../../../colors"
 
-export type StoryViewStates = {idHtml: string, story: Story | NewStory, isOpen: boolean, toDelete: boolean}
+export type StoryViewStates = {idHtml: string, story: Story | StoryWithJSXBody | NewStory, isOpen: boolean, toDelete: boolean}
 
 type GetHtmlElementIds = (id: string) => StoryHTMLElementIds
 type GetNewStory = () => [string, NewStory]
@@ -23,7 +23,7 @@ type EditingProps = {
     recoverStory : RecoverStory
 }
 type Props<M extends ViewMode> = {
-    stories: Story[]
+    stories: Story[] | StoryWithJSXBody[]
 } & (M extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
 export default function StoriesView<M extends ViewMode>({
@@ -69,7 +69,7 @@ export default function StoriesView<M extends ViewMode>({
                     if (!svs.toDelete) {
                         const prevStory = svs.story
                         const predicate = (s: Story) => "id" in prevStory ? prevStory.id === s.id : prevStory.title === s.title
-                        const story = stories.find(predicate)
+                        const story = (stories as Story[]).find(predicate)
                         if(!story){
                             throw new Error("always must the story exist")
                         }
@@ -118,7 +118,7 @@ export default function StoriesView<M extends ViewMode>({
     }
     const getEditableStoriesView = () =>
         storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
-            const {title,body, state} = story
+            const {title,body, state} = story as Story
             const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
             const handleOnFocusBody = (e: React.FocusEvent) => {

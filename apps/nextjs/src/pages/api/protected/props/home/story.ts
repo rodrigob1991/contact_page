@@ -1,7 +1,7 @@
 import {NextApiRequest, NextApiResponse} from "next"
 import {PropsStorageClient} from "../../../../../classes/PropsStorageClient"
 import {NewStory, Story} from "../../../../../types/home"
-import {isEmpty} from "common/utils/Strings"
+import {isEmpty} from "utils/src/strings"
 import {ApiParamsValidator} from "../../../../../classes/ApiParamsValidator"
 import {HomePropsApiRoute} from "../home"
 import {AuthResponseBody} from "../../../internal/unauthorized"

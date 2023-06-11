@@ -1,4 +1,4 @@
-import {ExtractWritableProps} from "common/utils/Types"
+import {ExtractWritableProps} from "utils/src/types"
 
 type TillParent = (parent: ParentNode) => boolean
 

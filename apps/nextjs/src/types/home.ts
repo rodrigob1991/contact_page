@@ -38,6 +38,7 @@ const storyDbArgs = Prisma.validator<Prisma.StoryArgs>()(PropsStorageClient.sele
 type StoryDbArgs = Prisma.StoryGetPayload<typeof storyDbArgs>
 export type Story = StoryDbArgs
 export type NewStory = Omit<Story, keyof Pick<Story, "id">>
+export type StoryWithJSXBody = ChangePropertiesType<Story, [["body", JSX.Element]]>
 export type NewStoryPropertiesType = NewStory[keyof NewStory]
 export type StoryHTMLElementIds = {[K in keyof NewStory as `${K}`] : string}
 

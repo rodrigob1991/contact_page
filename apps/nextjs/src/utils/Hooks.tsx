@@ -13,10 +13,10 @@ export const useRecordState = <R extends Record<string, any>>(r: R) => {
         for (const key in subset) {
             const value = subset[key]
             if (isRecord(value)) {
-                setPropertiesRecursively(r[key], value)
+                const rSubset = r[key]
+                setPropertiesRecursively(rSubset, value as AnyPropertiesCombinationRecursive<typeof rSubset>)
             } else {
-                // @ts-ignore
-                r[key] = value
+                r[key] = value as T[typeof key]
             }
         }
     }

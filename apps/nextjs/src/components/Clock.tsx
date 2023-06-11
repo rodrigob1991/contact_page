@@ -1,7 +1,6 @@
 import styled from "@emotion/styled"
 import {useEffect, useState} from "react"
-import {CountedTime, countTimeFromDate, WhatUnitsCount} from "common/utils/Dates"
-import {JSX, JSXElement} from "@babel/types";
+import {CountedTime, countTimeFromDate, WhatUnitsCount} from "utils/src/dates"
 
 export default function Clock({
                                   fromDate,

@@ -1,6 +1,6 @@
 "use client"
 
-import {AnyPropertiesCombination} from "common/utils/Types"
+import {AnyPropertiesCombination} from "utils/src/types"
 import {
     EditHomeProps,
     Image,
@@ -12,7 +12,7 @@ import {
     Story,
     StoryHTMLElementIds
 } from "../../../types/home"
-import {getContainedString} from "common/utils/Strings"
+import {getContainedString} from "utils/src/strings"
 import React, {useEffect, useRef, useState} from "react"
 import PresentationView, {GetHtmlElementId as GetPresentationHtmlElementId} from "../../../components/home/presentation/PresentationView"
 import {StoryState} from "@prisma/client"
