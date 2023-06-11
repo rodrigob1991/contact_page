@@ -13,13 +13,8 @@ export const useRecordState = <R extends Record<string, any>>(r: R) => {
         for (const key in subset) {
             const value = subset[key]
             if (isRecord(value)) {
-<<<<<<< HEAD:src/utils/Hooks.tsx
-                // @ts-ignore
-                setPropertiesRecursively(r[key], value)
-=======
                 const rSubset = r[key]
                 setPropertiesRecursively(rSubset, value as AnyPropertiesCombinationRecursive<typeof rSubset>)
->>>>>>> dev:apps/nextjs/src/utils/Hooks.tsx
             } else {
                 r[key] = value as T[typeof key]
             }
