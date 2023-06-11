@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "rootDir": "./src",
+    "baseUrl": "./",
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+//  "references": [
+//    {
+//      "path": [
+//        "../../packages/utils",
+//        "../../packages/chat-common"
+//      ]
+//    }
+//  ],
+  "ts-node": {
+    "transpileOnly": true,
+    "files": true
+  }
+}
