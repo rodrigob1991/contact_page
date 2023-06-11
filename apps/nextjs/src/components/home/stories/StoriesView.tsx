@@ -1,8 +1,4 @@
-<<<<<<< HEAD:src/components/home/stories/StoriesView.tsx
-import {NewStory, Story, StoryHTMLElementIds, StoryWithJsxBody, ViewMode} from "../../../types/Home"
-=======
 import {NewStory, Story, StoryHTMLElementIds, StoryWithJSXBody, ViewMode} from "../../../types/home"
->>>>>>> dev:apps/nextjs/src/components/home/stories/StoriesView.tsx
 import React, {useEffect, useRef, useState} from "react"
 import styled from "@emotion/styled"
 import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../../Buttons"
@@ -10,14 +6,10 @@ import {Pallet} from "../../Pallet"
 import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
 import {Observe} from "../../../pages/user/edit_home"
-<<<<<<< HEAD:src/components/home/stories/StoriesView.tsx
 
-export type StoryViewStates = {idHtml: string, story: StoryWithJsxBody | Story | NewStory, isOpen: boolean, toDelete: boolean}
-=======
 import {secondColor} from "../../../colors"
 
 export type StoryViewStates = {idHtml: string, story: Story | StoryWithJSXBody | NewStory, isOpen: boolean, toDelete: boolean}
->>>>>>> dev:apps/nextjs/src/components/home/stories/StoriesView.tsx
 
 type GetHtmlElementIds = (id: string) => StoryHTMLElementIds
 type GetNewStory = () => [string, NewStory]
@@ -32,11 +24,7 @@ type EditingProps = {
     recoverStory : RecoverStory
 }
 type Props<M extends ViewMode> = {
-<<<<<<< HEAD:src/components/home/stories/StoriesView.tsx
-    stories: StoryWithJsxBody[] | Story[]
-=======
     stories: Story[] | StoryWithJSXBody[]
->>>>>>> dev:apps/nextjs/src/components/home/stories/StoriesView.tsx
 } & (M extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
 export default function StoriesView<M extends ViewMode>({
@@ -63,11 +51,7 @@ export default function StoriesView<M extends ViewMode>({
 
     const getStoriesView = () =>
         storiesViewStates.map(({story: {title, body}, isOpen}, index) => {
-<<<<<<< HEAD:src/components/home/stories/StoriesView.tsx
-            //const JsxBody = getStoryBodyJsx(body)
-=======
            // const JsxBody = getStoryBodyJsx(body)
->>>>>>> dev:apps/nextjs/src/components/home/stories/StoriesView.tsx
             return (
                 <StoryContainer key={title}>
                     <StoryTitleContainer onClick={(e => openOrCloseStory(index))}>
@@ -80,7 +64,6 @@ export default function StoriesView<M extends ViewMode>({
         })
     // this effect is for maintain the previous states when saving stories
     useEffect(() => {
-<<<<<<< HEAD:src/components/home/stories/StoriesView.tsx
             if (editing) {
                 setStoriesViewStates((storiesViewStates) => {
                     const updatedStoriesViewStates = []
@@ -97,17 +80,6 @@ export default function StoriesView<M extends ViewMode>({
                                 story: story,
                                 idHtml: story.id
                             })
-=======
-            setStoriesViewStates((storiesViewStates) => {
-                const updatedStoriesViewStates = []
-                for (const svs of storiesViewStates) {
-                    if (!svs.toDelete) {
-                        const prevStory = svs.story
-                        const predicate = (s: Story) => "id" in prevStory ? prevStory.id === s.id : prevStory.title === s.title
-                        const story = (stories as Story[]).find(predicate)
-                        if(!story){
-                            throw new Error("always must the story exist")
->>>>>>> dev:apps/nextjs/src/components/home/stories/StoriesView.tsx
                         }
                     }
                     return updatedStoriesViewStates
