@@ -1,0 +1,22 @@
+improvements:
+	global:
+	packages:
+		utils:
+		chat-common:
+		. complete unit tests for getMessageParts function
+		. make unit tests for getCutMessage function
+
+	apps:
+		chat-backend:
+		. achive automatic reconnection when redis cluster services is unavailable (already reconnect with single node) 
+		nextjs:
+features:
+	global:
+	packages:
+		utils:
+		chat-common:
+	apps:
+		chat-backend:
+		nextjs:
+		
+		

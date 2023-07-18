@@ -100,7 +100,8 @@ const newHostCookies = (): Cookies => {
     return []
 }
 const originIsAllowed = (origin: string) => {
-    return true
+    const allowedOrigin = process.env.ALLOWED_ORIGIN
+    return allowedOrigin !== undefined ? origin.startsWith(allowedOrigin) : true
 }
 
 const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck}: RedisAPIs) => {
@@ -191,7 +192,7 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
 const initWebSocket = (httpServer: Server, redisApis: RedisAPIs) => {
     const wsServer = new ws.server({
         httpServer: httpServer,
-        autoAcceptConnections: false
+        autoAcceptConnections: false,
     })
 
     wsServer.on("request", (r) => { handleRequest(r, redisApis) })

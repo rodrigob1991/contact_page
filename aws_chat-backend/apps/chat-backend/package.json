@@ -1,0 +1,17 @@
+{
+  "name": "chat-backend",
+  "version": "1.0.0",
+  "private": true,
+  "main": "app.js",
+  "license": "MIT",
+  "dependencies": {
+    "cross-env": "5.0.5",
+    "dotenv": "^16.0.3",
+    "redis": "^4.5.1",
+    "utils": "1.0.0",
+    "chat-common": "1.0.0"
+  },
+  "scripts": {
+    "start": "node app.js"
+  }
+}

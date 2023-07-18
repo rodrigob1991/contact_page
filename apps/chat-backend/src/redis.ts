@@ -9,8 +9,9 @@ import {
 import {getMessage} from "chat-common/src/message/functions"
 import {MessagePrefix, UserType} from "chat-common/src/model/types"
 import {log, SendMessage} from "./app"
-import {createClient} from "redis"
+import {createClient, createCluster} from "redis"
 import {AnyPropertiesCombination} from "utils/src/types"
+import { readFileSync } from "fs"
 
 export type RedisMessageKey<M extends OutboundMessage[] = GetMessages<UserType, "out", MessagePrefix<"out">>> = M extends [infer OM, ...infer RM] ? OM extends OutboundMessage ? `${OM["userType"]}:${number}:${CutMessage<[OM], "body">}` | (RM extends OutboundMessage[] ? RedisMessageKey<RM> : never) : never : never
 export type SubscribeToMessages = () => Promise<void>
@@ -36,13 +37,28 @@ type GetConnectedUsers = (toUserType: UserType, toUserId: number) => GetConnecte
 export type RedisAPIs = { addConnectedUser: AddConnectedUser, removeConnectedUser: RemoveConnectedUser, getConnectedUsers: GetConnectedUsers,  publishMessage: PublishMessage, handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages, cacheMessage: CacheMessage, getCachedMessages: GetCachedMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck}
 
 const initConnection = () => {
-    const client = createClient({
-        url: process.env.URL,
-        username: process.env.REDIS_USERNAME,
-        password: process.env.REDIS_PASSWORD,
-    })
+    const url = process.env.REDIS_URL
+    const credentials = {username: process.env.REDIS_USERNAME, password: process.env.REDIS_PASSWORD}
+    const socket = {tls: process.env.REDIS_TLS !== undefined, keepAlive: 50000,connectTimeout: 50000, reconnectStrategy: (retries: number) => 1000}
+
+    const client = process.env.REDIS_CLUSTER !== undefined ?
+        createCluster({
+            rootNodes: [{
+                url
+            }],
+            defaults: {
+                ...credentials,
+                socket
+            }
+        }) :
+        createClient({
+            url,
+            ...credentials,
+            socket
+        })
     client.on('error', (err) => {
-        log(err)})
+        log(err)
+    })
     client.on('connect', () => {
         log('connected with redis')
     })
@@ -197,7 +213,7 @@ export const initRedis = () : RedisAPIs => {
 
     const redisClient = initConnection()
     // delete all the data
-    redisClient.flushAll().then((r) => log("all redis data deleted, reply: " + r))
+    //redisClient.flushAll().then((r) => log("all redis data deleted, reply: " + r))
 
     return  { addConnectedUser, removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck }
 }
