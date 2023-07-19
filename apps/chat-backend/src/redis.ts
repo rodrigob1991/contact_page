@@ -39,7 +39,7 @@ export type RedisAPIs = { addConnectedUser: AddConnectedUser, removeConnectedUse
 const initConnection = () => {
     const url = process.env.REDIS_URL
     const credentials = {username: process.env.REDIS_USERNAME, password: process.env.REDIS_PASSWORD}
-    const socket = {tls: process.env.REDIS_TLS !== undefined, keepAlive: 50000,connectTimeout: 50000, reconnectStrategy: (retries: number) => 1000}
+    const socket = {tls: process.env.REDIS_TLS !== undefined}
 
     const client = process.env.REDIS_CLUSTER !== undefined ?
         createCluster({
