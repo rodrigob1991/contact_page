@@ -12,7 +12,7 @@ import {
     OutboundToHostMesMessage,
     OutboundToHostServerAckMessage
 } from "chat-common/src/message/types"
-import {getCutMessage, getMessage, getParts, getPrefix} from "chat-common/src/message/functions"
+import {getCutMessage, getMessage, getParts, getPrefix, getUsersMessageBody} from "chat-common/src/message/functions"
 import {
     HandleDisconnection,
     HandleInboundAckConMessage,
@@ -144,7 +144,7 @@ export const initConnection : InitUserConnection<"host">  = async (acceptConnect
             await Promise.all([
                 subscribe(),
                 // send outbound message for each connected guess
-                getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, getMessage<OutboundToHostGuessesMessage>({prefix: "usrs", number: connectionDate, body: getUsersMessageBody(guessesIds.map(([id, date]) => [id, true, date]))}))),
+                getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, getMessage<OutboundToHostGuessesMessage>({prefix: "usrs", number: connectionDate, body: getUsersMessageBody(guessesIds.map(([id, date]) => [id, "guess" + id, true, date]))}))),
                 //getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, ...guessesIds.map(([guessId, date]) => getMessage<OutboundToHostConMessage>({prefix: "con", number: date, userId: guessId})))),
                 ...Object.values(getHostCachedMessages(hostId, {mes: true, uack: true})).map(promise => promise.then(messages => sendOutboundMessage(false, ...messages))),
                 // publish host connection
