@@ -5,19 +5,26 @@
   "main": "app.js",
   "license": "MIT",
   "dependencies": {
+    "@types/websocket": "^1.0.6",
+    "chat-common": "1.0.0",
     "cross-env": "5.0.5",
     "dotenv": "^16.0.3",
     "redis": "^4.5.1",
     "utils": "1.0.0",
-    "chat-common": "1.0.0"
+    "websocket": "^1.0.34"
   },
   "devDependencies": {
     "@types/node": "^18.11.12",
+    "@typescript-eslint/eslint-plugin": "^6.6.0",
+    "@typescript-eslint/parser": "^6.6.0",
     "concurrently": "^7.6.0",
+    "eslint": "^8.48.0",
     "nodemon": "^2.0.20",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
   },
   "scripts": {
+    "add": "yarn add",
     "dev": "concurrently \"docker start redis\" \"tsc --watch\" \"yarn workspace utils dev\" \"yarn workspace chat-common dev\" \"nodemon --watch ./dist --watch ../../packages dist/app.js\"",
     "devrc-nodejs": "concurrently \"tsc --watch\" \"yarn workspace utils dev\" \"yarn workspace chat-common dev\" \"REDIS_CLUSTER=yes nodemon --watch ./dist --watch ../../packages dist/app.js\"",
     "devrc": "gnome-terminal --tab --title=nodejs -e 'yarn devrc-nodejs' --tab --title=redis-cluster -e 'docker-compose -f docker-compose-redis-cluster.yml up'",

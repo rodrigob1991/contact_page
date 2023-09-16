@@ -11,7 +11,6 @@ import {MessagePrefix, UserType} from "chat-common/src/model/types"
 import {log, SendMessage} from "./app"
 import {createClient, createCluster} from "redis"
 import {AnyPropertiesCombination} from "utils/src/types"
-import { readFileSync } from "fs"
 
 export type RedisMessageKey<M extends OutboundMessage[] = GetMessages<UserType, "out", MessagePrefix<"out">>> = M extends [infer OM, ...infer RM] ? OM extends OutboundMessage ? `${OM["userType"]}:${number}:${CutMessage<[OM], "body">}` | (RM extends OutboundMessage[] ? RedisMessageKey<RM> : never) : never : never
 export type SubscribeToMessages = () => Promise<void>
@@ -82,7 +81,7 @@ export const initRedis = () : RedisAPIs => {
 
     const getMessagesHashKey = (userType: UserType, userId: number, messagePrefix: MessagePrefix) => userType + ":" + userId + ":" + messagePrefix + ":messages"
 
-    const getHandleError = (fn: Function) => (reason: string) => Promise.reject("redis error: " + fn.name + " failed, " + reason)
+    const getHandleError = (fn: (...args: any[]) => any, reason2?: string) => (reason1: string) => Promise.reject("redis error: " + fn.name + " failed, " + (reason2 !== undefined ? reason2 + ", " : "") + reason1)
 
     const getConDisChannel = (isHostUser: boolean) => messagePrefixes.con + ":" + messagePrefixes.dis + ":" + (isHostUser ? users.host : users.guess)
     const getMessagesChannel = (isHostUser: boolean, userId: number) => messagePrefixes.mes + ":" + (isHostUser ? users.host : users.guess) + ":" + userId
@@ -107,7 +106,7 @@ export const initRedis = () : RedisAPIs => {
                     log("subscribed to the channels", ofUserType, ofUserId)
                 }))
             .catch(getHandleError(subscribe))
-        const unsubscribe = () => subscriber.disconnect().then(() => log("unsubscribed to the channels", ofUserType, ofUserId)).catch(getHandleError(unsubscribe))
+        const unsubscribe = () => subscriber.disconnect().then(() => { log("unsubscribed to the channels", ofUserType, ofUserId) }).catch(getHandleError(unsubscribe))
 
         return [subscribe, unsubscribe]
     }
@@ -141,8 +140,8 @@ export const initRedis = () : RedisAPIs => {
             const msg = "message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached"
             if (cached)
                 log(msg, userType, userId)
-            else return Promise.reject(userType + " : " + userId + " : " + msg)
-        }).catch(getHandleError(cacheMessage))
+            else return Promise.reject(msg)
+        }).catch(getHandleError(cacheMessage, userType + " : " + userId + ", " + messagePrefix + ":" + key + ":" + message))
 
     const getCachedMessages: GetCachedMessages = (userType, userId, whatPrefixes) => {
         const promises: any = {}
@@ -171,7 +170,7 @@ export const initRedis = () : RedisAPIs => {
             .then(exist => {
                 log("message with key " + key + " was" + (exist ? " not" : "") + " acknowledged", userType, userId)
                 return !exist
-            }).catch(getHandleError(isMessageAck))
+            }).catch(getHandleError(isMessageAck, userType + " " + userId + ", " + messagePrefix + " " + key))
 
     const addConnectedUser: AddConnectedUser = (userType, id) => {
         const setConnectedUser = (firstTime: boolean, id: number) => {
@@ -206,7 +205,7 @@ export const initRedis = () : RedisAPIs => {
             const fieldsEntries = Object.entries(fields)
             const usersConnectedNumber = fieldsEntries.length
             const areUsersConnected = fieldsEntries.length > 0
-            log((areUsersConnected ? usersConnectedNumber : "no") + " " + ofUserType + " in connected hash: " + (areUsersConnected ? fieldsEntries : ""), toUserType, toUserId)
+            log((areUsersConnected ? usersConnectedNumber : "no") + " " + ofUserType + " in connected hash: " + (areUsersConnected ? fieldsEntries.toString() : ""), toUserType, toUserId)
             return fieldsEntries.map(([idStr, dateStr]) => [+idStr, +dateStr] as [number, number])
         }).catch(getHandleError(getConnectedUsers))
     }

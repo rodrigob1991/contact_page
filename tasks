@@ -10,6 +10,7 @@ improvements:
 		chat-backend:
 		. achive automatic reconnection when redis cluster services is unavailable (already reconnect with single node) 
 		nextjs:
+		. configure vercel hosting service to only redeploy the app when a commit is made inside nextjs directory
 features:
 	global:
 	packages:

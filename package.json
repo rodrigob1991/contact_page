@@ -1,25 +1,19 @@
 {
   "name": "contact_page",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "version": "1.0.0",
-  "dependencies": {
-    "websocket": "^1.0.34"
-  },
-  "devDependencies": {
-    "typescript": "^4.9.4",
-    "ts-jest": "^29.0.3",
-    "eslint": "8.14.0",
-    "jest": "^29.2.2",
-    "@types/websocket": "^1.0.5",
-    "concurrently": "^7.6.0"
-  },
   "scripts": {
+    "add all": "yarn workspaces run add",
     "nextjs": "yarn workspace nextjs",
     "chat-backend": "yarn workspace chat-backend",
     "utils": "yarn workspace utils",
     "chat-common": "yarn workspace chat-common",
     "dev": "gnome-terminal --tab --title=chat-backend -e 'yarn chat-backend dev' --tab --title=nextjs -e 'yarn nextjs dev'",
     "devrc": "gnome-terminal --tab --title=chat-backend -e 'yarn chat-backend devrc' --tab --title=nextjs -e 'yarn nextjs dev'"
-  }
+  },
+  "packageManager": "yarn@3.6.3"
 }

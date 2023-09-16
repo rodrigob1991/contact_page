@@ -3,7 +3,7 @@ import {
     CommonMessagePartsPositions,
     CutMessage,
     GotAllMessageParts,
-    GotMessageParts,
+    GotMessageParts, InboundAckMessage,
     Message,
     MessagePartsPositions, MessageTemplate
 } from "./types"
@@ -30,11 +30,11 @@ export const getMessage = <M extends Message>(parts: GotAllMessageParts<M>) => {
 
 const getPartSeparatorIndex = (message: string, occurrence: number) => getIndexOnOccurrence(message, ":", occurrence)
 
-export const getMessagePrefix = <M extends MessageTemplate>(m: M) => {
-    return m.substring(0, getPartSeparatorIndex(m, 1)) as (M extends `${infer MP}:${any}` ? MP : never)
-}
+export const getPrefix = <M extends MessageTemplate>(m: M) => m.substring(0, getPartSeparatorIndex(m, 1)) as (M extends `${infer MP}:${string}` ? MP : never)
 
-export const getMessageParts = <M extends Message, CMPP extends CommonMessagePartsPositions<M>=CommonMessagePartsPositions<M>>(m: M["template"], whatGet: AnyMessagePartsPositions<M, CMPP>) => {
+export const getOriginPrefix = <M extends InboundAckMessage["template"]>(m: M) => m.substring(getPartSeparatorIndex(m, 1) + 1, getPartSeparatorIndex(m, 2)) as (M extends `${string}:${infer OP}:${string}` ? OP : never)
+
+export const getParts = <M extends Message, CMPP extends CommonMessagePartsPositions<M>=CommonMessagePartsPositions<M>>(m: M["template"], whatGet: AnyMessagePartsPositions<M, CMPP>) => {
     const parts: any = {}
     let firstSeparatorIndex
     let finalSeparatorIndex
@@ -80,8 +80,8 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
         return index
     }
     const cut = (partStartIndex = findPartIndex(), partEndIndex = findPartIndex(false)) => {
-        let cutStartIndex = partStartIndex - (position === lastPosition ? 1 : 0)
-        let cutEndIndex = partEndIndex + (position === lastPosition ? 0 : 2)
+        const cutStartIndex = partStartIndex - (position === lastPosition ? 1 : 0)
+        const cutEndIndex = partEndIndex + (position === lastPosition ? 0 : 2)
         cutMessage = cutMessage.substring(0, cutStartIndex ) + cutMessage.substring(cutEndIndex)
         cutSize += cutEndIndex - cutStartIndex
         cutCount ++
@@ -109,3 +109,7 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
 
     return cutMessage as CutMessage<[M], CMPP>
 }
+
+export const getUsersMessageBody = (data: [number, boolean, number][]) =>
+
+export const getUsersMessageBodyParsed = (body: string) =>

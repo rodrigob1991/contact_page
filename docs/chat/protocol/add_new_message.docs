@@ -1,0 +1,42 @@
+ packages/chat-common/src/model/constants.ts 
+ {
+ ?"messagePrefixesBothFlows" or "messagePrefixesIn" or "messagePrefixesOut", if new message prefix needed, add a key for it depending on it the flow.
+ ?"messageParts", if new message parts is requiered, add them as keys.
+ }
+ packages/chat-common/src/model/types.ts 
+ {
+ ?"OriginPrefix", if new message prefix, if does not need to be acknowledge by the user, exclude it from the result union type.
+ ?"MessageParts", if new message parts added, add keys with the name in "messageParts" and the new value type.
+ }
+ packages/chat-common/src/model/message/types.ts
+ {
+ ?"SpecificMessagePartsKeys", if needed (if new message parts added for instance) modify the type to include in the result type the desire message parts depending on "UserType", "MessageFlow" and "MessagePrefix".
+ ?"MessageTemplateInstance", if new message parts added, specify the position of the new parts with the "PartTemplate" type.
+ ?"SpecificMessagePartsPositions", if new message parts added, add keys with the position depending on the rest of the parts.
+ +add types of each message instance needed using the "MessageInstance" with the user type, message flow and message prefix parameters, folowing the current order in the file.
+ ?if there are at least two new messages for both user types with the same flow, add one type that filter for a type parameter that extends "UserType" for each flow.
+ +"OutboundMessage" or "InboundMessage" or both, add to the result type the new messages if they have the same user type and message prefix of the parameters.
+ +"FilterMessage", add to the result array of types the new messages using the "FilterMessage" type.
+ }
+ packages/chat-common/src/message/functions.ts
+ {
+ ?"LastPosition" type, if new message part added, add a number as the last position in the "LASTS" parameter. 
+ ?"getMessage" function, if new message part added, modify the function to add the new part in the result.
+ ?"getMessageParts" function, if new message part added, modify the function to get the new part in the result.
+ ?"getCutMessage" function, if new message part added, modify the function to skip the new part in the result. 
+ }
+ apps/chat-backend/src/app.ts
+ {
+ ?"applyHandleInboundMessage" function, if new message prefix, if it has "in" flow, add a parameter as a handler for the new message, add a case for the message prefix to invoke the handler and put the necessary code.
+ }
+ apps/chat-backend/src/user_types/host/initConnection.ts
+ {
+ ?"sendOutboundMessage" function, if new message prefix, if it is use for outbound messages to hosts and need to be cache, add a case for the message prefix to construct the key.
+ ?"handleInboundMessage" function, if new message prefix, if it is use for inbound messages from the host, implement a handler for the message.
+ }
+ apps/chat-backend/src/user_types/guess/initConnection.ts
+ {
+ }
+ 
+ 
+ 
