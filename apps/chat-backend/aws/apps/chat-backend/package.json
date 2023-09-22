@@ -9,7 +9,8 @@
     "dotenv": "^16.0.3",
     "redis": "^4.5.1",
     "utils": "1.0.0",
-    "chat-common": "1.0.0"
+    "chat-common": "1.0.0",
+    "websocket": "^1.0.34"
   },
   "scripts": {
     "start": "node app.js"

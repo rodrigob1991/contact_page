@@ -23,15 +23,18 @@ import {
     HandleInboundMesMessage,
     HandleInboundMessage,
     log as appLog,
+    getHandleError as appGetHandleError,
     logError as appLogError,
     SendMessage
 } from "../../app"
 import {InitUserConnection} from "../types"
 
-const log = (msg: string, id: number) => { appLog(msg, "host", id) }
-const logError = (msg: string, id: number) => { appLogError(msg, "host", id) }
+//const logError = (msg: string, id: number) => { appLogError(msg, "host", id) }
 
 export const initConnection : InitUserConnection<"host">  = async (acceptConnection, closeConnection, addConnectedHost, removeConnectedHost, getConnectedGuesses, publishMessage, handleHostSubscriptionToMessages, getHostCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+    const log = (msg: string) => { appLog(msg, "host", hostId) }
+    const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, callback?: (r: string) => void) => appGetHandleError(originFunction, reason2, "host", hostId, callback)
+
     const sendOutboundMessage : SendMessage<"host"> = async (cache, ...messages) => {
         const promises: Promise<void>[] = []
         for (const message of messages) {
@@ -56,7 +59,7 @@ export const initConnection : InitUserConnection<"host">  = async (acceptConnect
             promises.push(cacheAndSendUntilAck<GetMessages<"host", "out">>(cache, mp, key, message, hostId))
         }
         // maybe use Promise.allSettled instead
-        return Promise.all(promises).then(() => {})
+        return Promise.all(promises).then()
     }
 
     const handleInboundMessage: HandleInboundMessage = (m) => {
@@ -119,10 +122,11 @@ export const initConnection : InitUserConnection<"host">  = async (acceptConnect
     const handleDisconnection: HandleDisconnection = (reasonCode, description) => {
         // CONSIDER IF REMOVE HOST FAIL AND THE ID CONTINUE STORED
         // AND IF UNSUBSCRIBE FAIL AND THE CONSUMER REMAIN ON
-        Promise.allSettled([removeConnectedHost(hostId), unsubscribe(), publishMessage<OutboundToGuessDisMessage>(undefined,{prefix: "dis", number: Date.now(), userId: hostId})])
-            .then(results => {results.forEach(r => {if (r.status === "rejected") log("failure on disconnection, " + r.reason, hostId)})})
-            .catch((r: string)=> { log(r, hostId) })
-        log(`disconnected, reason code:${reasonCode}, description: ${description}`, hostId)
+        removeConnectedHost(hostId).catch(getHandleError(removeConnectedHost))
+        unsubscribe().catch(getHandleError(unsubscribe))
+        publishMessage<OutboundToGuessDisMessage>(undefined,{prefix: "dis", number: Date.now(), userId: hostId}).catch(getHandleError(publishMessage, "publish disconnection"))
+
+        log(`disconnected, reason code:${reasonCode}, description: ${description}`)
     }
 
     let subscribe
@@ -144,7 +148,7 @@ export const initConnection : InitUserConnection<"host">  = async (acceptConnect
             await Promise.all([
                 subscribe(),
                 // send outbound message for each connected guess
-                getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, getMessage<OutboundToHostGuessesMessage>({prefix: "usrs", number: connectionDate, body: getUsersMessageBody(guessesIds.map(([id, date]) => [id, "guess" + id, true, date]))}))),
+                getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, getMessage<OutboundToHostGuessesMessage>({prefix: "usrs", number: connectionDate, body: getUsersMessageBody(Object.entries(guessesIds).map(([id, date]) => [+id, "guess" + id, true, date]))}))),
                 //getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, ...guessesIds.map(([guessId, date]) => getMessage<OutboundToHostConMessage>({prefix: "con", number: date, userId: guessId})))),
                 ...Object.values(getHostCachedMessages(hostId, {mes: true, uack: true})).map(promise => promise.then(messages => sendOutboundMessage(false, ...messages))),
                 // publish host connection

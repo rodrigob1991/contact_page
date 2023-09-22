@@ -46,4 +46,6 @@ export type IfOneNotIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE =
 // if all elements from "U" are not in "IN" then the result is "IF", otherwise is "ELSE"
 export type IfAllAreNotIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IfOneIn<U, IN, ELSE, IF>
 
+export type NonEmptyArray<T> = [T, ...T[]]
+export const isNonEmpty = <T>(a: T[]): a is NonEmptyArray<T> => a.length > 0
 

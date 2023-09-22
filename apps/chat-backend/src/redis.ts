@@ -30,7 +30,8 @@ type UserId<UT extends UserType> = number | (UT extends "guess" ? undefined : ne
 export type AddConnectedUserResult = Promise<{id: number, date: number}>
 type AddConnectedUser = <UT extends UserType>(userType: UT, id: UserId<UT>) => AddConnectedUserResult
 type RemoveConnectedUser = <UT extends UserType>(userType: UT, id: number) => Promise<void>
-export type GetConnectedUsersResult = Promise<[number, number][]>
+type ConnectedUsers = { [id: number]: number }
+export type GetConnectedUsersResult = Promise<ConnectedUsers>
 type GetConnectedUsers = (toUserType: UserType, toUserId: number) => GetConnectedUsersResult
 
 export type RedisAPIs = { addConnectedUser: AddConnectedUser, removeConnectedUser: RemoveConnectedUser, getConnectedUsers: GetConnectedUsers,  publishMessage: PublishMessage, handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages, cacheMessage: CacheMessage, getCachedMessages: GetCachedMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck}
@@ -206,7 +207,9 @@ export const initRedis = () : RedisAPIs => {
             const usersConnectedNumber = fieldsEntries.length
             const areUsersConnected = fieldsEntries.length > 0
             log((areUsersConnected ? usersConnectedNumber : "no") + " " + ofUserType + " in connected hash: " + (areUsersConnected ? fieldsEntries.toString() : ""), toUserType, toUserId)
-            return fieldsEntries.map(([idStr, dateStr]) => [+idStr, +dateStr] as [number, number])
+            const users: ConnectedUsers = {}
+            fieldsEntries.forEach(([idStr, dateStr]) => { users[+idStr] = +dateStr })
+            return users
         }).catch(getHandleError(getConnectedUsers))
     }
 

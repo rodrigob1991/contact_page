@@ -24,3 +24,4 @@ export type MessagePrefix<MF extends MessageFlow = MessageFlow> =
 export type OriginPrefix<MF extends MessageFlow = MessageFlow, MP extends MessagePrefix<MF> = MessagePrefix<MF>> = IfAllIn<"in" | "uack", MF | MP, Exclude<MessagePrefix, "sack">>
 export type MessageParts = { [messageParts.prefix]: MessagePrefix, [messageParts.originPrefix]: OriginPrefix, [messageParts.number]: number, [messageParts.userId]: number, [messageParts.body]: string }
 export type MessagePartsKeys = keyof MessageParts
+export type MessagePartsValues = MessageParts[MessagePartsKeys]

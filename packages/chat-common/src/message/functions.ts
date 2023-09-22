@@ -3,11 +3,14 @@ import {
     CommonMessagePartsPositions,
     CutMessage,
     GotAllMessageParts,
-    GotMessageParts, InboundAckMessage,
+    GotMessageParts,
+    InboundAckMessage,
     Message,
-    MessagePartsPositions, MessageTemplate
+    MessagePartsPositions,
+    MessageTemplate
 } from "./types"
-import {getIndexOnOccurrence} from "utils/src/strings"
+import {getIndexOnOccurrence, recursiveSplit} from "utils/src/strings"
+import {MessagePartsValues} from "../model/types"
 
 type AnyMessagePartsPositions<M extends Message, CMPP extends CommonMessagePartsPositions<M>, MPP = M["positions"]> = { [K in CMPP]: K extends keyof MPP ? MPP[K] : never }
 type LastPosition<MPP extends MessagePartsPositions, LASTS = [4, 3, 2, 1]> = LASTS extends [infer LAST, ...infer REST] ? LAST extends MPP[keyof MPP] ? LAST : LastPosition<MPP, REST> : never
@@ -35,7 +38,7 @@ export const getPrefix = <M extends MessageTemplate>(m: M) => m.substring(0, get
 export const getOriginPrefix = <M extends InboundAckMessage["template"]>(m: M) => m.substring(getPartSeparatorIndex(m, 1) + 1, getPartSeparatorIndex(m, 2)) as (M extends `${string}:${infer OP}:${string}` ? OP : never)
 
 export const getParts = <M extends Message, CMPP extends CommonMessagePartsPositions<M>=CommonMessagePartsPositions<M>>(m: M["template"], whatGet: AnyMessagePartsPositions<M, CMPP>) => {
-    const parts: any = {}
+    const parts: { [k: string]: MessagePartsValues } = {}
     let firstSeparatorIndex
     let finalSeparatorIndex
     if (messageParts.prefix in whatGet)
@@ -113,20 +116,17 @@ export const getCutMessage = <M extends Message, CMPP extends CommonMessageParts
 const usersSeparator = ","
 const userDataSeparator = ":"
 
-export const getUsersMessageBody = (usersData: [number, string, boolean, number][]) => {
+export const getUsersMessageBody = (usersData: [number, string, boolean, number?][]) => {
     let str = ""
-    usersData.forEach(([id, name, isConnected, lastConnectionDate]) => str += `${id}${userDataSeparator}${name}${userDataSeparator}${isConnected ? "1" : "0"}${userDataSeparator}${lastConnectionDate}${usersSeparator}`)
+    usersData.forEach(([id, name, isConnected, lastConnectionDate]) => str += `${id}${userDataSeparator}${name}${userDataSeparator}${isConnected ? "1" : "0"}${userDataSeparator}${lastConnectionDate ?? ""}${usersSeparator}`)
     return str.substring(0, str.length - 1)
 }
 
 export const getParsedUsersMessageBody = (body: string) =>
-    body.split(usersSeparator).map(userDataStr => {
-            const userData = userDataStr.split(userDataSeparator, 4)
-            return {
-                id: +userData[0],
-                name: userData[1],
-                isConnected: userData[2] === "1",
-                lastConnectionDate: +userData[3]
-            }
-        }
-    )
+    recursiveSplit(body, [usersSeparator, userDataSeparator]).map(userData =>
+        ({
+            id: +userData[0],
+            name: userData[1],
+            isConnected: userData[2] === "1",
+            lastConnectionDate: +userData[3]
+        }))

@@ -1,3 +1,5 @@
+import {isNonEmpty, NonEmptyArray} from "./types";
+
 export const getContainedString = (str: string, betweenLeft?: string, betweenRight?: string) => {
     let containedString
     if (betweenLeft && betweenRight) {
@@ -32,4 +34,20 @@ export const getIndexOnOccurrence = (str: string, search: string, occurrence: nu
         updateIndex()
     }
     return  found ? index - 1 : -1
+}
+
+type RecursiveSplitResult<S extends (NonEmptyArray<string>)>= S extends [infer F, ...infer R] ? R extends (NonEmptyArray<string>) ? RecursiveSplitResult<R>[] : string[] : never
+export const recursiveSplit = <S extends (NonEmptyArray<string>)>(str: string, separators: S): RecursiveSplitResult<S> => {
+    const finalParts = []
+    const currentParts = str.split(separators[0])
+    const separatorsRest = separators.slice(1)
+    if (isNonEmpty(separatorsRest)) {
+        for (const part of currentParts) {
+            finalParts.push(...recursiveSplit(part, separatorsRest))
+        }
+    } else {
+        finalParts.push(...currentParts)
+    }
+
+    return finalParts as RecursiveSplitResult<S>
 }

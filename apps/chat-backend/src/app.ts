@@ -7,10 +7,13 @@ import {
     InboundMesMessage,
     InboundMessageTarget,
     InboundMessageTemplate,
-    OutboundConMessage, OutboundDisMessage, OutboundMesMessage,
+    OutboundConMessage,
+    OutboundDisMessage,
+    OutboundMesMessage,
     OutboundMessageTemplate,
     OutboundServerAckMessage,
-    OutboundUserAckMessage, OutboundUsersMessage
+    OutboundUserAckMessage,
+    OutboundUsersMessage
 } from "chat-common/src/message/types"
 import {paths, users} from "chat-common/src/model/constants"
 import {getOriginPrefix, getPrefix} from "chat-common/src/message/functions"
@@ -37,8 +40,24 @@ export type ApplyHandleInboundMessage<UT extends UserType=UserType> =(wsMessage:
 
 export type SendMessage<UT extends UserType> = (cache: boolean, ...message: OutboundMessageTemplate<UT, Exclude<MessagePrefixOut, "sack">>[]) => Promise<void>
 
-export const log = (msg: string, userType?: UserType, id?: number) => { console.log((userType ? (userType + (id === undefined ? "" : " " + id)) + " : " : "") + msg + " : " + new Date().toString()) }
-export const logError = (msg: string, userType?: UserType, id?: number) => { console.error((userType ? (userType + (id === undefined ? "" : " " + id)) + " : " : "") + msg + " : " + new Date().toString()) }
+const getStandardMessage = (msg: string, userType?: UserType, userId?: number) =>
+    (userType ? (userType + (userId === undefined ? "" : " " + userId)) + " : " : "") + msg + " : " + new Date().toString()
+
+export const panic = (msg: string, userType?: UserType, userId?: number) => {
+    throw new Error(getStandardMessage(msg, userType, userId))
+}
+export const log = (msg: string, userType?: UserType, userId?: number) => { console.log(getStandardMessage(msg, userType, userId)) }
+export const logError = (msg: string, userType?: UserType, userId?: number) => { console.error(getStandardMessage(msg, userType, userId)) }
+
+// THIS RETURN THE HANDLER FOR THE ERRORS LIKE THOSE THAT OCCURS IN CALLBACKS OF THE CONNECTIONS
+// ONY USE IT WHEN THE ERROR DOES NOT NEED TO PROPAGATE
+// COULD BE A CENTRALIZE PLACE TO HANDLE THOSE ERRORS, FIND OUT
+export const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, userType?: UserType, userId?: number, callback?: (r: string) => void) =>
+    (reason1: string) => {
+        logError("error on: " + originFunction.name + ", " + (reason2 !== undefined ? reason2 + ", " : "") + reason1, userType, userId)
+        if (callback)
+            callback(reason1)
+    }
 
 const initHttpServer = () => {
     const httpServer = http.createServer((request: IncomingMessage, response: ServerResponse) => {
@@ -57,11 +76,11 @@ type CookiesOut = (Cookie & { samesite: string })[]
 const hostCookieNamePrefix = users.host
 const guessCookieName = users.guess
 
-const getCookiesValues = (cookies: CookiesIn, forHost: boolean): [UserType, number | undefined] => {
+const getCookiesValues = async (cookies: CookiesIn, forHost: boolean): Promise<[UserType, number | undefined]> => {
     let userType: UserType = users.guess
     let id
 
-    const processHostCookie = ({name, value}: ws.ICookie) => {
+    const processHostCookie = async ({name, value}: ws.ICookie) => {
         let found = false
         if (name.startsWith(hostCookieNamePrefix)) {
             const hostId = +name.substring(hostCookieNamePrefix.length)
@@ -74,7 +93,7 @@ const getCookiesValues = (cookies: CookiesIn, forHost: boolean): [UserType, numb
                              id = parseInt(hostId)
                          break
                  }*/
-                if (isHostValidRegistered(hostId, value)) {
+                if (await isHostValidRegistered(hostId, value).catch((r: string) => panic(r, "host", hostId))) {
                     userType = "host"
                     id = hostId
                 }
@@ -82,7 +101,7 @@ const getCookiesValues = (cookies: CookiesIn, forHost: boolean): [UserType, numb
         }
         return found
     }
-    const processGuessCookie = ({name, value}: ws.ICookie) => {
+    const processGuessCookie = async ({name, value}: ws.ICookie) => {
         let found = false
         if (name === guessCookieName) {
             found = true
@@ -92,13 +111,13 @@ const getCookiesValues = (cookies: CookiesIn, forHost: boolean): [UserType, numb
                 id = parseInt(decryptedId.output)
             }
         }
-        return found
+        return Promise.resolve(found)
     }
 
     const processCookie = forHost ? processHostCookie : processGuessCookie
 
     let index = 0
-    while (index < cookies.length && !processCookie(cookies[index])) {
+    while (index < cookies.length &&  !await processCookie(cookies[index])) {
         index++
     }
     return [userType, id]
@@ -127,21 +146,14 @@ const originIsAllowed = (origin: string) => {
     return allowedOrigin !== undefined ? origin.startsWith(allowedOrigin) : true
 }
 
-const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck}: RedisAPIs) => {
+const handleRequest = async (request: ws.request, {addConnectedUser, removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck}: RedisAPIs) => {
     const origin = request.origin
     if (!originIsAllowed(origin)) {
         request.reject()
         log(`connection from origin ${origin} rejected.`)
     } else {
-        const [userType, cookieUserId] = getCookiesValues(request.cookies, request.httpRequest.url === paths.host)
+        const [userType, cookieUserId] = await getCookiesValues(request.cookies, request.httpRequest.url === paths.host)
         const oppositeUserType = userType === "host" ? "guess" : "host"
-
-        const getHandleError = (fn: (...args: any[]) => any, reason2?: string, userId?: number, callback?: (r: string) => void) =>
-            (reason1: string) => {
-                logError("error on: " + fn.name + ", " + (reason2 !== undefined ? reason2 + ", " : "") + reason1, userType, userId)
-                if (callback)
-                    callback(reason1)
-            }
 
         let connection : ws.connection
         const acceptConnection: AcceptConnection = (accept, him, hd, reason, userId) => {
@@ -173,7 +185,7 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
                             if (!ack) {
                                 sendUntilAck()
                             }
-                        }).catch(getHandleError(sendUntilAck, undefined, userId))
+                        }).catch(getHandleError(sendUntilAck, undefined, userType, userId))
                     }, 5000)
                 }
             }
@@ -182,7 +194,7 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
 
         const applyHandleInboundMessage: ApplyHandleInboundMessage = (wsMessage, handleMesMessage, handleAckConMessage, handleAckDisMessage, handleAckUsrsMessage, handleAckUackMessage, handleAckMesMessage, userId) => {
             //const catchError = (reason: string) => {log("error handling inbound message, " + reason, userType, userId)}
-            const handleError = getHandleError(applyHandleInboundMessage, undefined, userId)
+            const handleError = getHandleError(applyHandleInboundMessage, undefined, userType, userId)
 
             const message = (wsMessage as IUtf8Message).utf8Data as InboundMessageTemplate
             const prefix = getPrefix(message)
@@ -197,7 +209,7 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
                 case "uack": {
                     const originPrefix= getOriginPrefix(message as InboundAckMessage["template"])
 
-                    const removeOriginMessage = (messageKey: RedisMessageKey) => removeMessage(userType, userId, originPrefix, messageKey).catch(handleError)
+                    const removeOriginMessage = (messageKey: RedisMessageKey) => { removeMessage(userType, userId, originPrefix, messageKey).catch(handleError) }
 
                     switch (originPrefix) {
                         case "con":
@@ -221,7 +233,7 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
                              /*this is when a user ack a mes message
                              I only remove the outbound mes message if the outbound uack message published to the sender is cache, so to ensure the sender will know that his was received
                              if cache fail the outbound mes message will continue being send and has to be ack again, repeating this process*/
-                            cacheMessage(oppositeUserType, oppositeUserId, "uack", uackMessageKey, uackMessage).then(() => removeOriginMessage(originMesMessageKey)).catch(handleError)
+                            cacheMessage(oppositeUserType, oppositeUserId, "uack", uackMessageKey, uackMessage).then(() => { removeOriginMessage(originMesMessageKey) }).catch(handleError)
                             publishUackMessage().catch(handleError)
                             break
                     }
@@ -244,11 +256,9 @@ const handleRequest = (request: ws.request, {addConnectedUser, removeConnectedUs
             log("inbound message " + message, userType, userId)
         }
 
-        if (userType === users.host) {
-            initHostConnection(acceptConnection, closeConnection, () => addConnectedUser("host", cookieUserId as number), (hostId) => removeConnectedUser("host", hostId), (toHostId) => getConnectedUsers("host", toHostId), (guessId, mp) => publishMessage("guess", guessId, mp),(hostId, sm) => handleUserSubscriptionToMessages("host", hostId, sm), (hi, wp) => getCachedMessages("host", hi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">).catch(getHandleError(initHostConnection))
-        } else {
-            initGuessConnection(acceptConnection, closeConnection, () =>  addConnectedUser("guess", cookieUserId), (guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId),(hostId,mp) => publishMessage("host", hostId, mp),(guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi,wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">).catch(getHandleError(initGuessConnection))
-        }
+        await (() => (userType === users.host
+            ? initHostConnection(acceptConnection, closeConnection, () => addConnectedUser("host", cookieUserId as number), (hostId) => removeConnectedUser("host", hostId), (toHostId) => getConnectedUsers("host", toHostId), (guessId, mp) => publishMessage("guess", guessId, mp), (hostId, sm) => handleUserSubscriptionToMessages("host", hostId, sm), (hi, wp) => getCachedMessages("host", hi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
+            : initGuessConnection(acceptConnection, closeConnection, () => addConnectedUser("guess", cookieUserId), (guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId), (hostId, mp) => publishMessage("host", hostId, mp), (guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi, wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)))()
     }
 }
 
@@ -258,7 +268,9 @@ const initWebSocket = (httpServer: Server, redisApis: RedisAPIs) => {
         autoAcceptConnections: false,
     })
 
-    wsServer.on("request", (r) => { handleRequest(r, redisApis) })
+    wsServer.on("request", (request) => {
+        handleRequest(request, redisApis).catch(getHandleError(handleRequest))
+    })
 }
 
 dotenv.config()

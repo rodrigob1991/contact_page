@@ -7,7 +7,7 @@
   ],
   "version": "1.0.0",
   "scripts": {
-    "add all": "yarn workspaces run add",
+    "add-all": "yarn workspaces run add",
     "nextjs": "yarn workspace nextjs",
     "chat-backend": "yarn workspace chat-backend",
     "utils": "yarn workspace utils",
@@ -15,5 +15,8 @@
     "dev": "gnome-terminal --tab --title=chat-backend -e 'yarn chat-backend dev' --tab --title=nextjs -e 'yarn nextjs dev'",
     "devrc": "gnome-terminal --tab --title=chat-backend -e 'yarn chat-backend devrc' --tab --title=nextjs -e 'yarn nextjs dev'"
   },
-  "packageManager": "yarn@3.6.3"
+  "packageManager": "yarn@3.6.3",
+  "devDependencies": {
+    "@yarnpkg/types": "^4.0.0-rc.51"
+  }
 }

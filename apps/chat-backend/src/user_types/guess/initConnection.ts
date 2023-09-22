@@ -5,33 +5,38 @@ import {
     InboundMessageTarget,
     OutboundMessage,
     OutboundMessageTemplate,
-    OutboundToGuessConMessage,
+    OutboundToGuessHostsMessage,
     OutboundToGuessServerAckMessage,
     OutboundToHostConMessage,
     OutboundToHostDisMessage,
     OutboundToHostUserAckMessage
 } from "chat-common/src/message/types"
-import {getCutMessage, getMessage, getMessageParts, getMessagePrefix} from "chat-common/src/message/functions"
-import {messagePrefixes} from "chat-common/src/model/constants"
+import {getCutMessage, getMessage, getParts, getPrefix, getUsersMessageBody} from "chat-common/src/message/functions"
 import {InitUserConnection} from "../types"
 import {RedisMessageKey, UnsubscribeToMessages} from "../../redis"
 import {
     HandleDisconnection,
-    HandleInboundAckMessage,
+    HandleInboundAckConMessage,
+    HandleInboundAckDisMessage,
+    HandleInboundAckMesMessage,
+    HandleInboundAckUackMessage,
+    HandleInboundAckUsrsMessage,
     HandleInboundMesMessage,
     HandleInboundMessage,
-    log as appLog, SendMessage
+    log as appLog,
+    SendMessage
 } from "../../app"
+import {getHosts} from "../host/authentication";
 
 const log = (msg: string, guessId: number) => { appLog(msg, "guess", guessId) }
 
-export const initConnection : InitUserConnection<"guess"> = async (acceptConnection, closeConnection, addConnectedGuess, removeConnectedGuess, getConnectedHosts, publishGuessMessage, handleGuessSubscriptionToMessages, getGuessCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+export const initConnection : InitUserConnection<"guess"> = async (acceptConnection, closeConnection, addConnectedGuess, removeConnectedGuess, getConnectedHosts, publishMessage, handleGuessSubscriptionToMessages, getGuessCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage: SendMessage<"guess"> = async (cache, ...messages) => {
         const promises: Promise<void>[] = []
         for (const message of messages) {
             const keyPrefix = `guess:${guessId}:` as const
             let key: RedisMessageKey<GetMessages<"guess", "out">>
-            const mp = getMessagePrefix(message)
+            const mp = getPrefix(message)
             switch (mp) {
                 case "con":
                 case "dis":
@@ -52,36 +57,53 @@ export const initConnection : InitUserConnection<"guess"> = async (acceptConnect
 
     const handleInboundMessage: HandleInboundMessage = (m) => {
         const handleInboundMesMessage: HandleInboundMesMessage<"guess"> = (m) => {
-            const {number, body, userId: hostId} = getMessageParts<InboundFromGuessMesMessage, "number" | "userId" | "body">(m, {number: 2, userId: 3, body: 4})
+            const {number, body, userId: hostId} = getParts<InboundFromGuessMesMessage, "number" | "userId" | "body">(m, {number: 2, userId: 3, body: 4})
             const outboundToGuessSackMessage = getMessage<OutboundToGuessServerAckMessage>({prefix: "sack", number, userId: hostId})
             const outboundToHostMesMessageParts = {prefix: "mes" as const, number, userId: guessId, body}
             const outboundToHostMesMessageKey = `host:${hostId}:mes:${number}:${guessId}` as const
             const outboundToHostMesMessage = getMessage<InboundMessageTarget<InboundFromGuessMesMessage>>(outboundToHostMesMessageParts)
-            const publishOutboundToHostMesMessage = () => publishGuessMessage<InboundMessageTarget<InboundFromGuessMesMessage>>(hostId, outboundToHostMesMessageParts)
+            const publishOutboundToHostMesMessage = () => publishMessage<InboundMessageTarget<InboundFromGuessMesMessage>>(hostId, outboundToHostMesMessageParts)
             return [outboundToGuessSackMessage, hostId, outboundToHostMesMessageKey, outboundToHostMesMessage, publishOutboundToHostMesMessage]
         }
-        const handleInboundAckMessage: HandleInboundAckMessage<"guess"> = (a) => {
-            const {originPrefix, number, userId: hostId} = getMessageParts<InboundFromGuessAckMessage, "originPrefix" | "number" | "userId">(a, {originPrefix: 2, number: 3, userId: 4})
-            const outboundToGuessMessageKey = `guess:${guessId}:${originPrefix}:${number}:${hostId}` as const
-            let outboundToHostUackMessageKey
-            let outboundToHostUackMessage
-            let publishOutboundToHostUackMessage
-            if (originPrefix === messagePrefixes.mes) {
-                const outboundToHostUackMessageParts = {prefix: "uack" as const, number, userId: guessId}
-                outboundToHostUackMessageKey = `host:${hostId}:uack:${number}:${guessId}` as const
-                outboundToHostUackMessage = getMessage<OutboundToHostUserAckMessage>(outboundToHostUackMessageParts)
-                publishOutboundToHostUackMessage = () => publishGuessMessage<OutboundToHostUserAckMessage>(hostId, outboundToHostUackMessageParts)
-            }
-            return [originPrefix, outboundToGuessMessageKey, hostId, outboundToHostUackMessageKey, outboundToHostUackMessage, publishOutboundToHostUackMessage]
+
+        const handleInboundAckConMessage: HandleInboundAckConMessage<"guess"> = (m) => {
+            const {number, userId: hostId} = getParts<InboundFromGuessAckMessage<"con">, "number" | "userId">(m, {number: 3, userId: 4})
+            return `guess:${guessId}:con:${number}:${hostId}`
         }
-        applyHandleInboundMessage(m, handleInboundMesMessage, handleInboundAckMessage, guessId)
+        const handleInboundAckDisMessage: HandleInboundAckDisMessage<"guess"> = (m) => {
+            const {number, userId: hostId} = getParts<InboundFromGuessAckMessage<"dis">, "number" | "userId">(m, {number: 3, userId: 4})
+            return `guess:${guessId}:dis:${number}:${hostId}`
+        }
+        const handleInboundAckUsrsMessage: HandleInboundAckUsrsMessage<"guess"> = (m) => {
+            const {number} = getParts<InboundFromGuessAckMessage<"usrs">, "number">(m, {number: 3})
+            return `guess:${guessId}:usrs:${number}`
+        }
+        const handleInboundAckUackMessage: HandleInboundAckUackMessage<"guess"> = (m) => {
+            const {number, userId: hostId} = getParts<InboundFromGuessAckMessage<"uack">, "number" | "userId">(m, {number: 3, userId: 4})
+            return `guess:${guessId}:uack:${number}:${hostId}`
+        }
+        const handleInboundAckMesMessage: HandleInboundAckMesMessage<"guess"> = (m) => {
+            const {number, userId: hostId} = getParts<InboundFromGuessAckMessage<"mes">, "number" | "userId">(m, {number: 3, userId: 4})
+
+            const originOutboundMessageKey = `guess:${guessId}:mes:${number}:${hostId}` as const
+
+            const outboundToHostUackMessageParts = {prefix: "uack" as const, number, userId: guessId}
+            const outboundToHostUackMessageKey = `host:${hostId}:uack:${number}:${guessId}` as const
+            const outboundToHostUackMessage = getMessage<OutboundToHostUserAckMessage>(outboundToHostUackMessageParts)
+            const publishOutboundToGuessUackMessage = () => publishMessage<OutboundToHostUserAckMessage>(hostId, outboundToHostUackMessageParts)
+
+            return [originOutboundMessageKey, guessId, outboundToHostUackMessageKey, outboundToHostUackMessage, publishOutboundToGuessUackMessage]
+        }
+
+        applyHandleInboundMessage(m, handleInboundMesMessage, handleInboundAckConMessage, handleInboundAckDisMessage, handleInboundAckUsrsMessage, handleInboundAckUackMessage, handleInboundAckMesMessage, guessId)
     }
 
     const handleDisconnection: HandleDisconnection = (reasonCode, description) => {
         // CONSIDER IF REMOVE GUESS FAIL AND THE ID CONTINUE STORED
         // AND IF UNSUBSCRIBE FAIL AND THE CONSUMER REMAIN ON
-        Promise.allSettled([removeConnectedGuess(guessId), unsubscribe(), publishGuessMessage<OutboundToHostDisMessage>(undefined,{prefix: "dis", number: Date.now(), userId: guessId})])
+        Promise.allSettled([removeConnectedGuess(guessId), unsubscribe(), publishMessage<OutboundToHostDisMessage>(undefined,{prefix: "dis", number: Date.now(), userId: guessId})])
             .then(results => {results.forEach(r => {if (r.status === "rejected") log("failure on disconnection, " + r.reason, guessId)})})
+            .catch((r: string)=> { log(r, guessId) })
         log(`disconnected, reason code:${reasonCode}, description: ${description}`, guessId)
     }
 
@@ -96,7 +118,7 @@ export const initConnection : InitUserConnection<"guess"> = async (acceptConnect
         acceptConnection(true, handleInboundMessage, handleDisconnection,  undefined, guessId)
         connectionAccepted = true
     } catch (e) {
-        acceptConnection(false, undefined, undefined,"error initializing guess : " + e, guessId)
+        acceptConnection(false, undefined, undefined,"error initializing guess : " + JSON.stringify(e), guessId)
     }
     if (connectionAccepted)
         try {
@@ -104,11 +126,18 @@ export const initConnection : InitUserConnection<"guess"> = async (acceptConnect
             await Promise.all([
                 subscribe(),
                 // send outbound message if host is connected
-                getConnectedHosts(guessId).then(hostsIds => sendOutboundMessage(true, ...hostsIds.map(([hostId, date]) => getMessage<OutboundToGuessConMessage>({prefix: "con", number: date, userId: hostId})))),
+                Promise.all([getHosts(), getConnectedHosts(guessId)]).then(([hosts, connectedHosts]) => sendOutboundMessage(true, getMessage<OutboundToGuessHostsMessage>({
+                    prefix: "usrs",
+                    number: connectionDate,
+                    body: getUsersMessageBody(Object.entries(hosts).map(([id, {name}]) => {
+                        const isConnected = id in connectedHosts
+                        return [+id, name, isConnected, isConnected ? connectedHosts[+id] : undefined]
+                    }))
+                }))),
                 ...Object.values(getGuessCachedMessages(guessId, {mes: true, uack: true})).map(promise => promise.then(messages => sendOutboundMessage(false, ...messages))),
                 // publish guess connection
-                publishGuessMessage<OutboundToHostConMessage>(undefined,{prefix: "con", number: connectionDate,userId: guessId})])
+                publishMessage<OutboundToHostConMessage>(undefined,{prefix: "con", number: connectionDate,userId: guessId})])
         } catch (e) {
-            closeConnection("error initializing guess : " + e)
+            closeConnection("error initializing guess : " + JSON.stringify(e))
         }
 }
