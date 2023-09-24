@@ -14,6 +14,7 @@ import {
 } from "chat-common/src/message/types"
 import {getCutMessage, getMessage, getParts, getPrefix, getUsersMessageBody} from "chat-common/src/message/functions"
 import {
+    getHandleError as appGetHandleError,
     HandleDisconnection,
     HandleInboundAckConMessage,
     HandleInboundAckDisMessage,
@@ -23,15 +24,13 @@ import {
     HandleInboundMesMessage,
     HandleInboundMessage,
     log as appLog,
-    getHandleError as appGetHandleError,
-    logError as appLogError,
     SendMessage
 } from "../../app"
 import {InitUserConnection} from "../types"
 
 //const logError = (msg: string, id: number) => { appLogError(msg, "host", id) }
 
-export const initConnection : InitUserConnection<"host">  = async (acceptConnection, closeConnection, addConnectedHost, removeConnectedHost, getConnectedGuesses, publishMessage, handleHostSubscriptionToMessages, getHostCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+export const initConnection : InitUserConnection<"host">  = async (hostData, acceptConnection, closeConnection, addConnectedHost, removeConnectedHost, getConnectedGuesses, publishMessage, handleHostSubscriptionToMessages, getHostCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const log = (msg: string) => { appLog(msg, "host", hostId) }
     const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, callback?: (r: string) => void) => appGetHandleError(originFunction, reason2, "host", hostId, callback)
 
@@ -136,11 +135,11 @@ export const initConnection : InitUserConnection<"host">  = async (acceptConnect
     let connectionDate = -1
     let connectionAccepted = false
     try {
-        ({id: hostId, date: connectionDate} = await addConnectedHost())
-        acceptConnection(true, handleInboundMessage, handleDisconnection, undefined)
+        ({id: hostId, date: connectionDate} = await addConnectedHost(hostData.id))
+        acceptConnection(true, handleInboundMessage, handleDisconnection, undefined, hostId)
         connectionAccepted = true
     } catch (e) {
-        acceptConnection(false, undefined, undefined,"error initializing host : " + JSON.stringify(e))
+        acceptConnection(false, undefined, undefined,"error initializing host : " + JSON.stringify(e), hostId)
     }
     if (connectionAccepted)
         try {

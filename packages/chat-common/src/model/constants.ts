@@ -1,5 +1,5 @@
-export const users = {host: "host", guess: "guess"} as const
-const emptyUser = {id: -1, name: ""}
+export const userTypes = {host: "host", guess: "guess"} as const
+export const emptyUser = {id: -1, name: ""}
 export const emptyHost = {...emptyUser, password: ""}
 export const emptyGuess = {...emptyUser}
 export const messageFlows = {in: "in", out: "out"} as const

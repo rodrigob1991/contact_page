@@ -15,6 +15,7 @@ import {getCutMessage, getMessage, getParts, getPrefix, getUsersMessageBody} fro
 import {InitUserConnection} from "../types"
 import {RedisMessageKey, UnsubscribeToMessages} from "../../redis"
 import {
+    getHandleError as appGetHandleError,
     HandleDisconnection,
     HandleInboundAckConMessage,
     HandleInboundAckDisMessage,
@@ -26,11 +27,12 @@ import {
     log as appLog,
     SendMessage
 } from "../../app"
-import {getHosts} from "../host/authentication";
+import {getHosts} from "../host/authentication"
 
-const log = (msg: string, guessId: number) => { appLog(msg, "guess", guessId) }
+export const initConnection : InitUserConnection<"guess"> = async (guessData, acceptConnection, closeConnection, addConnectedGuess, removeConnectedGuess, getConnectedHosts, publishMessage, handleGuessSubscriptionToMessages, getGuessCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+    const log = (msg: string) => { appLog(msg, "guess", guessId) }
+    const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, callback?: (r: string) => void) => appGetHandleError(originFunction, reason2, "guess", guessId, callback)
 
-export const initConnection : InitUserConnection<"guess"> = async (acceptConnection, closeConnection, addConnectedGuess, removeConnectedGuess, getConnectedHosts, publishMessage, handleGuessSubscriptionToMessages, getGuessCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const sendOutboundMessage: SendMessage<"guess"> = async (cache, ...messages) => {
         const promises: Promise<void>[] = []
         for (const message of messages) {
@@ -52,7 +54,7 @@ export const initConnection : InitUserConnection<"guess"> = async (acceptConnect
             promises.push(cacheAndSendUntilAck<GetMessages<"guess", "out">>(cache, mp, key, message, guessId))
         }
         // maybe use Promise.allSettled instead
-        return Promise.all(promises).then(() => {})
+        return Promise.all(promises).then()
     }
 
     const handleInboundMessage: HandleInboundMessage = (m) => {
@@ -101,10 +103,11 @@ export const initConnection : InitUserConnection<"guess"> = async (acceptConnect
     const handleDisconnection: HandleDisconnection = (reasonCode, description) => {
         // CONSIDER IF REMOVE GUESS FAIL AND THE ID CONTINUE STORED
         // AND IF UNSUBSCRIBE FAIL AND THE CONSUMER REMAIN ON
-        Promise.allSettled([removeConnectedGuess(guessId), unsubscribe(), publishMessage<OutboundToHostDisMessage>(undefined,{prefix: "dis", number: Date.now(), userId: guessId})])
-            .then(results => {results.forEach(r => {if (r.status === "rejected") log("failure on disconnection, " + r.reason, guessId)})})
-            .catch((r: string)=> { log(r, guessId) })
-        log(`disconnected, reason code:${reasonCode}, description: ${description}`, guessId)
+        removeConnectedGuess(guessId).catch(getHandleError(removeConnectedGuess))
+        unsubscribe().catch(getHandleError(unsubscribe))
+        publishMessage<OutboundToHostDisMessage>(undefined,{prefix: "dis", number: Date.now(), userId: guessId}).catch(getHandleError(publishMessage, "publish disconnection"))
+
+        log(`disconnected, reason code:${reasonCode}, description: ${description}`)
     }
 
     let subscribe
@@ -114,7 +117,7 @@ export const initConnection : InitUserConnection<"guess"> = async (acceptConnect
     let connectionDate = -1
     let connectionAccepted = false
     try {
-        ({id: guessId, date: connectionDate} = await addConnectedGuess())
+        ({id: guessId, date: connectionDate} = await addConnectedGuess(guessData.id))
         acceptConnection(true, handleInboundMessage, handleDisconnection,  undefined, guessId)
         connectionAccepted = true
     } catch (e) {

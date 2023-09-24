@@ -1,7 +1,15 @@
 import ws, {IUtf8Message} from "websocket"
 import http, {IncomingMessage, Server, ServerResponse} from "http"
 import dotenv from "dotenv"
-import {MessagePrefix, MessagePrefixOut, TheOtherUserType, UserType} from "chat-common/src/model/types"
+import {
+    Guess,
+    Host,
+    MessagePrefix,
+    MessagePrefixOut,
+    TheOtherUserType,
+    User,
+    UserType
+} from "chat-common/src/model/types"
 import {
     InboundAckMessage,
     InboundMesMessage,
@@ -15,16 +23,16 @@ import {
     OutboundUserAckMessage,
     OutboundUsersMessage
 } from "chat-common/src/message/types"
-import {paths, users} from "chat-common/src/model/constants"
+import {paths, userTypes} from "chat-common/src/model/constants"
 import {getOriginPrefix, getPrefix} from "chat-common/src/message/functions"
 import {initRedis, RedisAPIs, RedisMessageKey} from "./redis"
-import {decrypt, encrypt} from "utils/src/security"
 import {initConnection as initHostConnection} from "./user_types/host/initConnection"
 import {initConnection as initGuessConnection} from "./user_types/guess/initConnection"
-import {isHostValidRegistered} from "./user_types/host/authentication"
+import {extractHostData, getHostCookies} from "./user_types/host/cookies";
+import {extractGuessData, getGuessCookies} from "./user_types/guess/cookies";
 
 type IfTrueT<B extends boolean, T, O=undefined> = B extends true ? T : O
-export type AcceptConnection = <A extends boolean>(accept: A, him: IfTrueT<A, HandleInboundMessage> , hd: IfTrueT<A, HandleDisconnection>, reason: IfTrueT<A, undefined, string>, userId?: number) => void
+export type AcceptConnection = <A extends boolean>(accept: A, him: IfTrueT<A, HandleInboundMessage> , hd: IfTrueT<A, HandleDisconnection>, reason: IfTrueT<A, undefined, string>, userId: number) => void
 export type CloseConnection = (reason?: string) => void
 
 export type HandleDisconnection = (reasonCode: number, description: string) => void
@@ -70,77 +78,30 @@ const initHttpServer = () => {
     return httpServer
 }
 
-type Cookie = ws.ICookie
-type CookiesIn = Cookie[]
-type CookiesOut = (Cookie & { samesite: string })[]
-const hostCookieNamePrefix = users.host
-const guessCookieName = users.guess
+export type Cookie = ws.ICookie
+export type CookiesIn = Cookie[]
+export type CookiesOut = (Cookie & { samesite: string })[]
+export type ExtractUserData<UT extends UserType> = (cookies: CookiesIn) => Promise<User<UT>["data"]>
+export type GetCookies = (userId: number) => CookiesOut
 
-const getCookiesValues = async (cookies: CookiesIn, forHost: boolean): Promise<[UserType, number | undefined]> => {
+/*const getCookiesData = async (cookies: CookiesIn, forHost: boolean): Promise<[UserType, number | undefined]> => {
     let userType: UserType = users.guess
     let id
 
-    const processHostCookie = async ({name, value}: ws.ICookie) => {
-        let found = false
-        if (name.startsWith(hostCookieNamePrefix)) {
-            const hostId = +name.substring(hostCookieNamePrefix.length)
-            if (!isNaN(hostId)) {
-                found = true
-                /* switch (hostId) {
-                     case "1" :
-                         if (!isEmpty(value) && value === process.env.HOST_1_TOKEN)
-                             userType = "host"
-                             id = parseInt(hostId)
-                         break
-                 }*/
-                if (await isHostValidRegistered(hostId, value).catch((r: string) => panic(r, "host", hostId))) {
-                    userType = "host"
-                    id = hostId
-                }
-            }
-        }
-        return found
-    }
-    const processGuessCookie = async ({name, value}: ws.ICookie) => {
-        let found = false
-        if (name === guessCookieName) {
-            found = true
-            const decryptedId = decrypt(process.env.ENCRIPTION_SECRET_KEY as string, value)
-            if (decryptedId.succeed) {
-                userType = "guess"
-                id = parseInt(decryptedId.output)
-            }
-        }
-        return Promise.resolve(found)
-    }
 
-    const processCookie = forHost ? processHostCookie : processGuessCookie
+
+
+    let userCommonData = emptyUser
+    const extractUserData = forHost ? extractHostData : extractGuessData
 
     let index = 0
-    while (index < cookies.length &&  !await processCookie(cookies[index])) {
+    while (index < cookies.length &&  !user) {
+        user = await extractUserData(cookies[index])
         index++
     }
-    return [userType, id]
-}
+    //return {type:
+}*/
 
-const newGuessCookies = (guessId: number | undefined): CookiesOut => {
-    const cookies: CookiesOut = []
-    if (guessId !== undefined) {
-        cookies.push({
-            name: guessCookieName,
-            value: encrypt(process.env.ENCRIPTION_SECRET_KEY as string, guessId.toString()),
-            path: paths.guess,
-            secure: true,
-            samesite: "none",
-            // roughly one year
-            maxage: 60*60*24*30*12
-        })
-    }
-    return cookies
-}
-const newHostCookies = (): CookiesOut => {
-    return []
-}
 const originIsAllowed = (origin: string) => {
     const allowedOrigin = process.env.ALLOWED_ORIGIN
     return allowedOrigin !== undefined ? origin.startsWith(allowedOrigin) : true
@@ -152,21 +113,33 @@ const handleRequest = async (request: ws.request, {addConnectedUser, removeConne
         request.reject()
         log(`connection from origin ${origin} rejected.`)
     } else {
-        const [userType, cookieUserId] = await getCookiesValues(request.cookies, request.httpRequest.url === paths.host)
+        let userType: UserType
+        let userData: Host | Guess
+        let getCookies: GetCookies
+        if (request.httpRequest.url === paths.host) {
+            userType = "host"
+            userData = await extractHostData(request.cookies)
+            getCookies = getHostCookies
+        } else {
+            userType = "guess"
+            userData = await extractGuessData(request.cookies)
+            getCookies = getGuessCookies
+        }
+
         const oppositeUserType = userType === "host" ? "guess" : "host"
 
         let connection : ws.connection
         const acceptConnection: AcceptConnection = (accept, him, hd, reason, userId) => {
             if (accept) {
-                const cookies = userType === "host" ? newHostCookies() : newGuessCookies(userId)
+                const cookies = getCookies(userId)
                 log("cookies: " + JSON.stringify(cookies), userType, userId)
                 connection = request.accept(undefined, origin, cookies)
                 connection.on("message", him as HandleInboundMessage)
                 connection.on("close", hd as HandleDisconnection)
-                log("connection accepted", userType, cookieUserId ?? userId)
+                log("connection accepted", userType, userId)
             } else {
                 request.reject(412, reason)
-                log(" connection was rejected," + reason, userType,cookieUserId ?? userId)
+                log(" connection was rejected," + reason, userType, userId)
             }
         }
         const closeConnection: CloseConnection = (reason) => {
@@ -256,9 +229,9 @@ const handleRequest = async (request: ws.request, {addConnectedUser, removeConne
             log("inbound message " + message, userType, userId)
         }
 
-        await (() => (userType === users.host
-            ? initHostConnection(acceptConnection, closeConnection, () => addConnectedUser("host", cookieUserId as number), (hostId) => removeConnectedUser("host", hostId), (toHostId) => getConnectedUsers("host", toHostId), (guessId, mp) => publishMessage("guess", guessId, mp), (hostId, sm) => handleUserSubscriptionToMessages("host", hostId, sm), (hi, wp) => getCachedMessages("host", hi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
-            : initGuessConnection(acceptConnection, closeConnection, () => addConnectedUser("guess", cookieUserId), (guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId), (hostId, mp) => publishMessage("host", hostId, mp), (guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi, wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)))()
+        await (() => (userType === userTypes.host
+            ? initHostConnection(userData as Host, acceptConnection, closeConnection, (hostId) => addConnectedUser("host", hostId), (hostId) => removeConnectedUser("host", hostId), (toHostId) => getConnectedUsers("host", toHostId), (guessId, mp) => publishMessage("guess", guessId, mp), (hostId, sm) => handleUserSubscriptionToMessages("host", hostId, sm), (hi, wp) => getCachedMessages("host", hi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
+            : initGuessConnection(userData, acceptConnection, closeConnection, (guessId) => addConnectedUser("guess", guessId), (guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId), (hostId, mp) => publishMessage("host", hostId, mp), (guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi, wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)))()
     }
 }
 
