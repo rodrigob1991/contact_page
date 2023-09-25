@@ -4,7 +4,7 @@ import {
     messageFlows,
     messageParts,
     messagePrefixesIn,
-    messagePrefixesOut,
+    messagePrefixesOut, oppositeUserTypes,
     userTypes
 } from "./constants"
 import {ChangePropertiesType, IfAllIn} from "utils/src/types"
@@ -14,7 +14,7 @@ export type User<T extends UserType=UserType> = {type: T, data: ("host" extends 
 export type Host = typeof emptyHost
 export type Guess = ChangePropertiesType<typeof emptyGuess, [["id", number | undefined], ["name", string | undefined]]>
 
-export type TheOtherUserType<UT extends UserType> = UserType extends UT ? UserType : Exclude<UserType, UT>
+export type OppositeUserType = typeof oppositeUserTypes
 export type MessageFlow = keyof typeof messageFlows
 export type MessagePrefixIn = keyof typeof messagePrefixesIn
 export type MessagePrefixOut = keyof typeof messagePrefixesOut

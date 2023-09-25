@@ -29,6 +29,6 @@ export const getHosts = () =>
         resolve(hosts)
     })
 
-export const isHostValidRegistered = (id: number, password: string) =>
+export const getHostIfValidRegistered = (id: number, password: string) =>
     getHosts().then(hosts => (id in hosts && hosts[id].password === password) ? hosts[id] : undefined
     )

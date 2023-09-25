@@ -1,4 +1,4 @@
-import {messagePrefixes, users} from "chat-common/src/model/constants"
+import {messagePrefixes, oppositeUserTypes, userTypes} from "chat-common/src/model/constants"
 import {
     CutMessage,
     GetMessages,
@@ -7,8 +7,8 @@ import {
     OutboundMessageTemplate
 } from "chat-common/src/message/types"
 import {getMessage} from "chat-common/src/message/functions"
-import {MessagePrefix, UserType} from "chat-common/src/model/types"
-import {log, SendMessage} from "./app"
+import {MessagePrefix, MessagePrefixOut, UserType} from "chat-common/src/model/types"
+import {log, panic, SendMessage} from "./app"
 import {createClient, createCluster} from "redis"
 import {AnyPropertiesCombination} from "utils/src/types"
 
@@ -17,14 +17,20 @@ export type SubscribeToMessages = () => Promise<void>
 export type UnsubscribeToMessages = () => Promise<void>
 export type HandleUserSubscriptionToMessagesReturn = [SubscribeToMessages, UnsubscribeToMessages]
 export type HandleUserSubscriptionToMessages = <UT extends UserType>(ofUserType: UT, ofUserId: number, sendMessage: SendMessage<UT>) => HandleUserSubscriptionToMessagesReturn
+
 export type UserIdToPublish<MP extends MessagePrefix<"out">> = MP extends "mes" | "uack" ? number : undefined
+export type PublishMessagePrefix = Exclude<MessagePrefixOut, "sack" | "usrs">
 // only for one message type, no unions.
-export type PublishMessage = <M extends OutboundMessage>(toUserType: M["userType"], toUserId: UserIdToPublish<M["prefix"]>, messageParts: GotAllMessageParts<M>) => Promise<void>
+export type PublishMessage = <M extends OutboundMessage<UserType, PublishMessagePrefix>>(toUserType: M["userType"], toUserId: UserIdToPublish<M["prefix"]>, messageParts: GotAllMessageParts<M>) => Promise<void>
+
 export type  WhatPrefixes = AnyPropertiesCombination<{ [K in MessagePrefix<"out">]: true }>
 export type GetCachedMessagesResult<UT extends UserType, WP extends WhatPrefixes> = {[P in keyof WP & MessagePrefix<"out">]: Promise<OutboundMessage<UT, P>["template"][]>}
 type GetCachedMessages = <UT extends UserType, WP extends WhatPrefixes>(userType: UT, userId: number, whatPrefixes: WP) => GetCachedMessagesResult<UT, WP>
+
 type CacheMessage = <M extends OutboundMessage>(userType: M["userType"], userId: number, messagePrefix: M["prefix"], key: RedisMessageKey<[M]>, message: M["template"]) => Promise<void>
+
 export type RemoveMessage = <M extends OutboundMessage>(userType: M["userType"], userId: number, messagePrefix: M["prefix"], key: RedisMessageKey<[M]>) => Promise<boolean>
+
 type IsMessageAck = <M extends OutboundMessage>(userType: M["userType"], userId: number, messagePrefix: M["prefix"], key: RedisMessageKey<[M]>) => Promise<boolean>
 type UserId<UT extends UserType> = number | (UT extends "guess" ? undefined : never)
 export type AddConnectedUserResult = Promise<{id: number, date: number}>
@@ -36,7 +42,10 @@ type GetConnectedUsers = (toUserType: UserType, toUserId: number) => GetConnecte
 
 export type RedisAPIs = { addConnectedUser: AddConnectedUser, removeConnectedUser: RemoveConnectedUser, getConnectedUsers: GetConnectedUsers,  publishMessage: PublishMessage, handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages, cacheMessage: CacheMessage, getCachedMessages: GetCachedMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck}
 
-const initConnection = () => {
+export type HandleOnError = (error: Error) => void
+export type HandleOnReady = () => void
+
+const initConnection = (handleOnError: HandleOnError, handleOnReady: HandleOnReady) => {
     const url = process.env.REDIS_URL
     const credentials = {username: process.env.REDIS_USERNAME, password: process.env.REDIS_PASSWORD}
     const socket = {tls: process.env.REDIS_TLS !== undefined}
@@ -56,25 +65,27 @@ const initConnection = () => {
             ...credentials,
             socket
         })
-    client.on('error', (err) => {
-        log(err)
+    client.on("error", (error: Error) => {
+        log("redis error: " + error.message)
+        handleOnError(error)
     })
-    client.on('connect', () => {
-        log('connected with redis')
+    client.on("connect", () => {
+        log("connected with redis")
     })
-    client.on('reconnecting', () => {
-        log('reconnecting with redis')
+    client.on("reconnecting", () => {
+        log("reconnecting with redis")
     })
-    client.on('ready', () => {
-        log('redis is ready')
+    client.on("ready", () => {
+        log("redis is ready")
+        handleOnReady()
     })
-    client.connect()
+    client.connect().catch((handleOnError))
 
     return client
 }
 
-export const initRedis = () : RedisAPIs => {
-    const guessCountKey = users.guess + "-count"
+export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnReady) : RedisAPIs => {
+    const guessCountKey = userTypes.guess + "-count"
 
     const connectedHostsHashKey = "connected:host"
     const connectedGuessesHashKey = "connected:guesses"
@@ -84,22 +95,20 @@ export const initRedis = () : RedisAPIs => {
 
     const getHandleError = (fn: (...args: any[]) => any, reason2?: string) => (reason1: string) => Promise.reject("redis error: " + fn.name + " failed, " + (reason2 !== undefined ? reason2 + ", " : "") + reason1)
 
-    const getConDisChannel = (isHostUser: boolean) => messagePrefixes.con + ":" + messagePrefixes.dis + ":" + (isHostUser ? users.host : users.guess)
-    const getMessagesChannel = (isHostUser: boolean, userId: number) => messagePrefixes.mes + ":" + (isHostUser ? users.host : users.guess) + ":" + userId
+    const getConDisChannel = (userType: UserType) => messagePrefixes.con + ":" + messagePrefixes.dis + ":" + userType
+    const getMessagesChannel = (userType: UserType, userId: number) => messagePrefixes.mes + ":" + userType + ":" + userId
 
     const handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages = <UT extends UserType>(ofUserType: UT, ofUserId: number, sendMessage: SendMessage<UT>) => {
-        const isHostUser = ofUserType === users.host
-
         const subscriber = redisClient.duplicate()
 
-        const logErrorSendMessage = (message: string, reason: string) => {log("could not send message " + message + ", " + reason, ofUserType, ofUserId)}
+        const logErrorSendMessage = (message: string, reason: string) => { log("could not send message " + message + ", " + reason, ofUserType, ofUserId) }
 
         const subscribe = () => subscriber.connect().then(() =>
-            Promise.all([subscriber.subscribe(getConDisChannel(isHostUser), (message, channel) => {
+            Promise.all([subscriber.subscribe(getConDisChannel(ofUserType), (message, channel) => {
                 // @ts-ignore
                 sendMessage(true, message as OutboundMessageTemplate<UT, "con" | "dis">).catch((r)=> {logErrorSendMessage(message, r)})
             }),
-                subscriber.subscribe(getMessagesChannel(isHostUser, ofUserId), (message, channel) => {
+                subscriber.subscribe(getMessagesChannel(ofUserType, ofUserId), (message, channel) => {
                     // @ts-ignore
                     sendMessage(false, message as OutboundMessageTemplate<UT, "mes" | "uack">).catch((r)=> {logErrorSendMessage(message, r)})
                 })])
@@ -113,25 +122,25 @@ export const initRedis = () : RedisAPIs => {
     }
     const publishMessage: PublishMessage = (toUserType, toUserId, parts) => {
         let channel
-        const isToHostUser = toUserType === users.host
+        const publisherType = oppositeUserTypes[toUserType]
+        const publisherId = parts.userId
 
         switch (parts.prefix) {
             case "con":
             case "dis":
-                channel = getConDisChannel(isToHostUser)
+                channel = getConDisChannel(toUserType)
                 break
             case "mes":
             case "uack":
-                channel = getMessagesChannel(isToHostUser, toUserId as number)
+                channel = getMessagesChannel(toUserType, toUserId as number)
                 break
             default:
-                throw new Error("y" +
-                    "should have been enter any case")
+                panic("should have been enter any case")
         }
         const message = getMessage(parts)
 
         return redisClient.publish(channel, message)
-            .then(n => { log(n + " " + toUserType + " gotten the published message " + message, isToHostUser ? "guess" : "host", parts.userId)})
+            .then(n => { log(n + " " + toUserType + " gotten the published message " + message, publisherType, publisherId)})
             .catch(getHandleError(publishMessage))
     }
 
@@ -145,12 +154,12 @@ export const initRedis = () : RedisAPIs => {
         }).catch(getHandleError(cacheMessage, userType + " : " + userId + ", " + messagePrefix + ":" + key + ":" + message))
 
     const getCachedMessages: GetCachedMessages = (userType, userId, whatPrefixes) => {
-        const promises: any = {}
+        const promises: { [k: string]: Promise<string[]> } = {}
         for (const prefix in whatPrefixes) {
             promises[prefix] = redisClient.hVals(getMessagesHashKey(userType, userId, prefix as MessagePrefix))
                 .then(messages => {
                     const number = messages.length
-                    log(number + " " + prefix + " messages cached gotten" + (number > 0 ? ": " + messages : ""), userType, userId)
+                    log(number + " " + prefix + " messages cached gotten" + (number > 0 ? ": " + messages.toString() : ""), userType, userId)
                     return messages
                 }).catch(getHandleError(getCachedMessages))
         }
@@ -174,7 +183,7 @@ export const initRedis = () : RedisAPIs => {
             }).catch(getHandleError(isMessageAck, userType + " " + userId + ", " + messagePrefix + " " + key))
 
     const addConnectedUser: AddConnectedUser = (userType, id) => {
-        const setConnectedUser = (firstTime: boolean, id: number) => {
+        const setConnectedUser = async (firstTime: boolean, id: number) => {
             const date = Date.now()
             return redisClient.hSetNX(getConnectedUsersHashKey(userType), id.toString(), date.toString()).then(added => {
                 if (added) {
@@ -187,7 +196,7 @@ export const initRedis = () : RedisAPIs => {
         }
         let promise
         if (userType === "host") {
-            promise = setConnectedUser(false, id as number)
+            promise = setConnectedUser(false, id as UserId<"host">)
         } else {
             promise = (id === undefined ? redisClient.incr(guessCountKey).then<[number, true]>(newGuessId => [newGuessId, true]) : Promise.resolve<[number, false]>([id, false])).then(([guessId, firstTime]) => setConnectedUser(firstTime, guessId))
         }
@@ -213,7 +222,7 @@ export const initRedis = () : RedisAPIs => {
         }).catch(getHandleError(getConnectedUsers))
     }
 
-    const redisClient = initConnection()
+    const redisClient = initConnection(handleOnError, handleOnReady)
     // delete all the data
     //redisClient.flushAll().then((r) => log("all redis data deleted, reply: " + r))
 

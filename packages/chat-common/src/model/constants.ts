@@ -1,4 +1,5 @@
 export const userTypes = {host: "host", guess: "guess"} as const
+export const oppositeUserTypes = {host: userTypes.guess, guess: userTypes.host} as const
 export const emptyUser = {id: -1, name: ""}
 export const emptyHost = {...emptyUser, password: ""}
 export const emptyGuess = {...emptyUser}

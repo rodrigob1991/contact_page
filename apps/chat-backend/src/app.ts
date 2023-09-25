@@ -1,12 +1,11 @@
 import ws, {IUtf8Message} from "websocket"
-import http, {IncomingMessage, Server, ServerResponse} from "http"
+import http, {IncomingMessage, ServerResponse} from "http"
 import dotenv from "dotenv"
 import {
     Guess,
     Host,
     MessagePrefix,
-    MessagePrefixOut,
-    TheOtherUserType,
+    MessagePrefixOut, OppositeUserType,
     User,
     UserType
 } from "chat-common/src/model/types"
@@ -25,11 +24,17 @@ import {
 } from "chat-common/src/message/types"
 import {paths, userTypes} from "chat-common/src/model/constants"
 import {getOriginPrefix, getPrefix} from "chat-common/src/message/functions"
-import {initRedis, RedisAPIs, RedisMessageKey} from "./redis"
+import {
+    HandleOnError as HandleOnRedisError,
+    HandleOnReady as HandleOnRedisReady,
+    initRedis,
+    RedisAPIs,
+    RedisMessageKey
+} from "./redis"
 import {initConnection as initHostConnection} from "./user_types/host/initConnection"
 import {initConnection as initGuessConnection} from "./user_types/guess/initConnection"
-import {extractHostData, getHostCookies} from "./user_types/host/cookies";
-import {extractGuessData, getGuessCookies} from "./user_types/guess/cookies";
+import {extractHostData, getHostCookies} from "./user_types/host/cookies"
+import {extractGuessData, getGuessCookies} from "./user_types/guess/cookies"
 
 type IfTrueT<B extends boolean, T, O=undefined> = B extends true ? T : O
 export type AcceptConnection = <A extends boolean>(accept: A, him: IfTrueT<A, HandleInboundMessage> , hd: IfTrueT<A, HandleDisconnection>, reason: IfTrueT<A, undefined, string>, userId: number) => void
@@ -43,7 +48,7 @@ export type HandleInboundAckConMessage<UT extends UserType=UserType> = { [K in U
 export type HandleInboundAckDisMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<K, "uack", "dis">) => RedisMessageKey<[OutboundDisMessage<K>]>}[UT]
 export type HandleInboundAckUsrsMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<K, "uack", "usrs">) => RedisMessageKey<[OutboundUsersMessage<K>]>}[UT]
 export type HandleInboundAckUackMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<K, "uack", "uack">) => RedisMessageKey<[OutboundUserAckMessage<K>]>}[UT]
-export type HandleInboundAckMesMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<K, "uack", "mes">) => [RedisMessageKey<[OutboundMesMessage<K>]>, number, RedisMessageKey<[OutboundUserAckMessage<TheOtherUserType<K>>]>, OutboundUserAckMessage<TheOtherUserType<K>>["template"], () => Promise<void>]}[UT]
+export type HandleInboundAckMesMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<K, "uack", "mes">) => [RedisMessageKey<[OutboundMesMessage<K>]>, number, RedisMessageKey<[OutboundUserAckMessage<OppositeUserType[K]>]>, OutboundUserAckMessage<OppositeUserType[K]>["template"], () => Promise<void>]}[UT]
 export type ApplyHandleInboundMessage<UT extends UserType=UserType> =(wsMessage: ws.Message, handleMesMessage: HandleInboundMesMessage<UT>, handleAckConMessage: HandleInboundAckConMessage<UT>, handleAckDisMessage: HandleInboundAckDisMessage<UT>, handleAckUsrsMessage: HandleInboundAckUsrsMessage<UT>, handleAckUackMessage: HandleInboundAckUackMessage<UT>, handleAckMesMessage: HandleInboundAckMesMessage<UT>, userId: number) => void
 
 export type SendMessage<UT extends UserType> = (cache: boolean, ...message: OutboundMessageTemplate<UT, Exclude<MessagePrefixOut, "sack">>[]) => Promise<void>
@@ -235,17 +240,20 @@ const handleRequest = async (request: ws.request, {addConnectedUser, removeConne
     }
 }
 
-const initWebSocket = (httpServer: Server, redisApis: RedisAPIs) => {
+const initWebSocketServer = () => {
     const wsServer = new ws.server({
-        httpServer: httpServer,
+        httpServer: initHttpServer(),
         autoAcceptConnections: false,
     })
-
+    const handleOnRedisError: HandleOnRedisError = (error) => {
+    }
+    const handleOnRedisReady: HandleOnRedisReady = () => {
+    }
+    const redisApis = initRedis(handleOnRedisError, handleOnRedisReady)
     wsServer.on("request", (request) => {
         handleRequest(request, redisApis).catch(getHandleError(handleRequest))
     })
 }
 
 dotenv.config()
-
-initWebSocket(initHttpServer(), initRedis())
+initWebSocketServer()

@@ -7,7 +7,7 @@ import {
     OutboundMessageTemplate,
     OutboundToGuessConMessage,
     OutboundToGuessDisMessage,
-    OutboundToGuessUserAckMessage,
+    OutboundToGuessUserAckMessage, OutboundToHostConMessage,
     OutboundToHostGuessesMessage,
     OutboundToHostMesMessage,
     OutboundToHostServerAckMessage
@@ -24,14 +24,16 @@ import {
     HandleInboundMesMessage,
     HandleInboundMessage,
     log as appLog,
+    panic as appPanic,
     SendMessage
 } from "../../app"
 import {InitUserConnection} from "../types"
 
 //const logError = (msg: string, id: number) => { appLogError(msg, "host", id) }
 
-export const initConnection : InitUserConnection<"host">  = async (hostData, acceptConnection, closeConnection, addConnectedHost, removeConnectedHost, getConnectedGuesses, publishMessage, handleHostSubscriptionToMessages, getHostCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+export const initConnection : InitUserConnection<"host">  = async ({id: hostId, name: hostName}, acceptConnection, closeConnection, addConnectedHost, removeConnectedHost, getConnectedGuesses, publishMessage, handleHostSubscriptionToMessages, getHostCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const log = (msg: string) => { appLog(msg, "host", hostId) }
+    const panic = (msg: string) => { appPanic(msg,"host", hostId) }
     const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, callback?: (r: string) => void) => appGetHandleError(originFunction, reason2, "host", hostId, callback)
 
     const sendOutboundMessage : SendMessage<"host"> = async (cache, ...messages) => {
@@ -42,9 +44,11 @@ export const initConnection : InitUserConnection<"host">  = async (hostData, acc
             const mp = getPrefix(message)
             switch (mp) {
                 case "con":
+                    key = `${keyPrefix}${getCutMessage<OutboundToHostConMessage, "body">(message as OutboundToHostConMessage["template"], {body: 4}, 4)}`
+                    break
                 case "dis":
                 case "uack":
-                    key = `${keyPrefix}${message as OutboundMessageTemplate<"host", "con" | "dis" | "uack">}`
+                    key = `${keyPrefix}${message as OutboundMessageTemplate<"host", "dis" | "uack">}`
                     break
                 case "mes":
                     key = `${keyPrefix}${getCutMessage<OutboundToHostMesMessage, "body">(message as OutboundToHostMesMessage["template"], {body: 4}, 4)}`
@@ -53,7 +57,7 @@ export const initConnection : InitUserConnection<"host">  = async (hostData, acc
                     key = `${keyPrefix}${getCutMessage<OutboundToHostGuessesMessage, "body">(message as OutboundToHostGuessesMessage["template"], {body: 3}, 3)}`
                     break
                 default:
-                    throw new Error("invalid message prefix")
+                    panic("invalid message prefix")
             }
             promises.push(cacheAndSendUntilAck<GetMessages<"host", "out">>(cache, mp, key, message, hostId))
         }
@@ -131,11 +135,10 @@ export const initConnection : InitUserConnection<"host">  = async (hostData, acc
     let subscribe
     let unsubscribe: UnsubscribeToMessages = () => Promise.resolve()
 
-    let hostId = -1
     let connectionDate = -1
     let connectionAccepted = false
     try {
-        ({id: hostId, date: connectionDate} = await addConnectedHost(hostData.id))
+        connectionDate = (await addConnectedHost(hostId)).date
         acceptConnection(true, handleInboundMessage, handleDisconnection, undefined, hostId)
         connectionAccepted = true
     } catch (e) {
@@ -151,7 +154,7 @@ export const initConnection : InitUserConnection<"host">  = async (hostData, acc
                 //getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, ...guessesIds.map(([guessId, date]) => getMessage<OutboundToHostConMessage>({prefix: "con", number: date, userId: guessId})))),
                 ...Object.values(getHostCachedMessages(hostId, {mes: true, uack: true})).map(promise => promise.then(messages => sendOutboundMessage(false, ...messages))),
                 // publish host connection
-                publishMessage<OutboundToGuessConMessage>(undefined,{prefix: "con", number: connectionDate, userId: hostId})])
+                publishMessage<OutboundToGuessConMessage>(undefined,{prefix: "con", number: connectionDate, userId: hostId, body: hostName})])
         } catch (e) {
             closeConnection("error initializing host : " + JSON.stringify(e))
         }

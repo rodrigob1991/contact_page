@@ -1,7 +1,6 @@
-import {users, userTypes} from "chat-common/src/model/constants"
+import {userTypes} from "chat-common/src/model/constants"
 import {CookiesOut, ExtractUserData, panic} from "../../app"
-import {isHostValidRegistered} from "./authentication"
-import {User, UserType} from "chat-common/src/model/types";
+import {getHostIfValidRegistered} from "./authentication"
 
 const cookieNamePrefix = userTypes.host
 
@@ -17,7 +16,7 @@ export const extractHostData: ExtractUserData<"host"> = async (cookies) => {
         if (name.startsWith(cookieNamePrefix)) {
             const id = +name.substring(cookieNamePrefix.length)
             if (!isNaN(id)) {
-                host = await isHostValidRegistered(id, value).catch((r: string) => panic(r, "host", id))
+                host = await getHostIfValidRegistered(id, value).catch((r: string) => panic(r, "host", id))
             }
         }
         index++
