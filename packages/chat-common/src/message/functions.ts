@@ -10,7 +10,7 @@ import {
     MessageTemplate
 } from "./types"
 import {getIndexOnOccurrence, recursiveSplit} from "utils/src/strings"
-import {MessagePartsValues} from "../model/types"
+import {AccountedUserData, MessagePartsValues} from "../model/types"
 
 type AnyMessagePartsPositions<M extends Message, CMPP extends CommonMessagePartsPositions<M>, MPP = M["positions"]> = { [K in CMPP]: K extends keyof MPP ? MPP[K] : never }
 type LastPosition<MPP extends MessagePartsPositions, LASTS = [4, 3, 2, 1]> = LASTS extends [infer LAST, ...infer REST] ? LAST extends MPP[keyof MPP] ? LAST : LastPosition<MPP, REST> : never
@@ -122,7 +122,7 @@ export const getUsersMessageBody = (usersData: [number, string, boolean, number?
     return str.substring(0, str.length - 1)
 }
 
-export const getParsedUsersMessageBody = (body: string) =>
+export const getParsedUsersMessageBody = (body: string): AccountedUserData[] =>
     recursiveSplit(body, [usersSeparator, userDataSeparator]).map(userData =>
         ({
             id: +userData[0],

@@ -10,9 +10,15 @@ import {
 import {ChangePropertiesType, IfAllIn} from "utils/src/types"
 
 export type UserType = keyof typeof userTypes
-export type User<T extends UserType=UserType> = {type: T, data: ("host" extends T ? Host : never) | ("guess" extends T ? Guess : never)}
+export type User<UT extends UserType=UserType> = {type: UT, data: ("host" extends UT ? Host : never) | ("guess" extends UT ? Guess : never)}
+export type AccountedUser<UT extends UserType = UserType> = {
+    type: UT,
+    data: (("host" extends UT ? Host : never) | ("guess" extends UT ? AccountedGuess : never)) &  { isConnected: boolean, lastConnectionDate?: number }
+}
+export type AccountedUserData<UT extends UserType = UserType> = AccountedUser<UT>["data"]
 export type Host = typeof emptyHost
-export type Guess = ChangePropertiesType<typeof emptyGuess, [["id", number | undefined], ["name", string | undefined]]>
+export type Guess = ChangePropertiesType<AccountedGuess, [["id", number | undefined], ["name", string | undefined]]>
+export type AccountedGuess = typeof emptyGuess
 
 export type OppositeUserType = typeof oppositeUserTypes
 export type MessageFlow = keyof typeof messageFlows

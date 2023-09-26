@@ -76,10 +76,10 @@ export type  OutboundMessage<UT extends UserType=UserType, MP extends MessagePre
 export type  OutboundMessagePartsKeys = InboundMessagePartsKeysImp
 export type  OutboundMessageTemplate<UT extends UserType = UserType, MP extends MessagePrefix<"out"> = MessagePrefix<"out">> = InboundMessageTemplateImp<UT, MP>
 
-export type InboundUsersMessageParts<UT extends UserType> = GotAllMessageParts<InboundUsersMessage<UT>>
-export type InboundConMessageParts<UT extends UserType> = GotAllMessageParts<InboundConMessage<UT>>
-export type InboundDisMessageParts<UT extends UserType> = GotAllMessageParts<InboundDisMessage<UT>>
-export type InboundMesMessageParts<UT extends UserType> = GotAllMessageParts<InboundMesMessage<UT>>
-export type InboundUserAckMessageParts<UT extends UserType> = GotAllMessageParts<InboundUserAckMessage<UT>>
-export type InboundServerAckMessageParts<UT extends UserType> = GotAllMessageParts<InboundServerAckMessage<UT>>
+export type InboundUsersMessageParts<UT extends UserType=UserType> = GotAllMessageParts<InboundUsersMessage<UT>>
+export type InboundConMessageParts<UT extends UserType=UserType> = GotAllMessageParts<InboundConMessage<UT>>
+export type InboundDisMessageParts<UT extends UserType=UserType> = GotAllMessageParts<InboundDisMessage<UT>>
+export type InboundMesMessageParts<UT extends UserType=UserType> = GotAllMessageParts<InboundMesMessage<UT>>
+export type InboundUserAckMessageParts<UT extends UserType=UserType> = GotAllMessageParts<InboundUserAckMessage<UT>>
+export type InboundServerAckMessageParts<UT extends UserType=UserType> = GotAllMessageParts<InboundServerAckMessage<UT>>
 export type InboundMessageParts<UT extends UserType=UserType> = GotAllMessageParts<InboundMessage<UT>>

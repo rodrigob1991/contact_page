@@ -6,12 +6,16 @@ import {
     InboundDisMessageParts,
     InboundMesMessage,
     InboundMesMessageParts,
+    InboundMessageParts,
     InboundMessageTemplate,
     InboundServerAckMessage,
-    InboundServerAckMessageParts, InboundToGuessHostsMessage, InboundToHostGuessesMessage,
+    InboundServerAckMessageParts,
+    InboundToGuessHostsMessage,
+    InboundToHostGuessesMessage,
     InboundUserAckMessage,
-    InboundUserAckMessageParts, InboundUsersMessage, InboundUsersMessageParts,
-    MessagePrefix,
+    InboundUserAckMessageParts,
+    InboundUsersMessage,
+    InboundUsersMessageParts,
     OutboundAckMessage,
     OutboundFromGuessAckMessage,
     OutboundFromGuessMesMessage,
@@ -23,6 +27,7 @@ import {useEffect, useRef} from "react"
 import {getMessage, getParts, getPrefix} from "chat-common/src/message/functions"
 import {paths} from "chat-common/src/model/constants"
 
+export type HandleUsersMessage<UT extends UserType> =  (cm: InboundUsersMessageParts<UT>) => void
 export type HandleConMessage<UT extends UserType> =  (cm: InboundConMessageParts<UT>) => void
 export type HandleDisMessage<UT extends UserType> =  (dm: InboundDisMessageParts<UT>) => void
 export type HandleMesMessage<UT extends UserType> =  (mm: InboundMesMessageParts<UT>) => void
@@ -38,6 +43,7 @@ export type HandleNewConnectionState = (cs: ConnectionState) => void
 
 export type Props<UT extends UserType> = {
     userType: UT
+    handleUsersMessage: HandleUsersMessage<UT>
     handleConMessage: HandleConMessage<UT>
     handleDisMessage: HandleDisMessage<UT>
     handleMesMessage: HandleMesMessage<UT>
@@ -51,6 +57,7 @@ export type Props<UT extends UserType> = {
 
 export default function useWebSocket<UT extends UserType>({
                                                               userType,
+                                                              handleUsersMessage,
                                                               handleConMessage,
                                                               handleDisMessage,
                                                               handleMesMessage,
@@ -61,7 +68,7 @@ export default function useWebSocket<UT extends UserType>({
                                                               connect,
                                                               handleNewConnectionState,
                                                           }: Props<UT>) {
-    const [path, getOutboundMesMessage, getConMessageParts, getDisMessageParts, getMesMessageParts, getServerAckMessageParts, getUserAckMessageParts] = (userType === "host" ? getHostSpecifics() : getGuessSpecifics()) as GetUserSpecificsReturn<UT>
+    const [path, getOutboundMesMessage, getUsersMessageParts, getConMessageParts, getDisMessageParts, getMesMessageParts, getServerAckMessageParts, getUserAckMessageParts] = (userType === "host" ? getHostSpecifics() : getGuessSpecifics()) as GetUserSpecificsReturn<UT>
 
     const handleConnecting = () => {
         handleNewConnectionState(ConnectionState.CONNECTING)
@@ -73,15 +80,14 @@ export default function useWebSocket<UT extends UserType>({
         handleNewConnectionState(ConnectionState.DISCONNECTED)
     }
 
-    type InboundMessagePartsToFormId = { prefix: MessagePrefix<"in">, number: number, userId: number }
-    const refToInboundConDisMessagesIdsSet = useRef(new Set<string>())
-    const refToInboundMesUackMessagesIdsSet = useRef(new Set<string>())
-    const getInboundMessagesIdsSet = (prefix: MessagePrefix<"in">) => (prefix === "con" || prefix ===  "dis") ? refToInboundConDisMessagesIdsSet.current : refToInboundMesUackMessagesIdsSet.current
-    const getInboundMessageId = ({prefix, number, userId}: InboundMessagePartsToFormId) => prefix + ":" + number + ":" + userId
-    const setMessageAsReceived = (parts: InboundMessagePartsToFormId) => {
-        getInboundMessagesIdsSet(parts.prefix).add(getInboundMessageId(parts))
+    type InboundMessagePartsToFormId<IMP extends InboundMessageParts> = Pick<IMP, "prefix" | "number" | ("userId" extends keyof IMP ? "userId" : never)>
+    const refToInboundMessagesIdsSet = useRef(new Set<string>())
+    const getInboundMessagesIdsSet = () => refToInboundMessagesIdsSet.current
+    const getInboundMessageId = <IMP extends InboundMessageParts>(parts: InboundMessagePartsToFormId<IMP>) => parts.prefix + ":" + parts.number + ("userId" in parts ? ":" + parts.userId : "")
+    const setMessageAsReceived = <IMP extends InboundMessageParts>(parts: InboundMessagePartsToFormId<IMP>) => {
+        getInboundMessagesIdsSet().add(getInboundMessageId(parts))
     }
-    const messageWasNotReceived = (parts: InboundMessagePartsToFormId) => !getInboundMessagesIdsSet(parts.prefix).has(getInboundMessageId(parts))
+    const wasMessageNotReceived = <IMP extends InboundMessageParts>(parts: InboundMessagePartsToFormId<IMP>) => !getInboundMessagesIdsSet().has(getInboundMessageId(parts))
 
     const refToWs = useRef<WebSocket>()
     const setWS = (ws: WebSocket) => {
@@ -107,7 +113,7 @@ export default function useWebSocket<UT extends UserType>({
                 if (ws.readyState === ws.CONNECTING)
                     handleConnecting()
             }
-            ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate<UT>>) => {
+            ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate>) => {
                 console.log("inbound message: " + inboundMessage)
                 const ackMessage = (outboundAckMessage: string) => {
                     ws.send(outboundAckMessage)
@@ -115,9 +121,18 @@ export default function useWebSocket<UT extends UserType>({
 
                 const prefix = getPrefix(inboundMessage)
                 switch (prefix) {
+                    case "usrs": {
+                        const [parts, outboundAckMessage] = getUsersMessageParts(inboundMessage as InboundUsersMessage<UT>["template"])
+                        if (wasMessageNotReceived(parts)) {
+                            handleUsersMessage(parts)
+                            setMessageAsReceived(parts)
+                        }
+                        ackMessage(outboundAckMessage)
+                        break
+                    }
                     case "con":
                         const [conParts, outboundConAckMessage] = getConMessageParts(inboundMessage as InboundConMessage<UT>["template"])
-                        if (messageWasNotReceived(conParts)) {
+                        if (wasMessageNotReceived(conParts)) {
                             handleConMessage(conParts)
                             setMessageAsReceived(conParts)
                         }
@@ -125,7 +140,7 @@ export default function useWebSocket<UT extends UserType>({
                         break
                     case "dis":
                         const [disParts, outboundDisAckMessage] = getDisMessageParts(inboundMessage as InboundDisMessage<UT>["template"])
-                        if (messageWasNotReceived(disParts)) {
+                        if (wasMessageNotReceived(disParts)) {
                             handleDisMessage(disParts)
                             setMessageAsReceived(disParts)
                         }
@@ -133,7 +148,7 @@ export default function useWebSocket<UT extends UserType>({
                         break
                     case "mes":
                         const [mesParts, outboundMesAckMessage] = getMesMessageParts(inboundMessage as InboundMesMessage<UT>["template"])
-                        if (messageWasNotReceived(mesParts)) {
+                        if (wasMessageNotReceived(mesParts)) {
                             handleMesMessage(mesParts)
                             setMessageAsReceived(mesParts)
                         }
@@ -141,7 +156,7 @@ export default function useWebSocket<UT extends UserType>({
                         break
                     case "uack":
                         const [uackParts, outboundUAckAckMessage] = getUserAckMessageParts(inboundMessage as InboundUserAckMessage<UT>["template"])
-                        if (messageWasNotReceived(uackParts)) {
+                        if (wasMessageNotReceived(uackParts)) {
                             handleUserAckMessage(uackParts.number, uackParts.userId)
                             setMessageAsReceived(uackParts)
                         }
@@ -149,7 +164,7 @@ export default function useWebSocket<UT extends UserType>({
                         break
                     case "sack":
                         const sackParts = getServerAckMessageParts(inboundMessage as InboundServerAckMessage<UT>["template"])
-                        if (messageWasNotReceived(sackParts)) {
+                        if (wasMessageNotReceived(sackParts)) {
                             handleServerAckMessage(sackParts.number)
                             setMessageAsReceived(sackParts)
                         }
@@ -163,7 +178,7 @@ export default function useWebSocket<UT extends UserType>({
     }
     const closeWS = () => {
         getWS()?.close()
-        getInboundMessagesIdsSet("con").clear()
+        //getInboundMessagesIdsSet("con").clear()
     }
 
     useEffect(() => {
