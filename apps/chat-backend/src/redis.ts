@@ -8,7 +8,7 @@ import {
 } from "chat-common/src/message/types"
 import {getMessage} from "chat-common/src/message/functions"
 import {MessagePrefix, MessagePrefixOut, UserType} from "chat-common/src/model/types"
-import {log, panic, SendMessage} from "./app"
+import {getHandleError, log, panic, SendMessage} from "./app"
 import {createClient, createCluster} from "redis"
 import {AnyPropertiesCombination} from "utils/src/types"
 
@@ -87,13 +87,14 @@ const initConnection = (handleOnError: HandleOnError, handleOnReady: HandleOnRea
 export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnReady) : RedisAPIs => {
     const guessCountKey = userTypes.guess + "-count"
 
-    const connectedHostsHashKey = "connected:host"
-    const connectedGuessesHashKey = "connected:guesses"
+    const connectedUsersHashKeyPrefix = "connected:"
+    const connectedHostsHashKey = connectedUsersHashKeyPrefix + userTypes.host
+    const connectedGuessesHashKey = connectedUsersHashKeyPrefix + userTypes.guess
     const getConnectedUsersHashKey = (userType: UserType) => userType === "host" ?  connectedHostsHashKey : connectedGuessesHashKey
 
     const getMessagesHashKey = (userType: UserType, userId: number, messagePrefix: MessagePrefix) => userType + ":" + userId + ":" + messagePrefix + ":messages"
 
-    const getHandleError = (fn: (...args: any[]) => any, reason2?: string) => (reason1: string) => Promise.reject("redis error: " + fn.name + " failed, " + (reason2 !== undefined ? reason2 + ", " : "") + reason1)
+    const getRejectError = (fn: (...args: any[]) => any, reason2?: string) => (reason1: string) => Promise.reject("redis error: " + fn.name + " failed, " + (reason2 !== undefined ? reason2 + ", " : "") + reason1)
 
     const getConDisChannel = (userType: UserType) => messagePrefixes.con + ":" + messagePrefixes.dis + ":" + userType
     const getMessagesChannel = (userType: UserType, userId: number) => messagePrefixes.mes + ":" + userType + ":" + userId
@@ -101,22 +102,22 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
     const handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages = <UT extends UserType>(ofUserType: UT, ofUserId: number, sendMessage: SendMessage<UT>) => {
         const subscriber = redisClient.duplicate()
 
-        const logErrorSendMessage = (message: string, reason: string) => { log("could not send message " + message + ", " + reason, ofUserType, ofUserId) }
-
+        const getHandleErrorSendMessage = (message: string) => getHandleError(sendMessage, "consuming message: " + message, ofUserType, ofUserId)
         const subscribe = () => subscriber.connect().then(() =>
-            Promise.all([subscriber.subscribe(getConDisChannel(ofUserType), (message, channel) => {
-                // @ts-ignore
-                sendMessage(true, message as OutboundMessageTemplate<UT, "con" | "dis">).catch((r)=> {logErrorSendMessage(message, r)})
-            }),
+            Promise.all([
+                subscriber.subscribe(getConDisChannel(ofUserType), (message, channel) => {
+                    // @ts-ignore
+                    sendMessage(true, message as OutboundMessageTemplate<UT, "con" | "dis">).catch(getHandleErrorSendMessage(message))
+                }),
                 subscriber.subscribe(getMessagesChannel(ofUserType, ofUserId), (message, channel) => {
                     // @ts-ignore
-                    sendMessage(false, message as OutboundMessageTemplate<UT, "mes" | "uack">).catch((r)=> {logErrorSendMessage(message, r)})
+                    sendMessage(false, message as OutboundMessageTemplate<UT, "mes" | "uack">).catch(getHandleErrorSendMessage(message))
                 })])
                 .then(() => {
                     log("subscribed to the channels", ofUserType, ofUserId)
                 }))
-            .catch(getHandleError(subscribe))
-        const unsubscribe = () => subscriber.disconnect().then(() => { log("unsubscribed to the channels", ofUserType, ofUserId) }).catch(getHandleError(unsubscribe))
+            .catch(getRejectError(subscribe))
+        const unsubscribe = () => subscriber.disconnect().then(() => { log("unsubscribed to the channels", ofUserType, ofUserId) }).catch(getRejectError(unsubscribe))
 
         return [subscribe, unsubscribe]
     }
@@ -141,7 +142,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
 
         return redisClient.publish(channel, message)
             .then(n => { log(n + " " + toUserType + " gotten the published message " + message, publisherType, publisherId)})
-            .catch(getHandleError(publishMessage))
+            .catch(getRejectError(publishMessage))
     }
 
     const cacheMessage: CacheMessage = (userType, userId, messagePrefix, key, message) =>
@@ -151,7 +152,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
             if (cached)
                 log(msg, userType, userId)
             else return Promise.reject(msg)
-        }).catch(getHandleError(cacheMessage, userType + " : " + userId + ", " + messagePrefix + ":" + key + ":" + message))
+        }).catch(getRejectError(cacheMessage, userType + " : " + userId + ", " + messagePrefix + ":" + key + ":" + message))
 
     const getCachedMessages: GetCachedMessages = (userType, userId, whatPrefixes) => {
         const promises: { [k: string]: Promise<string[]> } = {}
@@ -161,7 +162,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
                     const number = messages.length
                     log(number + " " + prefix + " messages cached gotten" + (number > 0 ? ": " + messages.toString() : ""), userType, userId)
                     return messages
-                }).catch(getHandleError(getCachedMessages))
+                }).catch(getRejectError(getCachedMessages))
         }
         return promises as GetCachedMessagesResult<typeof userType, typeof whatPrefixes>
     }
@@ -173,14 +174,14 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
                 const removed = n > 0
                 log("message with key " + key + " was " + (removed ? "" : "not ") + "removed", userType, userId)
                 return removed
-            }).catch(getHandleError(removeMessage))
+            }).catch(getRejectError(removeMessage))
 
     const isMessageAck: IsMessageAck = (userType, userId, messagePrefix, key) =>
         redisClient.hExists(getMessagesHashKey(userType, userId, messagePrefix), key)
             .then(exist => {
                 log("message with key " + key + " was" + (exist ? " not" : "") + " acknowledged", userType, userId)
                 return !exist
-            }).catch(getHandleError(isMessageAck, userType + " " + userId + ", " + messagePrefix + " " + key))
+            }).catch(getRejectError(isMessageAck, userType + " " + userId + ", " + messagePrefix + " " + key))
 
     const addConnectedUser: AddConnectedUser = (userType, id) => {
         const setConnectedUser = async (firstTime: boolean, id: number) => {
@@ -200,13 +201,13 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
         } else {
             promise = (id === undefined ? redisClient.incr(guessCountKey).then<[number, true]>(newGuessId => [newGuessId, true]) : Promise.resolve<[number, false]>([id, false])).then(([guessId, firstTime]) => setConnectedUser(firstTime, guessId))
         }
-        return promise.catch(getHandleError(addConnectedUser))
+        return promise.catch(getRejectError(addConnectedUser))
     }
     const removeConnectedUser: RemoveConnectedUser = (userType, id) => {
         return redisClient.hDel(getConnectedUsersHashKey(userType), id.toString()).then(n => {
             if (n > 0) log("was removed from connected hash", userType, id)
             else return Promise.reject(userType + " " + id + " was not removed from connected hash")
-        }).catch(getHandleError(removeConnectedUser))
+        }).catch(getRejectError(removeConnectedUser))
     }
 
     const getConnectedUsers: GetConnectedUsers = (toUserType, toUserId) => {
@@ -219,7 +220,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
             const users: ConnectedUsers = {}
             fieldsEntries.forEach(([idStr, dateStr]) => { users[+idStr] = +dateStr })
             return users
-        }).catch(getHandleError(getConnectedUsers))
+        }).catch(getRejectError(getConnectedUsers))
     }
 
     const redisClient = initConnection(handleOnError, handleOnReady)

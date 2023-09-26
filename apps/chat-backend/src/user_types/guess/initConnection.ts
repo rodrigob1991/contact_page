@@ -34,7 +34,7 @@ import {userTypes} from "chat-common/src/model/constants"
 
 export const initConnection : InitUserConnection<"guess"> = async ({id: cookieGuessId, name: guessName}, acceptConnection, closeConnection, addConnectedGuess, removeConnectedGuess, getConnectedHosts, publishMessage, handleGuessSubscriptionToMessages, getGuessCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const log = (msg: string) => { appLog(msg, "guess", guessId) }
-    const panic = (msg: string) => { appPanic(msg,"guess", guessId) }
+    const panic = (msg: string) : never => appPanic(msg,"guess", guessId)
     const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, callback?: (r: string) => void) => appGetHandleError(originFunction, reason2, "guess", guessId, callback)
 
     const sendOutboundMessage: SendMessage<"guess"> = async (cache, ...messages) => {

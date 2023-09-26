@@ -4,8 +4,8 @@ import {
     MessagePartsKeys,
     MessagePrefix,
     MessagePrefixExclusiveOut,
+    OppositeUserType,
     OriginPrefix,
-    TheOtherUserType,
     UserType
 } from "../model/types"
 import {IfOneIn} from "utils/src/types"
@@ -69,7 +69,7 @@ type OriginPrefixOrNever<MP extends MessagePrefix> = "uack" extends MP ? OriginP
 export type InboundMessage<UT extends UserType=UserType, MP extends MessagePrefix<"in">=MessagePrefix<"in">, OP extends OriginPrefixOrNever<MP> = OriginPrefixOrNever<MP>> =("mes" extends MP ? InboundMesMessage<UT> : never) | ("uack" extends MP ? InboundAckMessage<UT, OP> : never)
 export type InboundMessagePartsKeys<UT extends UserType=UserType, MP extends MessagePrefix<"in">=MessagePrefix<"in">> = InboundMessage<UT, MP>["parts"]
 export type InboundMessageTemplate<UT extends UserType=UserType, MP extends MessagePrefix<"in">=MessagePrefix<"in">, OP extends OriginPrefixOrNever<MP> = OriginPrefixOrNever<MP>> = InboundMessage<UT, MP, OP>["template"]
-export type InboundMessageTarget<M extends InboundMessage> = OutboundMessage<TheOtherUserType<M["userType"]>,  M["prefix"]>
+export type InboundMessageTarget<M extends InboundMessage> = OutboundMessage<OppositeUserType[M["userType"]],  M["prefix"]>
 export type InboundAckMessageOrigin<UT extends UserType = UserType, OP extends MessagePrefix<"out"> = MessagePrefix<"out">> = GetMessages<UT, "out", OP>
 
 export type Message<UT extends UserType=UserType, MF extends MessageFlow=MessageFlow, MP extends MessagePrefix<MF>=MessagePrefix<MF>> = ("in" extends MF ? InboundMessage<UT, Exclude<MP, MessagePrefixExclusiveOut>> : never)  | ("out" extends MF ? OutboundMessage<UT,MP> : never)

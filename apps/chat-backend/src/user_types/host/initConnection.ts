@@ -33,7 +33,7 @@ import {InitUserConnection} from "../types"
 
 export const initConnection : InitUserConnection<"host">  = async ({id: hostId, name: hostName}, acceptConnection, closeConnection, addConnectedHost, removeConnectedHost, getConnectedGuesses, publishMessage, handleHostSubscriptionToMessages, getHostCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const log = (msg: string) => { appLog(msg, "host", hostId) }
-    const panic = (msg: string) => { appPanic(msg,"host", hostId) }
+    const panic = (msg: string): never => appPanic(msg, "host", hostId)
     const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, callback?: (r: string) => void) => appGetHandleError(originFunction, reason2, "host", hostId, callback)
 
     const sendOutboundMessage : SendMessage<"host"> = async (cache, ...messages) => {
