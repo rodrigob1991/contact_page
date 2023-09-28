@@ -118,7 +118,7 @@ const userDataSeparator = ":"
 
 export const getUsersMessageBody = (usersData: [number, string, boolean, number?][]) => {
     let str = ""
-    usersData.forEach(([id, name, isConnected, lastConnectionDate]) => str += `${id}${userDataSeparator}${name}${userDataSeparator}${isConnected ? "1" : "0"}${userDataSeparator}${lastConnectionDate ?? ""}${usersSeparator}`)
+    usersData.forEach(([id, name, isConnected, date]) => str += `${id}${userDataSeparator}${name}${userDataSeparator}${isConnected ? "1" : "0"}${userDataSeparator}${date ?? ""}${usersSeparator}`)
     return str.substring(0, str.length - 1)
 }
 
@@ -128,5 +128,5 @@ export const getParsedUsersMessageBody = (body: string): AccountedUserData[] =>
             id: +userData[0],
             name: userData[1],
             isConnected: userData[2] === "1",
-            lastConnectionDate: +userData[3]
+            date: +userData[3]
         }))

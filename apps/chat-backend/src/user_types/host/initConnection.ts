@@ -7,7 +7,7 @@ import {
     OutboundMessageTemplate,
     OutboundToGuessConMessage,
     OutboundToGuessDisMessage,
-    OutboundToGuessUserAckMessage, OutboundToHostConMessage,
+    OutboundToGuessUserAckMessage, OutboundToHostConMessage, OutboundToHostDisMessage,
     OutboundToHostGuessesMessage,
     OutboundToHostMesMessage,
     OutboundToHostServerAckMessage
@@ -47,8 +47,10 @@ export const initConnection : InitUserConnection<"host">  = async ({id: hostId, 
                     key = `${keyPrefix}${getCutMessage<OutboundToHostConMessage, "body">(message as OutboundToHostConMessage["template"], {body: 4}, 4)}`
                     break
                 case "dis":
+                    key = `${keyPrefix}${getCutMessage<OutboundToHostDisMessage, "body">(message as OutboundToHostDisMessage["template"], {body: 4}, 4)}`
+                    break
                 case "uack":
-                    key = `${keyPrefix}${message as OutboundMessageTemplate<"host", "dis" | "uack">}`
+                    key = `${keyPrefix}${message as OutboundMessageTemplate<"host", "uack">}`
                     break
                 case "mes":
                     key = `${keyPrefix}${getCutMessage<OutboundToHostMesMessage, "body">(message as OutboundToHostMesMessage["template"], {body: 4}, 4)}`
@@ -127,7 +129,7 @@ export const initConnection : InitUserConnection<"host">  = async ({id: hostId, 
         // AND IF UNSUBSCRIBE FAIL AND THE CONSUMER REMAIN ON
         removeConnectedHost(hostId).catch(getHandleError(removeConnectedHost))
         unsubscribe().catch(getHandleError(unsubscribe))
-        publishMessage<OutboundToGuessDisMessage>(undefined,{prefix: "dis", number: Date.now(), userId: hostId}).catch(getHandleError(publishMessage, "publish disconnection"))
+        publishMessage<OutboundToGuessDisMessage>(undefined,{prefix: "dis", number: Date.now(), userId: hostId, body: hostName}).catch(getHandleError(publishMessage, "publish disconnection"))
 
         log(`disconnected, reason code:${reasonCode}, description: ${description}`)
     }
@@ -153,7 +155,7 @@ export const initConnection : InitUserConnection<"host">  = async ({id: hostId, 
                 getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, getMessage<OutboundToHostGuessesMessage>({prefix: "usrs", number: connectionDate, body: getUsersMessageBody(Object.entries(guessesIds).map(([id, date]) => [+id, "guess" + id, true, date]))}))),
                 //getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, ...guessesIds.map(([guessId, date]) => getMessage<OutboundToHostConMessage>({prefix: "con", number: date, userId: guessId})))),
                 ...Object.values(getHostCachedMessages(hostId, {mes: true, uack: true})).map(promise => promise.then(messages => sendOutboundMessage(false, ...messages))),
-                // publish host connection
+                // publish host connection, maybe do it after the other promises succeed
                 publishMessage<OutboundToGuessConMessage>(undefined,{prefix: "con", number: connectionDate, userId: hostId, body: hostName})])
         } catch (e) {
             closeConnection("error initializing host : " + JSON.stringify(e))

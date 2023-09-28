@@ -1,9 +1,10 @@
-export type ChangePropertiesType<Object extends Record<string, any>, NewTypes extends [keyof Object & string, any][]> = {
-    [Key in keyof Object]
+export type ChangePropertiesType<R extends Record<string, any>, NewTypes extends [keyof R & string, any][]> = {
+    [Key in keyof R]
     : SeekNewType<Key, NewTypes> extends undefined
-        ? Object[Key]
+        ? R[Key]
         : SeekNewType<Key, NewTypes>
 }
+export type ChangePropertyType<R extends Record<string, any>, NewType extends [keyof R & string, any]> = ChangePropertiesType<R, [NewType]>
 
 type SeekNewType<SearchKey, NewTypes extends [string, any][]> =
     NewTypes extends [infer NewType, ...infer Rest]

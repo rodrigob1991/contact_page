@@ -4,7 +4,7 @@ import {
     InboundFromGuessMesMessage,
     InboundMessageTarget,
     OutboundMessageTemplate,
-    OutboundToGuessConMessage,
+    OutboundToGuessConMessage, OutboundToGuessDisMessage,
     OutboundToGuessHostsMessage,
     OutboundToGuessMesMessage,
     OutboundToGuessServerAckMessage,
@@ -32,7 +32,7 @@ import {
 import {getHosts} from "../host/authentication"
 import {userTypes} from "chat-common/src/model/constants"
 
-export const initConnection : InitUserConnection<"guess"> = async ({id: cookieGuessId, name: guessName}, acceptConnection, closeConnection, addConnectedGuess, removeConnectedGuess, getConnectedHosts, publishMessage, handleGuessSubscriptionToMessages, getGuessCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
+export const initConnection : InitUserConnection<"guess"> = async ({id: cookieGuessId, name: cookieGuessName}, acceptConnection, closeConnection, addConnectedGuess, removeConnectedGuess, getConnectedHosts, publishMessage, handleGuessSubscriptionToMessages, getGuessCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const log = (msg: string) => { appLog(msg, "guess", guessId) }
     const panic = (msg: string) : never => appPanic(msg,"guess", guessId)
     const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, callback?: (r: string) => void) => appGetHandleError(originFunction, reason2, "guess", guessId, callback)
@@ -48,8 +48,10 @@ export const initConnection : InitUserConnection<"guess"> = async ({id: cookieGu
                     key = `${keyPrefix}${getCutMessage<OutboundToGuessConMessage, "body">(message as OutboundToGuessConMessage["template"], {body: 4}, 4)}`
                     break
                 case "dis":
+                    key = `${keyPrefix}${getCutMessage<OutboundToGuessDisMessage, "body">(message as OutboundToGuessDisMessage["template"], {body: 4}, 4)}`
+                    break
                 case "uack":
-                    key = `${keyPrefix}${message as OutboundMessageTemplate<"guess", "dis" | "uack">}`
+                    key = `${keyPrefix}${message as OutboundMessageTemplate<"guess", "uack">}`
                     break
                 case "mes":
                     key = `${keyPrefix}${getCutMessage<OutboundToGuessMesMessage, "body">(message as OutboundToGuessMesMessage["template"], {body: 4}, 4)}`
@@ -114,7 +116,7 @@ export const initConnection : InitUserConnection<"guess"> = async ({id: cookieGu
         // AND IF UNSUBSCRIBE FAIL AND THE CONSUMER REMAIN ON
         removeConnectedGuess(guessId).catch(getHandleError(removeConnectedGuess))
         unsubscribe().catch(getHandleError(unsubscribe))
-        publishMessage<OutboundToHostDisMessage>(undefined,{prefix: "dis", number: Date.now(), userId: guessId}).catch(getHandleError(publishMessage, "publish disconnection"))
+        publishMessage<OutboundToHostDisMessage>(undefined,{prefix: "dis", number: Date.now(), userId: guessId, body: getGuessName()}).catch(getHandleError(publishMessage, "publish disconnection"))
 
         log(`disconnected, reason code:${reasonCode}, description: ${description}`)
     }
@@ -123,6 +125,7 @@ export const initConnection : InitUserConnection<"guess"> = async ({id: cookieGu
     let unsubscribe: UnsubscribeToMessages = () => Promise.resolve()
 
     let guessId = -1
+    const getGuessName = () => cookieGuessName || userTypes.guess + guessId
     let connectionDate = -1
     let connectionAccepted = false
     try {
@@ -147,8 +150,8 @@ export const initConnection : InitUserConnection<"guess"> = async ({id: cookieGu
                     }))
                 }))),
                 ...Object.values(getGuessCachedMessages(guessId, {mes: true, uack: true})).map(promise => promise.then(messages => sendOutboundMessage(false, ...messages))),
-                // publish guess connection
-                publishMessage<OutboundToHostConMessage>(undefined,{prefix: "con", number: connectionDate, userId: guessId, body: guessName ?? userTypes.guess + guessId})])
+                // publish guess connection, maybe do it after the other promises succeed
+                publishMessage<OutboundToHostConMessage>(undefined,{prefix: "con", number: connectionDate, userId: guessId, body: getGuessName()})])
         } catch (e) {
             closeConnection("error initializing guess : " + JSON.stringify(e))
         }

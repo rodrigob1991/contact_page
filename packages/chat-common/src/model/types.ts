@@ -13,7 +13,7 @@ export type UserType = keyof typeof userTypes
 export type User<UT extends UserType=UserType> = {type: UT, data: ("host" extends UT ? Host : never) | ("guess" extends UT ? Guess : never)}
 export type AccountedUser<UT extends UserType = UserType> = {
     type: UT,
-    data: (("host" extends UT ? Host : never) | ("guess" extends UT ? AccountedGuess : never)) &  { isConnected: boolean, lastConnectionDate?: number }
+    data: (("host" extends UT ? Host : never) | ("guess" extends UT ? AccountedGuess : never)) &  { isConnected: boolean, date?: number }
 }
 export type AccountedUserData<UT extends UserType = UserType> = AccountedUser<UT>["data"]
 export type Host = typeof emptyHost

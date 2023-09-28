@@ -18,7 +18,7 @@ type SpecificMessagePartsKeys<UT extends UserType, MF extends MessageFlow, MP ex
    // | IfAllIn<"in" | "uack", MF | MP, "originPrefix">
     | "number"
     | IfOneIn<"con" | "dis" | "mes" | IfOneIn<Exclude<OriginPrefix, "usrs"> | "out", OP | MF, "uack"> | "sack", MP, "userId">
-    | IfOneIn<"mes" | "usrs" | "con", MP, "body">
+    | IfOneIn<"mes" | "usrs" | "con" | "dis", MP, "body">
 
 type PartTemplate<MPK extends MessagePartsKeys, MPKS extends MessagePartsKeys, S extends ":" | "", MPT extends MessageParts[MPK]=MessageParts[MPK]> = MPK extends MPKS ? `${S}${MPT}` : ""
 type MessageTemplateInstance<MF extends MessageFlow, MP extends MessagePrefix<MF>, OP extends OriginPrefix<MF, MP>, MPKS extends MessagePartsKeys> =
