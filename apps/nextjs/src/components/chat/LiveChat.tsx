@@ -1,5 +1,4 @@
 import {AccountedUserData, UserType} from "chat-common/src/model/types"
-import {InboundMesMessageParts} from "../../types/chat"
 import ChatView, {ContainerProps, Hide, SetNewOutboundMessageData as SetNewOutboundMessageDataFromView} from "./View"
 import useWebSocket, {
     AddPendingUserAckMessage,
@@ -34,14 +33,13 @@ export type GetUserColor = (id: number) => string
 
 export type HandleUsersConnection = (names: string[]) => void
 export type HandleUsersDisconnection = (names: string[]) => void
-export type HandleUserMessage<UT extends UserType> = (mm: InboundMesMessageParts<UT>) => void
+export type HandleUserMessage = (userName: string, messageBody: string) => void
 
 type Props<UT extends UserType> = {
     userType: UT
     handleUsersConnection: HandleUsersConnection
     handleUsersDisconnection: HandleUsersDisconnection
-    handleUserMessage: HandleUserMessage<UT>
-    getOppositeUserName: (id: number) => string
+    handleUserMessage: HandleUserMessage
     connect: boolean
     nextHandleNewConnectionState: HandleNewConnectionState
     viewProps: { containerProps: ContainerProps, hide?: Hide }
@@ -54,7 +52,6 @@ export default function LiveChat<UT extends UserType>({
                                                           handleUsersDisconnection,
                                                           handleUserMessage,
                                                           connect,
-                                                          getOppositeUserName,
                                                           nextHandleNewConnectionState,
                                                           viewProps
                                                       }: Props<UT>) {
@@ -263,9 +260,12 @@ export default function LiveChat<UT extends UserType>({
         //firstHandleDisMessage(dm)
         setDisconnectedUser(userId, userName, date)
     }
-    const handleMesMessage: HandleMesMessage<UT> = (mm) => {
-        handleUserMessage(mm)
-        setInboundMessageData({flow: "in", fromUserId: mm.userId, fromUserName: getOppositeUserName(mm.userId), number: mm.number, body: mm.body})
+    const handleMesMessage: HandleMesMessage<UT> = ({number, body, userId}) => {
+        // handle this rare situation when the user of the message is not found.
+        // maybe include the user name in the mes message and set a new user.
+        const userName = users.find(u => u.id === userId)?.name ?? "userNotFound"
+        handleUserMessage(userName, body)
+        setInboundMessageData({flow: "in", fromUserId: userId, fromUserName: userName, number, body})
     }
     const handleServerAckMessage: HandleServerAckMessage = (n) => {
         setMessageAsAcknowledgedByServer(n)

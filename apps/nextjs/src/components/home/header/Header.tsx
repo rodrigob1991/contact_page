@@ -1,15 +1,13 @@
 import Link from "next/link"
-import Image from "next/image"
 import styled from "@emotion/styled"
 import Messenger from "./messenger/Messenger"
 import {maxWidthSmallestLayout} from "../../../dimensions"
-import {mainColor, secondColor} from "../../../colors";
+import {mainColor, secondColor} from "../../../colors"
 
 type Props = {
-    userName: string
 }
 
-export default function Header({userName}: Props) {
+export default function Header({}: Props) {
     return (
         <Container>
             <ContactLinksContainer>
@@ -22,7 +20,7 @@ export default function Header({userName}: Props) {
                 </Link>
                 <Separator/>
             </ContactLinksContainer>
-            <Messenger userName={userName}/>
+            <Messenger/>
         </Container>
     )
 }

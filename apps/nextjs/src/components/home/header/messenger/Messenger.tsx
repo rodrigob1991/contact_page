@@ -4,14 +4,12 @@ import SendEmail from "./email/SendEmail"
 import GuessLiveChat from "./chat/GuessLiveChat"
 import {Separator} from "../Header"
 
-type Props = {
-    userName: string
-}
-export default function Messenger({userName}: Props) {
+type Props = {}
+export default function Messenger({}: Props) {
     return (
         <Container>
             <Separator/>
-            <GuessLiveChat hostName={userName.substring(0,(()=> { const endIndex = userName.indexOf(" "); return endIndex < 0 ? userName.length : endIndex })())}/>
+            <GuessLiveChat/>
             <Separator/>
             <SendEmail/>
         </Container>
