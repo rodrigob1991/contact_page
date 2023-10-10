@@ -22,10 +22,11 @@ import {
     OutboundFromHostAckMessage,
     OutboundFromHostMesMessage,
     OutboundMesMessage,
-} from "../types/chat"
+} from "../../types/chat"
 import {useEffect, useRef} from "react"
 import {getMessage, getParts, getPrefix} from "chat-common/src/message/functions"
 import {paths} from "chat-common/src/model/constants"
+import {AddPendingUserAckMessage, IsMessageAckByServer} from "./useMessages";
 
 export type HandleUsersMessage<UT extends UserType> =  (cm: InboundUsersMessageParts<UT>) => void
 export type HandleConMessage<UT extends UserType> =  (cm: InboundConMessageParts<UT>) => void
@@ -33,8 +34,6 @@ export type HandleDisMessage<UT extends UserType> =  (dm: InboundDisMessageParts
 export type HandleMesMessage<UT extends UserType> =  (mm: InboundMesMessageParts<UT>) => void
 export type HandleServerAckMessage =  (n: number) => void
 export type HandleUserAckMessage = (n: number, ui: number) => void
-export type IsMessageAckByServer = (n: number) => boolean
-export type AddPendingUserAckMessage = (n: number, ui: number) => void
 
 export type GuessId<UT extends UserType> = UT extends "host" ? number : undefined
 export type SendOutboundMesMessage = (number: number, body: string, usersIds: number[]) => void

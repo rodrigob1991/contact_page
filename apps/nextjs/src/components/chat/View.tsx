@@ -11,11 +11,11 @@ import {
     SelectOrUnselectUser,
     User,
     UserAckState
-} from "./LiveChat"
+} from "./Chat"
 import {UserType} from "chat-common/src/model/types"
 import {BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
-import {ConnectionState} from "../../hooks/useWebSocket"
+import {ConnectionState} from "../../hooks/chat/useWebSocket"
 import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions"
 
 export type SetNewOutboundMessageData =  (body: string) => boolean
@@ -66,7 +66,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
                 <UsersContainerTitle>online users</UsersContainerTitle>
                 <hr color={"black"} style={{width:"100%", margin: "0px"}}/>
                 <UsersInnerContainer>
-                {users.map(({id, name, connectedCount, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={connectedCount > 0}> {name} </UserView>)}
+                {users.map(({id, name, isConnected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={isConnected}> {name} </UserView>)}
                 </UsersInnerContainer>
             </UsersContainer>
             <RightContainer>

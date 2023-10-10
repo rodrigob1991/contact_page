@@ -1,4 +1,4 @@
-import {isNonEmpty, NonEmptyArray} from "./types";
+import {isNonEmpty, NonEmptyArray} from "./types"
 
 export const getContainedString = (str: string, betweenLeft?: string, betweenRight?: string) => {
     let containedString
