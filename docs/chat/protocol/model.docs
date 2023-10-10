@@ -77,19 +77,19 @@ host connection:
 {
 host side: 
 {
--browser client send request to server to initializate websocket connection
+-browser client send request to server to initialize websocket connection
 -server validate the host id and password inside request cookies
 -server save host id inside connected hosts hash
 -server accept the websocket connection
--server subscribe with broker to recive con-dis-mes-uack messages
--server retrive connected guesses, create usrs message, cache it and transmitte it to the browser client every 5 second until uack:usrs message recived
--server retrive cached mes and uack messages, create usrs message, cache it and transmitte it to the browser client every 5 second until uack:usrs message recived
+-server subscribe with broker to receive usrs-con-dis-mes-uack messages
+-server retrieve connected guesses, create usrs message, cache it and transmit it to the browser client every 5 second until uack:usrs message received
+-server retrieve cached mes and uack messages, create mes-uack messages, cache them and transmit them to the browser client every 5 second until uack:mes-uack messages received
 -server publish the host connection to the broker for the guesses consumers
 }
 guess side:
 {
--broker push con message to the consumer asociated with the websocket connection of the guess
--server cache the con message and transmitte it to the browser client every 5 second until uack:con message recived
+-broker push con messages to the consumers associated with the websocket connections of the guesses
+-server cache the con message and transmit it to the browser client every 5 second until uack:con message received
 }
 }
 
@@ -97,19 +97,20 @@ guess connection:
 {
 guess side:
 {
--browser client send request to server to initializate websocket connection
--server find if it is a guess id inside request cookies
--if guess id not found, the server increment the guess ids counter and asign the value to the current guess
+-browser client send request to server to initialize websocket connection
+-server seek for a guess id inside request cookies
+-if guess id not found, the server increment the guess ids counter and assign the value to the current guess
 -server save guess id inside connected guess hash
 -server accept the websocket connection
--server subscribe with broker to recive con-dis-mes-uack messages
--server retrive connected hosts, create usrs message, cache it and transmitte it to the browser client every 5 second until uack:usrs message recived
+-server subscribe with broker to receive usrs-con-dis-mes-uack messages
+-server retrieve hosts, create usrs message, cache it and transmit it to the browser client every 5 second until uack:usrs message received
+-server retrieve cached mes and uack messages, create mes-uack messages, cache them and transmit them to the browser client every 5 second until uack:mes-uack messages received
 -server publish the guess connection to the broker for the hosts consumers 
 }
 host side: 
 {
--broker push con message to the consumer asociated with the websocket connection of the host
--server cache the con message and transmitte it to the browser client every 5 second until uack:con message recived
+-broker push con messages to the consumers associated with the websocket connections of the hosts
+-server cache the con messages and transmit them to the browser clients every 5 second until uack:con message received
 }
 }
 

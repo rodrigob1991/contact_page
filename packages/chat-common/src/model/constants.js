@@ -1,8 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.paths = exports.messageParts = exports.messagePrefixes = exports.messageFlows = exports.users = void 0;
-exports.users = { host: "host", guess: "guess" };
+exports.paths = exports.messageParts = exports.messagePrefixes = exports.messagePrefixesIn = exports.messagePrefixesOut = exports.messagePrefixesBothFlows = exports.messageFlows = exports.emptyGuess = exports.emptyHost = exports.emptyUser = exports.oppositeUserTypes = exports.userTypes = void 0;
+exports.userTypes = { host: "host", guess: "guess" };
+exports.oppositeUserTypes = { host: exports.userTypes.guess, guess: exports.userTypes.host };
+exports.emptyUser = { id: -1, name: "" };
+exports.emptyHost = Object.assign(Object.assign({}, exports.emptyUser), { password: "" });
+exports.emptyGuess = Object.assign({}, exports.emptyUser);
 exports.messageFlows = { in: "in", out: "out" };
-exports.messagePrefixes = { con: "con", dis: "dis", mes: "mes", sack: "sack", uack: "uack" };
+exports.messagePrefixesBothFlows = { mes: "mes", uack: "uack" };
+exports.messagePrefixesOut = Object.assign(Object.assign({}, exports.messagePrefixesBothFlows), { con: "con", dis: "dis", sack: "sack", usrs: "usrs" });
+exports.messagePrefixesIn = Object.assign({}, exports.messagePrefixesBothFlows);
+exports.messagePrefixes = Object.assign(Object.assign({}, exports.messagePrefixesIn), exports.messagePrefixesOut);
 exports.messageParts = { prefix: "prefix", originPrefix: "originPrefix", number: "number", userId: "userId", body: "body" };
 exports.paths = { host: "/host", guess: "/guess" };

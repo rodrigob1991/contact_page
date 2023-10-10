@@ -1,6 +1,7 @@
-export type ChangePropertiesType<Object extends Record<string, any>, NewTypes extends [keyof Object & string, any][]> = {
-    [Key in keyof Object]: SeekNewType<Key, NewTypes> extends undefined ? Object[Key] : SeekNewType<Key, NewTypes>;
+export type ChangePropertiesType<R extends Record<string, any>, NewTypes extends [keyof R & string, any][]> = {
+    [Key in keyof R]: SeekNewType<Key, NewTypes> extends undefined ? R[Key] : SeekNewType<Key, NewTypes>;
 };
+export type ChangePropertyType<R extends Record<string, any>, NewType extends [keyof R & string, any]> = ChangePropertiesType<R, [NewType]>;
 type SeekNewType<SearchKey, NewTypes extends [string, any][]> = NewTypes extends [infer NewType, ...infer Rest] ? NewType extends [string, any] ? SearchKey extends NewType[0] ? NewType[1] : Rest extends [string, any][] ? SeekNewType<SearchKey, Rest> : never : never : undefined;
 type PickIfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends (<T>() => T extends Y ? 1 : 2) ? A : B;
 export type ExtractWritableProps<R extends Record<string, any>> = {
@@ -20,4 +21,14 @@ export type AnyPropertiesCombinationRecursive<R extends Record<string, any>> = {
         [key in K]: R[K] extends Record<string, any> ? AnyPropertiesCombinationRecursive<R[K]> : R[K];
     };
 }[keyof R];
+export type IfOneIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IF extends {
+    [K in U]: K extends IN ? IF : never;
+}[U] ? IF : ELSE;
+export type IfAllIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = false extends {
+    [K in U]: K extends IN ? true : false;
+}[U] ? ELSE : IF;
+export type IfOneNotIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IfAllIn<U, IN, ELSE, IF>;
+export type IfAllAreNotIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IfOneIn<U, IN, ELSE, IF>;
+export type NonEmptyArray<T> = [T, ...T[]];
+export declare const isNonEmpty: <T>(a: T[]) => a is NonEmptyArray<T>;
 export {};

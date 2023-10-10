@@ -24,11 +24,11 @@ type PartTemplate<MPK extends MessagePartsKeys, MPKS extends MessagePartsKeys, S
 type MessageTemplateInstance<MF extends MessageFlow, MP extends MessagePrefix<MF>, OP extends OriginPrefix<MF, MP>, MPKS extends MessagePartsKeys> =
     `${MP}${PartTemplate<"originPrefix", MPKS, ":", OP>}${PartTemplate<"number", MPKS, ":">}${PartTemplate<"userId", MPKS, ":">}${PartTemplate<"body", MPKS, ":">}`
 
-export type CutMessage<M extends Message[], WC extends MessagePartsKeys> = M extends [infer OM, ...infer RM] ? OM extends Message ? MessageTemplateInstance<OM["flow"], OM["prefix"], OM["origin"], Exclude<OM["parts"], WC>> | (RM extends Message[] ? CutMessage<RM, WC> : never) : never : never
+export type CutMessage<M extends Message[], WC extends MessagePartsKeys> = M extends [infer OM, ...infer RM] ? OM extends Message ? MessageTemplateInstance<OM["flow"], OM["prefix"], OM["originPrefix"], Exclude<OM["parts"], WC>> | (RM extends Message[] ? CutMessage<RM, WC> : never) : never : never
 
 type SpecificMessagePartsPositions<SMPK extends MessagePartsKeys> = Pick<{ prefix: 1, originPrefix: 2, number: "originPrefix" extends SMPK ? 3 : 2, userId: "originPrefix" extends SMPK ? 4 : 3, body: "userId" extends SMPK ? 4 : 3 }, SMPK>
 
-type MessageInstance<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>, OP extends OriginPrefix<MF, MP> = OriginPrefix<MF, MP>, SMPK extends SpecificMessagePartsKeys<UT, MF, MP, OP> = SpecificMessagePartsKeys<UT, MF, MP, OP>> = { userType: UT, flow: MF, prefix: MP, origin: OP, parts: SMPK, positions: SpecificMessagePartsPositions<SMPK>, template: MessageTemplateInstance<MF, MP, OP, SMPK> }
+type MessageInstance<UT extends UserType, MF extends MessageFlow, MP extends MessagePrefix<MF>, OP extends OriginPrefix<MF, MP> = OriginPrefix<MF, MP>, SMPK extends SpecificMessagePartsKeys<UT, MF, MP, OP> = SpecificMessagePartsKeys<UT, MF, MP, OP>> = { userType: UT, flow: MF, prefix: MP, originPrefix: OP, parts: SMPK, positions: SpecificMessagePartsPositions<SMPK>, template: MessageTemplateInstance<MF, MP, OP, SMPK> }
 type MessageInstanceUserAck<UT extends UserType, OP extends OriginPrefix> = { [K in OP]: MessageInstance<UT, "in", "uack", K> }[OP]
 
 export type OutboundToHostMesMessage = MessageInstance<"host", "out", "mes">
@@ -84,4 +84,4 @@ export type GetMessages<UT extends UserType = UserType, MF extends MessageFlow =
 type IfUniquePosition<P, K> = { [N in 1 | 2 | 3 | 4]: N extends P ? Exclude<P, N> extends never ? K : never : never }[1 | 2 | 3 | 4]
 export type CommonMessagePartsPositions<M extends Message, MPP = M["positions"]> = keyof { [K in M["parts"] as K extends keyof MPP ? IfUniquePosition<MPP[K], K> : never]: never }
 export type GotMessageParts<M extends Message, CMPP extends CommonMessagePartsPositions<M>> = { [K in CMPP]: K extends "prefix" ? M["prefix"] : MessageParts[K] }
-export type GotAllMessageParts<M extends Message> = { [K in keyof M["positions"]]: K extends "prefix" ? M["prefix"] : K extends MessagePartsKeys ? MessageParts[K] : never }
+export type GotAllMessageParts<M extends Message> = { [K in keyof M["positions"]]: K extends "prefix" ? M["prefix"] : K extends "originPrefix" ? M["originPrefix"]: K extends MessagePartsKeys ? MessageParts[K] : never }

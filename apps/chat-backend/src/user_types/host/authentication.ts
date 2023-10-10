@@ -30,5 +30,4 @@ export const getHosts = () =>
     })
 
 export const getHostIfValidRegistered = (id: number, password: string) =>
-    getHosts().then(hosts => (id in hosts && hosts[id].password === password) ? hosts[id] : undefined
-    )
+    getHosts().then(hosts => (id in hosts && hosts[id].password === password) ? hosts[id] : undefined)

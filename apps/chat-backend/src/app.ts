@@ -36,8 +36,7 @@ import {initConnection as initGuessConnection} from "./user_types/guess/initConn
 import {extractHostData, getHostCookies} from "./user_types/host/cookies"
 import {extractGuessData, getGuessCookies} from "./user_types/guess/cookies"
 
-type IfTrueT<B extends boolean, T, O=undefined> = B extends true ? T : O
-export type AcceptConnection = <A extends boolean>(accept: A, him: IfTrueT<A, HandleInboundMessage> , hd: IfTrueT<A, HandleDisconnection>, reason: IfTrueT<A, undefined, string>, userId: number) => void
+export type AcceptConnection = (him: HandleInboundMessage , hd: HandleDisconnection, userId: number) => void
 export type CloseConnection = (reason?: string) => void
 
 export type HandleDisconnection = (reasonCode: number, description: string) => void
@@ -134,22 +133,17 @@ const handleRequest = async (request: ws.request, {addConnectedUser, removeConne
         const oppositeUserType = userType === "host" ? "guess" : "host"
 
         let connection : ws.connection
-        const acceptConnection: AcceptConnection = (accept, him, hd, reason, userId) => {
-            if (accept) {
-                const cookies = getCookies(userId)
-                log("cookies: " + JSON.stringify(cookies), userType, userId)
-                connection = request.accept(undefined, origin, cookies)
-                connection.on("message", him as HandleInboundMessage)
-                connection.on("close", hd as HandleDisconnection)
-                log("connection accepted", userType, userId)
-            } else {
-                request.reject(412, reason)
-                log(" connection was rejected," + reason, userType, userId)
-            }
+        const acceptConnection: AcceptConnection = (him, hd, userId) => {
+            const cookies = getCookies(userId)
+            log("cookies: " + JSON.stringify(cookies), userType, userId)
+            connection = request.accept(undefined, origin, cookies)
+            connection.on("message", him)
+            connection.on("close", hd)
+            log("connection accepted", userType, userId)
         }
-        const closeConnection: CloseConnection = (reason) => {
+        /*const closeConnection: CloseConnection = (reason) => {
             connection.close(ws.connection.CLOSE_REASON_GOING_AWAY, reason)
-        }
+        }*/
 
         const cacheAndSendUntilAck = async (cache: boolean, messagePrefix: MessagePrefix<"out">, key: RedisMessageKey, message: OutboundMessageTemplate, userId: number) => {
             const sendUntilAck = () => {
@@ -235,8 +229,8 @@ const handleRequest = async (request: ws.request, {addConnectedUser, removeConne
         }
 
         await (() => (userType === userTypes.host
-            ? initHostConnection(userData as Host, acceptConnection, closeConnection, (hostId) => addConnectedUser("host", hostId), (hostId) => removeConnectedUser("host", hostId), (toHostId) => getConnectedUsers("host", toHostId), (guessId, mp) => publishMessage("guess", guessId, mp), (hostId, sm) => handleUserSubscriptionToMessages("host", hostId, sm), (hi, wp) => getCachedMessages("host", hi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
-            : initGuessConnection(userData, acceptConnection, closeConnection, (guessId) => addConnectedUser("guess", guessId), (guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId), (hostId, mp) => publishMessage("host", hostId, mp), (guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi, wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)))()
+            ? initHostConnection(userData as Host, acceptConnection, (hostId) => addConnectedUser("host", hostId), (hostId) => removeConnectedUser("host", hostId), (toHostId) => getConnectedUsers("host", toHostId), (guessId, mp) => publishMessage("guess", guessId, mp), (hostId, sm) => handleUserSubscriptionToMessages("host", hostId, sm), (hi, wp) => getCachedMessages("host", hi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
+            : initGuessConnection(userData, acceptConnection, (guessId) => addConnectedUser("guess", guessId), (guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId), (hostId, mp) => publishMessage("host", hostId, mp), (guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi, wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)))()
     }
 }
 
@@ -251,7 +245,14 @@ const initWebSocketServer = () => {
     }
     const redisApis = initRedis(handleOnRedisError, handleOnRedisReady)
     wsServer.on("request", (request) => {
-        handleRequest(request, redisApis).catch(getHandleError(handleRequest))
+        const rejectConnection = () => {
+            if (!request._resolved) {
+                request.reject()
+            } else {
+                request.socket.end()
+            }
+        }
+        handleRequest(request, redisApis).catch(getHandleError(handleRequest, undefined, undefined, undefined, rejectConnection))
     })
 }
 

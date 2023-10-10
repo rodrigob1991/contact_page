@@ -25,6 +25,8 @@
   },
   "scripts": {
     "add": "yarn add",
+    "restart-redis": "docker rm --force redis && docker run -p 6379:6379 --name redis -d redis",
+    "restart-redis-cluster": "docker rm --force redis-cluster && docker run -p 6379:6379 --name redis-cluster -d redis-cluster",
     "dev": "concurrently \"docker start redis\" \"tsc --watch\" \"yarn workspace utils dev\" \"yarn workspace chat-common dev\" \"nodemon --watch ./dist --watch ../../packages dist/app.js\"",
     "devrc-nodejs": "concurrently \"tsc --watch\" \"yarn workspace utils dev\" \"yarn workspace chat-common dev\" \"REDIS_CLUSTER=yes nodemon --watch ./dist --watch ../../packages dist/app.js\"",
     "devrc": "gnome-terminal --tab --title=nodejs -e 'yarn devrc-nodejs' --tab --title=redis-cluster -e 'docker-compose -f docker-compose-redis-cluster.yml up'",

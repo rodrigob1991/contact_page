@@ -115,7 +115,7 @@ export default function useWebSocket<UT extends UserType>({
             }
             ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate>) => {
                 console.log("inbound message: " + inboundMessage)
-                const ackMessage = (outboundAckMessage: string) => {
+                const ackMessage = (outboundAckMessage: OutboundAckMessage<UT>["template"]) => {
                     ws.send(outboundAckMessage)
                 }
 
@@ -225,7 +225,7 @@ const getHostSpecifics : GetUserSpecifics<"host"> = () => {
     const getOutboundMesMessage: GetOutboundMesMessage<"host"> = (number, guessId, body) => getMessage<OutboundFromHostMesMessage>({prefix: "mes", number: number, body: body, userId: guessId})
     const getGuessesMessageParts: GetUsersMessageParts<"host"> = (ucm) => {
         const parts = getParts<InboundToHostGuessesMessage>(ucm, {prefix: 1, number: 2, body: 3})
-        const ack = getMessage<OutboundFromHostAckMessage<"usrs">>({prefix: "uack", originPrefix: "con", number: parts.number})
+        const ack = getMessage<OutboundFromHostAckMessage<"usrs">>({prefix: "uack", originPrefix: "usrs", number: parts.number})
         return [parts, ack]
     }
     const getConMessageParts: GetConMessageParts<"host"> = (icm) => {
@@ -234,7 +234,7 @@ const getHostSpecifics : GetUserSpecifics<"host"> = () => {
         return [parts, ack]
     }
     const getDisMessageParts: GetDisMessageParts<"host"> = (idm) => {
-        const parts = getParts<InboundDisMessage<"host">>(idm, {prefix: 1, number: 2, userId: 3})
+        const parts = getParts<InboundDisMessage<"host">>(idm, {prefix: 1, number: 2, userId: 3, body: 4})
         const ack = getMessage<OutboundFromHostAckMessage<"dis">>({prefix: "uack", originPrefix: "dis", number: parts.number, userId: parts.userId})
         return [parts, ack]
     }
@@ -260,7 +260,7 @@ const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
     const getOutboundMesMessage: GetOutboundMesMessage<"guess"> = (number, hostId, body) => getMessage<OutboundFromGuessMesMessage>({prefix: "mes", number: number, userId: hostId, body: body})
     const getHostsMessageParts: GetUsersMessageParts<"guess"> = (ucm) => {
         const parts = getParts<InboundToGuessHostsMessage>(ucm, {prefix: 1, number: 2, body: 3})
-        const ack = getMessage<OutboundFromGuessAckMessage<"usrs">>({prefix: "uack", originPrefix: "con", number: parts.number})
+        const ack = getMessage<OutboundFromGuessAckMessage<"usrs">>({prefix: "uack", originPrefix: "usrs", number: parts.number})
         return [parts, ack]
     }
     const getConMessageParts: GetConMessageParts<"guess"> = (icm) => {
@@ -269,7 +269,7 @@ const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
         return [parts, ack]
     }
     const getDisMessageParts: GetDisMessageParts<"guess"> = (idm) => {
-        const parts = getParts<InboundDisMessage<"guess">>(idm, {prefix: 1, number: 2, userId: 3})
+        const parts = getParts<InboundDisMessage<"guess">>(idm, {prefix: 1, number: 2, userId: 3, body: 4})
         const ack = getMessage<OutboundFromGuessAckMessage<"dis">>({prefix: "uack", originPrefix: "dis", number: parts.number, userId: parts.userId})
         return [parts, ack]
     }

@@ -43,7 +43,7 @@ export const recursiveSplit = <S extends (NonEmptyArray<string>)>(str: string, s
     const separatorsRest = separators.slice(1)
     if (isNonEmpty(separatorsRest)) {
         for (const part of currentParts) {
-            finalParts.push(...recursiveSplit(part, separatorsRest))
+            finalParts.push(recursiveSplit(part, separatorsRest))
         }
     } else {
         finalParts.push(...currentParts)

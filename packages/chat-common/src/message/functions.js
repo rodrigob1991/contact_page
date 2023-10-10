@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCutMessage = exports.getMessageParts = exports.getMessagePrefix = exports.getMessage = void 0;
+exports.getParsedUsersMessageBody = exports.getUsersMessageBody = exports.getCutMessage = exports.getParts = exports.getOriginPrefix = exports.getPrefix = exports.getMessage = void 0;
 const constants_1 = require("../model/constants");
 const strings_1 = require("utils/src/strings");
 const getMessage = (parts) => {
@@ -19,11 +19,11 @@ const getMessage = (parts) => {
 };
 exports.getMessage = getMessage;
 const getPartSeparatorIndex = (message, occurrence) => (0, strings_1.getIndexOnOccurrence)(message, ":", occurrence);
-const getMessagePrefix = (m) => {
-    return m.substring(0, getPartSeparatorIndex(m, 1));
-};
-exports.getMessagePrefix = getMessagePrefix;
-const getMessageParts = (m, whatGet) => {
+const getPrefix = (m) => m.substring(0, getPartSeparatorIndex(m, 1));
+exports.getPrefix = getPrefix;
+const getOriginPrefix = (m) => m.substring(getPartSeparatorIndex(m, 1) + 1, getPartSeparatorIndex(m, 2));
+exports.getOriginPrefix = getOriginPrefix;
+const getParts = (m, whatGet) => {
     const parts = {};
     let firstSeparatorIndex;
     let finalSeparatorIndex;
@@ -49,7 +49,7 @@ const getMessageParts = (m, whatGet) => {
     }
     return parts;
 };
-exports.getMessageParts = getMessageParts;
+exports.getParts = getParts;
 const getCutMessage = (m, whatCut, lastPosition) => {
     let cutMessage = m;
     let position = 0;
@@ -70,8 +70,8 @@ const getCutMessage = (m, whatCut, lastPosition) => {
         return index;
     };
     const cut = (partStartIndex = findPartIndex(), partEndIndex = findPartIndex(false)) => {
-        let cutStartIndex = partStartIndex - (position === lastPosition ? 1 : 0);
-        let cutEndIndex = partEndIndex + (position === lastPosition ? 0 : 2);
+        const cutStartIndex = partStartIndex - (position === lastPosition ? 1 : 0);
+        const cutEndIndex = partEndIndex + (position === lastPosition ? 0 : 2);
         cutMessage = cutMessage.substring(0, cutStartIndex) + cutMessage.substring(cutEndIndex);
         cutSize += cutEndIndex - cutStartIndex;
         cutCount++;
@@ -99,3 +99,18 @@ const getCutMessage = (m, whatCut, lastPosition) => {
     return cutMessage;
 };
 exports.getCutMessage = getCutMessage;
+const usersSeparator = ",";
+const userDataSeparator = ":";
+const getUsersMessageBody = (usersData) => {
+    let str = "";
+    usersData.forEach(([id, name, isConnected, date]) => str += `${id}${userDataSeparator}${name}${userDataSeparator}${isConnected ? "1" : "0"}${userDataSeparator}${date !== null && date !== void 0 ? date : ""}${usersSeparator}`);
+    return str.substring(0, str.length - 1);
+};
+exports.getUsersMessageBody = getUsersMessageBody;
+const getParsedUsersMessageBody = (body) => (0, strings_1.recursiveSplit)(body, [usersSeparator, userDataSeparator]).map(userData => ({
+    id: +userData[0],
+    name: userData[1],
+    isConnected: userData[2] === "1",
+    date: +userData[3]
+}));
+exports.getParsedUsersMessageBody = getParsedUsersMessageBody;

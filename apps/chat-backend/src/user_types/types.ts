@@ -1,5 +1,5 @@
 import {MessagePrefix, OppositeUserType, User, UserType} from "chat-common/src/model/types"
-import {AcceptConnection, ApplyHandleInboundMessage, CloseConnection, SendMessage} from "../app"
+import {AcceptConnection, ApplyHandleInboundMessage, SendMessage} from "../app"
 import {
     AddConnectedUserResult,
     GetCachedMessagesResult,
@@ -19,4 +19,4 @@ type PublishUserMessage<UT extends UserType> = <M extends OutboundMessage<Opposi
 type GetUserCachedMessages<UT extends UserType> = <WP extends WhatPrefixes>(ui: number, wp: WP) => GetCachedMessagesResult<UT, WP>
 type CacheAndSendUntilAck<UT extends UserType> = <M extends OutboundMessage<UT>[]>(cache: boolean, messagePrefix: MessagePrefix<"out">, key: RedisMessageKey<M>, message: M[number]["template"], userId: number) => Promise<void>
 
-export type InitUserConnection<UT extends UserType> = (userData: User<UT>["data"], acceptConnection : AcceptConnection, closeConnection: CloseConnection, addConnectedUser: AddConnectedUser<UT>, removeConnectedUser: RemoveConnectedUser, getConnectedUsers: GetConnectedUsers, publishUserMessage: PublishUserMessage<UT>, handleUserSubscriptionToMessages : HandleUserSubscriptionToMessages<UT>, getUserCachedMesMessages: GetUserCachedMessages<UT>, cacheAndSendUntilAck: CacheAndSendUntilAck<UT>,applyHandleInboundMessage: ApplyHandleInboundMessage<UT>) => Promise<void>
+export type InitUserConnection<UT extends UserType> = (userData: User<UT>["data"], acceptConnection : AcceptConnection, addConnectedUser: AddConnectedUser<UT>, removeConnectedUser: RemoveConnectedUser, getConnectedUsers: GetConnectedUsers, publishUserMessage: PublishUserMessage<UT>, handleUserSubscriptionToMessages : HandleUserSubscriptionToMessages<UT>, getUserCachedMesMessages: GetUserCachedMessages<UT>, cacheAndSendUntilAck: CacheAndSendUntilAck<UT>,applyHandleInboundMessage: ApplyHandleInboundMessage<UT>) => Promise<void>
