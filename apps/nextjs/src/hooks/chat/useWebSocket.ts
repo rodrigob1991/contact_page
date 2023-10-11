@@ -26,7 +26,7 @@ import {
 import {useEffect, useRef} from "react"
 import {getMessage, getParts, getPrefix} from "chat-common/src/message/functions"
 import {paths} from "chat-common/src/model/constants"
-import {AddPendingUserAckMessage, IsMessageAckByServer} from "./useMessages";
+import {IsMessageAckByServer} from "./useMessages"
 
 export type HandleUsersMessage<UT extends UserType> =  (cm: InboundUsersMessageParts<UT>) => void
 export type HandleConMessage<UT extends UserType> =  (cm: InboundConMessageParts<UT>) => void
@@ -49,7 +49,7 @@ export type Props<UT extends UserType> = {
     handleServerAckMessage: HandleServerAckMessage
     handleUserAckMessage: HandleUserAckMessage
     isMessageAckByServer: IsMessageAckByServer
-    addPendingUserAckMessage: AddPendingUserAckMessage
+    // addPendingUserAckMessage: AddPendingUserAckMessage
     connect: boolean
     handleNewConnectionState: HandleNewConnectionState
 }
@@ -63,7 +63,7 @@ export default function useWebSocket<UT extends UserType>({
                                                               handleServerAckMessage,
                                                               handleUserAckMessage,
                                                               isMessageAckByServer,
-                                                              addPendingUserAckMessage,
+                                                              // addPendingUserAckMessage,
                                                               connect,
                                                               handleNewConnectionState,
                                                           }: Props<UT>) {
@@ -202,7 +202,7 @@ export default function useWebSocket<UT extends UserType>({
                     }, 5000)
                 }
             }
-            addPendingUserAckMessage(number, userId)
+            // addPendingUserAckMessage(number, userId)
             resendUntilAck()
         }
     }

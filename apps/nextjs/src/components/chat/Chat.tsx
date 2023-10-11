@@ -1,7 +1,6 @@
 import {UserType} from "chat-common/src/model/types"
-import ChatView, {ContainerProps, Hide, SetNewOutboundMessageData as SetNewOutboundMessageDataFromView} from "./View"
+import ChatView, {ContainerProps, Hide, SetOutboundMessageData as SetOutboundMessageDataFromView} from "./View"
 import useWebSocket, {
-    AddPendingUserAckMessage,
     ConnectionState,
     HandleConMessage,
     HandleDisMessage,
@@ -9,13 +8,12 @@ import useWebSocket, {
     HandleNewConnectionState,
     HandleServerAckMessage,
     HandleUserAckMessage,
-    HandleUsersMessage,
-    IsMessageAckByServer,
+    HandleUsersMessage, SendOutboundMesMessage
 } from "../../hooks/chat/useWebSocket"
-import {useEffect, useRef, useState} from "react"
+import {useState} from "react"
 import {getParsedUsersMessageBody} from "chat-common/src/message/functions"
-import {LOCAL_USER_ID, LOCAL_USER_NAME, User, useUsers} from "../../hooks/chat/useUsers";
-import { useMessages } from "../../hooks/chat/useMessages"
+import {LOCAL_USER_ID, LOCAL_USER_NAME, User, useUsers} from "../../hooks/chat/useUsers"
+import {useMessages} from "../../hooks/chat/useMessages"
 
 export type HandleUsersConnection = (names: string[]) => void
 export type HandleUsersDisconnection = (names: string[]) => void
@@ -30,7 +28,6 @@ type Props<UT extends UserType> = {
     nextHandleNewConnectionState: HandleNewConnectionState
     viewProps: { containerProps: ContainerProps, hide?: Hide }
 }
-//export const HOST_ID = 1
 
 export default function Chat<UT extends UserType>({
                                                           userType,
@@ -56,7 +53,8 @@ export default function Chat<UT extends UserType>({
 
     const [users, setUsers, getUserColor, setConnectedUser, setDisconnectedUser, setDisconnectedAllUsers, selectOrUnselectUser] = useUsers(userType)
 
-    const [messagesData] = useMessages(sendOutboundMesMessage)
+    let sendOutboundMesMessage: SendOutboundMesMessage = () => {}
+    const [messagesData, setInboundMessageData, setOutboundMessageData, setMessageAsAcknowledgedByServer, isMessageAckByServer, setMessageAsAcknowledgedByUser] = useMessages(userType, sendOutboundMesMessage)
 
     const handleUsersMessage: HandleUsersMessage<UT> = (um) => {
         const users = getParsedUsersMessageBody(um.body)
@@ -84,7 +82,16 @@ export default function Chat<UT extends UserType>({
         setMessageAsAcknowledgedByUser(n, ui)
     }
 
-    const sendOutboundMesMessage = useWebSocket({
+    const setOutboundMessageDataFromView: SetOutboundMessageDataFromView = (body) => {
+        const targetUsers = users.filter((u) => u.id !== LOCAL_USER_ID && isTargetUser(u))
+        const setMessage = targetUsers.length > 0
+        if (setMessage) {
+            setOutboundMessageData(body, targetUsers.map(tu => tu.id))
+        }
+        return setMessage
+    }
+
+    sendOutboundMesMessage = useWebSocket({
         userType,
         handleUsersMessage,
         handleConMessage,
@@ -93,23 +100,14 @@ export default function Chat<UT extends UserType>({
         handleServerAckMessage,
         handleUserAckMessage,
         isMessageAckByServer,
-        addPendingUserAckMessage,
+        // addPendingUserAckMessage,
         connect,
         handleNewConnectionState
     })
 
-    const setNewOutboundMessageDataFromView: SetNewOutboundMessageDataFromView = (body) => {
-        const targetUsers = users.filter((u) => u.id !== LOCAL_USER_ID && isTargetUser(u))
-        const setMessage = targetUsers.length > 0
-        if (setMessage) {
-            setNewOutboundMessageData(body, targetUsers.map(tu => tu.id))
-        }
-        return setMessage
-    }
-
     const [isTargetUser] = userType === "host" ? getHostSpecifics() : getGuessSpecifics()
 
-    return <ChatView userType={userType} connectionState={connectionState} users={users} selectOrUnselectUser={selectOrUnselectUser} getUserColor={getUserColor} messages={messagesData} setNewOutboundMessageData={setNewOutboundMessageDataFromView}  {...viewProps}/>
+    return <ChatView userType={userType} connectionState={connectionState} users={users} selectOrUnselectUser={selectOrUnselectUser} getUserColor={getUserColor} messages={messagesData} setOutboundMessageData={setOutboundMessageDataFromView}  {...viewProps}/>
 }
 
 type IsTargetUser = (user: User) => boolean

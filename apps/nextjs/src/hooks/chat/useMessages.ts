@@ -1,6 +1,8 @@
 import {useEffect, useRef, useState} from "react"
 import {LOCAL_USER_ID, LOCAL_USER_NAME} from "./useUsers"
 import {SendOutboundMesMessage} from "./useWebSocket"
+import {ChangePropertyType} from "utils/src/types"
+import {UserType} from "chat-common/src/model/types"
 
 type MessageDataCommon = { fromUserId: number, fromUserName: string, number: number, body: string}
 export type InboundMessageData = { flow: "in" } & MessageDataCommon
@@ -9,12 +11,20 @@ export type UserAckState = typeof userAckStates[keyof typeof userAckStates]
 type ToUsersId = Map<number, UserAckState>
 export type OutboundMessageData = { flow: "out", toUsersIds: ToUsersId, serverAck: boolean } & MessageDataCommon
 export type MessageData = InboundMessageData | OutboundMessageData
+export type MessagesData = MessageData[]
 
+export type SetInboundMessageData = (imd: InboundMessageData) => void
+export type SetOutboundMessageData = (body: string, toUsersIds: number[]) => void
+export type SetMessageAsAcknowledgedByServer = (number: number) => void
 export type IsMessageAckByServer = (n: number) => boolean
-export type AddPendingUserAckMessage = (n: number, ui: number) => void
+export type SetMessageAsAcknowledgedByUser = (number: number, userId: number) => void
+//export type AddPendingUserAckMessage = (n: number, ui: number) => void
 
-export const useMessages = (sendOutboundMesMessage: SendOutboundMesMessage) => {
+export const useMessages = (userType: UserType, sendOutboundMesMessage: SendOutboundMesMessage) : [MessagesData, SetInboundMessageData, SetOutboundMessageData, SetMessageAsAcknowledgedByServer, IsMessageAckByServer, SetMessageAsAcknowledgedByUser] => {
     const [messagesData, setMessagesData] = useState<MessageData[]>([])
+
+    useStorage(userType, messagesData, setMessagesData)
+
     const getOutboundMessageData = (n: number) => {
         const outboundMessageData = messagesData[n]
         if (outboundMessageData.flow !== "out") {
@@ -34,13 +44,13 @@ export const useMessages = (sendOutboundMesMessage: SendOutboundMesMessage) => {
         })
     }
 
-    const setInboundMessageData = (md: InboundMessageData) => {
+    const setInboundMessageData : SetInboundMessageData = (md) => {
         setMessagesData((messagesData) => [...messagesData, md])
     }
     const refToOutboundMessagesNumbersToSend = useRef<number[]>([])
     const getOutboundMessagesNumbersToSend = () => refToOutboundMessagesNumbersToSend.current
 
-    const setOutboundMessageData = (body: string, toUsersIds: number[]) => {
+    const setOutboundMessageData : SetOutboundMessageData = (body, toUsersIds) => {
         setMessagesData((messagesData) => {
             const number = messagesData.length
             getOutboundMessagesNumbersToSend().push(number)
@@ -56,13 +66,13 @@ export const useMessages = (sendOutboundMesMessage: SendOutboundMesMessage) => {
         getOutboundMessagesNumbersToSend().splice(0, getOutboundMessagesNumbersToSend().length)
     }, [messagesData])
 
-    const setMessageAsAcknowledgedByServer = (number: number) => {
+    const setMessageAsAcknowledgedByServer : SetMessageAsAcknowledgedByServer = (number) => {
         updateOutboundMessageData(number, "serverAck", true)
     }
-    const isMessageAckByServer: IsMessageAckByServer = (n) => getOutboundMessageData(n).serverAck
+    const isMessageAckByServer : IsMessageAckByServer = (n) => getOutboundMessageData(n).serverAck
 
-    const setMessageAsAcknowledgedByUser = (number: number, userId: number) => {
-        removePendingUserAckMessage(number, userId)
+    const setMessageAsAcknowledgedByUser : SetMessageAsAcknowledgedByUser = (number, userId) => {
+        // removePendingUserAckMessage(number, userId)
         setMessagesData((messagesData) => {
             const updatedMessages = [...messagesData]
             const outboundMessage = updatedMessages[number] as OutboundMessageData
@@ -74,7 +84,7 @@ export const useMessages = (sendOutboundMesMessage: SendOutboundMesMessage) => {
             return updatedMessages
         })
     }
-    const pendingUserAckMessagesRef = useRef(new Map<number, number[]>)
+    /*const pendingUserAckMessagesRef = useRef(new Map<number, number[]>)
     const getPendingUserAckMessages = () => pendingUserAckMessagesRef.current
     const addPendingUserAckMessage: AddPendingUserAckMessage = (number, userId) => {
         let pendingMessages = getPendingUserAckMessages().get(userId)
@@ -94,11 +104,26 @@ export const useMessages = (sendOutboundMesMessage: SendOutboundMesMessage) => {
                 getPendingUserAckMessages().delete(userId)
             }
         }
-    }
+    }*/
 
     return [messagesData, setInboundMessageData, setOutboundMessageData, setMessageAsAcknowledgedByServer, isMessageAckByServer, setMessageAsAcknowledgedByUser]
 }
 
-const useStorage = () => {
-
+type MessagesInLocalStorage = (InboundMessageData | ChangePropertyType<OutboundMessageData, ["toUsersIds", [number, UserAckState][]]>)[]
+const useStorage = (userType: UserType, messagesData: MessageData[], setMessagesData: (md: MessageData[]) => void) => {
+    const messagesLocalStorageKey = "messagesData:" + userType
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        localStorage.setItem(messagesLocalStorageKey, JSON.stringify(messagesData.map(md => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: Array.from(toUsersIds.entries())}))(md))))
+    }
+    useEffect(() => {
+        const messagesJson = localStorage.getItem(messagesLocalStorageKey)
+        if (messagesJson)
+            setMessagesData((JSON.parse(messagesJson) as MessagesInLocalStorage).map((md) => md.flow === "in" ? md : (({toUsersIds, ...rest})=> ({...rest, toUsersIds: new Map(toUsersIds)}))(md)))
+    }, [])
+    useEffect(() => {
+        window.addEventListener("beforeunload", handleBeforeUnload)
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload)
+        }
+    }, [messagesData])
 }

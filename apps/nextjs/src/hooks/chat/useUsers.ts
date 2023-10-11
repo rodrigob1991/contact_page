@@ -3,6 +3,7 @@ import {useEffect, useRef, useState} from "react"
 import {getRandomColor} from "utils/src/random"
 
 export type User = AccountedUserData & { selected: boolean, color: string }
+export type Users = User[]
 export type SetUsers = (...targetUsers: AccountedUserData[]) => void
 export type SetConnectedUser = (id: number, name: string, date: number) => void
 export type SetDisconnectedUser = (id: number, name: string, date: number) => void
@@ -13,8 +14,8 @@ export type GetUserColor = (id: number) => string
 export const LOCAL_USER_ID = -1
 export const LOCAL_USER_NAME = "me"
 
-export const useUsers = (userType: UserType) : [User[], SetUsers, GetUserColor, SetConnectedUser, SetDisconnectedUser, SetDisconnectedAllUsers, SelectOrUnselectUser]=> {
-    const [users, setUsers] = useState<User[]>([])
+export const useUsers = (userType: UserType) : [Users, SetUsers, GetUserColor, SetConnectedUser, SetDisconnectedUser, SetDisconnectedAllUsers, SelectOrUnselectUser]=> {
+    const [users, setUsers] = useState<Users>([])
 
     const userColorMapRef = useRef(new Map<number, string>([[LOCAL_USER_ID, "black"]]))
     const getUserColorMap = () => userColorMapRef.current
@@ -31,7 +32,7 @@ export const useUsers = (userType: UserType) : [User[], SetUsers, GetUserColor, 
         getUserColorMap().set(id, color)
     })
 
-    const setUsersConnections = (...targetUsers: AccountedUserData[]) => {
+    const setUsersConnections : SetUsers = (...targetUsers) => {
         const connectedUsersNames: string[] = []
         const disconnectedUsersNames: string[] = []
         setUsers((users) => {
@@ -65,13 +66,13 @@ export const useUsers = (userType: UserType) : [User[], SetUsers, GetUserColor, 
             //handleUsersDisconnection(connectedUsersNames)
         }
     }
-    const setConnectedUser = (id: number, name: string, date: number) => {
+    const setConnectedUser : SetConnectedUser = (id, name, date) => {
         setUsersConnections({id, name, isConnected: true, date})
     }
-    const setDisconnectedUser = (id: number, name: string, date: number) => {
+    const setDisconnectedUser : SetDisconnectedUser = (id, name, date) => {
         setUsersConnections({id, name, isConnected: false, date})
     }
-    const setDisconnectedAllUsers = () => {
+    const setDisconnectedAllUsers : SetDisconnectedAllUsers = () => {
         setUsers((users) => {
             const updatedUsers = [...users]
             updatedUsers.forEach(u => u.isConnected = false)
