@@ -24,7 +24,7 @@ export default function Home({presentation, stories}: HomeProps) {
     }, [])
 
     return  <>
-            <Header userName={presentation?.name ?? "none"}/>
+            <Header/>
             <PresentationView
                 presentation={presentation ?? {name: "", introduction: "", skills: [], image: undefined}}/>
             <StoriesView stories={stories}/>
