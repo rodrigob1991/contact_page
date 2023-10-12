@@ -63,6 +63,7 @@ export const initConnection : InitUserConnection<"guess"> = async ({id: cookieGu
                 default:
                     panic("invalid message prefix")
             }
+            // @ts-ignore: typescript complain about key is not assign, because it does not consider panic throw an error.
             promises.push(cacheAndSendUntilAck<GetMessages<"guess", "out">>(cache, mp, key, message, guessId))
         }
         // maybe use Promise.allSettled instead

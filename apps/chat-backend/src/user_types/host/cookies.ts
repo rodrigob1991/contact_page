@@ -24,5 +24,5 @@ export const extractHostData: ExtractUserData<"host"> = async (cookies) => {
     if (!host)
         panic("could not found valid authentication cookies", "host")
 
-    return host
+    return host as { id: number, name: string, password: string }
 }

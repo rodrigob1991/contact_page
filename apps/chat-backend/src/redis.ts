@@ -140,6 +140,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
         }
         const message = getMessage(parts)
 
+        // @ts-ignore: typescript complain about message is not assign, because it does not consider panic throw an error.
         return redisClient.publish(channel, message)
             .then(n => { log(n + " " + toUserType + " gotten the published message " + message, publisherType, publisherId)})
             .catch(getRejectError(publishMessage))

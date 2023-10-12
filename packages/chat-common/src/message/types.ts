@@ -24,6 +24,7 @@ type PartTemplate<MPK extends MessagePartsKeys, MPKS extends MessagePartsKeys, S
 type MessageTemplateInstance<MF extends MessageFlow, MP extends MessagePrefix<MF>, OP extends OriginPrefix<MF, MP>, MPKS extends MessagePartsKeys> =
     `${MP}${PartTemplate<"originPrefix", MPKS, ":", OP>}${PartTemplate<"number", MPKS, ":">}${PartTemplate<"userId", MPKS, ":">}${PartTemplate<"body", MPKS, ":">}`
 
+// @ts-ignore
 export type CutMessage<M extends Message[], WC extends MessagePartsKeys> = M extends [infer OM, ...infer RM] ? OM extends Message ? MessageTemplateInstance<OM["flow"], OM["prefix"], OM["originPrefix"], Exclude<OM["parts"], WC>> | (RM extends Message[] ? CutMessage<RM, WC> : never) : never : never
 
 type SpecificMessagePartsPositions<SMPK extends MessagePartsKeys> = Pick<{ prefix: 1, originPrefix: 2, number: "originPrefix" extends SMPK ? 3 : 2, userId: "originPrefix" extends SMPK ? 4 : 3, body: "userId" extends SMPK ? 4 : 3 }, SMPK>

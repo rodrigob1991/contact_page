@@ -35,6 +35,6 @@
     "devrc-nodejs": "concurrently \"tsc --watch\" \"yarn workspace utils dev\" \"yarn workspace chat-common dev\" \"REDIS_CLUSTER=yes nodemon --watch ./dist --watch ../../packages dist/app.js\"",
     "devrc": "gnome-terminal --tab --title=nodejs -e 'yarn devrc-nodejs' --tab --title=redis-cluster -e 'docker-compose -f docker-compose-redis-cluster.yml up'",
     "build": "tsc --build --verbose --force",
-    "start": "node dist/app.js"
+    "start": "node app.js"
   }
 }

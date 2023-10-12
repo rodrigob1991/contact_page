@@ -62,6 +62,7 @@ export const initConnection : InitUserConnection<"host">  = async ({id: hostId, 
                 default:
                     panic("invalid message prefix")
             }
+            // @ts-ignore: typescript complain about key is not assign, because it does not consider panic throw an error.
             promises.push(cacheAndSendUntilAck<GetMessages<"host", "out">>(cache, mp, key, message, hostId))
         }
         // maybe use Promise.allSettled instead
