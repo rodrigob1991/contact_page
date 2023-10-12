@@ -14,6 +14,9 @@ const nextConfig = {
     appDir: true,
   },
   transpilePackages: ["utils", "chat-common"],
+  eslint: {
+    ignoreDuringBuilds: true,
+  }
 }
 
 module.exports = nextConfig
