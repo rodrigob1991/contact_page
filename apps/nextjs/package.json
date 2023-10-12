@@ -31,7 +31,7 @@
   "scripts": {
     "add": "yarn add",
     "dev": "concurrently \"yarn workspace utils dev\" \"yarn workspace chat-common dev\" \"next dev\"",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
