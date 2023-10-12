@@ -39,11 +39,11 @@ export default function Home({presentation= {name:"", introduction: "", skills: 
   return (
       <>
       <Head>
-          <title>{presentation?.name}</title>
+          <title>{presentation.name}</title>
           <link rel="shortcut icon" href="favicon.png" />
       </Head>
       <Container>
-          <Header userName={presentation.name}/>
+          <Header/>
           <PresentationView presentation={presentation}/>
           <StoriesView stories={stories.map(s=> {return {...(({body, ...rest})=> rest)(s),body:getStoryBodyJsx(s.body)}})}/>
           <Footer>
