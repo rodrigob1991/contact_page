@@ -8,7 +8,7 @@ import useWebSocket, {
     HandleNewConnectionState,
     HandleServerAckMessage,
     HandleUserAckMessage,
-    HandleUsersMessage, SendOutboundMesMessage
+    HandleUsersMessage
 } from "../../hooks/chat/useWebSocket"
 import {useState} from "react"
 import {getParsedUsersMessageBody} from "chat-common/src/message/functions"
@@ -53,8 +53,8 @@ export default function Chat<UT extends UserType>({
 
     const [users, setUsers, getUserColor, setConnectedUser, setDisconnectedUser, setDisconnectedAllUsers, selectOrUnselectUser] = useUsers(userType)
 
-    let sendOutboundMesMessage: SendOutboundMesMessage = () => {}
-    const [messagesData, setInboundMessageData, setOutboundMessageData, setMessageAsAcknowledgedByServer, isMessageAckByServer, setMessageAsAcknowledgedByUser] = useMessages(userType, sendOutboundMesMessage)
+    const [messagesData, setInboundMessageData, setOutboundMessageData, setMessageAsAcknowledgedByServer, isMessageAckByServer, setMessageAsAcknowledgedByUser, useSendPendingMessages] = useMessages(userType)
+    useSendPendingMessages((number, body, usersIds)=> { sendMesMessage(number, body, usersIds) })
 
     const handleUsersMessage: HandleUsersMessage<UT> = (um) => {
         const users = getParsedUsersMessageBody(um.body)
@@ -91,7 +91,7 @@ export default function Chat<UT extends UserType>({
         return setMessage
     }
 
-    sendOutboundMesMessage = useWebSocket({
+    const sendMesMessage = useWebSocket({
         userType,
         handleUsersMessage,
         handleConMessage,

@@ -36,7 +36,7 @@ export type HandleServerAckMessage =  (n: number) => void
 export type HandleUserAckMessage = (n: number, ui: number) => void
 
 export type GuessId<UT extends UserType> = UT extends "host" ? number : undefined
-export type SendOutboundMesMessage = (number: number, body: string, usersIds: number[]) => void
+export type SendMesMessage = (number: number, body: string, usersIds: number[]) => void
 export enum ConnectionState { CONNECTED, DISCONNECTED, CONNECTING}
 export type HandleNewConnectionState = (cs: ConnectionState) => void
 
@@ -190,7 +190,7 @@ export default function useWebSocket<UT extends UserType>({
         }
         , [connect])
 
-    const sendOutboundMesMessage: SendOutboundMesMessage = (number, body, usersIds) => {
+    const sendMesMessage: SendMesMessage = (number, body, usersIds) => {
         for (const userId of usersIds) {
             const resendUntilAck = () => {
                 if (isConnected()) {
@@ -206,7 +206,7 @@ export default function useWebSocket<UT extends UserType>({
             resendUntilAck()
         }
     }
-    return sendOutboundMesMessage
+    return sendMesMessage
 }
 
 type GetOutboundMesMessage<UT extends UserType> = (number : number, userId: number, body: string) => OutboundMesMessage<UT>["template"]

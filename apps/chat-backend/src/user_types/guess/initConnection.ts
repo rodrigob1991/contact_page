@@ -31,6 +31,7 @@ import {
 } from "../../app"
 import {getHosts} from "../host/authentication"
 import {userTypes} from "chat-common/src/model/constants"
+import { isEmpty } from "utils/src/objects"
 
 export const initConnection : InitUserConnection<"guess"> = async ({id: cookieGuessId, name: cookieGuessName}, acceptConnection, addConnectedGuess, removeConnectedGuess, getConnectedHosts, publishMessage, handleGuessSubscriptionToMessages, getGuessCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const log = (msg: string) => { appLog(msg, "guess", guessId) }
@@ -134,14 +135,14 @@ export const initConnection : InitUserConnection<"guess"> = async ({id: cookieGu
         await Promise.all([
             subscribe(),
             // send outbound message if host is connected
-            Promise.all([getHosts(), getConnectedHosts(guessId)]).then(([hosts, connectedHosts]) => sendOutboundMessage(true, getMessage<OutboundToGuessHostsMessage>({
+            Promise.all([getHosts(), getConnectedHosts(guessId)]).then(([hosts, connectedHosts]) => !isEmpty(hosts) ? sendOutboundMessage(true, getMessage<OutboundToGuessHostsMessage>({
                 prefix: "usrs",
                 number: connectionDate,
                 body: getUsersMessageBody(Object.entries(hosts).map(([id, {name}]) => {
                     const isConnected = id in connectedHosts
                     return [+id, name, isConnected, isConnected ? connectedHosts[+id] : undefined]
                 }))
-            }))),
+            })) : Promise.resolve()),
             ...Object.values(getGuessCachedMessages(guessId, {mes: true, uack: true})).map(promise => promise.then(messages => sendOutboundMessage(false, ...messages))),
             // publish guess connection, maybe do it after the other promises succeed
             publishMessage<OutboundToHostConMessage>(undefined,{prefix: "con", number: connectionDate, userId: guessId, body: getGuessName()})])

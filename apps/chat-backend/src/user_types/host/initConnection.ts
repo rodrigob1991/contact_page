@@ -28,6 +28,7 @@ import {
     SendMessage
 } from "../../app"
 import {InitUserConnection} from "../types"
+import { isEmpty } from "utils/src/objects"
 
 //const logError = (msg: string, id: number) => { appLogError(msg, "host", id) }
 
@@ -144,7 +145,7 @@ export const initConnection : InitUserConnection<"host">  = async ({id: hostId, 
         await Promise.all([
             subscribe(),
             // send outbound message for each connected guess
-            getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, getMessage<OutboundToHostGuessesMessage>({prefix: "usrs", number: connectionDate, body: getUsersMessageBody(Object.entries(guessesIds).map(([id, date]) => [+id, "guess" + id, true, date]))}))),
+            getConnectedGuesses(hostId).then(guessesIds => !isEmpty(guessesIds) ? sendOutboundMessage(true, getMessage<OutboundToHostGuessesMessage>({prefix: "usrs", number: connectionDate, body: getUsersMessageBody(Object.entries(guessesIds).map(([id, date]) => [+id, "guess" + id, true, date]))})) : Promise.resolve()),
             //getConnectedGuesses(hostId).then(guessesIds => sendOutboundMessage(true, ...guessesIds.map(([guessId, date]) => getMessage<OutboundToHostConMessage>({prefix: "con", number: date, userId: guessId})))),
             ...Object.values(getHostCachedMessages(hostId, {mes: true, uack: true})).map(promise => promise.then(messages => sendOutboundMessage(false, ...messages))),
             // publish host connection, maybe do it after the other promises succeed

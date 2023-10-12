@@ -17,9 +17,9 @@ import {
 } from "../types/home"
 import {ObjectID} from "bson"
 import {getContainedString} from "utils/src/strings"
-import {getRecordWithNewProps} from "utils/src/recordManipulations"
+import {getObjectWithNewProps} from "utils/src/objects"
 
-type NewEntity = Record<string, any>
+type NewEntity = Record<string, unknown>
 type Entity = { id: string }
 
 type ImageDbArgsOrNull = ImageDbArgs | null
@@ -207,7 +207,7 @@ export class PropsStorageClient {
     }
 
     #getNormalizePresentation(dbArgs: PresentationDbArgs): Presentation {
-        return this.#getEntityWithImage(getRecordWithNewProps<PresentationDbArgs, [["skills", Skill[]]]>(dbArgs, [["skills", this.#getEntitiesWithImage(dbArgs.skills)]]))
+        return this.#getEntityWithImage(getObjectWithNewProps<PresentationDbArgs, [["skills", Skill[]]]>(dbArgs, [["skills", this.#getEntitiesWithImage(dbArgs.skills)]]))
     }
     #getNormalizeHomeProps<T extends HomePropsDbArgs | null>(homeProps: T): NormalizedHomeProps<T> {
         let normalizedHomeProps: Record<string, any> | undefined
@@ -230,7 +230,7 @@ export class PropsStorageClient {
     #getImageDbArgs<I extends ImageOrUndefined>(image: I) {
         let imageDbArgs
         if (image) {
-            imageDbArgs = getRecordWithNewProps<Image, [["src", Buffer]]>(image, [["src", Buffer.from(getContainedString(image.src, ","), "base64")]])
+            imageDbArgs = getObjectWithNewProps<Image, [["src", Buffer]]>(image, [["src", Buffer.from(getContainedString(image.src, ","), "base64")]])
         } else {
             imageDbArgs = null
         }
@@ -240,21 +240,21 @@ export class PropsStorageClient {
     #getImage<I extends ImageDbArgsOrNull>(imageDbArgs: I) {
         let image
         if (imageDbArgs) {
-            image = getRecordWithNewProps<ImageDbArgs, [["src", string]]>(imageDbArgs, [["src", this.#getImageDataUrlPrefix(imageDbArgs.extension) + "," + Buffer.from(imageDbArgs.src).toString("base64")]])
+            image = getObjectWithNewProps<ImageDbArgs, [["src", string]]>(imageDbArgs, [["src", this.#getImageDataUrlPrefix(imageDbArgs.extension) + "," + Buffer.from(imageDbArgs.src).toString("base64")]])
         } else {
             image = undefined
         }
         return image as ImageConvert<I>
     }
     #getEntityWithImageDbArgs<E extends EntityWithImage<ImageOrUndefined>>(e: E) {
-        return getRecordWithNewProps<E, [["image", ImageDbArgsConvert<E["image"]>]]>(e, [["image", this.#getImageDbArgs<E["image"]>(e.image)]])
+        return getObjectWithNewProps<E, [["image", ImageDbArgsConvert<E["image"]>]]>(e, [["image", this.#getImageDbArgs<E["image"]>(e.image)]])
     }
     #getEntitiesWithImageDbArgs<E extends EntityWithImage<ImageOrUndefined>>(entities: E[]) {
         return entities.map(e => this.#getEntityWithImageDbArgs<E>(e))
     }
 
     #getEntityWithImage<E extends EntityWithImageDbArgs<ImageDbArgsOrNull>>(e: E) {
-        return getRecordWithNewProps<E, [["image", ImageConvert<E["image"]>]]>(e, [["image", this.#getImage<E["image"]>(e.image)]])
+        return getObjectWithNewProps<E, [["image", ImageConvert<E["image"]>]]>(e, [["image", this.#getImage<E["image"]>(e.image)]])
     }
     #getEntitiesWithImage<E extends EntityWithImageDbArgs<ImageDbArgsOrNull>>(entities: E[]) {
         return entities.map(e => this.#getEntityWithImage<E>(e))

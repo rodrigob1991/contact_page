@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from "react"
 import {LOCAL_USER_ID, LOCAL_USER_NAME} from "./useUsers"
-import {SendOutboundMesMessage} from "./useWebSocket"
+import {SendMesMessage} from "./useWebSocket"
 import {ChangePropertyType} from "utils/src/types"
 import {UserType} from "chat-common/src/model/types"
 
@@ -18,9 +18,10 @@ export type SetOutboundMessageData = (body: string, toUsersIds: number[]) => voi
 export type SetMessageAsAcknowledgedByServer = (number: number) => void
 export type IsMessageAckByServer = (n: number) => boolean
 export type SetMessageAsAcknowledgedByUser = (number: number, userId: number) => void
+export type UseSendPendingMessages = (sendMesMessage: SendMesMessage) => void
 //export type AddPendingUserAckMessage = (n: number, ui: number) => void
 
-export const useMessages = (userType: UserType, sendOutboundMesMessage: SendOutboundMesMessage) : [MessagesData, SetInboundMessageData, SetOutboundMessageData, SetMessageAsAcknowledgedByServer, IsMessageAckByServer, SetMessageAsAcknowledgedByUser] => {
+export const useMessages = (userType: UserType) : [MessagesData, SetInboundMessageData, SetOutboundMessageData, SetMessageAsAcknowledgedByServer, IsMessageAckByServer, SetMessageAsAcknowledgedByUser, UseSendPendingMessages] => {
     const [messagesData, setMessagesData] = useState<MessageData[]>([])
 
     useStorage(userType, messagesData, setMessagesData)
@@ -58,13 +59,17 @@ export const useMessages = (userType: UserType, sendOutboundMesMessage: SendOutb
             return [...messagesData, messageData]
         })
     }
-    useEffect(() => {
-        getOutboundMessagesNumbersToSend().forEach((n) => {
-            const {body, number, toUsersIds} = getOutboundMessageData(n)
-            sendOutboundMesMessage(number, body, [...toUsersIds.keys()])
-        })
-        getOutboundMessagesNumbersToSend().splice(0, getOutboundMessagesNumbersToSend().length)
-    }, [messagesData])
+
+    const useSendPendingMessages = (sendMesMessage: SendMesMessage) => {
+        useEffect(() => {
+            getOutboundMessagesNumbersToSend().forEach((n) => {
+                const {body, number, toUsersIds} = getOutboundMessageData(n)
+                console.log("sending " + body)
+                sendMesMessage(number, body, [...toUsersIds.keys()])
+            })
+            getOutboundMessagesNumbersToSend().splice(0, getOutboundMessagesNumbersToSend().length)
+        }, [messagesData])
+    }
 
     const setMessageAsAcknowledgedByServer : SetMessageAsAcknowledgedByServer = (number) => {
         updateOutboundMessageData(number, "serverAck", true)
@@ -106,7 +111,7 @@ export const useMessages = (userType: UserType, sendOutboundMesMessage: SendOutb
         }
     }*/
 
-    return [messagesData, setInboundMessageData, setOutboundMessageData, setMessageAsAcknowledgedByServer, isMessageAckByServer, setMessageAsAcknowledgedByUser]
+    return [messagesData, setInboundMessageData, setOutboundMessageData, setMessageAsAcknowledgedByServer, isMessageAckByServer, setMessageAsAcknowledgedByUser, useSendPendingMessages]
 }
 
 type MessagesInLocalStorage = (InboundMessageData | ChangePropertyType<OutboundMessageData, ["toUsersIds", [number, UserAckState][]]>)[]
