@@ -1,23 +1,24 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # root
-/node_modules
-/.idea
-/.vscode
+**/.idea
+**/.vscode
+**/node_modules
+**/.env
+**/dist
+**/.yarn
+yarn.lock
+
 
 # common
-/packages/utils/node_modules
 
 # nextjs
-/apps/nextjs/.env
+
 /apps/nextjs/.vercel
 /apps/nextjs/.next
-/apps/nextjs/node_modules
 
 # chat_backend
-/apps/chat-backend/.env
-/apps/chat-backend/dist
-/apps/chat-backend/node_modules
+/apps/chat-backend/hosts
 
 # production
 /build

@@ -1,17 +1,15 @@
-import LiveChat, {FirstHandleConMessage, FirstHandleDisMessage, FirstHandleMesMessage} from "../../../../chat/LiveChat"
+import Chat, {HandleUserMessage, HandleUsersConnection, HandleUsersDisconnection} from "../../../../chat/Chat"
 import ComponentWithTooltip from "../../../../ComponentWithTooltip"
 import React, {useState} from "react"
 import styled from "@emotion/styled"
 import LiveIcon from "/public/live.svg"
 import {maxWidthSmallestLayout} from "../../../../../dimensions"
-import {ConnectionState, HandleNewConnectionState} from "../../../../../hooks/useWebSocket"
+import {ConnectionState, HandleNewConnectionState} from "../../../../../hooks/chat/useWebSocket"
 import {BsFillChatSquareTextFill} from "react-icons/bs"
 
-type Props = {
-    hostName: string
-}
+type Props = {}
 
-export default function GuessLiveChat({hostName}: Props) {
+export default function GuessLiveChat({}: Props) {
     const [showChatView, setShowChatView] = useState(false)
     const [showIconChatView, setShowIconChatView] = useState(false)
     const [connect, setConnect] = useState(false)
@@ -45,14 +43,12 @@ export default function GuessLiveChat({hostName}: Props) {
     const connectedIconProps = {color: "#ADFF2F", tooltipText: "disconnect chat"}
     const [iconProps, setIconProps] = useState(disconnectedIconProps)
 
-    const handleConMessage: FirstHandleConMessage<"guess"> = (cm) => {
+    const handleHostConnection: HandleUsersConnection = (hostName) => {
     }
-    const handleDisMessage: FirstHandleDisMessage<"guess"> = (dm) => {
+    const handleHostDisconnection: HandleUsersDisconnection = (hostName) => {
     }
-    const handleMesMessage: FirstHandleMesMessage<"guess"> = (mm) => {
+    const handleHostMessage: HandleUserMessage = (hostName, messageBody) => {
     }
-
-    const getHostName = (id: number) => hostName
 
     return (
         <Container>
@@ -62,9 +58,9 @@ export default function GuessLiveChat({hostName}: Props) {
                                   tooltipLeftDeviation={-70}
                                   onClick={handleOnClickLiveIcon}/>
             { (showIconChatView && !showChatView) && <ChatViewIconStyled visibility={0} size={50} fill={"white"} onClick={handleOnClickIconChatView}/>}
-            <LiveChat userType={"guess"} viewProps={{containerProps: {show: showChatView, top: 50, left: 50}, hide: ()=> { setShowChatView(false) }}}
-                      firstHandleConMessage={handleConMessage} firstHandleDisMessage={handleDisMessage} firstHandleMesMessage={handleMesMessage}
-                      nextHandleNewConnectionState={handleNewConnectionState} connect={connect} getOppositeUserName={getHostName}/>
+            <Chat userType={"guess"} viewProps={{containerProps: {show: showChatView, top: 50, left: 50}, hide: ()=> { setShowChatView(false) }}}
+                  handleUsersConnection={handleHostConnection} handleUsersDisconnection={handleHostDisconnection} handleUserMessage={handleHostMessage}
+                  nextHandleNewConnectionState={handleNewConnectionState} connect={connect}/>
         </Container>
     )
 }

@@ -2,39 +2,31 @@ import styled from "@emotion/styled"
 import React, {useEffect, useRef, useState} from "react"
 import {TextInput} from "../FormComponents"
 import {isEmpty} from "utils/src/strings"
-import {
-    GetUserColor,
-    InboundMessageData,
-    LOCAL_USER_ID,
-    MessageData,
-    OutboundMessageData,
-    SelectOrUnselectUser,
-    User,
-    UserAckState
-} from "./LiveChat"
 import {UserType} from "chat-common/src/model/types"
 import {BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
-import {ConnectionState} from "../../hooks/useWebSocket"
+import {ConnectionState} from "../../hooks/chat/useWebSocket"
 import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions"
+import {InboundMessageData, MessagesData, OutboundMessageData, UserAckState} from "../../hooks/chat/useMessages"
+import {GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users} from "../../hooks/chat/useUsers"
 
-export type SetNewOutboundMessageData =  (body: string) => boolean
+export type SetOutboundMessageData =  (body: string) => boolean
 export type ContainerProps = { show: boolean, left: number, top: number }
 export type Hide = () => void
 
 type Props<UT extends UserType> = {
     userType: UT
     connectionState: ConnectionState
-    messages: MessageData[]
-    users: User[]
+    messages: MessagesData
+    users: Users
     selectOrUnselectUser: SelectOrUnselectUser
     getUserColor: GetUserColor
-    setNewOutboundMessageData: SetNewOutboundMessageData
+    setOutboundMessageData: SetOutboundMessageData
     containerProps: ContainerProps
     hide?: Hide
 }
 
-export default function ChatView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setNewOutboundMessageData, containerProps, hide}: Props<UT>) {
+export default function ChatView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setOutboundMessageData, containerProps, hide}: Props<UT>) {
     const isHost = userType === "host"
 
     const [messageBody, setMessageBody] = useState("")
@@ -43,7 +35,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
 
     const handleInputMessage = () => {
         if (!isEmpty(messageBody)) {
-            if (setNewOutboundMessageData(messageBody)) {
+            if (setOutboundMessageData(messageBody)) {
                 setMessageBody("")
             }
         }
@@ -66,7 +58,7 @@ export default function ChatView<UT extends UserType>({userType, connectionState
                 <UsersContainerTitle>online users</UsersContainerTitle>
                 <hr color={"black"} style={{width:"100%", margin: "0px"}}/>
                 <UsersInnerContainer>
-                {users.map(({id, name, connectedCount, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={connectedCount > 0}> {name} </UserView>)}
+                {users.map(({id, name, isConnected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={isConnected}> {name} </UserView>)}
                 </UsersInnerContainer>
             </UsersContainer>
             <RightContainer>

@@ -1,0 +1,151 @@
+host: 
+{
+out:
+{
+con:
+{ 
+a guess connect, a con message is publish to the broker with the con-dis channel for the hosts, the broker push the message to consumers asociated with the hosts, the message is cached and then is transmitted through the websocket connection to the browser each 5 seconds until the message is ack by the browser.
+}
+dis:
+{
+a guess disconnect, a dis message is publish to the broker for the con-dis channel for the hosts, broker push the dis message to the websocket connections for each hosts subscribe to the con-dis channel, the message is cached and then is transmitted to the browser each 5 seconds until the message is ack by the browser.
+}
+mes: 
+{
+the broker push a mes message to a consumer asociated with the host, the server transmitte the message through the websocket connection to the browser client, the.
+}
+uack:
+{
+}
+sack: 
+{
+}
+usrs: 
+{
+}
+}
+in:
+{
+mes:
+{
+}
+uack:
+{
+}
+}
+}
+guess: 
+{
+out:
+{
+con: 
+{ 
+from server to clients only, when a user connect, a con message will be publish to the broker, the oposite users type that are connected will consume the message, the server will transmit the message through the websocket connection, the messages are not cached.
+}
+dis: 
+{
+from server to clients only, when a user disconnect, a dis message will be publish to the broker, the oposite users type that are connected will consume the message, the server will transmit the message through the websocket connection, the messages are not cached.
+}
+mes: 
+{
+from client to server:  {a user manually send by each user to the oposite user type,  are cached }
+from server to client: , manually send by each user to the oposite user type, are cached
+}
+uack:
+{
+}
+sack:
+{
+}
+usrs:
+{
+}
+}
+in:
+{
+mes:
+{
+a guess manually send a message from the browser client through websocket connection to the server, the message is retransmited after 5 seconds if the server did not responde with a sack message, the server cache the message and then send the sack message back to the browser, the server publish the message to the broker for the messages channel of the host.
+}
+uack:
+{
+}
+}
+}
+
+host connection:
+{
+host side: 
+{
+-browser client send request to server to initialize websocket connection
+-server validate the host id and password inside request cookies
+-server save host id inside connected hosts hash
+-server accept the websocket connection
+-server subscribe with broker to receive usrs-con-dis-mes-uack messages
+-server retrieve connected guesses, create usrs message, cache it and transmit it to the browser client every 5 second until uack:usrs message received
+-server retrieve cached mes and uack messages, create mes-uack messages, cache them and transmit them to the browser client every 5 second until uack:mes-uack messages received
+-server publish the host connection to the broker for the guesses consumers
+}
+guess side:
+{
+-broker push con messages to the consumers associated with the websocket connections of the guesses
+-server cache the con message and transmit it to the browser client every 5 second until uack:con message received
+}
+}
+
+guess connection:
+{
+guess side:
+{
+-browser client send request to server to initialize websocket connection
+-server seek for a guess id inside request cookies
+-if guess id not found, the server increment the guess ids counter and assign the value to the current guess
+-server save guess id inside connected guess hash
+-server accept the websocket connection
+-server subscribe with broker to receive usrs-con-dis-mes-uack messages
+-server retrieve hosts, create usrs message, cache it and transmit it to the browser client every 5 second until uack:usrs message received
+-server retrieve cached mes and uack messages, create mes-uack messages, cache them and transmit them to the browser client every 5 second until uack:mes-uack messages received
+-server publish the guess connection to the broker for the hosts consumers 
+}
+host side: 
+{
+-broker push con messages to the consumers associated with the websocket connections of the hosts
+-server cache the con messages and transmit them to the browser clients every 5 second until uack:con message received
+}
+}
+
+host in mes message: 
+{
+guess out mes message:
+{
+}
+guess in uack:mes message:
+{
+}
+host out uack:mes message:
+{
+}
+host in uack:uack message:
+{
+}
+}
+
+guess in mes message: 
+{
+host out mes message:
+{
+}
+host in uack:mes message:
+{
+}
+guess out uack:mes message:
+{
+}
+guess in uack:uack message:
+{
+}
+}
+
+
+
+

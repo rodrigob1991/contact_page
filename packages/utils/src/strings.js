@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getIndexOnOccurrence = exports.isEmpty = exports.getContainedString = void 0;
+exports.recursiveSplit = exports.getIndexOnOccurrence = exports.isEmpty = exports.getContainedString = void 0;
+const types_1 = require("./types");
 const getContainedString = (str, betweenLeft, betweenRight) => {
     let containedString;
     if (betweenLeft && betweenRight) {
@@ -40,3 +41,18 @@ const getIndexOnOccurrence = (str, search, occurrence, reverse = false) => {
     return found ? index - 1 : -1;
 };
 exports.getIndexOnOccurrence = getIndexOnOccurrence;
+const recursiveSplit = (str, separators) => {
+    const finalParts = [];
+    const currentParts = str.split(separators[0]);
+    const separatorsRest = separators.slice(1);
+    if ((0, types_1.isNonEmpty)(separatorsRest)) {
+        for (const part of currentParts) {
+            finalParts.push((0, exports.recursiveSplit)(part, separatorsRest));
+        }
+    }
+    else {
+        finalParts.push(...currentParts);
+    }
+    return finalParts;
+};
+exports.recursiveSplit = recursiveSplit;
