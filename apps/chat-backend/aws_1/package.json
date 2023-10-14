@@ -5,12 +5,9 @@
   "main": "app.js",
   "license": "MIT",
   "dependencies": {
-    "@types/websocket": "^1.0.6",
-    "chat-common": "1.0.0",
     "cross-env": "5.0.5",
     "dotenv": "^16.0.3",
     "redis": "^4.5.1",
-    "utils": "1.0.0",
     "websocket": "^1.0.34"
   },
   "devDependencies": {
