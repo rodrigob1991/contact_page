@@ -1,11 +1,15 @@
 import ws, {IUtf8Message} from "websocket"
-import http, {IncomingMessage, ServerResponse} from "http"
+import WebSocket, {WebSocketServer} from 'ws'
+import {createServer, IncomingMessage} from "http"
 import dotenv from "dotenv"
+import {Cookies, parseCookies} from "utils/src/http/cookies"
 import {
+    ConnectedUser,
     Guess,
     Host,
     MessagePrefix,
-    MessagePrefixOut, OppositeUserType,
+    MessagePrefixOut,
+    OppositeUserType,
     User,
     UserType
 } from "chat-common/src/model/types"
@@ -22,9 +26,10 @@ import {
     OutboundUserAckMessage,
     OutboundUsersMessage
 } from "chat-common/src/message/types"
-import {paths, userTypes} from "chat-common/src/model/constants"
+import {oppositeUserTypes, paths, userTypes} from "chat-common/src/model/constants"
 import {getOriginPrefix, getPrefix} from "chat-common/src/message/functions"
 import {
+    AddConnectedUser,
     HandleOnError as HandleOnRedisError,
     HandleOnReady as HandleOnRedisReady,
     initRedis,
@@ -33,8 +38,11 @@ import {
 } from "./redis"
 import {initConnection as initHostConnection} from "./user_types/host/initConnection"
 import {initConnection as initGuessConnection} from "./user_types/guess/initConnection"
-import {extractHostData, getHostCookies} from "./user_types/host/cookies"
-import {extractGuessData, getGuessCookies} from "./user_types/guess/cookies"
+import {attemptConnection as attemptHostConnection, getCookies as getHostCookies} from "./user_types/host/attemptConnection"
+import {attemptConnection as attemptGuessConnection, getCookies as getGuessCookies} from "./user_types/guess/attemptConnection"
+import {Duplex} from "node:stream"
+
+type AcceptWebSocketConnection = (request: IncomingMessage, socket: Duplex, head: Buffer, user: ConnectedUser, cookies: Cookies) => void
 
 export type AcceptConnection = (him: HandleInboundMessage , hd: HandleDisconnection, userId: number) => void
 export type CloseConnection = (reason?: string) => void
@@ -71,47 +79,12 @@ export const getHandleError = (originFunction: (...args: any[]) => any, reason2?
             callback(reason1)
     }
 
-const initHttpServer = () => {
-    const httpServer = http.createServer((request: IncomingMessage, response: ServerResponse) => {
-        response.writeHead(404)
-        response.end()
-    })
-    httpServer.listen(process.env.PORT, () => {
-        log("http server is listening on port " + process.env.PORT)
-    })
-    return httpServer
-}
-
-export type Cookie = ws.ICookie
-export type CookiesIn = Cookie[]
-export type CookiesOut = (Cookie & { samesite: string })[]
-export type ExtractUserData<UT extends UserType> = (cookies: CookiesIn) => Promise<User<UT>["data"]>
-export type GetCookies = (userId: number) => CookiesOut
-
-/*const getCookiesData = async (cookies: CookiesIn, forHost: boolean): Promise<[UserType, number | undefined]> => {
-    let userType: UserType = users.guess
-    let id
-
-
-
-
-    let userCommonData = emptyUser
-    const extractUserData = forHost ? extractHostData : extractGuessData
-
-    let index = 0
-    while (index < cookies.length &&  !user) {
-        user = await extractUserData(cookies[index])
-        index++
-    }
-    //return {type:
-}*/
-
 const originIsAllowed = (origin: string) => {
     const allowedOrigin = process.env.ALLOWED_ORIGIN
     return allowedOrigin !== undefined ? origin.startsWith(allowedOrigin) : true
 }
 
-const handleRequest = async (request: ws.request, {addConnectedUser, removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck}: RedisAPIs) => {
+const handleConnection = async (user: ConnectedUser, {removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck}: Pick<RedisAPIs, Exclude<keyof RedisAPIs, "addConnectedUser">>, connection: WebSocket) => {
     const origin = request.origin
     if (!originIsAllowed(origin)) {
         request.reject()
@@ -130,12 +103,11 @@ const handleRequest = async (request: ws.request, {addConnectedUser, removeConne
             getCookies = getGuessCookies
         }
 
-        const oppositeUserType = userType === "host" ? "guess" : "host"
+        const oppositeUserType = oppositeUserTypes[userType]
 
         let connection : ws.connection
         const acceptConnection: AcceptConnection = (him, hd, userId) => {
             const cookies = getCookies(userId)
-            log("cookies: " + JSON.stringify(cookies), userType, userId)
             connection = request.accept(undefined, origin, cookies)
             connection.on("message", him)
             connection.on("close", hd)
@@ -233,26 +205,51 @@ const handleRequest = async (request: ws.request, {addConnectedUser, removeConne
             : initGuessConnection(userData, acceptConnection, (guessId) => addConnectedUser("guess", guessId), (guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId), (hostId, mp) => publishMessage("host", hostId, mp), (guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi, wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)))()
     }
 }
+const handleUpgrade = async (request: IncomingMessage, socket: Duplex, head: Buffer, addConnectedUser: AddConnectedUser, acceptWebSocketConnection: AcceptWebSocketConnection) => {
+    socket.on('error', getHandleError(handleUpgrade))
+
+    const userType = request.url === paths.host ? "host" : "guess"
+    const cookiesIn = parseCookies(request.headers.cookies as string[])
+
+    let connectedUserData
+    let cookiesOut
+    if (userType === "host") {
+        connectedUserData = await attemptHostConnection(cookiesIn, (id) => addConnectedUser("host", id))
+        cookiesOut = getHostCookies()
+    } else {
+        connectedUserData = await attemptGuessConnection(cookiesIn, (id) => addConnectedUser("guess", id))
+        cookiesOut = getGuessCookies(connectedUserData.id)
+    }
+    acceptWebSocketConnection(request, socket, head, {type: userType, data: connectedUserData}, cookiesOut)
+}
 
 const initWebSocketServer = () => {
-    const wsServer = new ws.server({
-        httpServer: initHttpServer(),
-        autoAcceptConnections: false,
+    const wsServer = new WebSocketServer({noServer: true})
+    wsServer.on("connection", (connection: WebSocket, request: IncomingMessage, user: ConnectedUser) => {
+        handleConnection(user, redisApisRest, connection).catch(getHandleError(handleConnection, undefined, user.type, user.data.id, (r) => {
+        }))
     })
-    const handleOnRedisError: HandleOnRedisError = (error) => {
+    const acceptWebSocketConnection: AcceptWebSocketConnection = (request, socket, head, user, cookies) => {
+        wsServer.emit("headers", cookies, request)
+        wsServer.handleUpgrade(request, socket, head, (ws) => {
+            wsServer.emit("connection", ws, user)
+        })
     }
-    const handleOnRedisReady: HandleOnRedisReady = () => {
-    }
-    const redisApis = initRedis(handleOnRedisError, handleOnRedisReady)
-    wsServer.on("request", (request) => {
-        const rejectConnection = () => {
-            if (!request._resolved) {
-                request.reject()
-            } else {
-                request.socket.end()
-            }
-        }
-        handleRequest(request, redisApis).catch(getHandleError(handleRequest, undefined, undefined, undefined, rejectConnection))
+
+    const handleOnRedisError: HandleOnRedisError = (error) => {}
+    const handleOnRedisReady: HandleOnRedisReady = () => {}
+    const {addConnectedUser, ...redisApisRest} = initRedis(handleOnRedisError, handleOnRedisReady)
+
+    const httpServer = createServer()
+    httpServer.on("upgrade", (request, socket, head) => {
+        handleUpgrade(request, socket, head, addConnectedUser, acceptWebSocketConnection).catch( getHandleError(handleUpgrade, undefined, undefined, undefined, () => {
+            socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n")
+            socket.destroy()
+        }))
+    })
+
+    httpServer.listen(process.env.PORT, () => {
+        log("http server listening on port " + process.env.PORT)
     })
 }
 

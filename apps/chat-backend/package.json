@@ -5,17 +5,18 @@
   "main": "app.js",
   "license": "MIT",
   "dependencies": {
-    "@types/websocket": "^1.0.6",
     "chat-common": "1.0.0",
     "cross-env": "5.0.5",
     "dotenv": "^16.0.3",
     "redis": "^4.5.1",
     "utils": "1.0.0",
-    "websocket": "^1.0.34"
+    "websocket": "^1.0.34",
+    "ws": "^8.14.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.5",
     "@types/node": "^18.11.12",
+    "@types/ws": "^8.5.7",
     "@typescript-eslint/eslint-plugin": "^6.6.0",
     "@typescript-eslint/parser": "^6.6.0",
     "concurrently": "^7.6.0",

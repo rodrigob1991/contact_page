@@ -34,7 +34,7 @@ export type RemoveMessage = <M extends OutboundMessage>(userType: M["userType"],
 type IsMessageAck = <M extends OutboundMessage>(userType: M["userType"], userId: number, messagePrefix: M["prefix"], key: RedisMessageKey<[M]>) => Promise<boolean>
 type UserId<UT extends UserType> = number | (UT extends "guess" ? undefined : never)
 export type AddConnectedUserResult = Promise<{id: number, date: number}>
-type AddConnectedUser = <UT extends UserType>(userType: UT, id: UserId<UT>) => AddConnectedUserResult
+export type AddConnectedUser = <UT extends UserType=UserType>(userType: UT, id: UserId<UT>) => AddConnectedUserResult
 type RemoveConnectedUser = <UT extends UserType>(userType: UT, id: number) => Promise<void>
 type ConnectedUsers = { [id: number]: number }
 export type GetConnectedUsersResult = Promise<ConnectedUsers>
