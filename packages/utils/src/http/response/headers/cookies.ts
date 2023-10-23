@@ -1,5 +1,5 @@
-import {recursiveSplit} from "../strings"
-import {doXTimes} from "../loops"
+import {recursiveSplit} from "../../../strings"
+import {doXTimes} from "../../../loops"
 
 const sameSiteValues = {lax: "Lax", none: "None", strict: "Strict"} as const
 type AttributesKeysValues = {
@@ -13,10 +13,11 @@ type AttributesKeysValues = {
     partitioned: ["Partitioned", boolean]
 }
 type Attributes = { [K in keyof AttributesKeysValues]?: AttributesKeysValues[K][1] }
-export type Cookie = { name: string, value: string } & Attributes
-export type Cookies = Cookie[]
 
-const attributesNames: { [K in keyof Attributes]: AttributesKeysValues[K][0] } = {
+export type ResponseCookie = {name: string, value: string}  & Attributes
+export type ResponseCookies = ResponseCookie[]
+
+export const attributesNames: { [K in keyof Attributes]: AttributesKeysValues[K][0] } = {
     domain: "Domain",
     path: "Path",
     secure: "Secure",
@@ -26,10 +27,8 @@ const attributesNames: { [K in keyof Attributes]: AttributesKeysValues[K][0] } =
     maxAge: "Max-Age",
     partitioned: "Partitioned"
 }
-
-export const getCookie = ({name, value, domain, path, secure, sameSite, httpOnly, expires, maxAge, partitioned}: Cookie) => {
-    let cookieStr = ""
-    cookieStr += name + "=" + value + ";"
+export const getResponseCookie = ({name, value, domain, path, secure, sameSite, httpOnly, expires, maxAge, partitioned}: ResponseCookie) => {
+    let cookieStr = name + "=" + value + ";"
     if (domain !== undefined)
         cookieStr += attributesNames.domain + "=" + domain + ";"
     if (path !== undefined)
@@ -47,17 +46,18 @@ export const getCookie = ({name, value, domain, path, secure, sameSite, httpOnly
     if (partitioned !== undefined)
         cookieStr += attributesNames.partitioned
 
-    return cookieStr
+    return cookieStr.substring(0, cookieStr.length - 1)
 }
-export const parseCookies = (cookiesStr: string[]) => {
-    const cookies: Cookies = []
+export const getResponseCookieHeaders = (...cookies: ResponseCookies) => cookies.map((cookie) => "Set-Cookie:" + getResponseCookie(cookie))
+export const parseResponseCookies = (...cookiesStr: string[]) => {
+    const cookies: ResponseCookies = []
     for (const cookieStr of cookiesStr) {
         const attributes = recursiveSplit(cookieStr, [";", "="])
         const attributesNumber = attributes.length
         if (attributesNumber > 0) {
             const nameValue = attributes[0]
             if (nameValue.length === 2) {
-                const cookie: Cookie = {name: nameValue[0], value: nameValue[1]}
+                const cookie: ResponseCookie = {name: nameValue[0], value: nameValue[1]}
                 doXTimes(attributesNumber -1, (n) => {
                     const attribute = attributes[n]
                     const attributePartsNumber = attribute.length

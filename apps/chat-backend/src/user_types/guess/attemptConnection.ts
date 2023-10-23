@@ -1,6 +1,5 @@
-import {AttemptConnection} from "../types"
+import {AttemptConnection, GetResponseCookies} from "../types"
 import {paths, userTypes} from "chat-common/src/model/constants"
-import { Cookies } from "utils/src/http/cookies"
 import {decrypt, encrypt} from "utils/src/security"
 
 const cookieName = userTypes.guess
@@ -22,7 +21,7 @@ export const attemptConnection: AttemptConnection<"guess"> = async (cookies, add
     return addConnectedGuess(cookieId).then(({id, date}) => ({id, name: "guess" + id, date}))
 }
 
-export const getCookies = (id: number): Cookies => [{
+export const getResponseCookies: GetResponseCookies = (id) => [{
     name: cookieName,
     value: encrypt(process.env.ENCRIPTION_SECRET_KEY as string, id.toString()),
     path: paths.guess,

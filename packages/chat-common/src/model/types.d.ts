@@ -13,6 +13,13 @@ export type AccountedUser<UT extends UserType = UserType> = {
     };
 };
 export type AccountedUserData<UT extends UserType = UserType> = AccountedUser<UT>["data"];
+export type ConnectedUser<UT extends UserType = UserType> = {
+    type: UT;
+    data: (("host" extends UT ? Host : never) | ("guess" extends UT ? AccountedGuess : never)) & {
+        date: number;
+    };
+};
+export type ConnectedUserData<UT extends UserType = UserType> = ConnectedUser<UT>["data"];
 export type Host = typeof emptyHost;
 export type Guess = ChangePropertiesType<AccountedGuess, [["id", number | undefined], ["name", string | undefined]]>;
 export type AccountedGuess = typeof emptyGuess;

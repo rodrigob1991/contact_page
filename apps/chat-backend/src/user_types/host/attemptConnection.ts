@@ -1,9 +1,8 @@
-import {AttemptConnection} from "../types"
+import {AttemptConnection, GetResponseCookies} from "../types"
 import {getHostIfValidRegistered} from "./authentication"
 import {panic} from "../../app"
 import {userTypes} from "chat-common/src/model/constants"
 import {Host} from "chat-common/src/model/types"
-import { Cookies } from "utils/src/http/cookies"
 
 const cookieNamePrefix = userTypes.host
 export const attemptConnection: AttemptConnection<"host"> = async (cookies, addConnectedHost) => {
@@ -24,6 +23,6 @@ export const attemptConnection: AttemptConnection<"host"> = async (cookies, addC
 
     return addConnectedHost((host as Host).id).then(({id, date}) => ({...(host as Host), date}))
 }
-export const getCookies = (): Cookies => {
+export const getResponseCookies: GetResponseCookies = () => {
     return []
 }

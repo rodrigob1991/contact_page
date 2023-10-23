@@ -1,11 +1,5 @@
 import {messagePrefixes, oppositeUserTypes, userTypes} from "chat-common/src/model/constants"
-import {
-    CutMessage,
-    GetMessages,
-    GotAllMessageParts,
-    OutboundMessage,
-    OutboundMessageTemplate
-} from "chat-common/src/message/types"
+import {CutMessage, GetMessages, GotAllMessageParts, OutboundMessage} from "chat-common/src/message/types"
 import {getMessage} from "chat-common/src/message/functions"
 import {MessagePrefix, MessagePrefixOut, UserType} from "chat-common/src/model/types"
 import {getHandleError, log, panic, SendMessage} from "./app"
@@ -40,12 +34,13 @@ type ConnectedUsers = { [id: number]: number }
 export type GetConnectedUsersResult = Promise<ConnectedUsers>
 type GetConnectedUsers = (toUserType: UserType, toUserId: number) => GetConnectedUsersResult
 
-export type RedisAPIs = { addConnectedUser: AddConnectedUser, removeConnectedUser: RemoveConnectedUser, getConnectedUsers: GetConnectedUsers,  publishMessage: PublishMessage, handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages, cacheMessage: CacheMessage, getCachedMessages: GetCachedMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck}
+export type RedisClientAPIs = { addConnectedUser: AddConnectedUser, removeConnectedUser: RemoveConnectedUser, getConnectedUsers: GetConnectedUsers,  publishMessage: PublishMessage, handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages, cacheMessage: CacheMessage, getCachedMessages: GetCachedMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck}
+export type RedisClientFunctionName = keyof RedisClientAPIs
 
 export type HandleOnError = (error: Error) => void
 export type HandleOnReady = () => void
 
-const initConnection = (handleOnError: HandleOnError, handleOnReady: HandleOnReady) => {
+const connect = (handleOnError: HandleOnError, handleOnReady: HandleOnReady) => {
     const url = process.env.REDIS_URL
     const credentials = {username: process.env.REDIS_USERNAME, password: process.env.REDIS_PASSWORD}
     const socket = {tls: process.env.REDIS_TLS !== undefined}
@@ -84,7 +79,7 @@ const initConnection = (handleOnError: HandleOnError, handleOnReady: HandleOnRea
     return client
 }
 
-export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnReady) : RedisAPIs => {
+export const initRedisConnection = (handleOnError: HandleOnError, handleOnReady: HandleOnReady) : RedisClientAPIs => {
     const guessCountKey = userTypes.guess + "-count"
 
     const connectedUsersHashKeyPrefix = "connected:"
@@ -100,18 +95,17 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
     const getMessagesChannel = (userType: UserType, userId: number) => messagePrefixes.mes + ":" + userType + ":" + userId
 
     const handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages = <UT extends UserType>(ofUserType: UT, ofUserId: number, sendMessage: SendMessage<UT>) => {
-        const subscriber = redisClient.duplicate()
+        const subscriber = client.duplicate()
 
         const getHandleErrorSendMessage = (message: string) => getHandleError(sendMessage, "consuming message: " + message, ofUserType, ofUserId)
+        type ConsumedMessage = Parameters<SendMessage<UT>>[1] // cannot use OutboundMessageTemplate<UT> because typescript compare types with the same generic type parameter as it could take different values por each one.
         const subscribe = () => subscriber.connect().then(() =>
             Promise.all([
-                subscriber.subscribe(getConDisChannel(ofUserType), (message, channel) => {
-                    // @ts-ignore
-                    sendMessage(true, message as OutboundMessageTemplate<UT, "con" | "dis">).catch(getHandleErrorSendMessage(message))
+                subscriber.subscribe(getConDisChannel(ofUserType), (message) => {
+                    sendMessage(true, message as ConsumedMessage).catch(getHandleErrorSendMessage(message))
                 }),
-                subscriber.subscribe(getMessagesChannel(ofUserType, ofUserId), (message, channel) => {
-                    // @ts-ignore
-                    sendMessage(false, message as OutboundMessageTemplate<UT, "mes" | "uack">).catch(getHandleErrorSendMessage(message))
+                subscriber.subscribe(getMessagesChannel(ofUserType, ofUserId), (message) => {
+                    sendMessage(false, message as ConsumedMessage).catch(getHandleErrorSendMessage(message))
                 })])
                 .then(() => {
                     log("subscribed to the channels", ofUserType, ofUserId)
@@ -140,14 +134,13 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
         }
         const message = getMessage(parts)
 
-        // @ts-ignore: typescript complain about message is not assign, because it does not consider panic throw an error.
-        return redisClient.publish(channel, message)
+        return client.publish(channel as string, message)
             .then(n => { log(n + " " + toUserType + " gotten the published message " + message, publisherType, publisherId)})
             .catch(getRejectError(publishMessage))
     }
 
     const cacheMessage: CacheMessage = (userType, userId, messagePrefix, key, message) =>
-        redisClient.hSet(getMessagesHashKey(userType, userId, messagePrefix), key, message).then(n => {
+        client.hSet(getMessagesHashKey(userType, userId, messagePrefix), key, message).then(n => {
             const cached = n > 0
             const msg = "message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached"
             if (cached)
@@ -158,7 +151,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
     const getCachedMessages: GetCachedMessages = (userType, userId, whatPrefixes) => {
         const promises: { [k: string]: Promise<string[]> } = {}
         for (const prefix in whatPrefixes) {
-            promises[prefix] = redisClient.hVals(getMessagesHashKey(userType, userId, prefix as MessagePrefix))
+            promises[prefix] = client.hVals(getMessagesHashKey(userType, userId, prefix as MessagePrefix))
                 .then(messages => {
                     const number = messages.length
                     log(number + " " + prefix + " messages cached gotten" + (number > 0 ? ": " + messages.toString() : ""), userType, userId)
@@ -170,7 +163,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
 
     // maybe reject the promise if the message was not removed
     const removeMessage: RemoveMessage = (userType, userId, messagePrefix, key) =>
-        redisClient.hDel(getMessagesHashKey(userType, userId, messagePrefix), key)
+        client.hDel(getMessagesHashKey(userType, userId, messagePrefix), key)
             .then(n => {
                 const removed = n > 0
                 log("message with key " + key + " was " + (removed ? "" : "not ") + "removed", userType, userId)
@@ -178,7 +171,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
             }).catch(getRejectError(removeMessage))
 
     const isMessageAck: IsMessageAck = (userType, userId, messagePrefix, key) =>
-        redisClient.hExists(getMessagesHashKey(userType, userId, messagePrefix), key)
+        client.hExists(getMessagesHashKey(userType, userId, messagePrefix), key)
             .then(exist => {
                 log("message with key " + key + " was" + (exist ? " not" : "") + " acknowledged", userType, userId)
                 return !exist
@@ -187,7 +180,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
     const addConnectedUser: AddConnectedUser = (userType, id) => {
         const setConnectedUser = async (firstTime: boolean, id: number) => {
             const date = Date.now()
-            return redisClient.hSetNX(getConnectedUsersHashKey(userType), id.toString(), date.toString()).then(added => {
+            return client.hSetNX(getConnectedUsersHashKey(userType), id.toString(), date.toString()).then(added => {
                 if (added) {
                     log((firstTime ? "first time " : "") +  "added to connected hash", userType, id)
                     return {id: id, date: date}
@@ -200,12 +193,12 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
         if (userType === "host") {
             promise = setConnectedUser(false, id as UserId<"host">)
         } else {
-            promise = (id === undefined ? redisClient.incr(guessCountKey).then<[number, true]>(newGuessId => [newGuessId, true]) : Promise.resolve<[number, false]>([id, false])).then(([guessId, firstTime]) => setConnectedUser(firstTime, guessId))
+            promise = (id === undefined ? client.incr(guessCountKey).then<[number, true]>(newGuessId => [newGuessId, true]) : Promise.resolve<[number, false]>([id, false])).then(([guessId, firstTime]) => setConnectedUser(firstTime, guessId))
         }
         return promise.catch(getRejectError(addConnectedUser))
     }
     const removeConnectedUser: RemoveConnectedUser = (userType, id) => {
-        return redisClient.hDel(getConnectedUsersHashKey(userType), id.toString()).then(n => {
+        return client.hDel(getConnectedUsersHashKey(userType), id.toString()).then(n => {
             if (n > 0) log("was removed from connected hash", userType, id)
             else return Promise.reject(userType + " " + id + " was not removed from connected hash")
         }).catch(getRejectError(removeConnectedUser))
@@ -213,7 +206,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
 
     const getConnectedUsers: GetConnectedUsers = (toUserType, toUserId) => {
         const ofUserType = toUserType === "host" ? "guess" : "host"
-        return redisClient.hGetAll(getConnectedUsersHashKey(ofUserType)).then(fields => {
+        return client.hGetAll(getConnectedUsersHashKey(ofUserType)).then(fields => {
             const fieldsEntries = Object.entries(fields)
             const usersConnectedNumber = fieldsEntries.length
             const areUsersConnected = fieldsEntries.length > 0
@@ -224,7 +217,7 @@ export const initRedis = (handleOnError: HandleOnError, handleOnReady: HandleOnR
         }).catch(getRejectError(getConnectedUsers))
     }
 
-    const redisClient = initConnection(handleOnError, handleOnReady)
+    const client = connect(handleOnError, handleOnReady)
     // delete all the data
     //redisClient.flushAll().then((r) => log("all redis data deleted, reply: " + r))
 

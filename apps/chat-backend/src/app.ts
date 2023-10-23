@@ -1,16 +1,12 @@
-import ws, {IUtf8Message} from "websocket"
-import WebSocket, {WebSocketServer} from 'ws'
+import WebSocket, {RawData, WebSocketServer} from 'ws'
 import {createServer, IncomingMessage} from "http"
 import dotenv from "dotenv"
-import {Cookies, parseCookies} from "utils/src/http/cookies"
 import {
     ConnectedUser,
-    Guess,
-    Host,
+    ConnectedUserData,
     MessagePrefix,
     MessagePrefixOut,
     OppositeUserType,
-    User,
     UserType
 } from "chat-common/src/model/types"
 import {
@@ -32,23 +28,31 @@ import {
     AddConnectedUser,
     HandleOnError as HandleOnRedisError,
     HandleOnReady as HandleOnRedisReady,
-    initRedis,
-    RedisAPIs,
+    initRedisConnection,
+    RedisClientAPIs,
     RedisMessageKey
 } from "./redis"
 import {initConnection as initHostConnection} from "./user_types/host/initConnection"
 import {initConnection as initGuessConnection} from "./user_types/guess/initConnection"
-import {attemptConnection as attemptHostConnection, getCookies as getHostCookies} from "./user_types/host/attemptConnection"
-import {attemptConnection as attemptGuessConnection, getCookies as getGuessCookies} from "./user_types/guess/attemptConnection"
+import {
+    attemptConnection as attemptHostConnection,
+    getResponseCookies as getHostResponseCookies
+} from "./user_types/host/attemptConnection"
+import {
+    attemptConnection as attemptGuessConnection,
+    getResponseCookies as getGuessResponseCookies
+} from "./user_types/guess/attemptConnection"
 import {Duplex} from "node:stream"
+import {parseRequestCookies} from "utils/src/http/request/headers/cookies"
+import {getResponseCookieHeaders, ResponseCookies} from "utils/src/http/response/headers/cookies"
 
-type AcceptWebSocketConnection = (request: IncomingMessage, socket: Duplex, head: Buffer, user: ConnectedUser, cookies: Cookies) => void
+type UpgradeToWebSocketConnection = (request: IncomingMessage, socket: Duplex, head: Buffer, user: ConnectedUser, cookies: ResponseCookies) => void
 
-export type AcceptConnection = (him: HandleInboundMessage , hd: HandleDisconnection, userId: number) => void
+export type SetConnectionHandlers = (him: HandleInboundMessage , hd: HandleDisconnection) => void
 export type CloseConnection = (reason?: string) => void
 
 export type HandleDisconnection = (reasonCode: number, description: string) => void
-export type HandleInboundMessage = (m: ws.Message) => void
+export type HandleInboundMessage = (rawData: RawData) => void
 export type HandleInboundMesMessage<UT extends UserType=UserType> = { [K in UT]: (m: InboundMessageTemplate<K, "mes">) => [OutboundServerAckMessage<K>["template"], number, RedisMessageKey<[InboundMessageTarget<InboundMesMessage<K>>]>, InboundMessageTarget<InboundMesMessage<K>>["template"], () => Promise<void>] }[UT]
 //export type HandleInboundAckMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<UT, "uack">) => [OriginPrefix, RedisMessageKey<[OutboundMessage<UT>]>, number, RedisMessageKey<[OutboundUserAckMessage<TheOtherUserType<UT>>]> | undefined, OutboundUserAckMessage<TheOtherUserType<UT>>["template"] | undefined, (() => Promise<void>) | undefined]}[UT]
 export type HandleInboundAckConMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<K, "uack", "con">) => RedisMessageKey<[OutboundConMessage<K>]>}[UT]
@@ -56,7 +60,7 @@ export type HandleInboundAckDisMessage<UT extends UserType=UserType> = { [K in U
 export type HandleInboundAckUsrsMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<K, "uack", "usrs">) => RedisMessageKey<[OutboundUsersMessage<K>]>}[UT]
 export type HandleInboundAckUackMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<K, "uack", "uack">) => RedisMessageKey<[OutboundUserAckMessage<K>]>}[UT]
 export type HandleInboundAckMesMessage<UT extends UserType=UserType> = { [K in UT]: (a: InboundMessageTemplate<K, "uack", "mes">) => [RedisMessageKey<[OutboundMesMessage<K>]>, number, RedisMessageKey<[OutboundUserAckMessage<OppositeUserType[K]>]>, OutboundUserAckMessage<OppositeUserType[K]>["template"], () => Promise<void>]}[UT]
-export type ApplyHandleInboundMessage<UT extends UserType=UserType> =(wsMessage: ws.Message, handleMesMessage: HandleInboundMesMessage<UT>, handleAckConMessage: HandleInboundAckConMessage<UT>, handleAckDisMessage: HandleInboundAckDisMessage<UT>, handleAckUsrsMessage: HandleInboundAckUsrsMessage<UT>, handleAckUackMessage: HandleInboundAckUackMessage<UT>, handleAckMesMessage: HandleInboundAckMesMessage<UT>, userId: number) => void
+export type ApplyHandleInboundMessage<UT extends UserType=UserType> =(rawData: RawData, handleMesMessage: HandleInboundMesMessage<UT>, handleAckConMessage: HandleInboundAckConMessage<UT>, handleAckDisMessage: HandleInboundAckDisMessage<UT>, handleAckUsrsMessage: HandleInboundAckUsrsMessage<UT>, handleAckUackMessage: HandleInboundAckUackMessage<UT>, handleAckMesMessage: HandleInboundAckMesMessage<UT>, userId: number) => void
 
 export type SendMessage<UT extends UserType> = (cache: boolean, ...message: OutboundMessageTemplate<UT, Exclude<MessagePrefixOut, "sack">>[]) => Promise<void>
 
@@ -79,172 +83,144 @@ export const getHandleError = (originFunction: (...args: any[]) => any, reason2?
             callback(reason1)
     }
 
-const originIsAllowed = (origin: string) => {
+const setResponseCookiesEventName = "setResponseCookies"
+
+const originIsAllowed = (origin: string | undefined) => {
     const allowedOrigin = process.env.ALLOWED_ORIGIN
-    return allowedOrigin !== undefined ? origin.startsWith(allowedOrigin) : true
+    return (allowedOrigin === undefined) || (origin !== undefined && origin.startsWith(allowedOrigin))
 }
+const handleUpgrade = async (request: IncomingMessage, socket: Duplex, head: Buffer, addConnectedUser: AddConnectedUser, upgradeToWebSocketConnection: UpgradeToWebSocketConnection) => {
+    socket.on("error", getHandleError(handleUpgrade))
+    const {origin, cookies: rawRequestCookies} = request.headers
+    if (originIsAllowed(origin)) {
+        const userType = request.url === paths.host ? "host" : "guess"
+        const requestCookies = rawRequestCookies !== undefined ? parseRequestCookies(...(typeof rawRequestCookies === "string" ? [rawRequestCookies] : rawRequestCookies)) : []
 
-const handleConnection = async (user: ConnectedUser, {removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck}: Pick<RedisAPIs, Exclude<keyof RedisAPIs, "addConnectedUser">>, connection: WebSocket) => {
-    const origin = request.origin
-    if (!originIsAllowed(origin)) {
-        request.reject()
-        log(`connection from origin ${origin} rejected.`)
-    } else {
-        let userType: UserType
-        let userData: Host | Guess
-        let getCookies: GetCookies
-        if (request.httpRequest.url === paths.host) {
-            userType = "host"
-            userData = await extractHostData(request.cookies)
-            getCookies = getHostCookies
+        let connectedUserData
+        let getResponseCookies
+        if (userType === "host") {
+            connectedUserData = await attemptHostConnection(requestCookies, (id) => addConnectedUser("host", id))
+            getResponseCookies = getHostResponseCookies
         } else {
-            userType = "guess"
-            userData = await extractGuessData(request.cookies)
-            getCookies = getGuessCookies
+            connectedUserData = await attemptGuessConnection(requestCookies, (id) => addConnectedUser("guess", id))
+            getResponseCookies = getGuessResponseCookies
         }
-
-        const oppositeUserType = oppositeUserTypes[userType]
-
-        let connection : ws.connection
-        const acceptConnection: AcceptConnection = (him, hd, userId) => {
-            const cookies = getCookies(userId)
-            connection = request.accept(undefined, origin, cookies)
-            connection.on("message", him)
-            connection.on("close", hd)
-            log("connection accepted", userType, userId)
-        }
-        /*const closeConnection: CloseConnection = (reason) => {
-            connection.close(ws.connection.CLOSE_REASON_GOING_AWAY, reason)
-        }*/
-
-        const cacheAndSendUntilAck = async (cache: boolean, messagePrefix: MessagePrefix<"out">, key: RedisMessageKey, message: OutboundMessageTemplate, userId: number) => {
-            const sendUntilAck = () => {
-                if (connection.connected) {
-                    connection.sendUTF(message)
-                    log("sent outbound message " + message, userType, userId)
-                    setTimeout(() => {
-                        // consider when the connection with redis fail
-                        // to continue sending the message pass a callback to getHandleError that call sendUntilAck
-                        isMessageAck(userType, userId, messagePrefix, key).then(ack => {
-                            if (!ack) {
-                                sendUntilAck()
-                            }
-                        }).catch(getHandleError(sendUntilAck, undefined, userType, userId))
-                    }, 5000)
-                }
-            }
-            return (cache ? cacheMessage(userType, userId, messagePrefix, key, message) : Promise.resolve()).then(sendUntilAck)
-        }
-
-        const applyHandleInboundMessage: ApplyHandleInboundMessage = (wsMessage, handleMesMessage, handleAckConMessage, handleAckDisMessage, handleAckUsrsMessage, handleAckUackMessage, handleAckMesMessage, userId) => {
-            //const catchError = (reason: string) => {log("error handling inbound message, " + reason, userType, userId)}
-            const handleError = getHandleError(applyHandleInboundMessage, undefined, userType, userId)
-
-            const message = (wsMessage as IUtf8Message).utf8Data as InboundMessageTemplate
-            const prefix = getPrefix(message)
-            switch (prefix) {
-                case "mes": {
-                    const [outboundSackMessage, oppositeUserId, outboundMesMessageKey, outboundMesMessage, publishOutboundMesMessage] = handleMesMessage(message as InboundMesMessage["template"])
-                    publishOutboundMesMessage().catch(handleError)
-                    // only send outbound sack message when the outbound mes message is cache
-                    cacheMessage(oppositeUserType, oppositeUserId, "mes", outboundMesMessageKey, outboundMesMessage).then(() => { connection.sendUTF(outboundSackMessage) }).catch(handleError)
-                    break
-                }
-                case "uack": {
-                    const originPrefix= getOriginPrefix(message as InboundAckMessage["template"])
-
-                    const removeOriginMessage = (messageKey: RedisMessageKey) => { removeMessage(userType, userId, originPrefix, messageKey).catch(handleError) }
-
-                    switch (originPrefix) {
-                        case "con":
-                            const originConMessageKey = handleAckConMessage(message as InboundAckMessage<UserType,"con">["template"])
-                            removeOriginMessage(originConMessageKey)
-                            break
-                        case "dis":
-                            const originDisMessageKey = handleAckDisMessage(message as InboundAckMessage<UserType,"dis">["template"])
-                            removeOriginMessage(originDisMessageKey)
-                            break
-                        case "usrs":
-                            const originUsrsMessageKey = handleAckUsrsMessage(message as InboundAckMessage<UserType,"usrs">["template"])
-                            removeOriginMessage(originUsrsMessageKey)
-                            break
-                        case "uack":
-                            const originUackMessageKey = handleAckUackMessage(message as InboundAckMessage<UserType,"uack">["template"])
-                            removeOriginMessage(originUackMessageKey)
-                            break
-                        case "mes":
-                            const [originMesMessageKey, oppositeUserId, uackMessageKey, uackMessage, publishUackMessage] = handleAckMesMessage(message as InboundAckMessage<UserType,"mes">["template"])
-                             /*this is when a user ack a mes message
-                             I only remove the outbound mes message if the outbound uack message published to the sender is cache, so to ensure the sender will know that his was received
-                             if cache fail the outbound mes message will continue being send and has to be ack again, repeating this process*/
-                            cacheMessage(oppositeUserType, oppositeUserId, "uack", uackMessageKey, uackMessage).then(() => { removeOriginMessage(originMesMessageKey) }).catch(handleError)
-                            publishUackMessage().catch(handleError)
-                            break
-                    }
-
-                /*    const [originOutboundMessagePrefix, originOutboundMessageKey, oppositeUserId, outboundUackMessageKey, outboundUackMessage, publishOutboundUackMessage] = handleAckMessage(message as InboundAckMessage["template"])
-                    const removeOriginMessage = () => removeMessage(userType, userId, originOutboundMessagePrefix, originOutboundMessageKey).catch(handleError)
-                    if (outboundUackMessageKey) {
-                        (publishOutboundUackMessage as () => Promise<void>)().catch(handleError)
-                        // this is when a user ack a mes message
-                        // I only remove the outbound mes message if the outbound uack message published to the sender is cache, so to ensure the sender will know that his was received
-                        // if cache fail the outbound mes message will continue being send and has to be ack again, repeating this process
-                        cacheMessage(oppositeUserType, oppositeUserId, "uack", outboundUackMessageKey, outboundUackMessage as OutboundUserAckMessage["template"]).then(removeOriginMessage)
-                    } else {
-                        // the user ack a con dis or uack message
-                        removeOriginMessage()
-                    }
-                    break*/
-                }
-            }
-            log("inbound message " + message, userType, userId)
-        }
-
-        await (() => (userType === userTypes.host
-            ? initHostConnection(userData as Host, acceptConnection, (hostId) => addConnectedUser("host", hostId), (hostId) => removeConnectedUser("host", hostId), (toHostId) => getConnectedUsers("host", toHostId), (guessId, mp) => publishMessage("guess", guessId, mp), (hostId, sm) => handleUserSubscriptionToMessages("host", hostId, sm), (hi, wp) => getCachedMessages("host", hi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
-            : initGuessConnection(userData, acceptConnection, (guessId) => addConnectedUser("guess", guessId), (guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId), (hostId, mp) => publishMessage("host", hostId, mp), (guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi, wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)))()
+        upgradeToWebSocketConnection(request, socket, head, {type: userType, data: connectedUserData}, getResponseCookies(connectedUserData.id))
     }
 }
-const handleUpgrade = async (request: IncomingMessage, socket: Duplex, head: Buffer, addConnectedUser: AddConnectedUser, acceptWebSocketConnection: AcceptWebSocketConnection) => {
-    socket.on('error', getHandleError(handleUpgrade))
 
-    const userType = request.url === paths.host ? "host" : "guess"
-    const cookiesIn = parseCookies(request.headers.cookies as string[])
+const handleConnection = async ({type: userType, data: userData}: ConnectedUser, {removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck}: Pick<RedisClientAPIs, Exclude<keyof RedisClientAPIs, "addConnectedUser">>, connection: WebSocket) => {
+    const oppositeUserType = oppositeUserTypes[userType]
 
-    let connectedUserData
-    let cookiesOut
-    if (userType === "host") {
-        connectedUserData = await attemptHostConnection(cookiesIn, (id) => addConnectedUser("host", id))
-        cookiesOut = getHostCookies()
-    } else {
-        connectedUserData = await attemptGuessConnection(cookiesIn, (id) => addConnectedUser("guess", id))
-        cookiesOut = getGuessCookies(connectedUserData.id)
+    const setConnectionHandlers: SetConnectionHandlers = (him, hd) => {
+        connection.on("message", him)
+        connection.on("close", hd)
     }
-    acceptWebSocketConnection(request, socket, head, {type: userType, data: connectedUserData}, cookiesOut)
+
+    const cacheAndSendUntilAck = async (cache: boolean, messagePrefix: MessagePrefix<"out">, key: RedisMessageKey, message: OutboundMessageTemplate, userId: number) => {
+        const sendUntilAck = () => {
+            if (connection.readyState === WebSocket.OPEN) {
+                connection.send(message)
+                log("sent outbound message " + message, userType, userId)
+                setTimeout(() => {
+                    // consider when the connection with redis fail
+                    // to continue sending the message pass a callback to getHandleError that call sendUntilAck
+                    isMessageAck(userType, userId, messagePrefix, key).then(ack => {
+                        if (!ack) {
+                            sendUntilAck()
+                        }
+                    }).catch(getHandleError(sendUntilAck, undefined, userType, userId))
+                }, 5000)
+            }
+        }
+        return (cache ? cacheMessage(userType, userId, messagePrefix, key, message) : Promise.resolve()).then(sendUntilAck)
+    }
+
+    const applyHandleInboundMessage: ApplyHandleInboundMessage = (rawData, handleMesMessage, handleAckConMessage, handleAckDisMessage, handleAckUsrsMessage, handleAckUackMessage, handleAckMesMessage, userId) => {
+        //const catchError = (reason: string) => {log("error handling inbound message, " + reason, userType, userId)}
+        const handleError = getHandleError(applyHandleInboundMessage, undefined, userType, userId)
+
+        const message = rawData.toString() as InboundMessageTemplate
+        const prefix = getPrefix(message)
+        switch (prefix) {
+            case "mes": {
+                const [outboundSackMessage, oppositeUserId, outboundMesMessageKey, outboundMesMessage, publishOutboundMesMessage] = handleMesMessage(message as InboundMesMessage["template"])
+                publishOutboundMesMessage().catch(handleError)
+                // only send outbound sack message when the outbound mes message is cache
+                cacheMessage(oppositeUserType, oppositeUserId, "mes", outboundMesMessageKey, outboundMesMessage).then(() => { connection.send(outboundSackMessage) }).catch(handleError)
+                break
+            }
+            case "uack": {
+                const originPrefix= getOriginPrefix(message as InboundAckMessage["template"])
+
+                const removeOriginMessage = (messageKey: RedisMessageKey) => { removeMessage(userType, userId, originPrefix, messageKey).catch(handleError) }
+
+                switch (originPrefix) {
+                    case "con":
+                        const originConMessageKey = handleAckConMessage(message as InboundAckMessage<UserType,"con">["template"])
+                        removeOriginMessage(originConMessageKey)
+                        break
+                    case "dis":
+                        const originDisMessageKey = handleAckDisMessage(message as InboundAckMessage<UserType,"dis">["template"])
+                        removeOriginMessage(originDisMessageKey)
+                        break
+                    case "usrs":
+                        const originUsrsMessageKey = handleAckUsrsMessage(message as InboundAckMessage<UserType,"usrs">["template"])
+                        removeOriginMessage(originUsrsMessageKey)
+                        break
+                    case "uack":
+                        const originUackMessageKey = handleAckUackMessage(message as InboundAckMessage<UserType,"uack">["template"])
+                        removeOriginMessage(originUackMessageKey)
+                        break
+                    case "mes":
+                        const [originMesMessageKey, oppositeUserId, uackMessageKey, uackMessage, publishUackMessage] = handleAckMesMessage(message as InboundAckMessage<UserType,"mes">["template"])
+                        /*this is when a user ack a mes message
+                        I only remove the outbound mes message if the outbound uack message published to the sender is cache, so to ensure the sender will know that his was received
+                        if cache fail the outbound mes message will continue being send and has to be ack again, repeating this process*/
+                        cacheMessage(oppositeUserType, oppositeUserId, "uack", uackMessageKey, uackMessage).then(() => { removeOriginMessage(originMesMessageKey) }).catch(handleError)
+                        publishUackMessage().catch(handleError)
+                        break
+                }
+            }
+        }
+        log("inbound message " + message, userType, userId)
+    }
+
+    await (() => (userType === userTypes.host
+        ? initHostConnection(userData as ConnectedUserData<"host">, setConnectionHandlers,(hostId) => removeConnectedUser("host", hostId), (toHostId) => getConnectedUsers("host", toHostId), (guessId, mp) => publishMessage("guess", guessId, mp), (hostId, sm) => handleUserSubscriptionToMessages("host", hostId, sm), (hi, wp) => getCachedMessages("host", hi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"host">)
+        : initGuessConnection(userData, setConnectionHandlers,(guessId) => removeConnectedUser("guess", guessId), (toGuessId) => getConnectedUsers("guess", toGuessId), (hostId, mp) => publishMessage("host", hostId, mp), (guessId, sm) => handleUserSubscriptionToMessages("guess", guessId, sm), (gi, wp) => getCachedMessages("guess", gi, wp), cacheAndSendUntilAck, applyHandleInboundMessage as ApplyHandleInboundMessage<"guess">)))()
 }
 
 const initWebSocketServer = () => {
+    const httpServer = createServer()
     const wsServer = new WebSocketServer({noServer: true})
-    wsServer.on("connection", (connection: WebSocket, request: IncomingMessage, user: ConnectedUser) => {
-        handleConnection(user, redisApisRest, connection).catch(getHandleError(handleConnection, undefined, user.type, user.data.id, (r) => {
-        }))
-    })
-    const acceptWebSocketConnection: AcceptWebSocketConnection = (request, socket, head, user, cookies) => {
-        wsServer.emit("headers", cookies, request)
+
+    const handleOnRedisError: HandleOnRedisError = (error) => {}
+    const handleOnRedisReady: HandleOnRedisReady = () => {}
+    const {addConnectedUser, ...redisClientApisRest} = initRedisConnection(handleOnRedisError, handleOnRedisReady)
+
+    const upgradeToWebSocketConnection: UpgradeToWebSocketConnection = (request, socket, head, user, cookies) => {
+        request.once(setResponseCookiesEventName, (headers: string[]) => {
+            headers.push(...getResponseCookieHeaders(...cookies))
+        })
         wsServer.handleUpgrade(request, socket, head, (ws) => {
             wsServer.emit("connection", ws, user)
         })
     }
 
-    const handleOnRedisError: HandleOnRedisError = (error) => {}
-    const handleOnRedisReady: HandleOnRedisReady = () => {}
-    const {addConnectedUser, ...redisApisRest} = initRedis(handleOnRedisError, handleOnRedisReady)
-
-    const httpServer = createServer()
     httpServer.on("upgrade", (request, socket, head) => {
-        handleUpgrade(request, socket, head, addConnectedUser, acceptWebSocketConnection).catch( getHandleError(handleUpgrade, undefined, undefined, undefined, () => {
+        handleUpgrade(request, socket, head, addConnectedUser, upgradeToWebSocketConnection).catch(getHandleError(handleUpgrade, undefined, undefined, undefined, () => {
             socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n")
             socket.destroy()
+        }))
+    })
+
+    wsServer.on("headers", (responseHeaders, request) => {
+        request.emit(setResponseCookiesEventName, responseHeaders)
+    })
+    wsServer.on("connection", (connection: WebSocket, user: ConnectedUser) => {
+        handleConnection(user, redisClientApisRest, connection).catch(getHandleError(handleConnection, undefined, user.type, user.data.id, (r) => {
+            connection.terminate()
         }))
     })
 
