@@ -9,7 +9,7 @@ const strings_1 = require("./strings");
 const getFileContent = (path) => new Promise((resolve, reject) => {
     fs_1.default.readFile(path, 'utf8', (error, content) => {
         if (error) {
-            reject("error opening file in" + path + ", " + error.message);
+            reject(new Error("error opening file in" + path + ", " + error.message));
         }
         else {
             resolve(content);

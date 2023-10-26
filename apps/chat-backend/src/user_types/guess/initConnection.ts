@@ -17,7 +17,7 @@ import {getCutMessage, getMessage, getParts, getPrefix, getUsersMessageBody} fro
 import {InitUserConnection} from "../types"
 import {RedisMessageKey} from "../../redis"
 import {
-    getHandleError as appGetHandleError,
+    getHandleError,
     HandleDisconnection,
     HandleInboundAckConMessage,
     HandleInboundAckDisMessage,
@@ -26,21 +26,17 @@ import {
     HandleInboundAckUsrsMessage,
     HandleInboundMesMessage,
     HandleInboundMessage,
-    log as appLog,
-    panic as appPanic,
     SendMessage
 } from "../../app"
+import {log as appLog} from "../../logs"
 import {getHosts} from "../host/authentication"
 import {isEmpty} from "utils/src/objects"
 
 export const initConnection : InitUserConnection<"guess"> = async ({id: guessId, name: guessName, date: connectionDate}, setConnectionHandlers, removeConnectedGuess, getConnectedHosts, publishMessage, handleGuessSubscriptionToMessages, getGuessCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const log = (msg: string) => { appLog(msg, "guess", guessId) }
-    const panic = (msg: string) : never => appPanic(msg,"guess", guessId)
-    const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, callback?: (r: string) => void) => appGetHandleError(originFunction, reason2, "guess", guessId, callback)
 
-    const sendOutboundMessage: SendMessage<"guess"> = async (cache, ...messages) => {
-        const promises: Promise<void>[] = []
-        for (const message of messages) {
+    const sendOutboundMessage: SendMessage<"guess"> = async (cache, ...messages) =>
+        Promise.all(messages.map(message => {
             const keyPrefix = `guess:${guessId}:` as const
             let key: RedisMessageKey<GetMessages<"guess", "out">> | undefined = undefined
             const mp = getPrefix(message)
@@ -60,14 +56,9 @@ export const initConnection : InitUserConnection<"guess"> = async ({id: guessId,
                 case "mes":
                     key = `${keyPrefix}${getCutMessage<OutboundToGuessMesMessage, "body">(message as OutboundToGuessMesMessage["template"], {body: 4}, 4)}`
                     break
-                default:
-                    panic("invalid message prefix")
             }
-            promises.push(cacheAndSendUntilAck<GetMessages<"guess", "out">>(cache, mp, key as RedisMessageKey<GetMessages<"guess", "out">>, message, guessId))
-        }
-        // maybe use Promise.allSettled instead
-        return Promise.all(promises).then()
-    }
+            return cacheAndSendUntilAck<GetMessages<"guess", "out">>(cache, mp, key, message, guessId)
+        })).then()
 
     const [subscribe, unsubscribe] = handleGuessSubscriptionToMessages(guessId, sendOutboundMessage)
 
@@ -140,6 +131,5 @@ export const initConnection : InitUserConnection<"guess"> = async ({id: guessId,
         ...Object.values(getGuessCachedMessages(guessId, {mes: true, uack: true})).map(promise => promise.then(messages => sendOutboundMessage(false, ...messages))),
         // publish guess connection, maybe do it after the other promises succeed
         publishMessage<OutboundToHostConMessage>(undefined,{prefix: "con", number: connectionDate, userId: guessId, body: guessName})])
-        .catch(r => panic("initializing: " + (r as string)))
         .then()
 }

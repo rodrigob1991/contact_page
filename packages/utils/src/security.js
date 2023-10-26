@@ -39,11 +39,11 @@ const encrypt = (secret, target) => {
         }
         targetBytesIndex++;
     }
-    return Buffer.from(outputBytes).toString("base64");
+    return Buffer.from(outputBytes).toString("base64url");
 };
 exports.encrypt = encrypt;
 const decrypt = (secret, target) => {
-    const targetBytes = Buffer.from(target, "base64");
+    const targetBytes = Buffer.from(target, "base64url");
     const secretBytes = Buffer.from(secret);
     const outputBytes = [];
     let error = false;
@@ -55,7 +55,7 @@ const decrypt = (secret, target) => {
         const secretByte = secretBytes[secretBytesIndex];
         targetBytesIndex += getTargetByteIndex(secretByte) + 1;
         const targetByte = targetBytes[targetBytesIndex];
-        if (targetByte !== undefined) {
+        if (targetByte) {
             outputByte = outputByte | (((targetByte << (8 - getTargetBitPosition(secretByte))) >> bitCount) & (0b10000000 >> bitCount));
             if (bitCount < 7) {
                 bitCount++;

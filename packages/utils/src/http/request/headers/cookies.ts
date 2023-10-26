@@ -7,6 +7,7 @@ export type RequestCookies = RequestCookie[]
 export const getRequestCookie = ({name, value}: RequestCookie) => name + "=" + value
 export const getRequestCookieHeader = (...cookies: RequestCookies) => "Cookie:" + cookies.map((cookie) => getRequestCookie(cookie)).join(";")
 export const parseRequestCookies = (...cookiesStr: string[]) => {
+    console.log("COOKIES STR: " + cookiesStr.toString())
     const cookies: RequestCookies = []
     for (const cookieStr of cookiesStr) {
         const namesValues = recursiveSplit(cookieStr, [";", "="])
@@ -15,5 +16,6 @@ export const parseRequestCookies = (...cookiesStr: string[]) => {
                 cookies.push({name: nameValue[0], value: nameValue[1]})
         }
     }
+    console.log("COOKIES: " + JSON.stringify(cookies))
     return cookies
 }

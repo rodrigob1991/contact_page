@@ -1,6 +1,9 @@
 import WebSocket, {RawData, WebSocketServer} from 'ws'
 import {createServer, IncomingMessage} from "http"
 import dotenv from "dotenv"
+import {versions} from "utils/src/http/versions"
+import {StatusCode} from "utils/src/http/response/statuses"
+import {getResponseMessage} from "utils/src/http/response/message"
 import {
     ConnectedUser,
     ConnectedUserData,
@@ -28,9 +31,10 @@ import {
     AddConnectedUser,
     HandleOnError as HandleOnRedisError,
     HandleOnReady as HandleOnRedisReady,
-    initRedisConnection,
     RedisClientAPIs,
-    RedisMessageKey
+    RedisMessageKey,
+    initRedisConnection,
+    errorCauses as redisErrorCauses
 } from "./redis"
 import {initConnection as initHostConnection} from "./user_types/host/initConnection"
 import {initConnection as initGuessConnection} from "./user_types/guess/initConnection"
@@ -45,6 +49,10 @@ import {
 import {Duplex} from "node:stream"
 import {parseRequestCookies} from "utils/src/http/request/headers/cookies"
 import {getResponseCookieHeaders, ResponseCookies} from "utils/src/http/response/headers/cookies"
+import {AuthenticationError} from "./errors/authentication"
+import {log, logError} from './logs'
+import {AppError} from "./errors/app";
+import {RedisError} from "./errors/redis";
 
 type UpgradeToWebSocketConnection = (request: IncomingMessage, socket: Duplex, head: Buffer, user: ConnectedUser, cookies: ResponseCookies) => void
 
@@ -64,23 +72,17 @@ export type ApplyHandleInboundMessage<UT extends UserType=UserType> =(rawData: R
 
 export type SendMessage<UT extends UserType> = (cache: boolean, ...message: OutboundMessageTemplate<UT, Exclude<MessagePrefixOut, "sack">>[]) => Promise<void>
 
-const getStandardMessage = (msg: string, userType?: UserType, userId?: number) =>
-    (userType ? (userType + (userId === undefined ? "" : " " + userId)) + " : " : "") + msg + " : " + new Date().toString()
-
-export const panic = (msg: string, userType?: UserType, userId?: number) => {
-    throw new Error(getStandardMessage(msg, userType, userId))
-}
-export const log = (msg: string, userType?: UserType, userId?: number) => { console.log(getStandardMessage(msg, userType, userId)) }
-export const logError = (msg: string, userType?: UserType, userId?: number) => { console.error(getStandardMessage(msg, userType, userId)) }
-
 // THIS RETURN THE HANDLER FOR THE ERRORS LIKE THOSE THAT OCCURS IN CALLBACKS OF THE CONNECTIONS
 // ONY USE IT WHEN THE ERROR DOES NOT NEED TO PROPAGATE
 // COULD BE A CENTRALIZE PLACE TO HANDLE THOSE ERRORS, FIND OUT
-export const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, userType?: UserType, userId?: number, callback?: (r: string) => void) =>
-    (reason1: string) => {
-        logError("error on: " + originFunction.name + ", " + (reason2 !== undefined ? reason2 + ", " : "") + reason1, userType, userId)
+export const getHandleError = (originFunction: Function, info?: string, callback?: (error: Error) => void) =>
+    (error: Error) => {
+        let userType, userId
+        if (error instanceof AppError)
+            ({userType, userId} = error)
+        logError("from " + originFunction.name + ", " + (info !== undefined ? info + ", " : "") + error.message, userType, userId)
         if (callback)
-            callback(reason1)
+            callback(error)
     }
 
 const setResponseCookiesEventName = "setResponseCookies"
@@ -91,10 +93,11 @@ const originIsAllowed = (origin: string | undefined) => {
 }
 const handleUpgrade = async (request: IncomingMessage, socket: Duplex, head: Buffer, addConnectedUser: AddConnectedUser, upgradeToWebSocketConnection: UpgradeToWebSocketConnection) => {
     socket.on("error", getHandleError(handleUpgrade))
-    const {origin, cookies: rawRequestCookies} = request.headers
+    console.log("HEADERS:" + JSON.stringify(request.headers))
+    const {origin, cookie: rawRequestCookies} = request.headers
     if (originIsAllowed(origin)) {
         const userType = request.url === paths.host ? "host" : "guess"
-        const requestCookies = rawRequestCookies !== undefined ? parseRequestCookies(...(typeof rawRequestCookies === "string" ? [rawRequestCookies] : rawRequestCookies)) : []
+        const requestCookies = rawRequestCookies !== undefined ? parseRequestCookies(rawRequestCookies) : []
 
         let connectedUserData
         let getResponseCookies
@@ -129,7 +132,7 @@ const handleConnection = async ({type: userType, data: userData}: ConnectedUser,
                         if (!ack) {
                             sendUntilAck()
                         }
-                    }).catch(getHandleError(sendUntilAck, undefined, userType, userId))
+                    }).catch(getHandleError(sendUntilAck, undefined))
                 }, 5000)
             }
         }
@@ -137,8 +140,7 @@ const handleConnection = async ({type: userType, data: userData}: ConnectedUser,
     }
 
     const applyHandleInboundMessage: ApplyHandleInboundMessage = (rawData, handleMesMessage, handleAckConMessage, handleAckDisMessage, handleAckUsrsMessage, handleAckUackMessage, handleAckMesMessage, userId) => {
-        //const catchError = (reason: string) => {log("error handling inbound message, " + reason, userType, userId)}
-        const handleError = getHandleError(applyHandleInboundMessage, undefined, userType, userId)
+        const handleError = getHandleError(applyHandleInboundMessage)
 
         const message = rawData.toString() as InboundMessageTemplate
         const prefix = getPrefix(message)
@@ -209,8 +211,15 @@ const initWebSocketServer = () => {
     }
 
     httpServer.on("upgrade", (request, socket, head) => {
-        handleUpgrade(request, socket, head, addConnectedUser, upgradeToWebSocketConnection).catch(getHandleError(handleUpgrade, undefined, undefined, undefined, () => {
-            socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n")
+        handleUpgrade(request, socket, head, addConnectedUser, upgradeToWebSocketConnection).catch(getHandleError(handleUpgrade, undefined, (error) => {
+            let statusCode: StatusCode = 500
+            if (error instanceof AuthenticationError) {
+                statusCode = 401
+            } else if (error instanceof RedisError) {
+                if (error.cause === redisErrorCauses.addConnectedUser.alreadyConnected)
+                    statusCode = 400
+            }
+            socket.write(getResponseMessage(versions["1.1"], statusCode))
             socket.destroy()
         }))
     })
@@ -219,7 +228,7 @@ const initWebSocketServer = () => {
         request.emit(setResponseCookiesEventName, responseHeaders)
     })
     wsServer.on("connection", (connection: WebSocket, user: ConnectedUser) => {
-        handleConnection(user, redisClientApisRest, connection).catch(getHandleError(handleConnection, undefined, user.type, user.data.id, (r) => {
+        handleConnection(user, redisClientApisRest, connection).catch(getHandleError(handleConnection, undefined, (error) => {
             connection.terminate()
         }))
     })

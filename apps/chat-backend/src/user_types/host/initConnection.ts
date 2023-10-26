@@ -16,7 +16,7 @@ import {
 } from "chat-common/src/message/types"
 import {getCutMessage, getMessage, getParts, getPrefix, getUsersMessageBody} from "chat-common/src/message/functions"
 import {
-    getHandleError as appGetHandleError,
+    getHandleError,
     HandleDisconnection,
     HandleInboundAckConMessage,
     HandleInboundAckDisMessage,
@@ -25,25 +25,21 @@ import {
     HandleInboundAckUsrsMessage,
     HandleInboundMesMessage,
     HandleInboundMessage,
-    log as appLog,
-    panic as appPanic,
     SendMessage
 } from "../../app"
+import {
+    log as appLog,
+} from "../../logs"
 import {InitUserConnection} from "../types"
 import {isEmpty} from "utils/src/objects"
 
-//const logError = (msg: string, id: number) => { appLogError(msg, "host", id) }
-
 export const initConnection : InitUserConnection<"host">  = async ({id: hostId, name: hostName, date: connectionDate}, setConnectionHandlers, removeConnectedHost, getConnectedGuesses, publishMessage, handleHostSubscriptionToMessages, getHostCachedMessages, cacheAndSendUntilAck, applyHandleInboundMessage) => {
     const log = (msg: string) => { appLog(msg, "host", hostId) }
-    const panic = (msg: string): never => appPanic(msg, "host", hostId)
-    const getHandleError = (originFunction: (...args: any[]) => any, reason2?: string, callback?: (r: string) => void) => appGetHandleError(originFunction, reason2, "host", hostId, callback)
 
-    const sendOutboundMessage : SendMessage<"host"> = async (cache, ...messages) => {
-        const promises: Promise<void>[] = []
-        for (const message of messages) {
+    const sendOutboundMessage: SendMessage<"host"> = async (cache, ...messages) =>
+        Promise.all(messages.map(message => {
             const keyPrefix = `host:${hostId}:` as const
-            let key: RedisMessageKey<GetMessages<"host", "out">> | undefined = undefined
+            let key: RedisMessageKey<GetMessages<"host", "out">>
             const mp = getPrefix(message)
             switch (mp) {
                 case "usrs":
@@ -61,14 +57,9 @@ export const initConnection : InitUserConnection<"host">  = async ({id: hostId, 
                 case "mes":
                     key = `${keyPrefix}${getCutMessage<OutboundToHostMesMessage, "body">(message as OutboundToHostMesMessage["template"], {body: 4}, 4)}`
                     break
-                default:
-                    panic("invalid message prefix")
             }
-            promises.push(cacheAndSendUntilAck<GetMessages<"host", "out">>(cache, mp, key as RedisMessageKey<GetMessages<"host", "out">>, message, hostId))
-        }
-        // maybe use Promise.allSettled instead
-        return Promise.all(promises).then()
-    }
+            return cacheAndSendUntilAck<GetMessages<"host", "out">>(cache, mp, key, message, hostId)
+        })).then()
 
     const [subscribe, unsubscribe] = handleHostSubscriptionToMessages(hostId, sendOutboundMessage)
 
@@ -133,6 +124,5 @@ export const initConnection : InitUserConnection<"host">  = async ({id: hostId, 
         ...Object.values(getHostCachedMessages(hostId, {mes: true, uack: true})).map(promise => promise.then(messages => sendOutboundMessage(false, ...messages))),
         // publish host connection, maybe do it after the other promises succeed
         publishMessage<OutboundToGuessConMessage>(undefined,{prefix: "con", number: connectionDate, userId: hostId, body: hostName})])
-        .catch(r => panic("initializing: " + (r as string)))
         .then()
 }

@@ -4,7 +4,7 @@ import {decrypt, encrypt} from "utils/src/security"
 
 const cookieName = userTypes.guess
 export const attemptConnection: AttemptConnection<"guess"> = async (cookies, addConnectedGuess) => {
-    let cookieId = undefined
+    let idInCookie = undefined
     let found = false
     let index = 0
     while (index < cookies.length && !found) {
@@ -13,12 +13,12 @@ export const attemptConnection: AttemptConnection<"guess"> = async (cookies, add
             found = true
             const decryptedId = decrypt(process.env.ENCRIPTION_SECRET_KEY as string, value)
             if (decryptedId.succeed) {
-                cookieId = parseInt(decryptedId.output)
+                idInCookie = parseInt(decryptedId.output)
             }
         }
         index++
     }
-    return addConnectedGuess(cookieId).then(({id, date}) => ({id, name: "guess" + id, date}))
+    return addConnectedGuess(idInCookie).then(({id, date}) => ({id, name: "guess" + id, date}))
 }
 
 export const getResponseCookies: GetResponseCookies = (id) => [{

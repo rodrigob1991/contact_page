@@ -6,7 +6,7 @@ export const getFileContent = (path: string) =>
     new Promise<string>((resolve, reject) => {
         fs.readFile(path, 'utf8', (error, content) => {
             if (error) {
-                reject("error opening file in" + path + ", " + error.message)
+                reject(new Error("error opening file in" + path + ", " + error.message))
             } else {
                 resolve(content)
             }

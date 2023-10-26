@@ -1,7 +1,6 @@
 import {isEmpty} from "utils/src/strings"
 import {getSplitFileContent} from "utils/src/files"
 import {Host} from "chat-common/src/model/types"
-import {panic} from "../../app"
 
 // change this implementation for a decent authentication
 
@@ -15,7 +14,7 @@ export const getHosts = () =>
             const name = hostData[1]
             const password = hostData[2]
             if (isEmpty(id) || isNaN(+id) || isEmpty(name) || isEmpty(password)) {
-                panic(`invalid host data, id: ${id}, name: ${name}, password: ${password}`)
+                throw new Error(`invalid host data, id: ${id}, name: ${name}, password: ${password}`)
             }
             hosts[+id] = {id: +id, name: name, password: password}
         })
