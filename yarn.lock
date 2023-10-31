@@ -2896,15 +2896,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/websocket@npm:^1.0.6":
-  version: 1.0.6
-  resolution: "@types/websocket@npm:1.0.6"
-  dependencies:
-    "@types/node": "*"
-  checksum: c7db5d6aed561d543a2c7c1ec744441892ddefa8558e363f90edf1be4ac0ed4dea11fa8bee45af9ff35fe3986c1179763858181ae0b0ae3e12c2bd6ec812744a
-  languageName: node
-  linkType: hard
-
 "@types/ws@npm:^8.5.7":
   version: 8.5.7
   resolution: "@types/ws@npm:8.5.7"
@@ -3620,7 +3611,6 @@ __metadata:
   dependencies:
     "@types/jest": ^29.5.5
     "@types/node": ^18.11.12
-    "@types/websocket": ^1.0.6
     "@types/ws": ^8.5.7
     "@typescript-eslint/eslint-plugin": ^6.6.0
     "@typescript-eslint/parser": ^6.6.0
