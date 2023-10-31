@@ -104,15 +104,15 @@ export default function useWebSocket<UT extends UserType>({
         if (this.readyState === WebSocket.CONNECTING)
             handleConnecting()
     }
-    const timeoutIdForInitWSRef = useRef<string>()
+    const timeoutIdForInitWSRef = useRef<number>()
     const getTimeoutIdForInitWS = () => timeoutIdForInitWSRef.current
-    const setTimeoutIdForInitWS = (id: string) => {
+    const setTimeoutIdForInitWS = (id: number) => {
         timeoutIdForInitWSRef.current = id
     }
 
     function handleOnClose(this: WebSocket, e: CloseEvent) {
         if (e.code !== userCloseWsCode) {
-            setTimeoutIdForInitWS(setTimeout(() => {
+            setTimeoutIdForInitWS(window.setTimeout(() => {
                 initWS()
             }, 1000))
         }
