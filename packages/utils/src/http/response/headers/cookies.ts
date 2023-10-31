@@ -57,12 +57,12 @@ export const parseResponseCookies = (...cookiesStr: string[]) => {
         if (attributesNumber > 0) {
             const nameValue = attributes[0]
             if (nameValue.length === 2) {
-                const cookie: ResponseCookie = {name: nameValue[0], value: nameValue[1]}
+                const cookie: ResponseCookie = {name: nameValue[0].trim(), value: nameValue[1].trim()}
                 doXTimes(attributesNumber -1, (n) => {
                     const attribute = attributes[n]
                     const attributePartsNumber = attribute.length
                     if (attributePartsNumber > 0 && attributePartsNumber < 3) {
-                        const name = attribute[0]
+                        const name = attribute[0].trim()
                         if (attributePartsNumber === 1) {
                             switch (name) {
                                 case attributesNames.secure:
@@ -77,7 +77,7 @@ export const parseResponseCookies = (...cookiesStr: string[]) => {
                             }
                         }
                         else {
-                            const value = attribute[1]
+                            const value = attribute[1].trim()
                             switch (name) {
                                 case attributesNames.domain:
                                     cookie["domain"] = value

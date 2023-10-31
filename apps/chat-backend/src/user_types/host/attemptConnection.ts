@@ -10,6 +10,7 @@ export const attemptConnection: AttemptConnection<"host"> = async (cookies, addC
     let host: Host | undefined
     let index = 0
     while (index < cookies.length && !host) {
+        console.log("Cookie:" + JSON.stringify(cookies[index]))
         const {name, value} = cookies[index]
         if (name.startsWith(cookieNamePrefix)) {
             id = +name.substring(cookieNamePrefix.length)

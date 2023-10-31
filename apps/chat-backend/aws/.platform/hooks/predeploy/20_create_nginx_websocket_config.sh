@@ -21,7 +21,6 @@ server {
   proxy_set_header X-Forwarded-for \$remote_addr;
   proxy_set_header Upgrade \$http_upgrade;
   proxy_set_header Connection "upgrade";
-  proxy_cookie_domain localhost ${DOMAIN};
   proxy_set_header Cookie \$http_cookie;
  }
 }" > "/var/proxy/staging/nginx/conf.d/websocket.conf"

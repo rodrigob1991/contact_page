@@ -9,12 +9,25 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.initRedis = void 0;
+exports.initRedisConnection = exports.redisErrorCauses = void 0;
 const constants_1 = require("chat-common/src/model/constants");
 const functions_1 = require("chat-common/src/message/functions");
 const app_1 = require("./app");
+const logs_1 = require("./logs");
 const redis_1 = require("redis");
-const initConnection = (handleOnError, handleOnReady) => {
+const redis_2 = require("./errors/redis");
+exports.redisErrorCauses = {
+    addConnectedUser: { alreadyConnected: "alreadyConnected" },
+    removeConnectedUser: {},
+    getConnectedUsers: {},
+    cacheMessage: { wasNotCached: "wasNotCached" },
+    removeMessage: {},
+    isMessageAck: {},
+    publishMessage: {},
+    getCachedMessages: {},
+    handleUserSubscriptionToMessages: {}
+};
+const connect = (handleOnError, handleOnConnect, handleOnReconnecting, handleOnReady, handleOnConnectError) => {
     const url = process.env.REDIS_URL;
     const credentials = { username: process.env.REDIS_USERNAME, password: process.env.REDIS_PASSWORD };
     const socket = { tls: process.env.REDIS_TLS !== undefined };
@@ -26,51 +39,42 @@ const initConnection = (handleOnError, handleOnReady) => {
             defaults: Object.assign(Object.assign({}, credentials), { socket })
         }) :
         (0, redis_1.createClient)(Object.assign(Object.assign({ url }, credentials), { socket }));
-    client.on("error", (error) => {
-        (0, app_1.log)("redis error: " + error.message);
-        handleOnError(error);
-    });
-    client.on("connect", () => {
-        (0, app_1.log)("connected with redis");
-    });
-    client.on("reconnecting", () => {
-        (0, app_1.log)("reconnecting with redis");
-    });
-    client.on("ready", () => {
-        (0, app_1.log)("redis is ready");
-        handleOnReady();
-    });
-    client.connect().catch((handleOnError));
+    client.on("error", handleOnError);
+    client.on("connect", handleOnConnect);
+    client.on("reconnecting", handleOnReconnecting);
+    client.on("ready", handleOnReady);
+    client.connect().catch(handleOnConnectError);
     return client;
 };
-const initRedis = (handleOnError, handleOnReady) => {
+const initRedisConnection = (handleOnError, handleOnConnect, handleOnReconnecting, handleOnReady, handleOnConnectError) => {
     const guessCountKey = constants_1.userTypes.guess + "-count";
     const connectedUsersHashKeyPrefix = "connected:";
     const connectedHostsHashKey = connectedUsersHashKeyPrefix + constants_1.userTypes.host;
     const connectedGuessesHashKey = connectedUsersHashKeyPrefix + constants_1.userTypes.guess;
     const getConnectedUsersHashKey = (userType) => userType === "host" ? connectedHostsHashKey : connectedGuessesHashKey;
     const getMessagesHashKey = (userType, userId, messagePrefix) => userType + ":" + userId + ":" + messagePrefix + ":messages";
-    const getRejectError = (fn, reason2) => (reason1) => Promise.reject("redis error: " + fn.name + " failed, " + (reason2 !== undefined ? reason2 + ", " : "") + reason1);
+    const getRejectError = (functionName, userType, userId, info) => (cause) => Promise.reject(new redis_2.RedisError(functionName, cause, userType, userId, info));
     const getConDisChannel = (userType) => constants_1.messagePrefixes.con + ":" + constants_1.messagePrefixes.dis + ":" + userType;
-    const getMessagesChannel = (userType, userId) => constants_1.messagePrefixes.mes + ":" + userType + ":" + userId;
+    const getMesUackChannel = (userType, userId) => constants_1.messagePrefixes.mes + ":" + constants_1.messagePrefixes.uack + ":" + userType + ":" + userId;
     const handleUserSubscriptionToMessages = (ofUserType, ofUserId, sendMessage) => {
-        const subscriber = redisClient.duplicate();
-        const getHandleErrorSendMessage = (message) => (0, app_1.getHandleError)(sendMessage, "consuming message: " + message, ofUserType, ofUserId);
+        const subscriber = client.duplicate();
+        const handleConsumedMessage = (cache, message) => __awaiter(void 0, void 0, void 0, function* () {
+            yield sendMessage(cache, message);
+        });
+        const getHandleConsumedMessageError = (message) => (0, app_1.getHandleError)(handleConsumedMessage, "consuming message: " + message);
         const subscribe = () => subscriber.connect().then(() => Promise.all([
-            subscriber.subscribe(getConDisChannel(ofUserType), (message, channel) => {
-                // @ts-ignore
-                sendMessage(true, message).catch(getHandleErrorSendMessage(message));
+            subscriber.subscribe(getConDisChannel(ofUserType), (m) => {
+                handleConsumedMessage(true, m).catch(getHandleConsumedMessageError(m));
             }),
-            subscriber.subscribe(getMessagesChannel(ofUserType, ofUserId), (message, channel) => {
-                // @ts-ignore
-                sendMessage(false, message).catch(getHandleErrorSendMessage(message));
+            subscriber.subscribe(getMesUackChannel(ofUserType, ofUserId), (m) => {
+                handleConsumedMessage(false, m).catch(getHandleConsumedMessageError(m));
             })
         ])
             .then(() => {
-            (0, app_1.log)("subscribed to the channels", ofUserType, ofUserId);
+            (0, logs_1.log)("subscribed to the channels", ofUserType, ofUserId);
         }))
-            .catch(getRejectError(subscribe));
-        const unsubscribe = () => subscriber.disconnect().then(() => { (0, app_1.log)("unsubscribed to the channels", ofUserType, ofUserId); }).catch(getRejectError(unsubscribe));
+            .catch(getRejectError("handleUserSubscriptionToMessages", ofUserType, ofUserId, "subscribe"));
+        const unsubscribe = () => subscriber.disconnect().then(() => { (0, logs_1.log)("unsubscribed to the channels", ofUserType, ofUserId); }).catch(getRejectError("handleUserSubscriptionToMessages", ofUserType, ofUserId, "unsubscribe"));
         return [subscribe, unsubscribe];
     };
     const publishMessage = (toUserType, toUserId, parts) => {
@@ -84,94 +88,86 @@ const initRedis = (handleOnError, handleOnReady) => {
                 break;
             case "mes":
             case "uack":
-                channel = getMessagesChannel(toUserType, toUserId);
+                channel = getMesUackChannel(toUserType, toUserId);
                 break;
-            default:
-                (0, app_1.panic)("should have been enter any case");
         }
         const message = (0, functions_1.getMessage)(parts);
-        // @ts-ignore: typescript complain about message is not assign, because it does not consider panic throw an error.
-        return redisClient.publish(channel, message)
-            .then(n => { (0, app_1.log)(n + " " + toUserType + " gotten the published message " + message, publisherType, publisherId); })
-            .catch(getRejectError(publishMessage));
+        return client.publish(channel, message)
+            .then(n => { (0, logs_1.log)(n + " " + toUserType + " gotten the published message " + message, publisherType, publisherId); })
+            .catch(getRejectError("publishMessage", publisherType, publisherId));
     };
-    const cacheMessage = (userType, userId, messagePrefix, key, message) => redisClient.hSet(getMessagesHashKey(userType, userId, messagePrefix), key, message).then(n => {
+    const cacheMessage = (userType, userId, messagePrefix, key, message, connectionUserType, connectionUserId) => client.hSet(getMessagesHashKey(userType, userId, messagePrefix), key, message).then(n => {
         const cached = n > 0;
         const msg = "message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached";
         if (cached)
-            (0, app_1.log)(msg, userType, userId);
+            (0, logs_1.log)(msg, connectionUserType, connectionUserId);
         else
-            return Promise.reject(msg);
-    }).catch(getRejectError(cacheMessage, userType + " : " + userId + ", " + messagePrefix + ":" + key + ":" + message));
+            return Promise.reject(exports.redisErrorCauses.cacheMessage.wasNotCached);
+    }).catch(getRejectError("cacheMessage", connectionUserType, connectionUserId, messagePrefix + ":" + key + ":" + message));
     const getCachedMessages = (userType, userId, whatPrefixes) => {
         const promises = {};
         for (const prefix in whatPrefixes) {
-            promises[prefix] = redisClient.hVals(getMessagesHashKey(userType, userId, prefix))
+            promises[prefix] = client.hVals(getMessagesHashKey(userType, userId, prefix))
                 .then(messages => {
                 const number = messages.length;
-                (0, app_1.log)(number + " " + prefix + " messages cached gotten" + (number > 0 ? ": " + messages.toString() : ""), userType, userId);
+                (0, logs_1.log)(number + " " + prefix + " messages cached gotten" + (number > 0 ? ": " + messages.toString() : ""), userType, userId);
                 return messages;
-            }).catch(getRejectError(getCachedMessages));
+            }).catch(getRejectError("getCachedMessages", userType, userId));
         }
         return promises;
     };
     // maybe reject the promise if the message was not removed
-    const removeMessage = (userType, userId, messagePrefix, key) => redisClient.hDel(getMessagesHashKey(userType, userId, messagePrefix), key)
+    const removeMessage = (userType, userId, messagePrefix, key) => client.hDel(getMessagesHashKey(userType, userId, messagePrefix), key)
         .then(n => {
         const removed = n > 0;
-        (0, app_1.log)("message with key " + key + " was " + (removed ? "" : "not ") + "removed", userType, userId);
+        (0, logs_1.log)("message with key " + key + " was " + (removed ? "" : "not ") + "removed", userType, userId);
         return removed;
-    }).catch(getRejectError(removeMessage));
-    const isMessageAck = (userType, userId, messagePrefix, key) => redisClient.hExists(getMessagesHashKey(userType, userId, messagePrefix), key)
+    }).catch(getRejectError("removeMessage", userType, userId));
+    const isMessageAck = (userType, userId, messagePrefix, key) => client.hExists(getMessagesHashKey(userType, userId, messagePrefix), key)
         .then(exist => {
-        (0, app_1.log)("message with key " + key + " was" + (exist ? " not" : "") + " acknowledged", userType, userId);
+        (0, logs_1.log)("message with key " + key + " was" + (exist ? " not" : "") + " acknowledged", userType, userId);
         return !exist;
-    }).catch(getRejectError(isMessageAck, userType + " " + userId + ", " + messagePrefix + " " + key));
-    const addConnectedUser = (userType, id) => {
+    }).catch(getRejectError("isMessageAck", userType, userId, messagePrefix + " " + key));
+    const addConnectedUser = (type, id) => {
         const setConnectedUser = (firstTime, id) => __awaiter(void 0, void 0, void 0, function* () {
             const date = Date.now();
-            return redisClient.hSetNX(getConnectedUsersHashKey(userType), id.toString(), date.toString()).then(added => {
+            return client.hSetNX(getConnectedUsersHashKey(type), id.toString(), date.toString()).then(added => {
                 if (added) {
-                    (0, app_1.log)((firstTime ? "first time " : "") + "added to connected hash", userType, id);
+                    (0, logs_1.log)((firstTime ? "first time " : "") + "added to connected hash", type, id);
                     return { id: id, date: date };
                 }
                 else {
-                    return Promise.reject(userType + " " + id + " was not added to connected hash");
+                    return Promise.reject(exports.redisErrorCauses.addConnectedUser.alreadyConnected);
                 }
             });
         });
         let promise;
-        if (userType === "host") {
+        if (type === "host") {
             promise = setConnectedUser(false, id);
         }
         else {
-            promise = (id === undefined ? redisClient.incr(guessCountKey).then(newGuessId => [newGuessId, true]) : Promise.resolve([id, false])).then(([guessId, firstTime]) => setConnectedUser(firstTime, guessId));
+            promise = (id === undefined ? client.incr(guessCountKey).then(newGuessId => [newGuessId, true]) : Promise.resolve([id, false])).then(([guessId, firstTime]) => setConnectedUser(firstTime, guessId));
         }
-        return promise.catch(getRejectError(addConnectedUser));
+        return promise.catch(getRejectError("addConnectedUser", type, id));
     };
-    const removeConnectedUser = (userType, id) => {
-        return redisClient.hDel(getConnectedUsersHashKey(userType), id.toString()).then(n => {
-            if (n > 0)
-                (0, app_1.log)("was removed from connected hash", userType, id);
-            else
-                return Promise.reject(userType + " " + id + " was not removed from connected hash");
-        }).catch(getRejectError(removeConnectedUser));
+    const removeConnectedUser = (type, id) => {
+        return client.hDel(getConnectedUsersHashKey(type), id.toString()).then(n => {
+            (0, logs_1.log)("was" + (n === 0 ? " not" : "") + " removed from connected hash", type, id);
+        }).catch(getRejectError("removeConnectedUser", type, id));
     };
     const getConnectedUsers = (toUserType, toUserId) => {
         const ofUserType = toUserType === "host" ? "guess" : "host";
-        return redisClient.hGetAll(getConnectedUsersHashKey(ofUserType)).then(fields => {
+        return client.hGetAll(getConnectedUsersHashKey(ofUserType)).then(fields => {
             const fieldsEntries = Object.entries(fields);
             const usersConnectedNumber = fieldsEntries.length;
             const areUsersConnected = fieldsEntries.length > 0;
-            (0, app_1.log)((areUsersConnected ? usersConnectedNumber : "no") + " " + ofUserType + " in connected hash: " + (areUsersConnected ? fieldsEntries.toString() : ""), toUserType, toUserId);
+            (0, logs_1.log)((areUsersConnected ? usersConnectedNumber : "no") + " " + ofUserType + " in connected hash: " + (areUsersConnected ? fieldsEntries.toString() : ""), toUserType, toUserId);
             const users = {};
             fieldsEntries.forEach(([idStr, dateStr]) => { users[+idStr] = +dateStr; });
             return users;
-        }).catch(getRejectError(getConnectedUsers));
+        }).catch(getRejectError("getConnectedUsers", toUserType, toUserId));
     };
-    const redisClient = initConnection(handleOnError, handleOnReady);
-    // delete all the data
-    //redisClient.flushAll().then((r) => log("all redis data deleted, reply: " + r))
+    const client = connect(handleOnError, handleOnConnect, handleOnReconnecting, handleOnReady, handleOnConnectError);
     return { addConnectedUser, removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck };
 };
-exports.initRedis = initRedis;
+exports.initRedisConnection = initRedisConnection;

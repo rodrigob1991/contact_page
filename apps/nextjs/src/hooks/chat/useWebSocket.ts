@@ -35,7 +35,6 @@ export type HandleMesMessage<UT extends UserType> =  (mm: InboundMesMessageParts
 export type HandleServerAckMessage =  (n: number) => void
 export type HandleUserAckMessage = (n: number, ui: number) => void
 
-export type GuessId<UT extends UserType> = UT extends "host" ? number : undefined
 export type SendMesMessage = (number: number, body: string, usersIds: number[]) => void
 export enum ConnectionState { CONNECTED, DISCONNECTED, CONNECTING}
 export type HandleNewConnectionState = (cs: ConnectionState) => void
@@ -97,87 +96,106 @@ export default function useWebSocket<UT extends UserType>({
         const ws = getWS()
         return ws && ws.readyState === ws.OPEN
     }
+
+    function handleOnOpen(this: WebSocket, e: Event) {
+        handleConnected()
+    }
+    function handleOnError(this: WebSocket, e: Event) {
+        if (this.readyState === WebSocket.CONNECTING)
+            handleConnecting()
+    }
+    const timeoutIdForInitWSRef = useRef<string>()
+    const getTimeoutIdForInitWS = () => timeoutIdForInitWSRef.current
+    const setTimeoutIdForInitWS = (id: string) => {
+        timeoutIdForInitWSRef.current = id
+    }
+
+    function handleOnClose(this: WebSocket, e: CloseEvent) {
+        if (e.code !== userCloseWsCode) {
+            setTimeoutIdForInitWS(setTimeout(() => {
+                initWS()
+            }, 1000))
+        }
+    }
+    function handleOnMessage(this: WebSocket, {data: inboundMessage}: MessageEvent<InboundMessageTemplate>) {
+        console.log("inbound message: " + inboundMessage)
+        const ackMessage = (outboundAckMessage: OutboundAckMessage<UT>["template"]) => {
+            this.send(outboundAckMessage)
+        }
+
+        const prefix = getPrefix(inboundMessage)
+        switch (prefix) {
+            case "usrs": {
+                const [parts, outboundAckMessage] = getUsersMessageParts(inboundMessage as InboundUsersMessage<UT>["template"])
+                if (wasMessageNotReceived(parts)) {
+                    handleUsersMessage(parts)
+                    setMessageAsReceived(parts)
+                }
+                ackMessage(outboundAckMessage)
+                break
+            }
+            case "con":
+                const [conParts, outboundConAckMessage] = getConMessageParts(inboundMessage as InboundConMessage<UT>["template"])
+                if (wasMessageNotReceived(conParts)) {
+                    handleConMessage(conParts)
+                    setMessageAsReceived(conParts)
+                }
+                ackMessage(outboundConAckMessage)
+                break
+            case "dis":
+                const [disParts, outboundDisAckMessage] = getDisMessageParts(inboundMessage as InboundDisMessage<UT>["template"])
+                if (wasMessageNotReceived(disParts)) {
+                    handleDisMessage(disParts)
+                    setMessageAsReceived(disParts)
+                }
+                ackMessage(outboundDisAckMessage)
+                break
+            case "mes":
+                const [mesParts, outboundMesAckMessage] = getMesMessageParts(inboundMessage as InboundMesMessage<UT>["template"])
+                if (wasMessageNotReceived(mesParts)) {
+                    handleMesMessage(mesParts)
+                    setMessageAsReceived(mesParts)
+                }
+                ackMessage(outboundMesAckMessage)
+                break
+            case "uack":
+                const [uackParts, outboundUAckAckMessage] = getUserAckMessageParts(inboundMessage as InboundUserAckMessage<UT>["template"])
+                if (wasMessageNotReceived(uackParts)) {
+                    handleUserAckMessage(uackParts.number, uackParts.userId)
+                    setMessageAsReceived(uackParts)
+                }
+                ackMessage(outboundUAckAckMessage)
+                break
+            case "sack":
+                const sackParts = getServerAckMessageParts(inboundMessage as InboundServerAckMessage<UT>["template"])
+                if (wasMessageNotReceived(sackParts)) {
+                    handleServerAckMessage(sackParts.number)
+                    setMessageAsReceived(sackParts)
+                }
+                break
+            default:
+                throw new Error("invalid inbound message")
+        }
+    }
+
     const initWS = () => {
         const endpoint = process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT
         if (endpoint) {
             handleConnecting()
             const ws = new WebSocket(endpoint + path)
-            ws.onopen = (e) => {
-                handleConnected()
-            }
-            ws.onclose = (e) => {
-                handleDisconnected()
-            }
-            ws.onerror = (e) => {
-                if (ws.readyState === ws.CONNECTING)
-                    handleConnecting()
-            }
-            ws.onmessage = ({data: inboundMessage}: MessageEvent<InboundMessageTemplate>) => {
-                console.log("inbound message: " + inboundMessage)
-                const ackMessage = (outboundAckMessage: OutboundAckMessage<UT>["template"]) => {
-                    ws.send(outboundAckMessage)
-                }
+            ws.onopen = handleOnOpen
+            ws.onclose = handleOnClose
+            ws.onerror = handleOnError
+            ws.onmessage = handleOnMessage
 
-                const prefix = getPrefix(inboundMessage)
-                switch (prefix) {
-                    case "usrs": {
-                        const [parts, outboundAckMessage] = getUsersMessageParts(inboundMessage as InboundUsersMessage<UT>["template"])
-                        if (wasMessageNotReceived(parts)) {
-                            handleUsersMessage(parts)
-                            setMessageAsReceived(parts)
-                        }
-                        ackMessage(outboundAckMessage)
-                        break
-                    }
-                    case "con":
-                        const [conParts, outboundConAckMessage] = getConMessageParts(inboundMessage as InboundConMessage<UT>["template"])
-                        if (wasMessageNotReceived(conParts)) {
-                            handleConMessage(conParts)
-                            setMessageAsReceived(conParts)
-                        }
-                        ackMessage(outboundConAckMessage)
-                        break
-                    case "dis":
-                        const [disParts, outboundDisAckMessage] = getDisMessageParts(inboundMessage as InboundDisMessage<UT>["template"])
-                        if (wasMessageNotReceived(disParts)) {
-                            handleDisMessage(disParts)
-                            setMessageAsReceived(disParts)
-                        }
-                        ackMessage(outboundDisAckMessage)
-                        break
-                    case "mes":
-                        const [mesParts, outboundMesAckMessage] = getMesMessageParts(inboundMessage as InboundMesMessage<UT>["template"])
-                        if (wasMessageNotReceived(mesParts)) {
-                            handleMesMessage(mesParts)
-                            setMessageAsReceived(mesParts)
-                        }
-                        ackMessage(outboundMesAckMessage)
-                        break
-                    case "uack":
-                        const [uackParts, outboundUAckAckMessage] = getUserAckMessageParts(inboundMessage as InboundUserAckMessage<UT>["template"])
-                        if (wasMessageNotReceived(uackParts)) {
-                            handleUserAckMessage(uackParts.number, uackParts.userId)
-                            setMessageAsReceived(uackParts)
-                        }
-                        ackMessage(outboundUAckAckMessage)
-                        break
-                    case "sack":
-                        const sackParts = getServerAckMessageParts(inboundMessage as InboundServerAckMessage<UT>["template"])
-                        if (wasMessageNotReceived(sackParts)) {
-                            handleServerAckMessage(sackParts.number)
-                            setMessageAsReceived(sackParts)
-                        }
-                        break
-                    default:
-                        throw new Error("invalid inbound message")
-                }
-            }
             setWS(ws)
         }
     }
+    const userCloseWsCode = 3000
     const closeWS = () => {
-        getWS()?.close()
-        //getInboundMessagesIdsSet("con").clear()
+        clearTimeout(getTimeoutIdForInitWS())
+        getWS()?.close(userCloseWsCode)
+        handleDisconnected()
     }
 
     useEffect(() => {
@@ -202,7 +220,6 @@ export default function useWebSocket<UT extends UserType>({
                     }, 5000)
                 }
             }
-            // addPendingUserAckMessage(number, userId)
             resendUntilAck()
         }
     }

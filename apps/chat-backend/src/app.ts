@@ -29,12 +29,15 @@ import {oppositeUserTypes, paths, userTypes} from "chat-common/src/model/constan
 import {getOriginPrefix, getPrefix} from "chat-common/src/message/functions"
 import {
     AddConnectedUser,
-    HandleOnError as HandleOnRedisError,
-    HandleOnReady as HandleOnRedisReady,
+    HandleOnRedisError,
+    HandleOnRedisConnect,
+    HandleOnRedisReconnecting,
+    HandleOnRedisReady,
+    HandleOnRedisConnectError,
     RedisClientAPIs,
     RedisMessageKey,
     initRedisConnection,
-    errorCauses as redisErrorCauses
+    redisErrorCauses
 } from "./redis"
 import {initConnection as initHostConnection} from "./user_types/host/initConnection"
 import {initConnection as initGuessConnection} from "./user_types/guess/initConnection"
@@ -93,7 +96,6 @@ const originIsAllowed = (origin: string | undefined) => {
 }
 const handleUpgrade = async (request: IncomingMessage, socket: Duplex, head: Buffer, addConnectedUser: AddConnectedUser, upgradeToWebSocketConnection: UpgradeToWebSocketConnection) => {
     socket.on("error", getHandleError(handleUpgrade))
-    console.log("HEADERS:" + JSON.stringify(request.headers))
     const {origin, cookie: rawRequestCookies} = request.headers
     if (originIsAllowed(origin)) {
         const userType = request.url === paths.host ? "host" : "guess"
@@ -136,7 +138,7 @@ const handleConnection = async ({type: userType, data: userData}: ConnectedUser,
                 }, 5000)
             }
         }
-        return (cache ? cacheMessage(userType, userId, messagePrefix, key, message) : Promise.resolve()).then(sendUntilAck)
+        return (cache ? cacheMessage(userType, userId, messagePrefix, key, message, userType, userId) : Promise.resolve()).then(sendUntilAck)
     }
 
     const applyHandleInboundMessage: ApplyHandleInboundMessage = (rawData, handleMesMessage, handleAckConMessage, handleAckDisMessage, handleAckUsrsMessage, handleAckUackMessage, handleAckMesMessage, userId) => {
@@ -149,7 +151,7 @@ const handleConnection = async ({type: userType, data: userData}: ConnectedUser,
                 const [outboundSackMessage, oppositeUserId, outboundMesMessageKey, outboundMesMessage, publishOutboundMesMessage] = handleMesMessage(message as InboundMesMessage["template"])
                 publishOutboundMesMessage().catch(handleError)
                 // only send outbound sack message when the outbound mes message is cache
-                cacheMessage(oppositeUserType, oppositeUserId, "mes", outboundMesMessageKey, outboundMesMessage).then(() => { connection.send(outboundSackMessage) }).catch(handleError)
+                cacheMessage(oppositeUserType, oppositeUserId, "mes", outboundMesMessageKey, outboundMesMessage, userType, userId).then(() => { connection.send(outboundSackMessage) }).catch(handleError)
                 break
             }
             case "uack": {
@@ -179,7 +181,7 @@ const handleConnection = async ({type: userType, data: userData}: ConnectedUser,
                         /*this is when a user ack a mes message
                         I only remove the outbound mes message if the outbound uack message published to the sender is cache, so to ensure the sender will know that his was received
                         if cache fail the outbound mes message will continue being send and has to be ack again, repeating this process*/
-                        cacheMessage(oppositeUserType, oppositeUserId, "uack", uackMessageKey, uackMessage).then(() => { removeOriginMessage(originMesMessageKey) }).catch(handleError)
+                        cacheMessage(oppositeUserType, oppositeUserId, "uack", uackMessageKey, uackMessage, userType, userId).then(() => { removeOriginMessage(originMesMessageKey) }).catch(handleError)
                         publishUackMessage().catch(handleError)
                         break
                 }
@@ -197,9 +199,22 @@ const initWebSocketServer = () => {
     const httpServer = createServer()
     const wsServer = new WebSocketServer({noServer: true})
 
-    const handleOnRedisError: HandleOnRedisError = (error) => {}
-    const handleOnRedisReady: HandleOnRedisReady = () => {}
-    const {addConnectedUser, ...redisClientApisRest} = initRedisConnection(handleOnRedisError, handleOnRedisReady)
+    const handleOnRedisError: HandleOnRedisError = (error) => {
+        log("redis error: " + error.message)
+    }
+    const handleOnRedisConnect: HandleOnRedisConnect = () => {
+        log("connected with redis")
+    }
+    const handleOnRedisReconnecting: HandleOnRedisReconnecting = () => {
+        log("reconnecting with redis")
+    }
+    const handleOnRedisReady: HandleOnRedisReady = () => {
+        log("redis is ready")
+    }
+    const handleOnRedisConnectError: HandleOnRedisConnectError = (error) => {
+        log("error connecting with redis: " + error.message)
+    }
+    const {addConnectedUser, ...redisClientApisRest} = initRedisConnection(handleOnRedisError, handleOnRedisConnect, handleOnRedisReconnecting, handleOnRedisReady, handleOnRedisConnectError)
 
     const upgradeToWebSocketConnection: UpgradeToWebSocketConnection = (request, socket, head, user, cookies) => {
         request.once(setResponseCookiesEventName, (headers: string[]) => {

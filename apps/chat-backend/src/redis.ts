@@ -6,7 +6,7 @@ import {getHandleError, SendMessage} from "./app"
 import {log} from "./logs"
 import {createClient, createCluster} from "redis"
 import {AnyPropertiesCombination} from "utils/src/types"
-import {RedisError} from "./errors/redis";
+import {RedisError} from "./errors/redis"
 
 export type RedisMessageKey<M extends OutboundMessage[] = GetMessages<UserType, "out", MessagePrefix<"out">>> = M extends [infer OM, ...infer RM] ? OM extends OutboundMessage ? `${OM["userType"]}:${number}:${CutMessage<[OM], "body">}` | (RM extends OutboundMessage[] ? RedisMessageKey<RM> : never) : never : never
 export type SubscribeToMessages = () => Promise<void>
@@ -23,7 +23,7 @@ export type  WhatPrefixes = AnyPropertiesCombination<{ [K in MessagePrefix<"out"
 export type GetCachedMessagesResult<UT extends UserType, WP extends WhatPrefixes> = {[P in keyof WP & MessagePrefix<"out">]: Promise<OutboundMessage<UT, P>["template"][]>}
 type GetCachedMessages = <UT extends UserType, WP extends WhatPrefixes>(userType: UT, userId: number, whatPrefixes: WP) => GetCachedMessagesResult<UT, WP>
 
-type CacheMessage = <M extends OutboundMessage>(userType: M["userType"], userId: number, messagePrefix: M["prefix"], key: RedisMessageKey<[M]>, message: M["template"]) => Promise<void>
+type CacheMessage = <M extends OutboundMessage>(userType: M["userType"], userId: number, messagePrefix: M["prefix"], key: RedisMessageKey<[M]>, message: M["template"], connectionUserType: UserType, connectionUserId: number) => Promise<void>
 
 export type RemoveMessage = <M extends OutboundMessage>(userType: M["userType"], userId: number, messagePrefix: M["prefix"], key: RedisMessageKey<[M]>) => Promise<boolean>
 
@@ -39,10 +39,13 @@ type GetConnectedUsers = (toUserType: UserType, toUserId: number) => GetConnecte
 export type RedisClientAPIs = { addConnectedUser: AddConnectedUser, removeConnectedUser: RemoveConnectedUser, getConnectedUsers: GetConnectedUsers,  publishMessage: PublishMessage, handleUserSubscriptionToMessages: HandleUserSubscriptionToMessages, cacheMessage: CacheMessage, getCachedMessages: GetCachedMessages, removeMessage: RemoveMessage, isMessageAck: IsMessageAck}
 export type RedisClientFunctionName = keyof RedisClientAPIs
 
-export type HandleOnError = (error: Error) => void
-export type HandleOnReady = () => void
+export type HandleOnRedisError = (error: Error) => void
+export type HandleOnRedisConnect = () => void
+export type HandleOnRedisReconnecting = () => void
+export type HandleOnRedisReady = () => void
+export type HandleOnRedisConnectError = (error: Error) => void
 
-export type ErrorCauses = { [FN in RedisClientFunctionName]: ErrorCausesByFunction<FN> }
+export type RedisErrorCauses = { [FN in RedisClientFunctionName]: ErrorCausesByFunction<FN> }
 type ErrorCausesByFunction<FN extends RedisClientFunctionName> =
     FN extends "addConnectedUser" ? { alreadyConnected: "alreadyConnected" } :
         FN extends "removeConnectedUser" ? {} :
@@ -53,7 +56,7 @@ type ErrorCausesByFunction<FN extends RedisClientFunctionName> =
                             FN extends "publishMessage" ? {} :
                                 FN extends "getCachedMessages" ? {} :
                                     FN extends "handleUserSubscriptionToMessages" ? {} : never
-export const errorCauses: ErrorCauses = {
+export const redisErrorCauses: RedisErrorCauses = {
     addConnectedUser: {alreadyConnected: "alreadyConnected"},
     removeConnectedUser: {},
     getConnectedUsers: {},
@@ -65,7 +68,7 @@ export const errorCauses: ErrorCauses = {
     handleUserSubscriptionToMessages: {}
 }
 
-const connect = (handleOnError: HandleOnError, handleOnReady: HandleOnReady) => {
+const connect = (handleOnError: HandleOnRedisError, handleOnConnect: HandleOnRedisConnect, handleOnReconnecting: HandleOnRedisReconnecting, handleOnReady: HandleOnRedisReady, handleOnConnectError: HandleOnRedisConnectError) => {
     const url = process.env.REDIS_URL
     const credentials = {username: process.env.REDIS_USERNAME, password: process.env.REDIS_PASSWORD}
     const socket = {tls: process.env.REDIS_TLS !== undefined}
@@ -85,26 +88,17 @@ const connect = (handleOnError: HandleOnError, handleOnReady: HandleOnReady) => 
             ...credentials,
             socket
         })
-    client.on("error", (error: Error) => {
-        log("redis error: " + error.message)
-        handleOnError(error)
-    })
-    client.on("connect", () => {
-        log("connected with redis")
-    })
-    client.on("reconnecting", () => {
-        log("reconnecting with redis")
-    })
-    client.on("ready", () => {
-        log("redis is ready")
-        handleOnReady()
-    })
-    client.connect().catch((handleOnError))
+    client.on("error", handleOnError)
+    client.on("connect", handleOnConnect)
+    client.on("reconnecting", handleOnReconnecting)
+    client.on("ready", handleOnReady)
+
+    client.connect().catch(handleOnConnectError)
 
     return client
 }
 
-export const initRedisConnection = (handleOnError: HandleOnError, handleOnReady: HandleOnReady) : RedisClientAPIs => {
+export const initRedisConnection = (handleOnError: HandleOnRedisError, handleOnConnect: HandleOnRedisConnect, handleOnReconnecting: HandleOnRedisReconnecting, handleOnReady: HandleOnRedisReady, handleOnConnectError: HandleOnRedisConnectError) : RedisClientAPIs => {
     const guessCountKey = userTypes.guess + "-count"
 
     const connectedUsersHashKeyPrefix = "connected:"
@@ -165,14 +159,14 @@ export const initRedisConnection = (handleOnError: HandleOnError, handleOnReady:
             .catch(getRejectError("publishMessage", publisherType, publisherId))
     }
 
-    const cacheMessage: CacheMessage = (userType, userId, messagePrefix, key, message) =>
+    const cacheMessage: CacheMessage = (userType, userId, messagePrefix, key, message, connectionUserType, connectionUserId) =>
         client.hSet(getMessagesHashKey(userType, userId, messagePrefix), key, message).then(n => {
             const cached = n > 0
             const msg = "message " + message + " with key " + key + " was " + (cached ? "" : "not ") + "cached"
             if (cached)
-                log(msg, userType, userId)
-            else return Promise.reject(errorCauses.cacheMessage.wasNotCached)
-        }).catch(getRejectError("cacheMessage", userType, userId, messagePrefix + ":" + key + ":" + message))
+                log(msg, connectionUserType, connectionUserId)
+            else return Promise.reject(redisErrorCauses.cacheMessage.wasNotCached)
+        }).catch(getRejectError("cacheMessage", connectionUserType, connectionUserId, messagePrefix + ":" + key + ":" + message))
 
     const getCachedMessages: GetCachedMessages = (userType, userId, whatPrefixes) => {
         const promises: { [k: string]: Promise<string[]> } = {}
@@ -211,7 +205,7 @@ export const initRedisConnection = (handleOnError: HandleOnError, handleOnReady:
                     log((firstTime ? "first time " : "") +  "added to connected hash", type, id)
                     return {id: id, date: date}
                 } else {
-                    return Promise.reject(errorCauses.addConnectedUser.alreadyConnected)
+                    return Promise.reject(redisErrorCauses.addConnectedUser.alreadyConnected)
                 }
             })
         }
@@ -242,7 +236,7 @@ export const initRedisConnection = (handleOnError: HandleOnError, handleOnReady:
         }).catch(getRejectError("getConnectedUsers", toUserType, toUserId))
     }
 
-    const client = connect(handleOnError, handleOnReady)
+    const client = connect(handleOnError, handleOnConnect, handleOnReconnecting, handleOnReady, handleOnConnectError)
 
     return  { addConnectedUser, removeConnectedUser, getConnectedUsers, publishMessage, handleUserSubscriptionToMessages, cacheMessage, getCachedMessages, removeMessage, isMessageAck }
 }
