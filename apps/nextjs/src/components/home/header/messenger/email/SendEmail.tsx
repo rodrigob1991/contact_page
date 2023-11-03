@@ -79,7 +79,7 @@ export default function SendEmail() {
         <>
             {SendMessageModal}
             <ComponentWithTooltip childElement={<SendEmailImage onClick={(e) => showSendMessageModal()}/>}
-                                  tooltipText={"send email"} tooltipStyle={{height: "35px", width: "fit-content"}}
+                                  tooltipText={"send email"}
                                   tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>
         </>
 

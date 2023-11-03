@@ -1,15 +1,15 @@
 import Chat, {HandleUserMessage, HandleUsersConnection, HandleUsersDisconnection} from "../../../../chat/Chat"
-import ComponentWithTooltip from "../../../../ComponentWithTooltip"
 import React, {useState} from "react"
 import styled from "@emotion/styled"
 import LiveIcon from "/public/live.svg"
 import {maxWidthSmallestLayout} from "../../../../../dimensions"
 import {ConnectionState, HandleNewConnectionState} from "../../../../../hooks/chat/useWebSocket"
 import {BsFillChatSquareTextFill} from "react-icons/bs"
+import ComponentWithTooltip from "../../../../ComponentWithTooltip"
 
 type Props = {}
 
-export default function GuessLiveChat({}: Props) {
+export default function GuessChat({}: Props) {
     const [showChatView, setShowChatView] = useState(false)
     const [showIconChatView, setShowIconChatView] = useState(false)
     const [connect, setConnect] = useState(false)
@@ -38,9 +38,9 @@ export default function GuessLiveChat({}: Props) {
         setShowChatView(!showChatView)
     }
 
-    const disconnectedIconProps = {color: "#FF4500", tooltipText: "connect chat"}
-    const connectingIconProps = {color: "#FFFF00", tooltipText: "connecting chat"}
-    const connectedIconProps = {color: "#ADFF2F", tooltipText: "disconnect chat"}
+    const disconnectedIconProps = {color: "#FF4500", tooltipText: "disconnected"}
+    const connectingIconProps = {color: "#FFFF00", tooltipText: "connecting"}
+    const connectedIconProps = {color: "#ADFF2F", tooltipText: "connected"}
     const [iconProps, setIconProps] = useState(disconnectedIconProps)
 
     const handleHostConnection: HandleUsersConnection = (hostName) => {
@@ -52,11 +52,13 @@ export default function GuessLiveChat({}: Props) {
 
     return (
         <Container>
-            <ComponentWithTooltip childElement={<LiveIconStyled fill={iconProps.color}/>}
-                                  tooltipText={iconProps.tooltipText}
-                                  tooltipStyle={{height: "35px", width: "fit-content"}} tooltipTopDeviation={-40}
-                                  tooltipLeftDeviation={-70}
-                                  onClick={handleOnClickLiveIcon}/>
+            <ComponentWithTooltip
+                childElement={<LiveIconStyled fill={iconProps.color}/>}
+                tooltipText={iconProps.tooltipText}
+                tooltipTopDeviation={-40}
+                tooltipLeftDeviation={-100}
+                onClick={handleOnClickLiveIcon}
+            />
             { (showIconChatView && !showChatView) && <ChatViewIconStyled visibility={0} size={50} fill={"white"} onClick={handleOnClickIconChatView}/>}
             <Chat userType={"guess"} viewProps={{containerProps: {show: showChatView, top: 50, left: 50}, hide: ()=> { setShowChatView(false) }}}
                   handleUsersConnection={handleHostConnection} handleUsersDisconnection={handleHostDisconnection} handleUserMessage={handleHostMessage}

@@ -1,7 +1,7 @@
 import styled from "@emotion/styled"
 import {maxWidthSmallestLayout} from "../../../../dimensions"
 import SendEmail from "./email/SendEmail"
-import GuessLiveChat from "./chat/GuessLiveChat"
+import GuessChat from "./chat/GuessChat"
 import {Separator} from "../Header"
 
 type Props = {}
@@ -9,7 +9,7 @@ export default function Messenger({}: Props) {
     return (
         <Container>
             <Separator/>
-            <GuessLiveChat/>
+            <GuessChat/>
             <Separator/>
             <SendEmail/>
         </Container>

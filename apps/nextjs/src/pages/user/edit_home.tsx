@@ -23,7 +23,7 @@ import {patchHomeProps, postHomeProps} from "../api/protected/props/home"
 import {SpinLoader} from "../../components/Loaders"
 import {StoryState} from "@prisma/client"
 import {AnyPropertiesCombination} from "utils/src/types"
-import {lookUpParent} from "../../utils/DomManipulations"
+import {lookUpParent} from "../../utils/domManipulations"
 import {containerStyles as skillsChartContainerStyles} from "../../components/home/presentation/SkillsChart"
 import {UserBaseRoute} from "../../baseRoutes"
 

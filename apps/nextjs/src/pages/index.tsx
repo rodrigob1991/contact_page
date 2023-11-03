@@ -7,7 +7,7 @@ import Header from "../components/home/header/Header"
 import {useEffect, useState} from "react"
 import {maxWidthSmallestLayout} from "../dimensions"
 import Head from "next/head"
-import {getStoryBodyJsx} from "../utils/Parsers"
+import {getStoryBodyJsx} from "../utils/parsers"
 
 export const HomeRoute = "/"
 

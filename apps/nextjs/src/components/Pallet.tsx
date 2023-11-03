@@ -15,11 +15,12 @@ import {
     lookUpDivParent,
     positionCaretOn,
     removeNodesFromOneSide
-} from "../utils/DomManipulations"
+} from "../utils/domManipulations"
 import React, {useEffect, useRef, useState} from "react"
 import {ImageSelector, NumberInput, TextInput} from "./FormComponents"
 import {FcPicture} from "react-icons/fc"
-import {Ask, IsAsking, useAsk, useRecordState} from "../utils/Hooks"
+import {Ask, IsAsking, useAsk} from "../hooks/useAsk"
+import {useRecordState} from "../hooks/useRecordState"
 import {DeleteOrRecoverButton} from "./Buttons"
 
 type Props = {
