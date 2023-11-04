@@ -12,6 +12,9 @@ server {
  ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
  ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
  ssl_ciphers HIGH:!aNULL:!MD5;
+ 
+ 	
+ proxy_read_timeout 3600s;
 
  location / {
   proxy_http_version 1.1;

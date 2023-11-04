@@ -40,7 +40,7 @@ export const useUsers = (userType: UserType) : [Users, SetUsers, GetUserColor, S
             for (const {id, name, isConnected, date} of targetUsers) {
                 const user = updatedUsers.find(u => u.id === id)
                 if (user) {
-                    if (date && (date > (user.date ?? 0))) {
+                    if (date && (date >= (user.date ?? 0))) {
                         user.date = date
                         if (isConnected) {
                             user.isConnected = true
