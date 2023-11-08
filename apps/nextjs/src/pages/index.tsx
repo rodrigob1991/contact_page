@@ -24,31 +24,25 @@ export async function getStaticProps() {
 }
 
 export default function Home({presentation= {name:"", introduction: "", skills: [], image: undefined}, stories}: HomeProps) {
-    const [showSidebar, setShowSidebar] = useState(false)
-    const showOrHideSidebar = () => { setShowSidebar(window.innerWidth > maxWidthSmallestLayout) }
-    useEffect(() => {
-        showOrHideSidebar()
-        const handleWindowResize = () => {
-            showOrHideSidebar()
-        }
-        window.addEventListener('resize', handleWindowResize)
-
-        return () => { window.removeEventListener('resize', handleWindowResize) }
-    }, [])
-
-  return (
-      <>
-      <Head>
-          <title>{presentation.name}</title>
-          <link rel="shortcut icon" href="favicon.png" />
-      </Head>
-      <Container>
-          <Header/>
-          <PresentationView presentation={presentation}/>
-          <StoriesView stories={stories.map(s=> {return {...(({body, ...rest})=> rest)(s),body:getStoryBodyJsx(s.body)}})}/>
-          <Footer>
-          </Footer>
-      </Container>
-      </>
-  )
+    const {name, skills} = presentation
+    return (
+        <>
+            <Head>
+                <title>{name}</title>
+                <link rel="shortcut icon" href="favicon.png"/>
+                <meta name="author" content={name}/>
+                <meta name="keywords" content={"software developer, programmer, engineer, freelance, " + skills.map(s => s.name).join(" ,")}/>
+                <meta name="description" content={"contact page of " + name + " software developer"}/>
+            </Head>
+            <Container>
+                <Header/>
+                <PresentationView presentation={presentation}/>
+                <StoriesView stories={stories.map(s => {
+                    return {...(({body, ...rest}) => rest)(s), body: getStoryBodyJsx(s.body)}
+                })}/>
+                <Footer>
+                </Footer>
+            </Container>
+        </>
+    )
 }
