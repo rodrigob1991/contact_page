@@ -4,8 +4,6 @@ import PresentationView from "../components/home/presentation/PresentationView"
 import StoriesView from "../components/home/stories/StoriesView"
 import {Container, Footer} from "../components/home/Layout"
 import Header from "../components/home/header/Header"
-import {useEffect, useState} from "react"
-import {maxWidthSmallestLayout} from "../dimensions"
 import Head from "next/head"
 import {getStoryBodyJsx} from "../utils/parsers"
 
@@ -28,7 +26,7 @@ export default function Home({presentation= {name:"", introduction: "", skills: 
     return (
         <>
             <Head>
-                <title>{name}</title>
+                <title>{name + " contact page"}</title>
                 <link rel="shortcut icon" href="favicon.png"/>
                 <meta name="author" content={name}/>
                 <meta name="keywords" content={"software developer, programmer, engineer, freelance, " + skills.map(s => s.name).join(" ,")}/>
