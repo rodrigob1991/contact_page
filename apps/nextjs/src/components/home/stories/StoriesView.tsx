@@ -39,7 +39,7 @@ export default function StoriesView<M extends ViewMode>({
                                                         }: Props<M>) {
     // idHtml is use to identify the html element. Can be story id or index of new stories array
     const [storiesViewStates, setStoriesViewStates] = useState<StoryViewStates[]>(stories.map((s) => {
-        return {idHtml: s.id, story: s, toDelete: false, isOpen: false}
+        return {idHtml: s.id, story: s, toDelete: false, isOpen: true}
     }))
 
     const openOrCloseStory = (index: number) => {
