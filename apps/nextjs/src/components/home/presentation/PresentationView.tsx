@@ -51,12 +51,12 @@ export default function PresentationView<VM extends ViewMode>({
             <NameImageIntroductionContainer>
             <NameImageContainer>
                 {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processSelectedImage={processSelectedImage} src={imageDataUrl}/>
-                         : <StyledImage alt={""} src={imageDataUrl || ""} width={100} height={90} layout={"intrinsic"}/>
+                         : <StyledImage alt={name} src={imageDataUrl || ""} width={100} height={90} layout={"intrinsic"}/>
                 }
                 <Name id={nameHtmlId} contentEditable={editing} ref={ editing ? r => {if (r) (observe as Observe)(r, {mutation: "default"})} : undefined}>
                     {name}
                 </Name>
-                <StyledImage alt={""} src={"/favicon.png"} width={80} height={80}/>
+                <StyledImage alt={"uruguay"} src={"/favicon.png"} width={80} height={80}/>
             </NameImageContainer>
             <Introduction id={introductionHtmlId} contentEditable={editing} ref={ editing ? r => {if(r) (observe as Observe)(r, {mutation: "default"})} : undefined}
                                       dangerouslySetInnerHTML={{__html: introduction}}/>
@@ -95,7 +95,7 @@ const NameImageIntroductionContainer = styled.div`
     width: fit-content;
   }
     `
-const Name = styled.span`
+const Name = styled.h1`
   display: inline-block;
   color: #FFFFFF;
   text-decoration-color: #FFFFFF;
@@ -106,7 +106,7 @@ const Name = styled.span`
   font-size: 2.5rem;
   text-shadow: 2px 2px 5px #000000;
     `
-const Introduction = styled.span`
+const Introduction = styled.h2`
   font-weight: bold;
   font-size: 2.5rem;
   background-color: ${secondColor};

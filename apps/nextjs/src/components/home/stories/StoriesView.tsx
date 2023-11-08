@@ -191,13 +191,14 @@ const TitleContainer = styled.div`
   flex-direction: row;
   gap: 25px;
 `
-const Title = styled.text`
+const Title = styled.h3`
   color: #FFFFFF;
   text-decoration-style: solid;
   text-shadow: 2px 2px 5px #000000;
   text-transform: uppercase;
   font-weight: bold;
   font-size: 2rem;
+  margin: 0px;
   `
 const StoriesContainer = styled.ul`
   padding: 0;
@@ -239,12 +240,13 @@ const StoryTitleContainer = styled.div`
   width: fit-content;
   cursor: pointer;
 `
-const StoryTitle = styled.span<{ toDelete?: boolean }>`
+const StoryTitle = styled.h4<{ toDelete?: boolean }>`
   font-size: 3.5rem;
   font-weight: bold;
   font-family: Arial, Helvetica, sans-serif;
   color: ${secondColor};
   padding-bottom: 5px;
+  margin: 0px;
   ${props => 
     props.toDelete ? 
         "text-decoration: line-through;"

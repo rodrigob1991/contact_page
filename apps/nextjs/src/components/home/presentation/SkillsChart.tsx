@@ -59,7 +59,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
 
     const getSkillView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
         <SkillViewContainer key={name}>
-            <Image alt={""} src={image.src} width={20} height={20} layout={"intrinsic"} style={{backgroundColor: "white", width: 20, height: 20}}
+            <Image alt={name} src={image.src} width={20} height={20} layout={"intrinsic"} style={{backgroundColor: "white", width: 20, height: 20}}
                    onMouseEnter={e => {handleMouseEnterSkillView(e, name)}} onMouseLeave={handleMouseLeaveSkillView}
                    onTouchStart={ e=> {handleTouchStartSkillView(e, name)}}/>
             <SkillView key={name} height={rate} hslColor={getHslColor(rate)}
