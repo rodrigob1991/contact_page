@@ -56,10 +56,8 @@ export default function StoriesView<M extends ViewMode>({
         storiesViewStates.map(({story: {title, body}, isOpen}, index) => {
             return (
                 <StoryContainer id={title} key={title}>
-                    <StoryTitleContainer onClick={(e => { openOrCloseStory(index) })}>
-                        <StoryTitle>{title}</StoryTitle>
-                        {/*{getOpenOrCloseStoryButton(isOpen)}*/}
-                    </StoryTitleContainer>
+                    <StoryTitle>{title}</StoryTitle>
+                    {/*{getOpenOrCloseStoryButton(isOpen)}*/}
                     {isOpen && <StoryBody>{body}</StoryBody>}
                 </StoryContainer>
             )
@@ -275,12 +273,10 @@ const StoryBody = styled.div`
   font-size: 3rem;
   padding: 6px;
   block-size: fit-content;
-  text-align: center;
 `
 const StoryTitleContainer = styled.div`
   display: flex;
   flex-direction: row;
-  align-items: left;
   gap: 15px;
   color: #FFFFFF;
   cursor: pointer;
@@ -292,6 +288,7 @@ const StoryTitle = styled.h4<{ toDelete?: boolean }>`
   border-bottom: solid 4px ${secondColor};
   padding-bottom: 5px;
   margin: 0px;
+  text-align: center;
   ${props => 
     props.toDelete ? 
         "text-decoration: line-through;"
