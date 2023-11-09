@@ -6,8 +6,9 @@ import {Pallet} from "../../Pallet"
 import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
 import {Observe} from "../../../pages/user/edit_home"
+import {mainColor, secondColor} from "../../../colors"
 
-import {secondColor} from "../../../colors"
+const storiesAnchorsContainerWidth = 150
 
 export type StoryViewStates = {idHtml: string, story: Story | StoryWithJSXBody | NewStory, isOpen: boolean, toDelete: boolean}
 
@@ -49,14 +50,15 @@ export default function StoriesView<M extends ViewMode>({
     }
     const getOpenOrCloseStoryButton = (isOpen: boolean, onClick?: (e: React.MouseEvent) => void) => <OpenOrCloseStoryButton size={25} color={secondColor} isOpen={isOpen} onClick={onClick}/>
 
+    const [showStoriesAnchors, setShowStoriesAnchors] = useState(true)
+
     const getStoriesView = () =>
         storiesViewStates.map(({story: {title, body}, isOpen}, index) => {
-           // const JsxBody = getStoryBodyJsx(body)
             return (
-                <StoryContainer key={title}>
-                    <StoryTitleContainer onClick={(e => openOrCloseStory(index))}>
+                <StoryContainer id={title} key={title}>
+                    <StoryTitleContainer onClick={(e => { openOrCloseStory(index) })}>
                         <StoryTitle>{title}</StoryTitle>
-                        {getOpenOrCloseStoryButton(isOpen)}
+                        {/*{getOpenOrCloseStoryButton(isOpen)}*/}
                     </StoryTitleContainer>
                     {isOpen && <StoryBody>{body}</StoryBody>}
                 </StoryContainer>
@@ -137,7 +139,7 @@ export default function StoriesView<M extends ViewMode>({
                 }
             }
             return (
-                <StoryContainer key={idHtml}>
+                <StoryContainer id={idHtml} key={idHtml}>
                     <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r)=> (observe as Observe)(r, {mutation: "default"})}
                                     color={"#778899"} fontSize={"1.5rem"} options={Object.values(StoryState)} initSelectedOption={state}/>
                     <StoryTitleContainer>
@@ -152,7 +154,7 @@ export default function StoriesView<M extends ViewMode>({
                     </StoryTitleContainer>
                     {isOpen && <StoryBody id={htmlIds.body} contentEditable={!toDelete}
                                           ref={r => {if(r) {refToLastStory.current = r; (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
-                                          dangerouslySetInnerHTML={{__html: body as string}}
+                                          dangerouslySetInnerHTML={{__html: body}}
                                           onFocus={handleOnFocusBody}
                                           onBlur={handleOnBlurBody}
                     />}
@@ -162,10 +164,20 @@ export default function StoriesView<M extends ViewMode>({
 
     return (
         <Container>
-            <TitleContainer>
-                <Title>STORIES</Title> {editing &&
-            <PlusButton id={"plus-button"} color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
-            </TitleContainer>
+            <StoriesAnchorsTitle onClick={(e)=> {setShowStoriesAnchors(!showStoriesAnchors)}}>stories index</StoriesAnchorsTitle>
+            {showStoriesAnchors &&
+                <StoriesAnchorsContainer>
+                {storiesViewStates.map(({story: {title}}) =>
+                    <StoryAnchorContainer>
+                        <StoryAnchor href={"#" + title}>{title}</StoryAnchor>
+                    </StoryAnchorContainer>
+                )}
+                </StoriesAnchorsContainer>}
+            {editing &&
+                <PlusButton id={"plus-button"} color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
+           {/* <StoriesLinksContainer>
+                stories index
+            </StoriesLinksContainer>*/}
             <StoriesContainer>
                 {editing ? getEditableStoriesView()
                          : getStoriesView()
@@ -177,13 +189,10 @@ export default function StoriesView<M extends ViewMode>({
 
 const Container = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: fit-content;
-  padding: 10px;
   overflow: auto;
-  border-style: solid;
-  border-color: #FFFFFF;
-  gap: 15px;
+  padding-top: 5px;
   background-color: ${secondColor};
 `
 const TitleContainer = styled.div`
@@ -200,18 +209,56 @@ const Title = styled.h3`
   font-size: 2rem;
   margin: 0px;
   `
+const StoriesAnchorsContainer = styled.ul`
+  width: ${storiesAnchorsContainerWidth}px;
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-top: 30px;
+  padding: 0;
+`
+const StoriesAnchorsTitle = styled.h3`
+  position: absolute;
+  color: white;
+  font-size: 2.2rem;
+  font-weight: bold;
+  text-align: center;
+  background-color: ${mainColor};
+  padding: 0;
+  margin: 0;
+  padding-left: 3px;
+  padding-right: 3px;
+  cursor: pointer;
+`
+const StoryAnchorContainer = styled.li`
+  list-style-type: none;
+  border-bottom-style: solid;
+  border-bottom-color: ${mainColor};
+  padding-bottom: 3px;
+  :last-of-type {
+    border-bottom-style: none;
+  }
+`
+const StoryAnchor = styled.a`
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+`
 const StoriesContainer = styled.ul`
   padding: 0;
   margin: 0;
   width: 100%;
   overflow: auto;
-  padding: 5px;
   background-color: #fff;
   background-image:
   linear-gradient(#eee .1em, transparent .1em);
   background-size: 100% 2.5em;
 `
 const StoryContainer = styled.li`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: fit-content;
+  gap: 10px;
   list-style-type: none;
   padding-bottom: 15px;
   border-color: ${secondColor};
@@ -224,12 +271,11 @@ const StoryContainer = styled.li`
 `
 const StoryBody = styled.div`
   color: #696969;
-  font-weight: bold;
   line-height: 1.5;
   font-size: 3rem;
-  font-family: "Lucida Console", "Courier New", monospace;
   padding: 6px;
   block-size: fit-content;
+  text-align: center;
 `
 const StoryTitleContainer = styled.div`
   display: flex;
@@ -237,14 +283,13 @@ const StoryTitleContainer = styled.div`
   align-items: left;
   gap: 15px;
   color: #FFFFFF;
-  width: fit-content;
   cursor: pointer;
 `
 const StoryTitle = styled.h4<{ toDelete?: boolean }>`
   font-size: 3.5rem;
   font-weight: bold;
-  font-family: Arial, Helvetica, sans-serif;
   color: ${secondColor};
+  border-bottom: solid 4px ${secondColor};
   padding-bottom: 5px;
   margin: 0px;
   ${props => 

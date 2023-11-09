@@ -1,13 +1,14 @@
 import styled from "@emotion/styled"
-import {FaPlus, FaTrashRestore} from "react-icons/fa"
+import {FaHandPointLeft, FaHandPointRight, FaPlus, FaTrashRestore} from "react-icons/fa"
 import {BsChevronDoubleDown, BsChevronDoubleUp, BsEyeFill, BsEyeSlashFill, BsFillTrashFill} from "react-icons/bs"
-import React, {useState} from "react"
+import React, {HTMLAttributes, InputHTMLAttributes, useState} from "react"
 import {IconBaseProps} from "react-icons"
+import {secondColor} from "../colors";
 
 
 export const Button = styled.button<{ backgroundColor?: string }>`
  color: #FFFFFF;
- background-color: ${({backgroundColor}) => backgroundColor || "#00008B"};
+ background-color: ${({backgroundColor}) => backgroundColor || secondColor};
  width: fit-content;
  font-weight: bold;
  cursor: pointer;
@@ -73,6 +74,14 @@ export const SeeOrUnseeButton = ({
         see ? <BsEyeSlashFill {...rest} style={{cursor: "pointer"}}/>
             : <BsEyeFill {...rest} style={{cursor: "pointer"}}/>
     )
+}
+
+export const PointHandLeftOrRightButton = ({left, containerProps, iconProps}: { left: boolean, containerProps: HTMLAttributes<HTMLDivElement>, iconProps: IconBaseProps}) => {
+    return <div {...containerProps}>
+        {left ? <FaHandPointLeft {...iconProps} style={{cursor: "pointer"}}/>
+            : <FaHandPointRight {...iconProps} style={{cursor: "pointer"}}/>
+        }
+    </div>
 }
 
 
