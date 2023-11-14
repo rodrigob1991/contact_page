@@ -17,7 +17,6 @@ import React, {useEffect, useRef, useState} from "react"
 import PresentationView, {GetHtmlElementId as GetPresentationHtmlElementId} from "../../../components/home/presentation/PresentationView"
 import {StoryState} from "@prisma/client"
 import {lookUpParent} from "../../../utils/domManipulations"
-import {containerStyles as skillsChartContainerStyles} from "../../../components/home/presentation/SkillsChart"
 import {patchHomeProps, postHomeProps} from "../../../pages/api/protected/props/home"
 import {revalidatePages} from "../../../pages/api/protected/revalidate/multiple"
 import {RevalidationRouteId} from "../../../types/revalidation"
@@ -26,6 +25,7 @@ import {SpinLoader} from "../../../components/Loaders"
 import StoriesView from "../../../components/home/stories/StoriesView"
 import {Button} from "../../../components/Buttons"
 import styled from "@emotion/styled"
+import { skillsChartLayout } from "../../../layouts"
 
 export type Observe = (element: HTMLElement, observeWhat: AnyPropertiesCombination<{ mutation: MutationObserverInit | "default", resize: ResizeObserverOptions | "default" }>) => void
 
@@ -236,7 +236,7 @@ export default function EditHome(props: EditHomeProps) {
                 const resizeTarget = resize.target as HTMLElement
                 // can be no connected when removing
                 if (resizeTarget.isConnected) {
-                    const newRate = Math.round((resize.borderBoxSize[0].blockSize) * 100 / skillsChartContainerStyles.height)
+                    const newRate = Math.round((resize.borderBoxSize[0].blockSize) * 100 / skillsChartLayout.barMaxHeight)
                     console.log(newRate)
                     handleMutatedOrResizedSkillHTMLElement(resizeTarget.id, "rate", newRate)
                 }
