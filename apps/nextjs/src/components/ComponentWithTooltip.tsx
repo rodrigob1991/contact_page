@@ -38,5 +38,4 @@ export default function ComponentWithTooltip({childElement, tooltipText, tooltip
 
 const Container = styled.div`
   display: flex;
-  block-size: fit-content;
 `

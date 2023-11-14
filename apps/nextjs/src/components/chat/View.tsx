@@ -6,7 +6,7 @@ import {UserType} from "chat-common/src/model/types"
 import {BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill} from "react-icons/bs"
 import {FiArrowRight} from "react-icons/fi"
 import {ConnectionState} from "../../hooks/chat/useWebSocket"
-import {maxWidthSmallestLayout, minWidthFullLayout} from "../../dimensions"
+import {maxWidthSmallestLayout, minWidthFullLayout} from "../../layouts"
 import {InboundMessageData, MessagesData, OutboundMessageData, UserAckState} from "../../hooks/chat/useMessages"
 import {GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users} from "../../hooks/chat/useUsers"
 

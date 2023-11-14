@@ -2,7 +2,7 @@
 
 import {HomeProps} from "../../types/home"
 import {useEffect, useState} from "react"
-import {maxWidthSmallestLayout} from "../../dimensions"
+import {maxWidthSmallestLayout} from "../../layouts"
 import {Footer} from "../../components/home/Layout"
 import Header from "../../components/home/header/Header"
 import PresentationView from "../../components/home/presentation/PresentationView"

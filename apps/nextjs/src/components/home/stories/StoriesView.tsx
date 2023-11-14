@@ -162,20 +162,17 @@ export default function StoriesView<M extends ViewMode>({
 
     return (
         <Container>
+            <StoriesAnchorsContainer>
             <StoriesAnchorsTitle onClick={(e)=> {setShowStoriesAnchors(!showStoriesAnchors)}}>stories index</StoriesAnchorsTitle>
             {showStoriesAnchors &&
-                <StoriesAnchorsContainer>
-                {storiesViewStates.map(({story: {title}}) =>
+                storiesViewStates.map(({story: {title}}) =>
                     <StoryAnchorContainer>
                         <StoryAnchor href={"#" + title}>{title}</StoryAnchor>
                     </StoryAnchorContainer>
                 )}
-                </StoriesAnchorsContainer>}
+            </StoriesAnchorsContainer>
             {editing &&
                 <PlusButton id={"plus-button"} color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
-           {/* <StoriesLinksContainer>
-                stories index
-            </StoriesLinksContainer>*/}
             <StoriesContainer>
                 {editing ? getEditableStoriesView()
                          : getStoriesView()
@@ -189,9 +186,10 @@ const Container = styled.div`
   display: flex;
   flex-direction: row;
   height: fit-content;
-  overflow: auto;
   padding-top: 5px;
   background-color: ${secondColor};
+  overflow: ;
+
 `
 const TitleContainer = styled.div`
   display: flex;
@@ -208,14 +206,14 @@ const Title = styled.h3`
   margin: 0px;
   `
 const StoriesAnchorsContainer = styled.ul`
+  position: sticky;
   width: ${storiesAnchorsContainerWidth}px;
   margin-left: 5px;
   margin-right: 5px;
-  margin-top: 30px;
+  margin-top: 0px;
   padding: 0;
 `
 const StoriesAnchorsTitle = styled.h3`
-  position: absolute;
   color: white;
   font-size: 2.2rem;
   font-weight: bold;

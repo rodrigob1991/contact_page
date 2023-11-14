@@ -1,16 +1,14 @@
 import styled from "@emotion/styled"
-import {maxWidthSmallestLayout} from "../../../../dimensions"
+import {maxWidthSmallestLayout} from "../../../../layouts"
 import SendEmail from "./email/SendEmail"
 import GuessChat from "./chat/GuessChat"
-import {Separator} from "../Header"
+import { Separator } from "../Header"
 
 type Props = {}
 export default function Messenger({}: Props) {
     return (
         <Container>
-            <Separator/>
             <GuessChat/>
-            <Separator/>
             <SendEmail/>
         </Container>
     )

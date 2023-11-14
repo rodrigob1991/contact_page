@@ -24,7 +24,7 @@ import {SpinLoader} from "../../components/Loaders"
 import {StoryState} from "@prisma/client"
 import {AnyPropertiesCombination} from "utils/src/types"
 import {lookUpParent} from "../../utils/domManipulations"
-import {containerStyles as skillsChartContainerStyles} from "../../components/home/presentation/SkillsChart"
+import {skillsChartLayout} from "../../components/home/presentation/SkillsChart"
 import {UserBaseRoute} from "../../baseRoutes"
 
 export const EditHomeRoute = UserBaseRoute + "/edit_home"
@@ -246,7 +246,7 @@ export default function EditHome(props?: HomeProps) {
                 const resizeTarget = resize.target as HTMLElement
                 // can be no connected when removing
                 if (resizeTarget.isConnected) {
-                    const newRate = Math.round((resize.borderBoxSize[0].blockSize) * 100 / (skillsChartContainerStyles.height))
+                    const newRate = Math.round((resize.borderBoxSize[0].blockSize) * 100 / (skillsChartLayout.barMaxHeight))
                     console.log(newRate)
                     handleMutatedOrResizedSkillHTMLElement(resizeTarget.id, "rate", newRate)
                 }

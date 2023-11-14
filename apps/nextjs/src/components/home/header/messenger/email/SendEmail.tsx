@@ -2,7 +2,7 @@ import {useFormModal} from "../../../../FormComponents"
 import ComponentWithTooltip from "../../../../ComponentWithTooltip"
 import styled from "@emotion/styled"
 import {MdForwardToInbox} from "react-icons/md"
-import {maxWidthSmallestLayout} from "../../../../../dimensions"
+import {maxWidthSmallestLayout} from "../../../../../layouts"
 
 export default function SendEmail() {
     const sendEmail = ({from, subject, message}: { from: string, subject: string, message: string }) => {
@@ -78,9 +78,9 @@ export default function SendEmail() {
     return (
         <>
             {SendMessageModal}
-            <ComponentWithTooltip childElement={<SendEmailImage onClick={(e) => showSendMessageModal()}/>}
+            <ComponentWithTooltip childElement={<SendEmailImage onClick={(e) => {showSendMessageModal()}}/>}
                                   tooltipText={"send email"}
-                                  tooltipTopDeviation={-40} tooltipLeftDeviation={-100}/>
+                                  tooltipTopDeviation={20} tooltipLeftDeviation={0}/>
         </>
 
     )

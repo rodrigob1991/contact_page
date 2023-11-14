@@ -2,7 +2,7 @@ import Chat, {HandleUserMessage, HandleUsersConnection, HandleUsersDisconnection
 import React, {useState} from "react"
 import styled from "@emotion/styled"
 import LiveIcon from "/public/live.svg"
-import {maxWidthSmallestLayout} from "../../../../../dimensions"
+import {maxWidthSmallestLayout} from "../../../../../layouts"
 import {ConnectionState, HandleNewConnectionState} from "../../../../../hooks/chat/useWebSocket"
 import {BsFillChatSquareTextFill} from "react-icons/bs"
 import ComponentWithTooltip from "../../../../ComponentWithTooltip"
@@ -55,8 +55,8 @@ export default function GuessChat({}: Props) {
             <ComponentWithTooltip
                 childElement={<LiveIconStyled fill={iconProps.color}/>}
                 tooltipText={iconProps.tooltipText}
-                tooltipTopDeviation={-40}
-                tooltipLeftDeviation={-100}
+                tooltipTopDeviation={20}
+                tooltipLeftDeviation={0}
                 onClick={handleOnClickLiveIcon}
             />
             { (showIconChatView && !showChatView) && <ChatViewIconStyled visibility={0} size={50} fill={"white"} onClick={handleOnClickIconChatView}/>}

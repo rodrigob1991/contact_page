@@ -6,9 +6,10 @@ import {Observe} from "../../../pages/user/edit_home"
 import {ImageViewSelector, TextInput} from "../../FormComponents"
 import {useAsk} from "../../../hooks/useAsk"
 import {useTooltip} from "../../../hooks/useTooltip"
-import Image from "next/legacy/image"
-import {minWidthFullLayout} from "../../../dimensions"
+import Image from "next/image"
+import {minWidthFullLayout, skillsChartLayout as layout, skillsChartSmallestLayout as smallestLayout, SkillBarWidth} from "../../../layouts"
 import {orderByComparePreviousByNumber} from "utils/src/arrays"
+import { css } from "@emotion/react"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
@@ -24,10 +25,7 @@ export type EditingProps = {
 }
 type Props<VM extends ViewMode> = {
     skills: Skill[]
-    width: number
 } & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
-
-export const containerStyles = {height: 180}
 
 export default function SkillsChart<VM extends ViewMode>({skills, editing, createSkill, deleteSkill, getHtmlElementId, observe}: Props<VM>) {
     const [skillsViewStates, setSkillsViewStates] = useState<SkillViewState[]>(orderByComparePreviousByNumber(skills, "position").map((s) => {
@@ -51,18 +49,18 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
     }
     const handleTouchStartSkillView = (e: React.TouchEvent<HTMLDivElement>, name: string) => {
         showNameTooltip(name, {top: e.touches[0].clientY -45, left: e.touches[0].clientX - 20})
-        setTimeout(() => hideNameTooltip(), 1500)
+        setTimeout(hideNameTooltip, 1500)
     }
     const handleTouchEndSkillView = (e: React.TouchEvent<HTMLDivElement>) => {
         hideNameTooltip()
     }
 
-    const getSkillView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
+    const getSkillsView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
         <SkillViewContainer key={name}>
-            <Image alt={name} src={image.src} width={20} height={20} layout={"intrinsic"} style={{backgroundColor: "white", width: 20, height: 20}}
+            <BaseImage alt={name} src={image.src} width={layout.barWidth} height={layout.barWidth} skillBarWidth={layout.barWidth}
                    onMouseEnter={e => {handleMouseEnterSkillView(e, name)}} onMouseLeave={handleMouseLeaveSkillView}
                    onTouchStart={ e=> {handleTouchStartSkillView(e, name)}}/>
-            <SkillView key={name} height={rate} hslColor={getHslColor(rate)}
+            <SkillBar key={name} rate={rate} hslColor={getHslColor(rate)}
                        onMouseEnter={e => {handleMouseEnterSkillView(e, name)}} onMouseLeave={handleMouseLeaveSkillView}
                        onTouchStart={ e=> {handleTouchStartSkillView(e, name)}}/>
         </SkillViewContainer>)
@@ -192,56 +190,61 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
         })
     }
 
-    const getEditableSkillView = () =>
+    const getEditableSkillsView = () =>
         <>
             {AskSkillNameElement}
             {skillsViewStates.map(({idHtml, skill: {name, rate, image}}, index) =>
-                <SkillViewContainer id={idHtml} key={idHtml} draggable={true} onDragStart={(e)=> handleDragStart(e, index)} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDrag={handleDrag} onDrop={(e)=> handleDrop(e, index)}>
-                    <ImageViewSelector src={image.src} processSelectedImage={(name, extension, dataUrl)=>  mutateSkillImage(index, name, extension, dataUrl)}
-                                       imageMaxSize={1} width={20} height={20} description={name}
+                <SkillViewContainer id={idHtml} key={idHtml} draggable={true} onDragStart={(e)=>{ handleDragStart(e, index)}} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDrag={handleDrag} onDrop={(e)=> { handleDrop(e, index)} }>
+                    <ImageViewSelector src={image.src} processSelectedImage={(name, extension, dataUrl)=>  { mutateSkillImage(index, name, extension, dataUrl)}}
+                                       imageMaxSize={1} width={layout.barWidth} height={layout.barWidth} description={name}
                                        style={{backgroundColor: "white"}}/>
-                    <SkillView hslColor={getHslColor(rate)} ref={r => {if (r) (observe as Observe)(r, {resize: "default"})}}
-                               id={(getHtmlElementId as GetHtmlElementId)(idHtml)} resize={true} height={rate}
-                               onClick={(e) => handleOnClickSkill(e, index)}/>
+                    <SkillBar hslColor={getHslColor(rate)} ref={r => {if (r) (observe as Observe)(r, {resize: "default"})}}
+                               id={(getHtmlElementId as GetHtmlElementId)(idHtml)} resize={true} rate={rate}
+                               onClick={(e) => { handleOnClickSkill(e, index) }}/>
                 </SkillViewContainer>)}
+            <PlusButton size={15} color={"white"} onClick={handleCreateSkill}/>
         </>
+
 
     return (
         <Container>
             {NameTooltip}
             {editing
-                ? <>{getEditableSkillView()} <PlusButton size={15} color={"white"} onClick={handleCreateSkill}/></>
-                : getSkillView()}
+                ? getEditableSkillsView()
+                : getSkillsView()}
         </Container>
     )
 }
 const Container = styled.div`
   display: flex;
   flex-direction: row;
-  position: absolute;
-  left: 0;
-  height: ${containerStyles.height}px;
-  gap: 5px;
+  align-items: end;
+  gap: ${layout.skillsGap}px;
   @media (max-width: ${minWidthFullLayout}px) {
-    position: relative;
   }
 `
 const SkillViewContainer = styled.div`
   display: flex;
   flex-direction: column-reverse;
-  gap: 2px;
+  gap: ${layout.barImageGap}px;
 `
-const SkillView = styled.div<{height: number, resize?: boolean, hslColor: string}>`
+const SkillBar = styled.div<{rate: number, resize?: boolean, hslColor: string}>`
   display: flex;
   overflow: hidden;
   padding-left: 5px;
   color: #696969;
-  width: 20px;
+  width: ${layout.barWidth}px;
   font-weight: bold;
-  max-height: 100%;
-  ${({height, resize, hslColor})=> 
-    `height: ${height}%;
+  ${({rate, resize, hslColor})=> css`
+    height: ${rate*layout.barMaxHeight/100}px;
+    width: ${layout.barWidth}px;
     background-color: ${hslColor};
     ${resize ? "resize: vertical;" : ""}
    `}
  `
+const BaseImage = styled(Image)<{skillBarWidth: SkillBarWidth}>`
+${({skillBarWidth}) => css`
+   width: ${skillBarWidth}px;
+   height: ${skillBarWidth}px;
+  `}
+`
