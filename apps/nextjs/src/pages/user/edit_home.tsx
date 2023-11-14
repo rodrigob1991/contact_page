@@ -24,8 +24,8 @@ import {SpinLoader} from "../../components/Loaders"
 import {StoryState} from "@prisma/client"
 import {AnyPropertiesCombination} from "utils/src/types"
 import {lookUpParent} from "../../utils/domManipulations"
-import {skillsChartLayout} from "../../components/home/presentation/SkillsChart"
 import {UserBaseRoute} from "../../baseRoutes"
+import { skillsChartLayout } from "../../layouts"
 
 export const EditHomeRoute = UserBaseRoute + "/edit_home"
 
