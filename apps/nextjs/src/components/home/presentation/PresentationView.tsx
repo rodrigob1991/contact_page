@@ -22,25 +22,47 @@ type Props<VM extends ViewMode> = {
 } & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
 export default function PresentationView<VM extends ViewMode>({editing, presentation, getHtmlElementId, createSkill, deleteSkill, observe}: Props<VM>) {
-      const innerContainerRef = useRef<HTMLDivElement>(null)
-      const [innerContainerFlexDirection, setInnerContainerFlexDirection] = useState<"row" | "column">("row")
+      const {name, introduction, skills, image} = presentation
 
-      const handleResize = () => {
+      const innerContainerRef = useRef<HTMLDivElement>(null)
+      const portraitNameIntroductionContainerRef = useRef<HTMLDivElement>(null)
+      const [innerContainerFlexDirection, setInnerContainerFlexDirection] = useState<"row" | "column">("row")
+      const [introductionWidth, setIntroductionWidth] = useState(layout.introductionMaxWidth)
+      const getSkillsChartMaxWidth = () => skillsChartLayout.getWidth(skills.length)
+      const [skillsChartWidth, setSkillsChartWidth] = useState(getSkillsChartMaxWidth())
+
+      const resizeView = (event?: UIEvent) => {
         const innerContainer = innerContainerRef.current
-        if (innerContainer) {
+        const portraitNameIntroductionContainer = portraitNameIntroductionContainerRef.current
+        if (innerContainer && portraitNameIntroductionContainer) {
           const innerContainerWidth = innerContainer.getBoundingClientRect().width
+          const portraitNameIntroductionContainerWidth = portraitNameIntroductionContainer.getBoundingClientRect().width
           // width without borders and scrollbars
           const viewportWidth = document.documentElement.clientWidth
           if (innerContainerWidth > viewportWidth) {
-            if (innerContainerFlexDirection === "row") { setInnerContainerFlexDirection("column") }
-            else {}
+            if (innerContainerFlexDirection === "row") {
+              setInnerContainerFlexDirection("column")
+            } 
+              if (skillsChartWidth > viewportWidth) {
+                console.log("handled resize skills")
+                setSkillsChartWidth(skillsChartLayout.getMaxWidth(viewportWidth - layout.innerContainerPadding*2))
+              } 
+              if(portraitNameIntroductionContainerWidth > viewportWidth) {
+                console.log("handled resize introduction")
+                setIntroductionWidth((introductionWidth) => introductionWidth - (portraitNameIntroductionContainerWidth - viewportWidth) - layout.innerContainerPadding*2)
+              }
           }else {
-            if (innerContainerFlexDirection === "row") {} 
+            if (innerContainerFlexDirection === "row") {
+              // nothing to do
+            } 
             else {
-              const skillsNumber = skills.length
-              const skillsChartWidth = (skillsNumber*skillsChartLayout.barWidth)+(skillsNumber-1)*skillsChartLayout.skillsGap
-              if(innerContainerWidth + layout.gap + skillsChartWidth <= viewportWidth) {
+              if(innerContainerWidth + layout.gap + getSkillsChartMaxWidth() <= viewportWidth) {
                 setInnerContainerFlexDirection("row")
+                setSkillsChartWidth(getSkillsChartMaxWidth())
+                setIntroductionWidth(layout.introductionMaxWidth)
+              }else {
+                setSkillsChartWidth(skillsChartLayout.getMaxWidth(viewportWidth - layout.innerContainerPadding*2))
+                setIntroductionWidth((introductionWidth) =>  introductionWidth + viewportWidth - portraitNameIntroductionContainerWidth - layout.innerContainerPadding*2)
               }
             } 
           }
@@ -48,16 +70,17 @@ export default function PresentationView<VM extends ViewMode>({editing, presenta
       }
 
       useEffect(() => {
-        handleResize()
-        return () => { window.removeEventListener("resize", handleResize) }
-      },[])
+        resizeView()
+        return () => {
+          window.removeEventListener("resize", resizeView)
+        }
+      }, [])
 
       useEffect(() => {
-        window.removeEventListener("resize", handleResize)
-        window.addEventListener("resize", handleResize)
-      }, [innerContainerFlexDirection])
+        window.removeEventListener("resize", resizeView)
+        window.addEventListener("resize", resizeView)
+      }, [innerContainerFlexDirection, introductionWidth, skillsChartWidth])
 
-    const {name, introduction, skills, image} = presentation
     const imageDataUrl = image?.src
     const processSelectedImage: ProcessSelectedImage = (name, extension, dataUrl) => {
         presentation.image = {name: name, extension: extension, src: dataUrl}
@@ -71,16 +94,16 @@ export default function PresentationView<VM extends ViewMode>({editing, presenta
         nameHtmlId = getHtmlElementId("name", undefined)
         introductionHtmlId = getHtmlElementId("introduction", undefined)
         getSkillHtmlId = (skillId: string) => getHtmlElementId("skills", skillId)
-        skillsChart = <SkillsChart editing skills={skills} createSkill={createSkill} deleteSkill={deleteSkill}
+        skillsChart = <SkillsChart editing skills={skills} width={skillsChartWidth} createSkill={createSkill} deleteSkill={deleteSkill}
                          getHtmlElementId={getSkillHtmlId} observe={observe}/>
     } else {
-        skillsChart = <SkillsChart skills={skills}/>
+        skillsChart = <SkillsChart skills={skills} width={skillsChartWidth}/>
     }
 
   return (
     <Container>
       <InnerContainer ref={innerContainerRef} flexDirection={innerContainerFlexDirection}>
-        <PortraitNameIntroductionContainer>
+        <PortraitNameIntroductionContainer ref={portraitNameIntroductionContainerRef}>
           <PortraitNameContainer>
             {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processSelectedImage={processSelectedImage} src={imageDataUrl} />
               : <Portrait alt={name} src={imageDataUrl || ""} width={100} height={90}/>
@@ -91,7 +114,7 @@ export default function PresentationView<VM extends ViewMode>({editing, presenta
           </PortraitNameContainer>
           <Separator />
           <IntroductionContainer>
-            <Introduction id={introductionHtmlId} contentEditable={editing} ref={editing ? r => { if (r) (observe)(r, { mutation: "default" }) } : undefined}>
+            <Introduction id={introductionHtmlId} width={introductionWidth} contentEditable={editing} ref={editing ? r => { if (r) (observe)(r, { mutation: "default" }) } : undefined}>
               {introduction}
             </Introduction>
           </IntroductionContainer>
@@ -103,7 +126,7 @@ export default function PresentationView<VM extends ViewMode>({editing, presenta
   )
 }
 
-const Separator = styled.div<{ horizontal?: boolean }>`
+export const Separator = styled.div<{ horizontal?: boolean }>`
   ${({ horizontal }) => {
     return css`
       ${horizontal ? "height" : "width"}: 2px;
@@ -127,7 +150,7 @@ const InnerContainer = styled.div<{flexDirection: "row" | "column"}>`
     flex-direction: ${({flexDirection}) => flexDirection};
     width: fit-content;
     gap: ${layout.gap}px;
-    padding: 15px;
+    padding: ${layout.innerContainerPadding}px;
     border-width: 2px;
     border-color: ${mainColor};
     @media (max-width: ${minWidthFullLayout}px) {
@@ -165,19 +188,22 @@ const Name = styled.h1`
 const IntroductionContainer = styled.div`
   display: flex;
   align-items: center;
-  width: 300px;
   @media (max-width: ${maxWidthSmallestLayout}px) {
   }
 `
-const Introduction = styled.h2`
+const Introduction = styled.h2<{ width: number }>`
   font-weight: bold;
   font-size: 2.5rem;
   text-align: justify;
-  color: #FFFFFF;
+  overflow: auto;
+  color: #ffffff;
   text-shadow: 2px 2px 5px #000000;
   margin: 0;
   padding: 0;
-    `
+  ${({ width }) => css`
+    width: ${width}px;
+  `}
+`;
 const Portrait = styled(Image)`
   width: ${layout.imageSize}px;
   height: ${layout.imageSize}px;

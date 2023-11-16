@@ -7,7 +7,7 @@ import {ImageViewSelector, TextInput} from "../../FormComponents"
 import {useAsk} from "../../../hooks/useAsk"
 import {useTooltip} from "../../../hooks/useTooltip"
 import Image from "next/image"
-import {minWidthFullLayout, skillsChartLayout as layout, skillsChartSmallestLayout as smallestLayout, SkillBarWidth} from "../../../layouts"
+import {minWidthFullLayout, skillsChartLayout as layout, skillsChartSmallestLayout as smallestLayout, SkillBarWidth, presentationLayout} from "../../../layouts"
 import {orderByComparePreviousByNumber} from "utils/src/arrays"
 import { css } from "@emotion/react"
 
@@ -25,9 +25,10 @@ export type EditingProps = {
 }
 type Props<VM extends ViewMode> = {
     skills: Skill[]
+    width: number
 } & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
-export default function SkillsChart<VM extends ViewMode>({skills, editing, createSkill, deleteSkill, getHtmlElementId, observe}: Props<VM>) {
+export default function SkillsChart<VM extends ViewMode>({skills, width, editing, createSkill, deleteSkill, getHtmlElementId, observe}: Props<VM>) {
     const [skillsViewStates, setSkillsViewStates] = useState<SkillViewState[]>(orderByComparePreviousByNumber(skills, "position").map((s) => {
         return {idHtml: s.id, skill: s}
     }))
@@ -55,12 +56,14 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
         hideNameTooltip()
     }
 
-    const getSkillsView = () => skillsViewStates.map(({skill: {name, rate, image}}) =>
+    const skillBarHasTopMargin = (position: number) => layout.getWidth(position) > width
+
+    const getSkillsView = () => skillsViewStates.map(({skill: {name, rate, image, position}}) =>
         <SkillViewContainer key={name}>
             <BaseImage alt={name} src={image.src} width={layout.barWidth} height={layout.barWidth} skillBarWidth={layout.barWidth}
                    onMouseEnter={e => {handleMouseEnterSkillView(e, name)}} onMouseLeave={handleMouseLeaveSkillView}
                    onTouchStart={ e=> {handleTouchStartSkillView(e, name)}}/>
-            <SkillBar key={name} rate={rate} hslColor={getHslColor(rate)}
+            <SkillBar key={name} rate={rate} hasTopMargin={skillBarHasTopMargin(position)} hslColor={getHslColor(rate)}
                        onMouseEnter={e => {handleMouseEnterSkillView(e, name)}} onMouseLeave={handleMouseLeaveSkillView}
                        onTouchStart={ e=> {handleTouchStartSkillView(e, name)}}/>
         </SkillViewContainer>)
@@ -193,13 +196,13 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
     const getEditableSkillsView = () =>
         <>
             {AskSkillNameElement}
-            {skillsViewStates.map(({idHtml, skill: {name, rate, image}}, index) =>
+            {skillsViewStates.map(({idHtml, skill: {name, rate, image, position}}, index) =>
                 <SkillViewContainer id={idHtml} key={idHtml} draggable={true} onDragStart={(e)=>{ handleDragStart(e, index)}} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDrag={handleDrag} onDrop={(e)=> { handleDrop(e, index)} }>
                     <ImageViewSelector src={image.src} processSelectedImage={(name, extension, dataUrl)=>  { mutateSkillImage(index, name, extension, dataUrl)}}
                                        imageMaxSize={1} width={layout.barWidth} height={layout.barWidth} description={name}
                                        style={{backgroundColor: "white"}}/>
                     <SkillBar hslColor={getHslColor(rate)} ref={r => {if (r) (observe as Observe)(r, {resize: "default"})}}
-                               id={(getHtmlElementId as GetHtmlElementId)(idHtml)} resize={true} rate={rate}
+                               id={(getHtmlElementId as GetHtmlElementId)(idHtml)} resize={true} rate={rate} hasTopMargin={skillBarHasTopMargin(position)}
                                onClick={(e) => { handleOnClickSkill(e, index) }}/>
                 </SkillViewContainer>)}
             <PlusButton size={15} color={"white"} onClick={handleCreateSkill}/>
@@ -207,7 +210,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
 
 
     return (
-        <Container>
+        <Container width={width}>
             {NameTooltip}
             {editing
                 ? getEditableSkillsView()
@@ -215,29 +218,32 @@ export default function SkillsChart<VM extends ViewMode>({skills, editing, creat
         </Container>
     )
 }
-const Container = styled.div`
+const Container = styled.div<{ width: number }>`
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   align-items: end;
   gap: ${layout.skillsGap}px;
+  width: ${({ width }) => width}px;
   @media (max-width: ${minWidthFullLayout}px) {
   }
-`
+`;
 const SkillViewContainer = styled.div`
   display: flex;
   flex-direction: column-reverse;
   gap: ${layout.barImageGap}px;
 `
-const SkillBar = styled.div<{rate: number, resize?: boolean, hslColor: string}>`
+const SkillBar = styled.div<{rate: number, hasTopMargin: boolean, resize?: boolean, hslColor: string}>`
   display: flex;
   overflow: hidden;
   padding-left: 5px;
   color: #696969;
   width: ${layout.barWidth}px;
   font-weight: bold;
-  ${({rate, resize, hslColor})=> css`
+  ${({rate, hasTopMargin, resize, hslColor})=> css`
     height: ${rate*layout.barMaxHeight/100}px;
     width: ${layout.barWidth}px;
+    margin-top: ${hasTopMargin ? presentationLayout.gap : 0}px;
     background-color: ${hslColor};
     ${resize ? "resize: vertical;" : ""}
    `}
