@@ -333,7 +333,7 @@ export default function EditHome(props?: HomeProps) {
     const [revalidationResultMessage, setRevalidationResultMessage] = useState("")
 
     return (
-        <Container ref={refToMutationObserverTarget}>
+        <div ref={refToMutationObserverTarget}>
             <SpinLoader show={loading}/>
             <PresentationView editing observe={observe} getHtmlElementId={getPresentationHtmlElementId} presentation={getPresentation()}
                               createSkill={createNewSkill} deleteSkill={deleteSkill}/>
@@ -349,7 +349,7 @@ export default function EditHome(props?: HomeProps) {
                     <OperationMessage>{revalidationResultMessage}</OperationMessage>
                 </OperationMessagesContainer>
             </Footer>
-        </Container>
+        </div>
     )
 }
 

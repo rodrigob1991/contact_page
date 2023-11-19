@@ -52,6 +52,14 @@ export default function StoriesView<M extends ViewMode>({
 
     const [showStoriesAnchors, setShowStoriesAnchors] = useState(true)
 
+    const handleOnClickStoriesAnchors = (e: React.MouseEvent) => {
+      e.stopPropagation()
+      setShowStoriesAnchors((showStoriesAnchors) => !showStoriesAnchors)
+    }
+    const handleOnClickStoryAnchor = (e: React.MouseEvent) => {
+        e.stopPropagation()
+    }
+
     const getStoriesView = () =>
         storiesViewStates.map(({story: {title, body}, isOpen}, index) => {
             return (
@@ -161,57 +169,54 @@ export default function StoriesView<M extends ViewMode>({
         })
 
     return (
-        <Container>
-            <StoriesAnchorsContainer>
-            <StoriesAnchorsTitle onClick={(e)=> {setShowStoriesAnchors(!showStoriesAnchors)}}>stories index</StoriesAnchorsTitle>
+        <>
+            {editing && <PlusButton id={"plus-button"} color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
+            <Container>
+            <StoriesAnchorsContainer onClick={handleOnClickStoriesAnchors}>
+            <StoriesAnchorsInnerContainer>
+            <StoriesAnchorsTitle>stories index</StoriesAnchorsTitle>
             {showStoriesAnchors &&
                 storiesViewStates.map(({story: {title}}) =>
                     <StoryAnchorContainer>
-                        <StoryAnchor href={"#" + title}>{title}</StoryAnchor>
+                        <StoryAnchor href={"#" + title} onClick={handleOnClickStoryAnchor}>{title}</StoryAnchor>
                     </StoryAnchorContainer>
                 )}
+             </StoriesAnchorsInnerContainer>
             </StoriesAnchorsContainer>
-            {editing &&
-                <PlusButton id={"plus-button"} color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
             <StoriesContainer>
-                {editing ? getEditableStoriesView()
-                         : getStoriesView()
-                }
+            {editing ? getEditableStoriesView() : getStoriesView()}
             </StoriesContainer>
-        </Container>
+            </Container>
+        </>
     )
 }
 
 const Container = styled.div`
-  display: flex;
-  flex-direction: row;
-  height: fit-content;
-  padding-top: 5px;
-  background-color: ${secondColor};
-  overflow: ;
-
+  width: 100%;
+  background-color: #fff;
+  background-image:
+  linear-gradient(#eee .1em, transparent .1em);
+  background-size: 100% 2.5em;
 `
-const TitleContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  gap: 25px;
-`
-const Title = styled.h3`
-  color: #FFFFFF;
-  text-decoration-style: solid;
-  text-shadow: 2px 2px 5px #000000;
-  text-transform: uppercase;
-  font-weight: bold;
-  font-size: 2rem;
-  margin: 0px;
-  `
-const StoriesAnchorsContainer = styled.ul`
+const StoriesAnchorsContainer = styled.div` 
   position: sticky;
+  align-self: flex-start;
+  height: 0;
+  top: 0px;
+  opacity: 0.5;
+  cursor: pointer;
+  :hover {
+    opacity: 1;
+  }
+`
+const StoriesAnchorsInnerContainer = styled.ul`
+  z-index: 2;
   width: ${storiesAnchorsContainerWidth}px;
-  margin-left: 5px;
-  margin-right: 5px;
-  margin-top: 0px;
-  padding: 0;
+  margin: 0px;
+  border-style: solid;
+  border-color: ${mainColor};
+  padding: 0px;
+  background-color: ${secondColor};
 `
 const StoriesAnchorsTitle = styled.h3`
   color: white;
@@ -219,17 +224,15 @@ const StoriesAnchorsTitle = styled.h3`
   font-weight: bold;
   text-align: center;
   background-color: ${mainColor};
-  padding: 0;
+  padding: 5px;
   margin: 0;
-  padding-left: 3px;
-  padding-right: 3px;
-  cursor: pointer;
 `
 const StoryAnchorContainer = styled.li`
   list-style-type: none;
   border-bottom-style: solid;
   border-bottom-color: ${mainColor};
-  padding-bottom: 3px;
+  padding: 5px;
+  text-align: center;
   :last-of-type {
     border-bottom-style: none;
   }
@@ -237,17 +240,16 @@ const StoryAnchorContainer = styled.li`
 const StoryAnchor = styled.a`
   font-size: 2rem;
   font-weight: bold;
+  text-align: center;
   color: white;
+  :hover {
+        color: ${mainColor};
+    }
 `
 const StoriesContainer = styled.ul`
   padding: 0;
   margin: 0;
   width: 100%;
-  overflow: auto;
-  background-color: #fff;
-  background-image:
-  linear-gradient(#eee .1em, transparent .1em);
-  background-size: 100% 2.5em;
 `
 const StoryContainer = styled.li`
   display: flex;

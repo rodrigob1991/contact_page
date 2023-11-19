@@ -2,7 +2,6 @@ import {PropsStorageClient} from "../classes/PropsStorageClient"
 import {HomeProps} from "../types/home"
 import PresentationView from "../components/home/presentation/PresentationView"
 import StoriesView from "../components/home/stories/StoriesView"
-import {Container, Footer} from "../components/home/Layout"
 import Header from "../components/home/header/Header"
 import Head from "next/head"
 import {getStoryBodyJsx} from "../utils/parsers"
@@ -32,15 +31,11 @@ export default function Home({presentation= {name:"", introduction: "", skills: 
                 <meta name="keywords" content={"software developer, programmer, engineer, freelance, " + skills.map(s => s.name).join(" ,")}/>
                 <meta name="description" content={"contact page of " + name + " software developer"}/>
             </Head>
-            <Container>
                 <Header/>
                 <PresentationView presentation={presentation}/>
                 <StoriesView stories={stories.map(s => {
                     return {...(({body, ...rest}) => rest)(s), body: getStoryBodyJsx(s.body)}
                 })}/>
-                <Footer>
-                </Footer>
-            </Container>
         </>
     )
 }

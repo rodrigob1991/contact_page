@@ -7,14 +7,9 @@ export default function Error404() {
 }
 
 const Container = styled.div` 
-  display: flex;
-  flex-flow: column;
-  height: 100vh;
   padding-top: 20vh;
-  align-items: center;
   font-weight: bold;
   font-size: 50px;
   color: #FFFFFF;
-  background-color: #00008B;
 `
 

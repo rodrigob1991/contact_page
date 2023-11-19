@@ -4,7 +4,8 @@ import {mainColor, secondColor} from "../../colors"
 export const Container = styled.div`
   display: flex;
   flex-flow: column;
-  overflow: hidden;
+  align-items: center;
+  height: 100%;
   background-image: radial-gradient(${mainColor} 10%,${secondColor} 70%);
   `
 export const Footer = styled.div`

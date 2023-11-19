@@ -145,7 +145,6 @@ const Container = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: center;
-  box-shadow: 5px 10px #888888;
   width: 100%;
   @media (max-width: ${minWidthFullLayout}px) {
   }
@@ -200,7 +199,7 @@ const IntroductionContainer = styled.div`
 const Introduction = styled.h2<{ width: number }>`
   font-weight: bold;
   font-size: 2.5rem;
-  text-align: justify;
+  text-align: center;
   overflow: auto;
   color: #ffffff;
   text-shadow: 2px 2px 5px #000000;

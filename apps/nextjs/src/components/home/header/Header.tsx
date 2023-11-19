@@ -30,6 +30,7 @@ const Container = styled.div`
   align-items: center;
   justify-content: center;
   height: 90px;
+  width: 100%;
   min-height: 90px; 
   max-height: 90px;
   border-bottom: 2px solid;
