@@ -38,9 +38,9 @@ export default function GuessChat({}: Props) {
         setShowChatView(!showChatView)
     }
 
-    const disconnectedIconProps = {color: "#FF4500", tooltipText: "disconnected"}
-    const connectingIconProps = {color: "#FFFF00", tooltipText: "connecting"}
-    const connectedIconProps = {color: "#ADFF2F", tooltipText: "connected"}
+    const disconnectedIconProps = {color: "#FF4500", tooltipText: "connect chat"}
+    const connectingIconProps = {color: "#FFFF00", tooltipText: "stop connecting"}
+    const connectedIconProps = {color: "#ADFF2F", tooltipText: "disconnect"}
     const [iconProps, setIconProps] = useState(disconnectedIconProps)
 
     const handleHostConnection: HandleUsersConnection = (hostName) => {
