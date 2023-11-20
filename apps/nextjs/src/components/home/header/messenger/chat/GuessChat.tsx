@@ -10,7 +10,7 @@ import ComponentWithTooltip from "../../../../ComponentWithTooltip"
 type Props = {}
 
 export default function GuessChat({}: Props) {
-    const [showChatView, setShowChatView] = useState(false)
+    const [showChatView, setShowChatView] = useState(true)
     const [showIconChatView, setShowIconChatView] = useState(false)
     const [connect, setConnect] = useState(false)
 

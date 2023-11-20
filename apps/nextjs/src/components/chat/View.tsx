@@ -55,8 +55,6 @@ export default function ChatView<UT extends UserType>({userType, connectionState
             <ToolBarContainer> { hide && <BsEyeSlashFill size={30} style={{position: "absolute", cursor: "pointer", color: "black"}} onClick={(e)=> { hide() }}/> }<ToolBarRightInnerContainer><ConnectionStateView connectionState={connectionState}/></ToolBarRightInnerContainer> </ToolBarContainer>
             <InnerContainer>
             <UsersContainer>
-                <UsersContainerTitle>online users</UsersContainerTitle>
-                <hr color={"black"} style={{width:"100%", margin: "0px"}}/>
                 <UsersInnerContainer>
                 {users.map(({id, name, isConnected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={isConnected}> {name} </UserView>)}
                 </UsersInnerContainer>
