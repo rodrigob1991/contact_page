@@ -59,8 +59,13 @@ export default function StoriesView<M extends ViewMode>({
         let nextShowStoriesAnchors
         let nextTransparentStoriesAnchors
         if(showStoriesAnchors){
-            nextShowStoriesAnchors = false
-            nextTransparentStoriesAnchors = true
+            if(transparentStoriesAnchors){
+                nextShowStoriesAnchors = true
+                nextTransparentStoriesAnchors = false
+            }else{
+                nextShowStoriesAnchors = false
+                nextTransparentStoriesAnchors = true
+            }
         }else{
             nextShowStoriesAnchors = true
             nextTransparentStoriesAnchors = false
@@ -69,6 +74,10 @@ export default function StoriesView<M extends ViewMode>({
         
         return nextShowStoriesAnchors
     })
+    }
+    const handleOnTouchStoriesAnchors = (e: React.TouchEvent ) => {
+        console.log("touch me")
+
     }
     const handleOnMouseLeaveStoriesAnchors = (e: React.MouseEvent) => {
       setTransparentStoriesAnchors(true)
@@ -201,16 +210,17 @@ export default function StoriesView<M extends ViewMode>({
         <>
             {editing && <PlusButton id={"plus-button"} color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
             <Container>
-            <StoriesAnchorsContainer ref={storiesAnchorsRef} transparent={transparentStoriesAnchors} onClick={handleOnClickStoriesAnchors} onMouseOver={handleOnMouseOverStoriesAnchors} onMouseLeave={handleOnMouseLeaveStoriesAnchors}>
+            <StoriesAnchorsContainer ref={storiesAnchorsRef} transparent={transparentStoriesAnchors} onClick={handleOnClickStoriesAnchors} onTouchStart={handleOnTouchStoriesAnchors} onMouseOver={handleOnMouseOverStoriesAnchors} onMouseLeave={handleOnMouseLeaveStoriesAnchors}>
             <StoriesAnchorsTitle>stories index</StoriesAnchorsTitle>
-            <StoriesAnchorsInnerContainer>
             {showStoriesAnchors &&
-                storiesViewStates.map(({story: {title}}) =>
+            <StoriesAnchorsInnerContainer>
+                {storiesViewStates.map(({story: {title}}) =>
                     <StoryAnchorContainer>
                         <StoryAnchor href={"#" + title} onClick={handleOnClickStoryAnchor}>{title}</StoryAnchor>
                     </StoryAnchorContainer>
                 )}
-             </StoriesAnchorsInnerContainer>
+                </StoriesAnchorsInnerContainer>
+            }
             </StoriesAnchorsContainer>
             <StoriesContainer>
             {editing ? getEditableStoriesView() : getStoriesView()}
