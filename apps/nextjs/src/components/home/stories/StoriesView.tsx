@@ -51,14 +51,43 @@ export default function StoriesView<M extends ViewMode>({
     const getOpenOrCloseStoryButton = (isOpen: boolean, onClick?: (e: React.MouseEvent) => void) => <OpenOrCloseStoryButton size={25} color={secondColor} isOpen={isOpen} onClick={onClick}/>
 
     const [showStoriesAnchors, setShowStoriesAnchors] = useState(true)
+    const [transparentStoriesAnchors, setTransparentStoriesAnchors] = useState(true)
 
     const handleOnClickStoriesAnchors = (e: React.MouseEvent) => {
       e.stopPropagation()
-      setShowStoriesAnchors((showStoriesAnchors) => !showStoriesAnchors)
+      setShowStoriesAnchors((showStoriesAnchors) => {
+        let nextShowStoriesAnchors
+        let nextTransparentStoriesAnchors
+        if(showStoriesAnchors){
+            nextShowStoriesAnchors = false
+            nextTransparentStoriesAnchors = true
+        }else{
+            nextShowStoriesAnchors = true
+            nextTransparentStoriesAnchors = false
+        }
+        setTransparentStoriesAnchors(nextTransparentStoriesAnchors)
+        
+        return nextShowStoriesAnchors
+    })
     }
+    const handleOnMouseLeaveStoriesAnchors = (e: React.MouseEvent) => {
+      setTransparentStoriesAnchors(true)
+    }
+    const handleOnMouseOverStoriesAnchors = (e: React.MouseEvent) => {
+        setTransparentStoriesAnchors(!showStoriesAnchors)
+      }
     const handleOnClickStoryAnchor = (e: React.MouseEvent) => {
         e.stopPropagation()
     }
+    const storiesAnchorsRef = useRef<HTMLDivElement>(null)
+    useEffect(()=> {
+        document.addEventListener("touchstart", (e) => {
+         const storiesAnchors = storiesAnchorsRef.current as HTMLDivElement
+         if(!(storiesAnchors.contains(e.target as Node))){
+            setTransparentStoriesAnchors(true)
+         }
+        })
+    },[])
 
     const getStoriesView = () =>
         storiesViewStates.map(({story: {title, body}, isOpen}, index) => {
@@ -172,9 +201,9 @@ export default function StoriesView<M extends ViewMode>({
         <>
             {editing && <PlusButton id={"plus-button"} color={"#FFFFFF"} size={26} onClick={handleAddNewStory}/>}
             <Container>
-            <StoriesAnchorsContainer onClick={handleOnClickStoriesAnchors}>
-            <StoriesAnchorsInnerContainer>
+            <StoriesAnchorsContainer ref={storiesAnchorsRef} transparent={transparentStoriesAnchors} onClick={handleOnClickStoriesAnchors} onMouseOver={handleOnMouseOverStoriesAnchors} onMouseLeave={handleOnMouseLeaveStoriesAnchors}>
             <StoriesAnchorsTitle>stories index</StoriesAnchorsTitle>
+            <StoriesAnchorsInnerContainer>
             {showStoriesAnchors &&
                 storiesViewStates.map(({story: {title}}) =>
                     <StoryAnchorContainer>
@@ -198,20 +227,17 @@ const Container = styled.div`
   linear-gradient(#eee .1em, transparent .1em);
   background-size: 100% 2.5em;
 `
-const StoriesAnchorsContainer = styled.div` 
+const StoriesAnchorsContainer = styled.div<{transparent: boolean}>` 
   position: sticky;
   align-self: flex-start;
-  height: 0;
+  height: 0px;
+  width: ${storiesAnchorsContainerWidth}px;
   top: 0px;
-  opacity: 0.5;
+  opacity: ${({transparent}) => transparent ? 0.5 : 1};
   cursor: pointer;
-  :hover {
-    opacity: 1;
-  }
 `
 const StoriesAnchorsInnerContainer = styled.ul`
   z-index: 2;
-  width: ${storiesAnchorsContainerWidth}px;
   margin: 0px;
   border-style: solid;
   border-color: ${mainColor};
@@ -225,7 +251,7 @@ const StoriesAnchorsTitle = styled.h3`
   text-align: center;
   background-color: ${mainColor};
   padding: 5px;
-  margin: 0;
+  margin: 0px;
 `
 const StoryAnchorContainer = styled.li`
   list-style-type: none;
