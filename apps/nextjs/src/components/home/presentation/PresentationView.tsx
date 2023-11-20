@@ -1,6 +1,6 @@
 import {Presentation, PresentationHTMLElementIdsKey, ViewMode} from "../../../types/home"
 import styled from "@emotion/styled"
-import React, { use, useEffect, useRef, useState } from "react"
+import React, { use, useEffect, useLayoutEffect, useRef, useState } from "react"
 import {ImageViewSelector, ProcessSelectedImage} from "../../FormComponents"
 import Image from "next/image"
 import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
@@ -75,17 +75,15 @@ export default function PresentationView<VM extends ViewMode>({editing, presenta
         }
       }
 
-      useEffect(() => {
-        resizeView()
-        return () => {
-          window.removeEventListener("resize", resizeView)
-        }
-      }, [])
+      useLayoutEffect(resizeView, [])
 
       useEffect(() => {
         window.removeEventListener("resize", resizeView)
         window.addEventListener("resize", resizeView)
-      }, [innerContainerFlexDirection, introductionWidth, skillsChartWidth])
+        return () => {
+          window.removeEventListener("resize", resizeView)
+        }
+    }, [innerContainerFlexDirection, introductionWidth, skillsChartWidth])
 
     const imageDataUrl = image?.src
     const processSelectedImage: ProcessSelectedImage = (name, extension, dataUrl) => {
