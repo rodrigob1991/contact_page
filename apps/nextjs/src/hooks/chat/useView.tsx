@@ -8,12 +8,12 @@ import { MdCenterFocusWeak } from "react-icons/md"
 import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
 import { isEmpty } from "utils/src/strings"
 import { mainColor, secondColor } from "../../colors"
+import { TextInput } from "../../components/FormComponents"
+import { GetStyle, PositionCSS, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../../components/ResizableDraggableDiv"
+import { maxWidthSmallestLayout } from "../../layouts"
 import { InboundMessageData, MessagesData, OutboundMessageData, UserAckState } from "./useMessages"
 import { GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users } from "./useUsers"
 import { ConnectionState } from "./useWebSocket"
-import { maxWidthSmallestLayout } from "../../layouts"
-import { TextInput } from "../../components/FormComponents"
-import { GetStyle, PositionCSS, ResizableDraggableDiv, SizeCSS, setAvoidProperty } from "../../components/ResizableDraggableDiv"
 
 export type SetOutboundMessageData =  (body: string) => boolean
 export type ContainerProps = { show: boolean, left: number, top: number, viewPortPercentage?: number}
@@ -65,7 +65,7 @@ export default function useView<UT extends UserType>({userType, connectionState,
     const [ultimatePosition, setUltimatePosition] = useState(position)
 
     const getContainerStyle: GetStyle = (resizing, dragging) => css`
-      display: ${visible ? "flex" :  "none"}; position: fixed; top: 50%; left: 50%;
+      display: ${visible ? "flex" :  "none"}; position: fixed; 
       min-height: 350px; min-width: 350px; max-height: 100%; max-width: 100%;
       transform: translate(-50%, -50%);
     `
@@ -75,7 +75,7 @@ export default function useView<UT extends UserType>({userType, connectionState,
     const getDraggableDivStyle: GetStyle =  (resizing, dragging) => css` 
       display: flex; flex-direction: column; height: 100%; width: 100%;
     `
-    const topIconsCommonProps = {size: 30, css: css`cursor: pointer; color: ${secondColor}`}
+    const topIconsCommonProps = {size: 30, css: css`cursor: pointer; color: ${secondColor}`, onMouseDown: (e: React.MouseEvent) => {setPreventFlag(e, true, true)}}
 
     const view = 
         <ResizableDraggableDiv draggable resizable getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} ultimateSize={ultimateSize} ultimatePosition={ultimatePosition}>
@@ -98,7 +98,7 @@ export default function useView<UT extends UserType>({userType, connectionState,
                 <div ref={messagesEndRef}/>
               </MessagesContainer>
               <InputMessageContainer>
-                <TextInput css={css`border-color: ${mainColor};`} fromSpan value={messageBody} setValue={setMessageBody} onEnter={handleInputMessage} placeholder={"type message..."} onMouseDown={e => {setAvoidProperty(e, true, true)}}/>
+                <TextInput css={css`border-color: ${mainColor};`} fromSpan value={messageBody} setValue={setMessageBody} onEnter={handleInputMessage} placeholder={"type message..."} onMouseDown={e => {setPreventFlag(e, true, true)}}/>
                 <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={handleInputMessage}/>
               </InputMessageContainer>
               </BottomRightContainer>

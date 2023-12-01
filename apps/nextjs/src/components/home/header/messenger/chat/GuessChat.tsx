@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import { MouseEventHandler, useState } from "react"
+import { MouseEventHandler, useEffect, useState } from "react"
 import { BsFillChatSquareTextFill } from "react-icons/bs"
 import { ConnectionState, HandleNewConnectionState } from "../../../../../hooks/chat/useWebSocket"
 import { maxWidthSmallestLayout } from "../../../../../layouts"
@@ -51,7 +51,6 @@ export default function GuessChat({}: Props) {
 
     const [setChatVisible, chatView] = useChat({userType: "guess", handleUsersConnection: handleHostConnection, handleUsersDisconnection: handleHostDisconnection, handleUserMessage: handleHostMessage,
                                        nextHandleNewConnectionState: handleNewConnectionState, connect, viewProps: {position: {top: "50%", left: "50%"}, size: {height: "30%", width: "30%"}, allowHide: true}})
-
     return (
         <Container>
             <WithTooltip

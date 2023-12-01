@@ -17,7 +17,7 @@ export default function HostLiveChat({}: Props) {
 
     const handleNewConnectionState: HandleNewConnectionState = (cs) => {}
 
-    const [setChatVisible, chatView] = useChat({userType: "host", nextHandleNewConnectionState: handleNewConnectionState, viewProps: {allowHide: false},handleUsersConnection: handleGuessesConnection,
+    const [setChatVisible, chatView] = useChat({userType: "host", nextHandleNewConnectionState: handleNewConnectionState, viewProps: {allowHide: false}, handleUsersConnection: handleGuessesConnection,
                                        handleUsersDisconnection: handleGuessesDisconnection, handleUserMessage: handleGuessMessage, connect: true})
 
     return (

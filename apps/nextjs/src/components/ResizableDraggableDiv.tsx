@@ -3,21 +3,21 @@ import styled from "@emotion/styled"
 import { MouseEventHandler, useEffect, useRef, useState } from "react"
 import { getNumbers } from "utils/src/strings"
 
-// attach this properties in mousedown event to avoid resize and/or drag 
-const avoidResizeMouseDownEventPropertyKey = "avoidResize"
-const avoidResizeMouseDownEventProperty = {[avoidResizeMouseDownEventPropertyKey]: true}
-const avoidDragMouseDownEventPropertyKey = "avoidDrag"
-const avoidDragMouseDownEventProperty = {[avoidDragMouseDownEventPropertyKey]: true}
-export const setAvoidProperty = (e: MouseEvent | React.MouseEvent, avoidResize: boolean, avoidDrag: boolean) => {
-    Object.assign(e instanceof MouseEvent ? e : e.nativeEvent, {...avoidResize ? avoidResizeMouseDownEventProperty : {} , ...avoidDrag ? avoidDragMouseDownEventProperty : {}})
+// attach this properties in mousedown event to prevent resize and/or drag 
+const preventResizeMouseDownEventPropertyKey = "preventResize"
+const preventResizeMouseDownEventProperty = {[preventResizeMouseDownEventPropertyKey]: true}
+const preventDragMouseDownEventPropertyKey = "preventDrag"
+const preventDragMouseDownEventProperty = {[preventDragMouseDownEventPropertyKey]: true}
+export const setPreventFlag = (e: MouseEvent | React.MouseEvent, preventResize: boolean, preventDrag: boolean) => {
+    Object.assign(e instanceof MouseEvent ? e : e.nativeEvent, {...preventResize ? preventResizeMouseDownEventProperty : {} , ...preventDrag ? preventDragMouseDownEventProperty : {}})
 }
-export const avoidResize = (e: MouseEvent | React.MouseEvent) => {
+export const resizePrevented = (e: MouseEvent | React.MouseEvent) => {
     const nativeEvent = e instanceof MouseEvent ? e : e.nativeEvent
-     return avoidResizeMouseDownEventPropertyKey in nativeEvent && nativeEvent[avoidResizeMouseDownEventPropertyKey] as boolean
+     return preventResizeMouseDownEventPropertyKey in nativeEvent && nativeEvent[preventResizeMouseDownEventPropertyKey] as boolean
 }
-export const avoidDrag = (e: MouseEvent | React.MouseEvent) => {
+export const dragPrevented = (e: MouseEvent | React.MouseEvent) => {
     const nativeEvent = e instanceof MouseEvent ? e : e.nativeEvent
-    return avoidDragMouseDownEventPropertyKey in nativeEvent && nativeEvent[avoidDragMouseDownEventPropertyKey] as boolean
+    return preventDragMouseDownEventPropertyKey in nativeEvent && nativeEvent[preventDragMouseDownEventPropertyKey] as boolean
 }
 
 export type GetStyle = (resizing: boolean, dragging: boolean) => Interpolation<Theme>
@@ -55,6 +55,7 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
     const [ultimatePosition, setUltimatePosition] = useState(ultimatePositionProp)
     useEffect(() => {
         setUltimatePosition(ultimatePositionProp)
+        console.log("should not")
     }, [ultimatePositionProp.top, ultimatePositionProp.left])
 
     const [resizing, setResizing] = useState(false)
@@ -62,8 +63,8 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
 
     let children = <>{propsChildren}</>
 
-    if(draggable) {
-        useEffect(() => {
+    useEffect(() => {
+        if(draggable) {
             const handleMouseMove = (e: MouseEvent) => {
                 e.preventDefault()
                 const {height, width, top, left} = getContainerComputedNumbers()
@@ -75,7 +76,7 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
             const handleSelectStart = (e: Event) => {
                 e.preventDefault()
             }
-            
+                
             if(dragging) {
                 window.addEventListener("mousemove", handleMouseMove)
                 window.addEventListener("mouseup", handleMouseUp)
@@ -86,20 +87,21 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
                 window.removeEventListener("mouseup", handleMouseUp)
                 window.removeEventListener("selectstart", handleSelectStart)
             }
+        }
         },[dragging])
 
+    if(draggable) {
         const handleOnMouseDownDraggableDiv: MouseEventHandler<HTMLDivElement>  = (e) => {
-            if(e.target == e.currentTarget || !avoidDrag(e)) {
+            if(e.target == e.currentTarget || !dragPrevented(e)) {
                 setDragging(true)
-                setAvoidProperty(e, true, false)
+                setPreventFlag(e, true, false)
             }
         }
-
         children = <DraggableDiv css={getDraggableDivStyle ? getDraggableDivStyle(resizing, dragging) : undefined} dragging={dragging} resizing={resizing} onMouseDown={handleOnMouseDownDraggableDiv}>{children}</DraggableDiv>
     }
 
-    if(resizable) {
-        useEffect(() => {
+    useEffect(() => {
+        if(resizable) {
             const handleMouseMove = (e: MouseEvent) => {
                 e.preventDefault()
                 const {height, width, top, left} = getContainerComputedNumbers()
@@ -123,14 +125,15 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
                 window.removeEventListener("mouseup", handleMouseUp)
                 window.removeEventListener("", handleSelectStart)
             }
-        },[resizing])
+    }
+    },[resizing])
 
+    if(resizable) {
         const handleOnMouseDownResizableDiv: MouseEventHandler<HTMLDivElement>  = (e) => {
-            if(e.target === e.currentTarget || !avoidResize(e)) {
+            if(e.target === e.currentTarget || !resizePrevented(e)) {
                 setResizing(true)
             }
         }
-
         children = <ResizableDiv css={getResizableDivStyle ? getResizableDivStyle(resizing, dragging) : undefined} dragging={dragging} onMouseDown={handleOnMouseDownResizableDiv}>{children}</ResizableDiv>
     }
 
