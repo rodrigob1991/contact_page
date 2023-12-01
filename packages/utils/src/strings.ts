@@ -1,3 +1,4 @@
+import { numberRgx } from "./regularExpressions"
 import {isNonEmpty, NonEmptyArray} from "./types"
 
 export const getContainedString = (str: string, betweenLeft?: string, betweenRight?: string) => {
@@ -50,4 +51,8 @@ export const recursiveSplit = <S extends (NonEmptyArray<string>)>(str: string, s
     }
 
     return finalParts as RecursiveSplitResult<S>
+}
+
+export const getNumbers = (str: string): number[] => {
+    return [...str.matchAll(numberRgx)].map(([numberStr]) => +numberStr)
 }

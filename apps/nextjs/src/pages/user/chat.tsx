@@ -1,9 +1,9 @@
-import Chat, {
+import styled from "@emotion/styled"
+import useChat, {
     HandleUserMessage,
     HandleUsersConnection, HandleUsersDisconnection
-} from "../../components/chat/Chat"
-import styled from "@emotion/styled"
-import {HandleNewConnectionState} from "../../hooks/chat/useWebSocket"
+} from "../../hooks/chat/useChat"
+import { HandleNewConnectionState } from "../../hooks/chat/useWebSocket"
 
 type Props = {}
 
@@ -17,11 +17,12 @@ export default function HostLiveChat({}: Props) {
 
     const handleNewConnectionState: HandleNewConnectionState = (cs) => {}
 
+    const [setChatVisible, chatView] = useChat({userType: "host", nextHandleNewConnectionState: handleNewConnectionState, viewProps: {allowHide: false},handleUsersConnection: handleGuessesConnection,
+                                       handleUsersDisconnection: handleGuessesDisconnection, handleUserMessage: handleGuessMessage, connect: true})
+
     return (
         <Container>
-        <Chat userType={"host"} nextHandleNewConnectionState={handleNewConnectionState} viewProps={{containerProps: {show: true, top: 50, left: 50}}}
-              handleUsersConnection={handleGuessesConnection} handleUsersDisconnection={handleGuessesDisconnection} handleUserMessage={handleGuessMessage} connect={true}
-                  />
+            {chatView}
         </Container>
     )
 }

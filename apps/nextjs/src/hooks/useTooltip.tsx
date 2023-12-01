@@ -1,54 +1,47 @@
-import styled from "@emotion/styled"
-import {CSSProperties, useEffect, useState} from "react"
+import styled, { CSSObject} from "@emotion/styled"
+import {useEffect, useState} from "react"
 
 type Props = {
-    initText?: string
-    style?: CSSProperties
-    topDeviation?: number
-    leftDeviation?: number
+    style?: CSSObject
 }
-type Position = {top: number, left: number}
-export const useTooltip = ({initText, style, topDeviation=0, leftDeviation=0}: Props) : [JSX.Element, (t?: string, p?: Position)=> void, ()=> void] => {
-    const [hidden, setHidden] = useState(true)
-    const [position, setPosition] = useState({top: -1, left: -1})
+type Show = (visible: boolean, onMouse?: boolean, top?: number, left?: number, text?: string) => void
+export const useTooltip = ({style}: Props): [JSX.Element, Show] => {
+    
+    const [visible, setVisible] = useState(false)
+    const [position, setPosition] = useState({top: 0, left: 0})
     const [useMousePosition, setUseMousePosition] = useState(true)
-    const [text, setText] = useState(initText ?? "")
-    useEffect(() => {
-        setText(initText ?? "")
-    }, [initText])
-    const show = (text?: string, position?: Position) => {
-        if (position) {
-            setUseMousePosition(false)
-            setPosition(position)
-        } else {
+    const [mouseDeviation, setMouseDeviation] = useState({top: 0, left: 0})
+    const [text, setText] = useState("")
+
+    const show: Show = (visible, onMouse=true, top=0, left=0, text="") => {
+        if (onMouse) {
             setUseMousePosition(true)
+            setMouseDeviation({top, left})
+        } else {
+            setPosition({top, left})
         }
-        if (text !== undefined) {
-            setText(text)
-        }
-        setHidden(false)
+        setText(text)
+        setVisible(visible)
     }
-    const hide = () => {
-        setHidden(true)
-    }
+   
     const captureMousePosition = (e: MouseEvent) => {
-        setPosition({top: e.clientY + topDeviation , left: e.clientX + leftDeviation})
+        setPosition({top: e.clientY + mouseDeviation.top , left: e.clientX + mouseDeviation.left})
     }
     useEffect(() => {
-        if (!hidden && useMousePosition) {
+        if (visible && useMousePosition) {
             window.addEventListener("mousemove", captureMousePosition)
         } else {
             window.removeEventListener("mousemove", captureMousePosition)
         }
         return () => { window.removeEventListener("mousemove", captureMousePosition) }
-    }, [hidden, useMousePosition])
+    }, [visible, useMousePosition])
 
-    const Tooltip = <TooltipContainer style={style} show={!hidden} {...position}>{text}</TooltipContainer>
+    const Tooltip = <Container css={style} show={visible} {...position}>{text}</Container>
 
-    return [Tooltip, show, hide]
+    return [Tooltip, show]
 }
 
-const TooltipContainer = styled.div<{show: boolean, left: number, top: number}>`
+const Container = styled.div<{show: boolean, left: number, top: number}>`
   visibility: ${props => props.show ? 'visible' : 'hidden'};
   position: fixed;
   left: ${props=> props.left}px;

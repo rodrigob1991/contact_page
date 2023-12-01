@@ -1,16 +1,15 @@
-import Chat, {HandleUserMessage, HandleUsersConnection, HandleUsersDisconnection} from "../../../../chat/Chat"
-import React, {useState} from "react"
 import styled from "@emotion/styled"
+import { MouseEventHandler, useState } from "react"
+import { BsFillChatSquareTextFill } from "react-icons/bs"
+import { ConnectionState, HandleNewConnectionState } from "../../../../../hooks/chat/useWebSocket"
+import { maxWidthSmallestLayout } from "../../../../../layouts"
+import WithTooltip from "../../../../WithTooltip"
+import useChat, { HandleUserMessage, HandleUsersConnection, HandleUsersDisconnection } from "../../../../../hooks/chat/useChat"
 import LiveIcon from "/public/live.svg"
-import {maxWidthSmallestLayout} from "../../../../../layouts"
-import {ConnectionState, HandleNewConnectionState} from "../../../../../hooks/chat/useWebSocket"
-import {BsFillChatSquareTextFill} from "react-icons/bs"
-import ComponentWithTooltip from "../../../../ComponentWithTooltip"
 
 type Props = {}
 
 export default function GuessChat({}: Props) {
-    const [showChatView, setShowChatView] = useState(false)
     const [showIconChatView, setShowIconChatView] = useState(false)
     const [connect, setConnect] = useState(false)
 
@@ -25,17 +24,17 @@ export default function GuessChat({}: Props) {
                 break
             case ConnectionState.CONNECTED:
                 setIconProps(connectedIconProps)
-                setShowChatView(true)
+                setChatVisible(true)
                 setShowIconChatView(true)
                 break
         }
     }
 
-    const handleOnClickLiveIcon = (e: React.MouseEvent<HTMLDivElement>) => {
+    const handleOnClickLiveIcon: MouseEventHandler<HTMLDivElement> = (e) => {
         setConnect(!connect)
     }
-    const handleOnClickIconChatView = (e: React.MouseEvent<SVGElement>) => {
-        setShowChatView(!showChatView)
+    const handleOnClickIconChatView: MouseEventHandler<SVGElement> = (e) => {
+        setChatVisible(true)
     }
 
     const disconnectedIconProps = {color: "#FF4500", tooltipText: "connect chat"}
@@ -50,19 +49,19 @@ export default function GuessChat({}: Props) {
     const handleHostMessage: HandleUserMessage = (hostName, messageBody) => {
     }
 
+    const [setChatVisible, chatView] = useChat({userType: "guess", handleUsersConnection: handleHostConnection, handleUsersDisconnection: handleHostDisconnection, handleUserMessage: handleHostMessage,
+                                       nextHandleNewConnectionState: handleNewConnectionState, connect, viewProps: {position: {top: "50%", left: "50%"}, size: {height: "30%", width: "30%"}, allowHide: true}})
+
     return (
         <Container>
-            <ComponentWithTooltip
-                childElement={<LiveIconStyled fill={iconProps.color}/>}
+            <WithTooltip
                 tooltipText={iconProps.tooltipText}
-                tooltipTopDeviation={20}
-                tooltipLeftDeviation={0}
-                onClick={handleOnClickLiveIcon}
-            />
-            { (showIconChatView && !showChatView) && <ChatViewIconStyled visibility={0} size={50} fill={"white"} onClick={handleOnClickIconChatView}/>}
-            <Chat userType={"guess"} viewProps={{containerProps: {show: showChatView, top: 50, left: 50}, hide: ()=> { setShowChatView(false) }}}
-                  handleUsersConnection={handleHostConnection} handleUsersDisconnection={handleHostDisconnection} handleUserMessage={handleHostMessage}
-                  nextHandleNewConnectionState={handleNewConnectionState} connect={connect}/>
+                tooltipDeviation={{top: 20, left: 0}}
+                onClick={handleOnClickLiveIcon}>
+            <LiveIconStyled fill={iconProps.color}/>
+            </WithTooltip>
+            {showIconChatView && <ChatViewIconStyled visibility={0} size={50} fill={"white"} onClick={handleOnClickIconChatView}/>}
+            {chatView}
         </Container>
     )
 }

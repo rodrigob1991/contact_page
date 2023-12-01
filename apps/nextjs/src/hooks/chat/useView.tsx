@@ -1,17 +1,22 @@
+import { css } from "@emotion/react"
 import styled from "@emotion/styled"
-import React, {useEffect, useRef, useState} from "react"
-import {TextInput} from "../FormComponents"
-import {isEmpty} from "utils/src/strings"
-import {UserType} from "chat-common/src/model/types"
-import {BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill} from "react-icons/bs"
-import {FiArrowRight} from "react-icons/fi"
-import {ConnectionState} from "../../hooks/chat/useWebSocket"
-import {maxWidthSmallestLayout, minWidthFullLayout} from "../../layouts"
-import {InboundMessageData, MessagesData, OutboundMessageData, UserAckState} from "../../hooks/chat/useMessages"
-import {GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users} from "../../hooks/chat/useUsers"
+import { UserType } from "chat-common/src/model/types"
+import React, { useEffect, useRef, useState } from "react"
+import { BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill } from "react-icons/bs"
+import { FiArrowRight } from "react-icons/fi"
+import { MdCenterFocusWeak } from "react-icons/md"
+import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
+import { isEmpty } from "utils/src/strings"
+import { mainColor, secondColor } from "../../colors"
+import { InboundMessageData, MessagesData, OutboundMessageData, UserAckState } from "./useMessages"
+import { GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users } from "./useUsers"
+import { ConnectionState } from "./useWebSocket"
+import { maxWidthSmallestLayout } from "../../layouts"
+import { TextInput } from "../../components/FormComponents"
+import { GetStyle, PositionCSS, ResizableDraggableDiv, SizeCSS, setAvoidProperty } from "../../components/ResizableDraggableDiv"
 
 export type SetOutboundMessageData =  (body: string) => boolean
-export type ContainerProps = { show: boolean, left: number, top: number }
+export type ContainerProps = { show: boolean, left: number, top: number, viewPortPercentage?: number}
 export type Hide = () => void
 
 type Props<UT extends UserType> = {
@@ -22,12 +27,18 @@ type Props<UT extends UserType> = {
     selectOrUnselectUser: SelectOrUnselectUser
     getUserColor: GetUserColor
     setOutboundMessageData: SetOutboundMessageData
-    containerProps: ContainerProps
-    hide?: Hide
+    position?: PositionCSS
+    size?: SizeCSS
+    allowHide: boolean
 }
 
-export default function ChatView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setOutboundMessageData, containerProps, hide}: Props<UT>) {
+const fullSize = {height: "100%", width: "100%"}
+const centerPosition = {top: "50%", left: "50%"}
+
+export default function useView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setOutboundMessageData, position=centerPosition, size=fullSize, allowHide}: Props<UT>): [(visible: boolean) => void, JSX.Element] {
     const isHost = userType === "host"
+
+    const [visible, setVisible] = useState(false)
 
     const [messageBody, setMessageBody] = useState("")
 
@@ -49,29 +60,52 @@ export default function ChatView<UT extends UserType>({userType, connectionState
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({behavior: "smooth"})
     }, [messages])
+    
+    const [ultimateSize, setUltimateSize] = useState(size)
+    const [ultimatePosition, setUltimatePosition] = useState(position)
 
-    return (
-        <Container {...containerProps}>
-            <ToolBarContainer> { hide && <BsEyeSlashFill size={30} style={{position: "absolute", cursor: "pointer", color: "black"}} onClick={(e)=> { hide() }}/> }<ToolBarRightInnerContainer><ConnectionStateView connectionState={connectionState}/></ToolBarRightInnerContainer> </ToolBarContainer>
-            <InnerContainer>
-            <UsersContainer>
-                <UsersInnerContainer>
-                {users.map(({id, name, isConnected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={isConnected}> {name} </UserView>)}
-                </UsersInnerContainer>
-            </UsersContainer>
-            <RightContainer>
-                <MessagesContainer>
-                    {messages.map((md) => md.flow === "in" ? getInboundMessageView(md) : getOutboundMessageView(md, getUserColor))}
-                    <div ref={messagesEndRef}/>
-                </MessagesContainer>
-                <SendMessageContainer>
-                <TextInputStyled value={messageBody} setValue={setMessageBody} onEnter={handleInputMessage} placeholder={"type message..."}/>
-                    <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={handleInputMessage}/>
-                </SendMessageContainer>
-            </RightContainer>
-            </InnerContainer>
-        </Container>
-    )
+    const getContainerStyle: GetStyle = (resizing, dragging) => css`
+      display: ${visible ? "flex" :  "none"}; position: fixed; top: 50%; left: 50%;
+      min-height: 350px; min-width: 350px; max-height: 100%; max-width: 100%;
+      transform: translate(-50%, -50%);
+    `
+    const getResizableDivStyle: GetStyle = (resizing, dragging) => css`
+      height: 100%; width: 100%; padding: 10px; background-color: ${secondColor}; border: solid 4px ${mainColor}; border-radius: 10px; background-color: ${secondColor};
+    `
+    const getDraggableDivStyle: GetStyle =  (resizing, dragging) => css` 
+      display: flex; flex-direction: column; height: 100%; width: 100%;
+    `
+    const topIconsCommonProps = {size: 30, css: css`cursor: pointer; color: ${secondColor}`}
+
+    const view = 
+        <ResizableDraggableDiv draggable resizable getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} ultimateSize={ultimateSize} ultimatePosition={ultimatePosition}>
+            <TopContainer> 
+              <MdCenterFocusWeak {...topIconsCommonProps} onClick={(e) => {setUltimatePosition(centerPosition)}}/>
+              <SlSizeActual  {...topIconsCommonProps} onClick={(e) => {setUltimateSize(size)}}/>
+              <SlSizeFullscreen  {...topIconsCommonProps} onClick={(e) => {setUltimateSize(fullSize)}}/>
+              {allowHide && <BsEyeSlashFill {...topIconsCommonProps} onClick={(e)=> {setVisible(false)}}/>}
+              <TopRightInnerContainer>
+                <ConnectionStateView connectionState={connectionState}/>
+              </TopRightInnerContainer> 
+            </TopContainer>
+            <BottomContainer>
+              <UsersContainer>
+                {users.map(({id, name, isConnected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={isConnected}>{name}</UserView>)}
+              </UsersContainer>
+              <BottomRightContainer>
+              <MessagesContainer>
+                {messages.map((md) => md.flow === "in" ? getInboundMessageView(md) : getOutboundMessageView(md, getUserColor))}
+                <div ref={messagesEndRef}/>
+              </MessagesContainer>
+              <InputMessageContainer>
+                <TextInput css={css`border-color: ${mainColor};`} fromSpan value={messageBody} setValue={setMessageBody} onEnter={handleInputMessage} placeholder={"type message..."} onMouseDown={e => {setAvoidProperty(e, true, true)}}/>
+                <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={handleInputMessage}/>
+              </InputMessageContainer>
+              </BottomRightContainer>
+            </BottomContainer>
+        </ResizableDraggableDiv>
+
+    return [setVisible, view]
 }
 
 type HandleClickUser<UT extends UserType> = UT extends "host" ? (e: React.MouseEvent<HTMLSpanElement>, index: number) => void : undefined
@@ -99,51 +133,27 @@ const getHostSpecifics: GetUserSpecifics<"host"> = (selectOrUnselectUser) => {
     return [handleClickGuess, getOutboundMessageView]
 }
 const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
-    const iconStyleProps = {style: {minWidth: "15px", minHeight: "15px", marginTop: "5px", marginRight: "2px"}}
+    const iconAckStyle = css`min-width: 15px; min-height: 15px; margin-top: 5px; margin-right: 2px; color:${secondColor};`
     const getOutboundMessageView: GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) => {
         const hostAckState = toUsersIds.values().next().value
         return <MessageView key={LOCAL_USER_ID + "-" + number} isOutbound={true}>
-            {hostAckState === "pen" ? <BsFillEnvelopeFill {...iconStyleProps}/> : hostAckState === "ack" ?
-                <BsFillEnvelopeOpenFill {...iconStyleProps}/> : <BsFillEnvelopeXFill {...iconStyleProps}/>}
+            {hostAckState === "pen" ? <BsFillEnvelopeFill css={iconAckStyle}/> : hostAckState === "ack" ?
+                <BsFillEnvelopeOpenFill css={iconAckStyle}/> : <BsFillEnvelopeXFill css={iconAckStyle}/>}
             <MessageBody color={getUserColor(LOCAL_USER_ID)} serverAck={serverAck}>{body} </MessageBody>
         </MessageView>
     }
     return [undefined, getOutboundMessageView]
 }
 
-const Container = styled.form<ContainerProps>`
-  ${({show, top, left}) =>
-    "display: " + (show ? "flex" :  "none") + ";"
-    + "top: " + top + "%;"
-    + "left: " + left + "%;"}
-  flex-direction: column;
-  align-items: center;
-  z-index: 1; 
-  position: absolute;
-  -webkit-transform: translate(-50%, -50%);
-  transform: translate(-50%, -50%);
-  border-radius: 10px;
-  padding: 10px;
-  background-color: rgb(0,0,0); 
-  background-color: rgba(0,0,0,0.4);
-  gap: 5px;
- `
-const InnerContainer = styled.div`
+const BottomContainer = styled.div`
   display: flex;
   flex-direction: row;
+  overflow: auto;
   gap: 5px;
-  width: 700px;
-  height: 700px;
-  @media (max-width: ${minWidthFullLayout}px) {
-    width: 500px;
-    height: 500px;
-  }
-  @media (max-width: ${maxWidthSmallestLayout}px) {
-    width: 350px;
-    height: 400px;
-  }
+  width: 100%;
+  height: 100%;
 `
-const ToolBarContainer = styled.div`
+const TopContainer = styled.div`
   display: flex;
   flex-direction: row;
   gap: 15px;
@@ -151,16 +161,17 @@ const ToolBarContainer = styled.div`
   width: 100%;
   border-style: solid;
   border-radius: 10px;
-  background-color: #A9A9A9;
+  border-color: ${mainColor};
+  background-color: #DCDCDC;
   justify-content: center;
   align-items: center;
+  margin-bottom: 5px;
 `
-const ToolBarRightInnerContainer = styled.div`
+const TopRightInnerContainer = styled.div`
   display: flex;
   flex-direction: row;
   margin-left: auto;
 `
-
 const ConnectionStateView = styled.span<{connectionState: ConnectionState}>`
   position: relative;
   height: 25px;
@@ -168,17 +179,9 @@ const ConnectionStateView = styled.span<{connectionState: ConnectionState}>`
   margin: 20px;
   border-style: solid;
   border-radius: 50%;
+  border-color: ${secondColor};
   display: inline-block;
   background-color: ${({connectionState: cs})=> cs === ConnectionState.DISCONNECTED ? "red" : cs === ConnectionState.CONNECTING ? "yellow" : "green" } ;
-`
-
-const UsersContainerTitle = styled.span`
-  font-size: 21px;
-  font-weight: bold;
-  text-align: center;
-   @media (max-width: ${maxWidthSmallestLayout}px) {
-    font-size: 17px;
-  }
 `
 const UsersContainer = styled.div`
   display: flex;
@@ -186,30 +189,26 @@ const UsersContainer = styled.div`
   border-style: solid;
   border-radius: 10px;
   padding: 5px;
-  background-color: #A9A9A9;
+  background-color: #DCDCDC;
   border-style: solid;
+  border-color: ${mainColor};
   margin-bottom: 0px;
   gap: 5px;
-  width: 20%;
-  `
-const UsersInnerContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  height: 100%;
+  min-width: 120px;
   overflow: auto;
-  gap: 5px;
-  width: 100%;
   `
-const UserView = styled.span<{ isHost: boolean, isConnected: boolean, isSelected: boolean }>`
+const UserView = styled.div<{ isHost: boolean, isConnected: boolean, isSelected: boolean }>`
  font-size: 23px;
  font-weight: bold;
  text-align: center;
+ overflow: visible;
  background-color: #FFFFFF;
  border-radius: 15px;
  border-style: solid;
  padding: 5px;
- width: 100%;
- overflow: auto;
+ min-width: 100%;
+ width: max-content;
  ${({color, isHost, isConnected, isSelected}) =>
     "color: " + color + ";"
     + (isHost ? "cursor: pointer;" : "")
@@ -222,22 +221,27 @@ const UserView = styled.span<{ isHost: boolean, isConnected: boolean, isSelected
     border-radius: 10px;
   }
  `
-const RightContainer = styled.div`
+const BottomRightContainer = styled.div`
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
   gap: 5px;
-  width: 80%;
+  overflow: auto;
 `
 const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
+  width: 100%;
   height: 100%;
   border-style: solid;
   border-radius: 10px;
+  border-color: ${mainColor};
   padding: 5px;
   gap: 5px;
-  overflow-y: auto;
-  background-color: #DCDCDC;
+  background-color: white;
+  overflow: auto;
+  scrollbar-color: green;
 `
 const MessageView = styled.div<{ isOutbound: boolean}>`
  ${({isOutbound}) =>
@@ -276,22 +280,10 @@ const ToGuessIdView = styled.span<{ userAck: UserAckState }>`
         font-size: 17px;
       }
 `
-const SendMessageContainer = styled.div`
+const InputMessageContainer = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 5px;
-`
-const TextInputStyled = styled(TextInput)`
- font-size: 23px;
- border-style: solid;
- border-width: medium;
- border-color: black;
- border-radius: 10px; 
- font-weight: bold;
- padding: 5px; 
- width: 100%;
- @media (max-width: ${maxWidthSmallestLayout}px) {
-    font-size: 19px;
-  }
+  width: 100%;
 `

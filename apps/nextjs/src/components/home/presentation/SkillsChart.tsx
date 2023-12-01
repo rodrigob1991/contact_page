@@ -1,6 +1,6 @@
 import styled from "@emotion/styled"
 import {PlusButton} from "../../Buttons"
-import React, {useEffect, useRef, useState} from "react"
+import React, {useEffect, useRef, useState, MouseEvent, MouseEventHandler, TouchEventHandler} from "react"
 import {NewSkill, Skill, ViewMode} from "../../../types/home"
 import {Observe} from "../../../pages/user/edit_home"
 import {ImageViewSelector, TextInput} from "../../FormComponents"
@@ -41,19 +41,16 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
         return `hsl(${hue},${saturation}%,${lightness}%)`
     }
 
-    const [NameTooltip, showNameTooltip, hideNameTooltip] = useTooltip({topDeviation: -40})
-    const handleMouseEnterSkillView = (e: React.MouseEvent<HTMLDivElement>, name: string) => {
-        showNameTooltip(name)
+    const [NameTooltip, showNameTooltip] = useTooltip({})
+    const handleMouseEnterSkillView = (e: MouseEvent<HTMLDivElement>, name: string) => {
+        showNameTooltip(true, true, -40, 0, name)
     }
-    const handleMouseLeaveSkillView = (e: React.MouseEvent<HTMLDivElement>) => {
-        hideNameTooltip()
+    const handleMouseLeaveSkillView: MouseEventHandler<HTMLDivElement> = (e) => {
+        showNameTooltip(false)
     }
     const handleTouchStartSkillView = (e: React.TouchEvent<HTMLDivElement>, name: string) => {
-        showNameTooltip(name, {top: e.touches[0].clientY -45, left: e.touches[0].clientX - 20})
-        setTimeout(hideNameTooltip, 1500)
-    }
-    const handleTouchEndSkillView = (e: React.TouchEvent<HTMLDivElement>) => {
-        hideNameTooltip()
+        showNameTooltip(true, true, e.touches[0].clientY -45, e.touches[0].clientX - 20, name)
+        setTimeout(() => {showNameTooltip(false)}, 1500)
     }
 
     const skillBarHasTopMargin = (position: number) => layout.getWidth(position) > width

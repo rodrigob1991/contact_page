@@ -1,5 +1,5 @@
 import {useFormModal} from "../../../../FormComponents"
-import ComponentWithTooltip from "../../../../ComponentWithTooltip"
+import WithTooltip from "../../../../WithTooltip"
 import styled from "@emotion/styled"
 import {MdForwardToInbox} from "react-icons/md"
 import {maxWidthSmallestLayout} from "../../../../../layouts"
@@ -13,8 +13,8 @@ export default function SendEmail() {
             htmlContent: `<!DOCTYPE html><html><body>${message}</body></html>`
         }
         const succeedResultMessage = {succeed: true, message: "email sent"}
-        const unsucceedResultMessage = {succeed: false, message: "email was not sent"}
-        const logError = (error: any) => {
+        const unsuccessResultMessage = {succeed: false, message: "email was not sent"}
+        const logError = (error: unknown) => {
             console.error(`Error sending the email: ${JSON.stringify(error)}`)
         }
         return fetch(process.env.NEXT_PUBLIC_SENDINBLUE_URL as string, {
@@ -39,17 +39,17 @@ export default function SendEmail() {
             if (resultMessageOrBody === "ok") {
                 resultMessage = succeedResultMessage
             } else {
-                resultMessage = unsucceedResultMessage
+                resultMessage = unsuccessResultMessage
                 logError(resultMessageOrBody)
             }
             return resultMessage
         }).catch((e) => {
             logError(e)
-            return unsucceedResultMessage
+            return unsuccessResultMessage
         })
     }
 
-    const [showSendMessageModal, SendMessageModal] = useFormModal(
+    const [showSendMessageModal, sendMessageModal] = useFormModal(
         {
             inputElementsProps: {
                 from: {
@@ -77,10 +77,11 @@ export default function SendEmail() {
 
     return (
         <>
-            {SendMessageModal}
-            <ComponentWithTooltip childElement={<SendEmailImage onClick={(e) => {showSendMessageModal()}}/>}
-                                  tooltipText={"send email"}
-                                  tooltipTopDeviation={20} tooltipLeftDeviation={0}/>
+            {sendMessageModal}
+            <WithTooltip tooltipText={"send email"}
+                         tooltipDeviation={{top: 20, left: 0}}>
+            <SendEmailImage onClick={(e) => {showSendMessageModal()}}/>
+            </WithTooltip>
         </>
 
     )

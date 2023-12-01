@@ -1,5 +1,5 @@
 import {UserType} from "chat-common/src/model/types"
-import ChatView, {ContainerProps, Hide, SetOutboundMessageData as SetOutboundMessageDataFromView} from "./View"
+import View, {ContainerProps, Hide, SetOutboundMessageData as SetOutboundMessageDataFromView} from "./useView"
 import useWebSocket, {
     ConnectionState,
     HandleConMessage,
@@ -9,11 +9,13 @@ import useWebSocket, {
     HandleServerAckMessage,
     HandleUserAckMessage,
     HandleUsersMessage
-} from "../../hooks/chat/useWebSocket"
+} from "./useWebSocket"
 import {useState} from "react"
 import {getParsedUsersMessageBody} from "chat-common/src/message/functions"
-import {LOCAL_USER_ID, LOCAL_USER_NAME, User, useUsers} from "../../hooks/chat/useUsers"
-import {useMessages} from "../../hooks/chat/useMessages"
+import {LOCAL_USER_ID, LOCAL_USER_NAME, User, useUsers} from "./useUsers"
+import {useMessages} from "./useMessages"
+import useView from "./useView"
+import { PositionCSS, SizeCSS } from "../../components/ResizableDraggableDiv"
 
 export type HandleUsersConnection = (names: string[]) => void
 export type HandleUsersDisconnection = (names: string[]) => void
@@ -26,10 +28,10 @@ type Props<UT extends UserType> = {
     handleUserMessage: HandleUserMessage
     connect: boolean
     nextHandleNewConnectionState: HandleNewConnectionState
-    viewProps: { containerProps: ContainerProps, hide?: Hide }
+    viewProps: {position?: PositionCSS, size?: SizeCSS, allowHide: boolean}
 }
 
-export default function Chat<UT extends UserType>({
+export default function useChat<UT extends UserType>({
                                                           userType,
                                                           handleUsersConnection,
                                                           handleUsersDisconnection,
@@ -37,7 +39,7 @@ export default function Chat<UT extends UserType>({
                                                           connect,
                                                           nextHandleNewConnectionState,
                                                           viewProps
-                                                      }: Props<UT>) {
+                                                      }: Props<UT>): [(visible: boolean) => void, JSX.Element] {
     const [connectionState, setConnectionState] = useState(ConnectionState.DISCONNECTED)
     const handleNewConnectionState: HandleNewConnectionState = (cs) => {
         setConnectionState(cs)
@@ -107,7 +109,7 @@ export default function Chat<UT extends UserType>({
 
     const [isTargetUser] = userType === "host" ? getHostSpecifics() : getGuessSpecifics()
 
-    return <ChatView userType={userType} connectionState={connectionState} users={users} selectOrUnselectUser={selectOrUnselectUser} getUserColor={getUserColor} messages={messagesData} setOutboundMessageData={setOutboundMessageDataFromView}  {...viewProps}/>
+    return useView({userType, connectionState, users, selectOrUnselectUser, getUserColor, messages: messagesData, setOutboundMessageData: setOutboundMessageDataFromView, ...viewProps})
 }
 
 type IsTargetUser = (user: User) => boolean
