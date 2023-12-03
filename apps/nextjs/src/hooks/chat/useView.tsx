@@ -1,11 +1,11 @@
 import { css } from "@emotion/react"
 import styled from "@emotion/styled"
 import { UserType } from "chat-common/src/model/types"
-import React, { useEffect, useRef, useState } from "react"
+import React, { MouseEventHandler, useEffect, useRef, useState } from "react"
 import { BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill } from "react-icons/bs"
 import { FiArrowRight } from "react-icons/fi"
-import { MdCenterFocusWeak } from "react-icons/md"
 import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
+import { TfiTarget } from "react-icons/tfi"
 import { isEmpty } from "utils/src/strings"
 import { mainColor, secondColor } from "../../colors"
 import { TextInput } from "../../components/FormComponents"
@@ -17,7 +17,6 @@ import { ConnectionState } from "./useWebSocket"
 
 export type SetOutboundMessageData =  (body: string) => boolean
 export type ContainerProps = { show: boolean, left: number, top: number, viewPortPercentage?: number}
-export type Hide = () => void
 
 type Props<UT extends UserType> = {
     userType: UT
@@ -30,39 +29,52 @@ type Props<UT extends UserType> = {
     position?: PositionCSS
     size?: SizeCSS
     allowHide: boolean
+    handleOnClickHide?: () => void
 }
 
 const fullSize = {height: "100%", width: "100%"}
 const centerPosition = {top: "50%", left: "50%"}
 
-export default function useView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setOutboundMessageData, position=centerPosition, size=fullSize, allowHide}: Props<UT>): [(visible: boolean) => void, JSX.Element] {
+export default function useView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setOutboundMessageData, position: positionProp=centerPosition, size: sizeProp=fullSize, allowHide, handleOnClickHide: handleOnClickHideProp}: Props<UT>): [(visible: boolean) => void, JSX.Element] {
     const isHost = userType === "host"
-
-    const [visible, setVisible] = useState(false)
-
-    const [messageBody, setMessageBody] = useState("")
-
     const [handleClickUser, getOutboundMessageView] = (isHost ? getHostSpecifics(selectOrUnselectUser) : getGuessSpecifics(selectOrUnselectUser)) as GetUserSpecificsReturn<UT>
 
-    const handleInputMessage = () => {
-        if (!isEmpty(messageBody)) {
-            if (setOutboundMessageData(messageBody)) {
-                setMessageBody("")
-            }
-        }
-    }
-    const getInboundMessageView = ({fromUserId, number, body}: InboundMessageData) =>
-        <MessageView key={fromUserId + "-" + number} isOutbound={false}>
-        <MessageBody serverAck={true} color={getUserColor(fromUserId)}> {body} </MessageBody>
-        </MessageView>
+    const [visible, setVisible] = useState(false)
+    const [size, setSize] = useState(sizeProp)
+    const [position, setPosition] = useState(positionProp)
+    const [messageBody, setMessageBody] = useState("")
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({behavior: "smooth"})
     }, [messages])
+
+    const handleInputMessage = () => {
+      if (!isEmpty(messageBody)) {
+          if (setOutboundMessageData(messageBody)) {
+              setMessageBody("")
+          }
+      }
+    }
+    const handleOnClickCenterPosition: MouseEventHandler<SVGElement> = (e) => {
+       setPosition(centerPosition)
+    }
+    const handleOnClickDefaultSize: MouseEventHandler<SVGElement> = (e) => {
+       setSize(sizeProp)
+    }
+    const handleOnClickFullSize: MouseEventHandler<SVGElement> = (e) => {
+       setSize(fullSize)
+    }
+    const handleOnClickHide: MouseEventHandler<SVGElement> = (e) => {
+        setVisible(false)
+        if(handleOnClickHideProp)
+           handleOnClickHideProp()
+    }
     
-    const [ultimateSize, setUltimateSize] = useState(size)
-    const [ultimatePosition, setUltimatePosition] = useState(position)
+    const getInboundMessageView = ({fromUserId, number, body}: InboundMessageData) =>
+        <MessageView key={fromUserId + "-" + number} isOutbound={false}>
+        <MessageBody serverAck={true} color={getUserColor(fromUserId)}> {body} </MessageBody>
+        </MessageView>
 
     const getContainerStyle: GetStyle = (resizing, dragging) => css`
       display: ${visible ? "flex" :  "none"}; position: fixed; 
@@ -75,18 +87,20 @@ export default function useView<UT extends UserType>({userType, connectionState,
     const getDraggableDivStyle: GetStyle =  (resizing, dragging) => css` 
       display: flex; flex-direction: column; height: 100%; width: 100%;
     `
-    const topIconsCommonProps = {size: 30, css: css`cursor: pointer; color: ${secondColor}`, onMouseDown: (e: React.MouseEvent) => {setPreventFlag(e, true, true)}}
+    const topIconsCommonProps = {size: 28, css: css`cursor: pointer; color: ${secondColor}; padding: 2px;`, onMouseDown: (e: React.MouseEvent) => {setPreventFlag(e, true, true)}}
 
     const view = 
-        <ResizableDraggableDiv draggable resizable getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} ultimateSize={ultimateSize} ultimatePosition={ultimatePosition}>
+        <ResizableDraggableDiv draggable resizable getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} size={{value: size, set: setSize}} position={{value: position, set: setPosition}}>
             <TopContainer> 
-              <MdCenterFocusWeak {...topIconsCommonProps} onClick={(e) => {setUltimatePosition(centerPosition)}}/>
-              <SlSizeActual  {...topIconsCommonProps} onClick={(e) => {setUltimateSize(size)}}/>
-              <SlSizeFullscreen  {...topIconsCommonProps} onClick={(e) => {setUltimateSize(fullSize)}}/>
-              {allowHide && <BsEyeSlashFill {...topIconsCommonProps} onClick={(e)=> {setVisible(false)}}/>}
-              <TopRightInnerContainer>
+                <TopLeftContainer>
+                <TfiTarget {...topIconsCommonProps} onClick={handleOnClickCenterPosition}/>
+                <SlSizeActual  {...topIconsCommonProps} onClick={handleOnClickDefaultSize}/>
+                <SlSizeFullscreen  {...topIconsCommonProps} onClick={handleOnClickFullSize}/>
+                {allowHide && <BsEyeSlashFill {...topIconsCommonProps} onClick={handleOnClickHide}/>}
+              </TopLeftContainer>
+              <TopRightContainer>
                 <ConnectionStateView connectionState={connectionState}/>
-              </TopRightInnerContainer> 
+              </TopRightContainer> 
             </TopContainer>
             <BottomContainer>
               <UsersContainer>
@@ -156,24 +170,30 @@ const BottomContainer = styled.div`
 const TopContainer = styled.div`
   display: flex;
   flex-direction: row;
-  gap: 15px;
   height: 40px;
   width: 100%;
   border-style: solid;
   border-radius: 10px;
   border-color: ${mainColor};
   background-color: #DCDCDC;
-  justify-content: center;
-  align-items: center;
   margin-bottom: 5px;
 `
-const TopRightInnerContainer = styled.div`
+const TopLeftContainer = styled.div`
   display: flex;
   flex-direction: row;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+`
+const TopRightContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
   margin-left: auto;
 `
 const ConnectionStateView = styled.span<{connectionState: ConnectionState}>`
-  position: relative;
   height: 25px;
   width: 25px;
   margin: 20px;

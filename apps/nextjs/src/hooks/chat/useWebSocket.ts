@@ -101,8 +101,8 @@ export default function useWebSocket<UT extends UserType>({
         handleConnected()
     }
     function handleOnError(this: WebSocket, e: Event) {
-        if (this.readyState === WebSocket.CONNECTING)
-            handleConnecting()
+        //if (this.readyState === WebSocket.CONNECTING)
+           // handleConnecting()
     }
     const timeoutIdForInitWSRef = useRef<number>()
     const getTimeoutIdForInitWS = () => timeoutIdForInitWSRef.current
@@ -201,8 +201,6 @@ export default function useWebSocket<UT extends UserType>({
     useEffect(() => {
             if (connect) {
                 initWS()
-            } else {
-                closeWS()
             }
             return closeWS
         }

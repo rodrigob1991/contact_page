@@ -1,17 +1,22 @@
-import { CSSObject } from "@emotion/styled"
-import { DetailedHTMLProps, HTMLAttributes, MouseEventHandler, TouchEventHandler } from "react"
+import { Theme } from "@emotion/react"
+import { Interpolation } from "@emotion/styled"
+import { DetailedHTMLProps, HTMLAttributes, MouseEventHandler, TouchEventHandler, useEffect } from "react"
 import { useTooltip } from "../hooks/useTooltip"
 
 type Props = {
     children: JSX.Element | JSX.Element[]
-    containerStyle?: CSSObject
+    containerStyle?: Interpolation<Theme>
     tooltipText: string
-    tooltipStyle?: CSSObject
+    tooltipStyle?: Interpolation<Theme>
     tooltipOnMouse?: boolean
     tooltipDeviation?: {top: number, left:number}
 } & DetailedHTMLProps<HTMLAttributes<HTMLDivElement>,HTMLDivElement>
 export default function WithTooltip({children, containerStyle, tooltipText, tooltipStyle, tooltipOnMouse=true, tooltipDeviation: {top:tooltipDeviationTop, left:tooltipDeviationLeft} = {top: 0, left: 0}, ...rest} : Props) {
-    const [Tooltip, showTooltip] = useTooltip({style: tooltipStyle})
+    const [Tooltip, updateTooltip] = useTooltip({style: tooltipStyle})
+
+    useEffect(() => {
+        updateTooltip(undefined, tooltipOnMouse, tooltipDeviationTop, tooltipDeviationLeft, tooltipText, tooltipStyle)
+    }, [tooltipText, tooltipStyle, tooltipOnMouse, tooltipDeviationTop, tooltipDeviationLeft])
 
     const handleMouseEnter: MouseEventHandler<HTMLDivElement> = (e) => {
         let top
@@ -24,17 +29,17 @@ export default function WithTooltip({children, containerStyle, tooltipText, tool
             top = y + tooltipDeviationTop
             left = x + tooltipDeviationLeft
         }
-        showTooltip(true, tooltipOnMouse, top, left, tooltipText)
+        updateTooltip(true, tooltipOnMouse, top, left, tooltipText, tooltipStyle)
     }
     const handleMouseLeave: MouseEventHandler<HTMLDivElement> = (e) => {
-        showTooltip(false)
+        updateTooltip(false)
     }
     const handleTouchStart: TouchEventHandler = (e) => {
         const {y, x} = e.currentTarget.getBoundingClientRect()
 
         setTimeout(() => {
-            showTooltip(true, false, y + tooltipDeviationTop, x + tooltipDeviationLeft)
-            setTimeout(() => {showTooltip(false)})
+            updateTooltip(true, false, y + tooltipDeviationTop, x + tooltipDeviationLeft)
+            setTimeout(() => {updateTooltip(false)})
         }, 200)
     }
 

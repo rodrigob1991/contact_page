@@ -22,7 +22,9 @@ export const dragPrevented = (e: MouseEvent | React.MouseEvent) => {
 
 export type GetStyle = (resizing: boolean, dragging: boolean) => Interpolation<Theme>
 export type SizeCSS = {height: string; width: string}
+export type SetSizeCSS = (size: SizeCSS) => void
 export type PositionCSS ={top: string; left: string}
+export type SetPositionCSS = (position: PositionCSS) => void
 
 type Props = {
     resizable: boolean
@@ -31,11 +33,11 @@ type Props = {
     getResizableDivStyle?: GetStyle
     getDraggableDivStyle?: GetStyle
     children?: JSX.Element[]
-    ultimateSize?: SizeCSS
-    ultimatePosition?: PositionCSS
+    size?: {value: SizeCSS, set: SetSizeCSS}
+    position?: {value: PositionCSS, set: SetPositionCSS}
 }
 
-export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, ultimateSize: ultimateSizeProp={height: "none", width: "none"}, ultimatePosition: ultimatePositionProp={top: "none", left: "none"}}: Props) => {
+export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, size: sizeProp, position: positionProp}: Props) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const getContainer = () => containerRef.current as HTMLDivElement
     const getContainerComputedNumbers = () => {
@@ -47,16 +49,27 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
         return {rectHeight: height, rectWidth: width, rectTop: top , rectLeft: left}
     }
 
-    const [ultimateSize, setUltimateSize] = useState(ultimateSizeProp)
-    useEffect(() => {
-      setUltimateSize(ultimateSizeProp);
-    }, [ultimateSizeProp.height, ultimateSizeProp.width]);
+    const [localSize, setLocalSize] = useState({height: "none", width: "none"})
+    let size: SizeCSS
+    let setSize : SetSizeCSS
+    if(sizeProp){
+        size = sizeProp.value
+        setSize = sizeProp.set
+    }else{
+        size = localSize
+        setSize = setLocalSize
+    }
 
-    const [ultimatePosition, setUltimatePosition] = useState(ultimatePositionProp)
-    useEffect(() => {
-        setUltimatePosition(ultimatePositionProp)
-        console.log("should not")
-    }, [ultimatePositionProp.top, ultimatePositionProp.left])
+    const [localPosition, setLocalPosition] = useState({top: "none", left: "none"})
+    let position: PositionCSS
+    let setPosition: SetPositionCSS
+    if(positionProp){
+        position = positionProp.value
+        setPosition = positionProp.set
+    }else{
+        position = localPosition
+        setPosition = setLocalPosition
+    }
 
     const [resizing, setResizing] = useState(false)
     const [dragging, setDragging] = useState(false)
@@ -68,7 +81,7 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
             const handleMouseMove = (e: MouseEvent) => {
                 e.preventDefault()
                 const {height, width, top, left} = getContainerComputedNumbers()
-                setUltimatePosition({top: (top + e.movementY) + "px", left: (left + e.movementX) + "px"})
+                setPosition({top: (top + e.movementY) + "px", left: (left + e.movementX) + "px"})
             }
             const handleMouseUp = (e: MouseEvent) => {
                 setDragging(false)
@@ -106,7 +119,7 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
                 e.preventDefault()
                 const {height, width, top, left} = getContainerComputedNumbers()
                 const {rectHeight, rectWidth, rectTop, rectLeft} = getContainerRectNumbers()
-                setUltimateSize({height: (height + e.movementY*2*(e.clientY >  rectTop + (rectHeight/2) ? 1 : -1)) + "px", width: (width + e.movementX*2*(e.clientX >  rectLeft + (rectWidth/2)  ? 1 : -1)) + "px"})
+                setSize({height: (height + e.movementY*2*(e.clientY >  rectTop + (rectHeight/2) ? 1 : -1)) + "px", width: (width + e.movementX*2*(e.clientX >  rectLeft + (rectWidth/2)  ? 1 : -1)) + "px"})
             }
             const handleMouseUp = (e: MouseEvent) => {
                 setResizing(false)
@@ -142,7 +155,7 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
         //setDragging(false)
      }
     
-    return <Container ref={containerRef} css={[getContainerStyle ? getContainerStyle(resizing, dragging) : undefined, ultimateSize, ultimatePosition]} resizing={resizing} dragging={dragging} onMouseLeave={handleOnMouseLeaveContainer}>
+    return <Container ref={containerRef} css={[getContainerStyle ? getContainerStyle(resizing, dragging) : undefined, size, position]} resizing={resizing} dragging={dragging} onMouseLeave={handleOnMouseLeaveContainer}>
            {children}
            </Container>
 }

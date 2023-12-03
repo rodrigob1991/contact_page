@@ -28,7 +28,7 @@ type Props<UT extends UserType> = {
     handleUserMessage: HandleUserMessage
     connect: boolean
     nextHandleNewConnectionState: HandleNewConnectionState
-    viewProps: {position?: PositionCSS, size?: SizeCSS, allowHide: boolean}
+    viewProps: {position?: PositionCSS, size?: SizeCSS, allowHide: boolean, handleOnClickHide?: () => void}
 }
 
 export default function useChat<UT extends UserType>({

@@ -1,23 +1,29 @@
 import styled from "@emotion/styled"
-import { MouseEventHandler, useEffect, useState } from "react"
-import { BsFillChatSquareTextFill } from "react-icons/bs"
+import { MouseEventHandler, useState } from "react"
+import useChat, { HandleUserMessage, HandleUsersConnection, HandleUsersDisconnection } from "../../../../../hooks/chat/useChat"
 import { ConnectionState, HandleNewConnectionState } from "../../../../../hooks/chat/useWebSocket"
 import { maxWidthSmallestLayout } from "../../../../../layouts"
 import WithTooltip from "../../../../WithTooltip"
-import useChat, { HandleUserMessage, HandleUsersConnection, HandleUsersDisconnection } from "../../../../../hooks/chat/useChat"
 import LiveIcon from "/public/live.svg"
+import { TbArticleFilledFilled } from "react-icons/tb"
 
 type Props = {}
 
+
+const disconnectedIconProps = {color: "#FF4500", tooltipText: "connect chat"}
+const connectingIconProps = {color: "#FFFF00", tooltipText: "stop connecting"}
+const connectedIconProps = {color: "#ADFF2F", tooltipText: "disconnect"}
+
+
 export default function GuessChat({}: Props) {
-    const [showIconChatView, setShowIconChatView] = useState(false)
+    const [chatViewIconVisible, setChatViewIconVisible] = useState(true)
     const [connect, setConnect] = useState(false)
+    const [iconProps, setIconProps] = useState(disconnectedIconProps)
 
     const handleNewConnectionState: HandleNewConnectionState = (cs) => {
         switch (cs) {
             case ConnectionState.DISCONNECTED:
                 setIconProps(disconnectedIconProps)
-                setShowIconChatView(false)
                 break
             case ConnectionState.CONNECTING:
                 setIconProps(connectingIconProps)
@@ -25,7 +31,7 @@ export default function GuessChat({}: Props) {
             case ConnectionState.CONNECTED:
                 setIconProps(connectedIconProps)
                 setChatVisible(true)
-                setShowIconChatView(true)
+                setChatViewIconVisible(false)
                 break
         }
     }
@@ -35,12 +41,12 @@ export default function GuessChat({}: Props) {
     }
     const handleOnClickIconChatView: MouseEventHandler<SVGElement> = (e) => {
         setChatVisible(true)
+        setChatViewIconVisible(false)
     }
-
-    const disconnectedIconProps = {color: "#FF4500", tooltipText: "connect chat"}
-    const connectingIconProps = {color: "#FFFF00", tooltipText: "stop connecting"}
-    const connectedIconProps = {color: "#ADFF2F", tooltipText: "disconnect"}
-    const [iconProps, setIconProps] = useState(disconnectedIconProps)
+    const handleOnClickHide = () => {
+          setChatVisible(false)
+          setChatViewIconVisible(true)
+    }
 
     const handleHostConnection: HandleUsersConnection = (hostName) => {
     }
@@ -50,19 +56,16 @@ export default function GuessChat({}: Props) {
     }
 
     const [setChatVisible, chatView] = useChat({userType: "guess", handleUsersConnection: handleHostConnection, handleUsersDisconnection: handleHostDisconnection, handleUserMessage: handleHostMessage,
-                                       nextHandleNewConnectionState: handleNewConnectionState, connect, viewProps: {position: {top: "50%", left: "50%"}, size: {height: "30%", width: "30%"}, allowHide: true}})
-    useEffect(()=> {
-        setChatVisible(true)
-    }, [])
+                                       nextHandleNewConnectionState: handleNewConnectionState, connect, viewProps: {position: {top: "50%", left: "50%"}, size: {height: "30%", width: "30%"}, allowHide: true, handleOnClickHide}})
     return (
         <Container>
             <WithTooltip
                 tooltipText={iconProps.tooltipText}
-                tooltipDeviation={{top: 20, left: 0}}
+                tooltipDeviation={{top: 0, left: 15}}
                 onClick={handleOnClickLiveIcon}>
             <LiveIconStyled fill={iconProps.color}/>
             </WithTooltip>
-            {showIconChatView && <ChatViewIconStyled visibility={0} size={50} fill={"white"} onClick={handleOnClickIconChatView}/>}
+            {chatViewIconVisible && <ChatViewIcon size={35} color={"white"} onClick={handleOnClickIconChatView}/>}
             {chatView}
         </Container>
     )
@@ -84,12 +87,11 @@ const LiveIconStyled = styled(LiveIcon)`
     height: 55px;
   }
 `
-const ChatViewIconStyled = styled(BsFillChatSquareTextFill)`
+const ChatViewIcon = styled(TbArticleFilledFilled)`
   position: absolute;
-  width: 70px;
-  top: 90px;
+  top: 35px;
+  left: 80px;
   cursor: pointer;
-  transform: rotate(180deg);
   @media (max-width: ${maxWidthSmallestLayout}px) {
     top: 54px;
     width: 40px;
