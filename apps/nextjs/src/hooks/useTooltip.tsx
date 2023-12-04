@@ -1,5 +1,4 @@
 import { Interpolation, Theme, css } from "@emotion/react"
-import styled from "@emotion/styled"
 import { useEffect, useState } from "react"
 
 type Props = {
@@ -40,23 +39,25 @@ export const useTooltip = ({style: styleProp}: Props): [JSX.Element, Update] => 
         return () => { window.removeEventListener("mousemove", captureMousePosition) }
     }, [visible, useMousePosition])
 
-    const Tooltip = <Container css={style} visible={visible} {...position}>{text}</Container>
+    const defaultStyle = css`
+                        position: fixed;
+                        z-index: 99;
+                        padding: 3px;
+                        height: fit-content;
+                        width: fit-content;
+                        background-color: white;
+                        font-size: 1.7rem;
+                        font-weight: bold;
+                        font-family: Arial, Helvetica, sans-serif;
+                        border-style: solid;
+                        border-color: darkblue;
+                        border-radius: 10px;
+                        visibility: ${visible ? "visible" : "hidden"};
+                        left: ${position.left}px;
+                        top: ${position.top}px;
+                        `
+
+    const Tooltip = <div css={[defaultStyle, style]}>{text}</div>
 
     return [Tooltip, update]
 }
-
-const Container = styled.div<{visible: boolean, left: number, top: number}>`
-${({visible, top, left}) => css`visibility: ${visible ? "visible" : "hidden"}; left: ${left}px; top: ${top}px;`}
-  position: fixed;
-  z-index: 99;
-  padding: 3px;
-  height: fit-content;
-  width: fit-content;
-  background-color: white;
-  font-size: 1.7rem;
-  font-weight: bold;
-  font-family: Arial, Helvetica, sans-serif;
-  border-style: solid;
-  border-color: darkblue;
-  border-radius: 10px;
- `

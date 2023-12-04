@@ -1,13 +1,13 @@
 import { css } from "@emotion/react"
 import styled from "@emotion/styled"
 import { UserType } from "chat-common/src/model/types"
-import React, { MouseEventHandler, useEffect, useRef, useState } from "react"
+import React, { DetailedHTMLProps, HTMLAttributes, MouseEventHandler, useEffect, useRef, useState } from "react"
 import { BsEyeSlashFill, BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill } from "react-icons/bs"
 import { FiArrowRight } from "react-icons/fi"
 import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
 import { TfiTarget } from "react-icons/tfi"
 import { isEmpty } from "utils/src/strings"
-import { mainColor, secondColor } from "../../colors"
+import { mainColor, secondColor } from "../../theme"
 import { TextInput } from "../../components/FormComponents"
 import { GetStyle, PositionCSS, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../../components/ResizableDraggableDiv"
 import { maxWidthSmallestLayout } from "../../layouts"
@@ -306,4 +306,42 @@ const InputMessageContainer = styled.div`
   align-items: center;
   gap: 5px;
   width: 100%;
+`
+type ThumbnailViewProps = {
+  visible: boolean
+  top: number
+  left: number
+} & DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>
+
+export const ViewThumbnail = ({visible, top, left, ...rest}: ThumbnailViewProps) => {
+  const messageLine = <div css={css`background-color: black; width: 80%; height: 1px;`}/>
+  return <ViewThumbnailContainer visible={visible} top={top} left={left} {...rest}>
+         <div css={css`width: 32px; background-color: #DCDCDC; height: 4px; margin: 2px;`}/>
+         <div css={css`display: flex; padding-left: 2px; padding-right: 2px; gap: 2px;`}>
+         <div css={css`width: 6px; background-color: #DCDCDC; height: 21px; `}/>
+         <div css={css`display: flex; flex-direction: column; gap: 2px;`}>
+         <div css={css`display: flex; flex-direction: column; gap: 2px; align-items: center; justify-content: center; width: 24px; background-color: white; height: 16px;`}>
+         {messageLine}
+         {messageLine}
+         {messageLine}
+         {messageLine}
+         {messageLine}
+         </div>
+         <div css={css`width: 24px; background-color: white; height: 3px;`}/>
+         </div>
+         </div>
+         </ViewThumbnailContainer>
+}
+const ViewThumbnailContainer = styled.div<{visible: boolean, top: number, left: number}>`
+  ${({visible, top, left}) => css`
+  display: ${visible ? "block" : "none"};
+  top: ${top}px;
+  left: ${left}px;
+  `}
+  position: absolute;
+  background-color: ${secondColor};
+  width: 40px;
+  height: 35px;
+  border: 2px solid ${mainColor};
+  cursor: pointer;
 `

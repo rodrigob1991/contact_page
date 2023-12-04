@@ -10,6 +10,7 @@ import Image from "next/image"
 import {minWidthFullLayout, skillsChartLayout as layout, skillsChartSmallestLayout as smallestLayout, SkillBarWidth, presentationLayout} from "../../../layouts"
 import {orderByComparePreviousByNumber} from "utils/src/arrays"
 import { css } from "@emotion/react"
+import { tooltipStyle } from "../../../theme"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
@@ -41,7 +42,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
         return `hsl(${hue},${saturation}%,${lightness}%)`
     }
 
-    const [NameTooltip, showNameTooltip] = useTooltip({})
+    const [NameTooltip, showNameTooltip] = useTooltip({style: tooltipStyle})
     const handleMouseEnterSkillView = (e: MouseEvent<HTMLDivElement>, name: string) => {
         showNameTooltip(true, true, -40, 0, name)
     }

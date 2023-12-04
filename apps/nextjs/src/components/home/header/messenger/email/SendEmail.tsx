@@ -1,8 +1,9 @@
-import {useFormModal} from "../../../../FormComponents"
-import WithTooltip from "../../../../WithTooltip"
 import styled from "@emotion/styled"
-import {MdForwardToInbox} from "react-icons/md"
-import {maxWidthSmallestLayout} from "../../../../../layouts"
+import { IoIosMail } from "react-icons/io"
+import { maxWidthSmallestLayout } from "../../../../../layouts"
+import { tooltipStyle } from "../../../../../theme"
+import { useFormModal } from "../../../../FormComponents"
+import WithTooltip from "../../../../WithTooltip"
 
 export default function SendEmail() {
     const sendEmail = ({from, subject, message}: { from: string, subject: string, message: string }) => {
@@ -79,14 +80,15 @@ export default function SendEmail() {
         <>
             {sendMessageModal}
             <WithTooltip tooltipText={"send email"}
-                         tooltipDeviation={{top: 20, left: 0}}>
+                         tooltipDeviation={{top: 0, left: 15}}
+                         tooltipStyle={tooltipStyle}>
             <SendEmailImage onClick={(e) => {showSendMessageModal()}}/>
             </WithTooltip>
         </>
 
     )
 }
-const SendEmailImage = styled(MdForwardToInbox)`
+const SendEmailImage = styled(IoIosMail)`
   width: 70px;
   height:70px;
   color: white;

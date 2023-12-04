@@ -2,7 +2,7 @@ import Link from "next/link"
 import styled from "@emotion/styled"
 import Messenger from "./messenger/Messenger"
 import {maxWidthSmallestLayout} from "../../../layouts"
-import {mainColor, secondColor} from "../../../colors"
+import {mainColor, secondColor} from "../../../theme"
 import Image from "next/image"
 
 type Props = {

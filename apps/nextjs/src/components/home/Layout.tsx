@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import {mainColor, secondColor} from "../../colors"
+import {mainColor, secondColor} from "../../theme"
 
 export const Container = styled.div`
   display: flex;

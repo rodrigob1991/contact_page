@@ -3,7 +3,7 @@ import {FaHandPointLeft, FaHandPointRight, FaPlus, FaTrashRestore} from "react-i
 import {BsChevronDoubleDown, BsChevronDoubleUp, BsEyeFill, BsEyeSlashFill, BsFillTrashFill} from "react-icons/bs"
 import React, {HTMLAttributes, InputHTMLAttributes, useState} from "react"
 import {IconBaseProps} from "react-icons"
-import {secondColor} from "../colors";
+import {secondColor} from "../theme";
 
 
 export const Button = styled.button<{ backgroundColor?: string }>`

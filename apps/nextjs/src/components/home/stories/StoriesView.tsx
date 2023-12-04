@@ -6,7 +6,7 @@ import {Pallet} from "../../Pallet"
 import {OptionSelector} from "../../FormComponents"
 import {StoryState} from "@prisma/client"
 import {Observe} from "../../../pages/user/edit_home"
-import {mainColor, secondColor} from "../../../colors"
+import {mainColor, secondColor} from "../../../theme"
 
 const storiesAnchorsContainerWidth = 150
 

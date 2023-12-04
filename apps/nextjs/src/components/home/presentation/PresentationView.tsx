@@ -6,7 +6,7 @@ import Image from "next/image"
 import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
 import {Observe} from "../../../pages/user/edit_home"
 import {maxWidthSmallestLayout, minWidthFullLayout, presentationLayout as layout, SkillsChartSmallestLayout, SkillsChartLayout, SkillBarWidth, skillsChartLayout, skillsChartSmallestLayout} from "../../../layouts"
-import { mainColor } from "../../../colors"
+import { mainColor } from "../../../theme"
 import { css } from "@emotion/react"
 
 export type GetHtmlElementId = <K extends PresentationHTMLElementIdsKey>(key: K, skillId: (K extends "skills" ? string : undefined)) =>  string

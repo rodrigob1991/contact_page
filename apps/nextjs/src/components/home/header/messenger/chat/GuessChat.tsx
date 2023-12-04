@@ -6,17 +6,18 @@ import { maxWidthSmallestLayout } from "../../../../../layouts"
 import WithTooltip from "../../../../WithTooltip"
 import LiveIcon from "/public/live.svg"
 import { TbArticleFilledFilled } from "react-icons/tb"
+import { ViewThumbnail as ChatViewThumbnail } from "../../../../../hooks/chat/useView"
+import { css } from "@emotion/react"
+import { tooltipStyle } from "../../../../../theme"
 
 type Props = {}
-
 
 const disconnectedIconProps = {color: "#FF4500", tooltipText: "connect chat"}
 const connectingIconProps = {color: "#FFFF00", tooltipText: "stop connecting"}
 const connectedIconProps = {color: "#ADFF2F", tooltipText: "disconnect"}
 
-
 export default function GuessChat({}: Props) {
-    const [chatViewIconVisible, setChatViewIconVisible] = useState(true)
+    const [chatViewThumbnailVisible, setChatViewThumbnailVisible] = useState(true)
     const [connect, setConnect] = useState(false)
     const [iconProps, setIconProps] = useState(disconnectedIconProps)
 
@@ -31,7 +32,7 @@ export default function GuessChat({}: Props) {
             case ConnectionState.CONNECTED:
                 setIconProps(connectedIconProps)
                 setChatVisible(true)
-                setChatViewIconVisible(false)
+                setChatViewThumbnailVisible(false)
                 break
         }
     }
@@ -41,11 +42,11 @@ export default function GuessChat({}: Props) {
     }
     const handleOnClickIconChatView: MouseEventHandler<SVGElement> = (e) => {
         setChatVisible(true)
-        setChatViewIconVisible(false)
+        setChatViewThumbnailVisible(false)
     }
     const handleOnClickHide = () => {
           setChatVisible(false)
-          setChatViewIconVisible(true)
+          setChatViewThumbnailVisible(true)
     }
 
     const handleHostConnection: HandleUsersConnection = (hostName) => {
@@ -62,10 +63,11 @@ export default function GuessChat({}: Props) {
             <WithTooltip
                 tooltipText={iconProps.tooltipText}
                 tooltipDeviation={{top: 0, left: 15}}
+                tooltipStyle={tooltipStyle}
                 onClick={handleOnClickLiveIcon}>
             <LiveIconStyled fill={iconProps.color}/>
             </WithTooltip>
-            {chatViewIconVisible && <ChatViewIcon size={35} color={"white"} onClick={handleOnClickIconChatView}/>}
+            <ChatViewThumbnail visible={chatViewThumbnailVisible} top={35} left={80} onClick={handleOnClickIconChatView}/>
             {chatView}
         </Container>
     )
@@ -89,8 +91,6 @@ const LiveIconStyled = styled(LiveIcon)`
 `
 const ChatViewIcon = styled(TbArticleFilledFilled)`
   position: absolute;
-  top: 35px;
-  left: 80px;
   cursor: pointer;
   @media (max-width: ${maxWidthSmallestLayout}px) {
     top: 54px;
