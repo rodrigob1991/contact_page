@@ -219,7 +219,7 @@ export default function StoriesView<M extends ViewMode>({
                         <StoryAnchor href={"#" + title} onClick={handleOnClickStoryAnchor}>{title}</StoryAnchor>
                     </StoryAnchorContainer>
                 )}
-                </StoriesAnchorsInnerContainer>
+            </StoriesAnchorsInnerContainer>
             }
             </StoriesAnchorsContainer>
             <StoriesContainer>
@@ -285,6 +285,8 @@ const StoryAnchor = styled.a`
 const StoriesContainer = styled.ul`
   padding: 0;
   margin: 0;
+  padding-left: 8vw;
+  padding-right: 8vw;
   width: 100%;
 `
 const StoryContainer = styled.li`
@@ -307,8 +309,9 @@ const StoryBody = styled.div`
   color: #696969;
   line-height: 1.5;
   font-size: 3rem;
+  text-align: justify;
   padding: 6px;
-  block-size: fit-content;
+  
 `
 const StoryTitleContainer = styled.div`
   display: flex;

@@ -33,7 +33,6 @@ const Container = styled.div`
   width: 100%;
   min-height: 90px; 
   max-height: 90px;
-  border-bottom: 2px solid;
   border-color: ${mainColor};
   padding: 20px;
   background-image: linear-gradient( ${mainColor}, ${secondColor});

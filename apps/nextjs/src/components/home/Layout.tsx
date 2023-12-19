@@ -11,4 +11,4 @@ export const Container = styled.div`
 export const Footer = styled.div`
   display: flex;
   flex-direction: column;
-    `
+  `

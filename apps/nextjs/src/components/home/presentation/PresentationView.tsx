@@ -32,53 +32,46 @@ export default function PresentationView<VM extends ViewMode>({editing, presenta
       const getSkillsChartMaxWidth = () => skillsChartLayout.getWidth(skillsNumber)
       const [skillsChartWidth, setSkillsChartWidth] = useState(getSkillsChartMaxWidth())
 
-      const resizeView = () => {
-        const innerContainer = innerContainerRef.current
-        const portraitNameIntroductionContainer = portraitNameIntroductionContainerRef.current
-        if (innerContainer && portraitNameIntroductionContainer) {
-          const innerContainerWidth = innerContainer.getBoundingClientRect().width
-          const portraitNameIntroductionContainerWidth = portraitNameIntroductionContainer.getBoundingClientRect().width
-          // width without borders and scrollbars
-          const viewportWidth = document.documentElement.clientWidth
-          if (innerContainerWidth > viewportWidth) {
-            if (innerContainerFlexDirection === "row") {
-              console.log("flex direction to column ")
-              setInnerContainerFlexDirection("column")
-            }
-            if (skillsChartWidth + layout.innerContainerPadding*2 > viewportWidth) {
-              const newSkillWidth = skillsChartLayout.getMaxWidth(viewportWidth - layout.innerContainerPadding*2, skillsNumber)
-              console.log("resize skills: " + newSkillWidth)
-              setSkillsChartWidth(newSkillWidth)
-            }
-            if (portraitNameIntroductionContainerWidth + layout.innerContainerPadding * 2  > viewportWidth) {
-              setIntroductionWidth((introductionWidth) =>  {
-                console.log("resize introduction: " + portraitNameIntroductionContainerWidth + ":" + viewportWidth)
-                return  layout.getIntroductionMaxWidth(introductionWidth -(portraitNameIntroductionContainerWidth - viewportWidth) - layout.innerContainerPadding * 2)
-              })
-            }
-          }else {
-            if (innerContainerFlexDirection === "row") {
-              // nothing to do
-            } 
-            else {
-              if(innerContainerWidth + layout.separatorWidthOrHeight  + (layout.gap*2) + getSkillsChartMaxWidth() <= viewportWidth) {
-                setInnerContainerFlexDirection("row")
-                setSkillsChartWidth(getSkillsChartMaxWidth())
-                setIntroductionWidth(layout.introductionMaxWidth)
-              }else {
-                console.log("resize skills up")
-                setSkillsChartWidth(skillsChartLayout.getMaxWidth(viewportWidth - layout.innerContainerPadding*2, skillsNumber))
-                setIntroductionWidth((introductionWidth) =>  layout.getIntroductionMaxWidth(introductionWidth + viewportWidth - innerContainerWidth))
+      useEffect(() => {
+        const resizeView = () => {
+          const innerContainer = innerContainerRef.current
+          const portraitNameIntroductionContainer = portraitNameIntroductionContainerRef.current
+          if (innerContainer && portraitNameIntroductionContainer) {
+            const innerContainerWidth = innerContainer.getBoundingClientRect().width
+            const portraitNameIntroductionContainerWidth = portraitNameIntroductionContainer.getBoundingClientRect().width
+            // width without borders and scrollbars
+            const viewportWidth = document.documentElement.clientWidth
+            if (innerContainerWidth > viewportWidth) {
+              if (innerContainerFlexDirection === "row") {
+                setInnerContainerFlexDirection("column")
               }
-            } 
+              if (skillsChartWidth + layout.innerContainerPadding*2 > viewportWidth) {
+                const newSkillWidth = skillsChartLayout.getMaxWidth(viewportWidth - layout.innerContainerPadding*2, skillsNumber)
+                setSkillsChartWidth(newSkillWidth)
+              }
+              if (portraitNameIntroductionContainerWidth + layout.innerContainerPadding * 2  > viewportWidth) {
+                setIntroductionWidth((introductionWidth) =>  {
+                  return  layout.getIntroductionMaxWidth(introductionWidth -(portraitNameIntroductionContainerWidth - viewportWidth) - layout.innerContainerPadding * 2)
+                })
+              }
+            }else {
+              if (innerContainerFlexDirection === "row") {
+                // nothing to do
+              } 
+              else {
+                if(innerContainerWidth + layout.separatorWidthOrHeight  + (layout.gap*2) + getSkillsChartMaxWidth() <= viewportWidth) {
+                  setInnerContainerFlexDirection("row")
+                  setSkillsChartWidth(getSkillsChartMaxWidth())
+                  setIntroductionWidth(layout.introductionMaxWidth)
+                }else {
+                  setSkillsChartWidth(skillsChartLayout.getMaxWidth(viewportWidth - layout.innerContainerPadding*2, skillsNumber))
+                  setIntroductionWidth((introductionWidth) =>  layout.getIntroductionMaxWidth(introductionWidth + viewportWidth - innerContainerWidth))
+                }
+              } 
+            }
           }
         }
-      }
-
-      useLayoutEffect(resizeView, [])
-
-      useEffect(() => {
-        window.removeEventListener("resize", resizeView)
+  
         window.addEventListener("resize", resizeView)
         return () => {
           window.removeEventListener("resize", resizeView)
@@ -116,7 +109,7 @@ export default function PresentationView<VM extends ViewMode>({editing, presenta
               {name}
             </Name>
           </PortraitNameContainer>
-          <Separator />
+          <Separator/>
           <IntroductionContainer>
             <Introduction id={introductionHtmlId} width={introductionWidth} contentEditable={editing} ref={editing ? r => { if (r) (observe)(r, { mutation: "default" }) } : undefined}>
               {introduction}
@@ -137,7 +130,6 @@ export const Separator = styled.div<{ horizontal?: boolean }>`
       ${horizontal ? "width" : "height"}: 100%;
     `;
   }}
-  background-color: ${mainColor};
 `
 const Container = styled.div`
   display: flex;

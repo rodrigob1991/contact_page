@@ -4,6 +4,7 @@ import { maxWidthSmallestLayout } from "../../../../../layouts"
 import { tooltipStyle } from "../../../../../theme"
 import { useFormModal } from "../../../../FormComponents"
 import WithTooltip from "../../../../WithTooltip"
+import { TfiEmail } from "react-icons/tfi";
 
 export default function SendEmail() {
     const sendEmail = ({from, subject, message}: { from: string, subject: string, message: string }) => {
@@ -89,8 +90,8 @@ export default function SendEmail() {
     )
 }
 const SendEmailImage = styled(IoIosMail)`
-  width: 70px;
-  height:70px;
+  width: 60px;
+  height:60px;
   color: white;
   cursor: pointer;
    @media (max-width: ${maxWidthSmallestLayout}px) {

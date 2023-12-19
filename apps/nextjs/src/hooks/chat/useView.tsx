@@ -10,7 +10,7 @@ import { isEmpty } from "utils/src/strings"
 import { mainColor, secondColor } from "../../theme"
 import { TextInput } from "../../components/FormComponents"
 import { GetStyle, PositionCSS, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../../components/ResizableDraggableDiv"
-import { maxWidthSmallestLayout } from "../../layouts"
+import { maxWidthSmallestLayout, messengerLayout as layout, messengerSmallestLayout as smallestLayout} from "../../layouts"
 import { InboundMessageData, MessagesData, OutboundMessageData, UserAckState } from "./useMessages"
 import { GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users } from "./useUsers"
 import { ConnectionState } from "./useWebSocket"
@@ -39,7 +39,7 @@ export default function useView<UT extends UserType>({userType, connectionState,
     const isHost = userType === "host"
     const [handleClickUser, getOutboundMessageView] = (isHost ? getHostSpecifics(selectOrUnselectUser) : getGuessSpecifics(selectOrUnselectUser)) as GetUserSpecificsReturn<UT>
 
-    const [visible, setVisible] = useState(false)
+    const [visible, setVisible] = useState(!allowHide)
     const [size, setSize] = useState(sizeProp)
     const [position, setPosition] = useState(positionProp)
     const [messageBody, setMessageBody] = useState("")
@@ -309,39 +309,43 @@ const InputMessageContainer = styled.div`
 `
 type ThumbnailViewProps = {
   visible: boolean
-  top: number
-  left: number
 } & DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>
 
-export const ViewThumbnail = ({visible, top, left, ...rest}: ThumbnailViewProps) => {
-  const messageLine = <div css={css`background-color: black; width: 80%; height: 1px;`}/>
-  return <ViewThumbnailContainer visible={visible} top={top} left={left} {...rest}>
-         <div css={css`width: 32px; background-color: #DCDCDC; height: 4px; margin: 2px;`}/>
+export const ViewThumbnail = ({visible, ...rest}: ThumbnailViewProps) => {
+  const getMessageLine = (left: boolean) => <div css={css`background-color: black; width: 55%; height: 1px; margin-${left ? "right" : "left"}: 40%;`}/>
+  return <ViewThumbnailContainer visible={visible} {...rest}>
+         <div css={css`width: 42px; background-color: #DCDCDC; height: 4px; margin: 2px;`}/>
          <div css={css`display: flex; padding-left: 2px; padding-right: 2px; gap: 2px;`}>
          <div css={css`width: 6px; background-color: #DCDCDC; height: 21px; `}/>
          <div css={css`display: flex; flex-direction: column; gap: 2px;`}>
-         <div css={css`display: flex; flex-direction: column; gap: 2px; align-items: center; justify-content: center; width: 24px; background-color: white; height: 16px;`}>
-         {messageLine}
-         {messageLine}
-         {messageLine}
-         {messageLine}
-         {messageLine}
+         <div css={css`display: flex; flex-direction: column; gap: 2px; align-items: center; justify-content: center; width: 34px; background-color: white; height: 16px;`}>
+         {getMessageLine(true)}
+         {getMessageLine(true)}
+         {getMessageLine(false)}
+         {getMessageLine(false)}
+         {getMessageLine(true)}
          </div>
-         <div css={css`width: 24px; background-color: white; height: 3px;`}/>
+         <div css={css`width: 34px; background-color: white; height: 3px;`}/>
          </div>
          </div>
          </ViewThumbnailContainer>
 }
-const ViewThumbnailContainer = styled.div<{visible: boolean, top: number, left: number}>`
-  ${({visible, top, left}) => css`
+const ViewThumbnailContainer = styled.div<{visible: boolean}>`
+  ${({visible}) => css`
   display: ${visible ? "block" : "none"};
-  top: ${top}px;
-  left: ${left}px;
   `}
+  top: ${layout.chatViewThumbnailTop}px;
+  left: ${layout.chatViewThumbnailLeft}px;
   position: absolute;
   background-color: ${secondColor};
-  width: 40px;
-  height: 35px;
+  width: ${layout.chatViewThumbnailWidth}px;
+  height: ${layout.chatViewThumbnailHeight}px;
   border: 2px solid ${mainColor};
   cursor: pointer;
+  @media (max-width: ${maxWidthSmallestLayout}px) {
+  top: ${smallestLayout.chatViewThumbnailTop}px;
+  left: ${smallestLayout.chatViewThumbnailLeft}px;
+  transform: scale(0.6);
+  }
+
 `

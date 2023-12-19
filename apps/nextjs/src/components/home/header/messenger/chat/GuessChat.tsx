@@ -1,14 +1,12 @@
 import styled from "@emotion/styled"
 import { MouseEventHandler, useState } from "react"
 import useChat, { HandleUserMessage, HandleUsersConnection, HandleUsersDisconnection } from "../../../../../hooks/chat/useChat"
+import { ViewThumbnail as ChatViewThumbnail } from "../../../../../hooks/chat/useView"
 import { ConnectionState, HandleNewConnectionState } from "../../../../../hooks/chat/useWebSocket"
-import { maxWidthSmallestLayout } from "../../../../../layouts"
+import { maxWidthSmallestLayout, messengerLayout as layout, messengerSmallestLayout as smallestLayout} from "../../../../../layouts"
+import { tooltipStyle } from "../../../../../theme"
 import WithTooltip from "../../../../WithTooltip"
 import LiveIcon from "/public/live.svg"
-import { TbArticleFilledFilled } from "react-icons/tb"
-import { ViewThumbnail as ChatViewThumbnail } from "../../../../../hooks/chat/useView"
-import { css } from "@emotion/react"
-import { tooltipStyle } from "../../../../../theme"
 
 type Props = {}
 
@@ -40,7 +38,7 @@ export default function GuessChat({}: Props) {
     const handleOnClickLiveIcon: MouseEventHandler<HTMLDivElement> = (e) => {
         setConnect(!connect)
     }
-    const handleOnClickIconChatView: MouseEventHandler<SVGElement> = (e) => {
+    const handleOnClickIconChatView: MouseEventHandler<HTMLDivElement> = (e) => {
         setChatVisible(true)
         setChatViewThumbnailVisible(false)
     }
@@ -67,7 +65,7 @@ export default function GuessChat({}: Props) {
                 onClick={handleOnClickLiveIcon}>
             <LiveIconStyled fill={iconProps.color}/>
             </WithTooltip>
-            <ChatViewThumbnail visible={chatViewThumbnailVisible} top={35} left={80} onClick={handleOnClickIconChatView}/>
+            <ChatViewThumbnail visible={chatViewThumbnailVisible} onClick={handleOnClickIconChatView}/>
             {chatView}
         </Container>
     )
@@ -81,19 +79,11 @@ const Container = styled.div`
  gap: 15px;
 `
 const LiveIconStyled = styled(LiveIcon)`
-  width: 85px;
-  height:85px;
+  width: ${layout.liveIconSize}px;
+  height: ${layout.liveIconSize}px;
   cursor: pointer;
   @media (max-width: ${maxWidthSmallestLayout}px) {
-    width: 55px;
-    height: 55px;
-  }
-`
-const ChatViewIcon = styled(TbArticleFilledFilled)`
-  position: absolute;
-  cursor: pointer;
-  @media (max-width: ${maxWidthSmallestLayout}px) {
-    top: 54px;
-    width: 40px;
+  width: ${smallestLayout.liveIconSize}px;
+  height: ${smallestLayout.liveIconSize}px;
   }
 `

@@ -18,7 +18,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: row;
   height: 100%;
-  gap: 20px;
+  gap: 30px;
   margin-right: 10px;
   align-items: center;
    @media (max-width: ${maxWidthSmallestLayout}px) {
