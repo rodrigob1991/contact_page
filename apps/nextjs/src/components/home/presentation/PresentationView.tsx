@@ -71,8 +71,11 @@ export default function PresentationView<VM extends ViewMode>({editing, presenta
             }
           }
         }
-  
+
+        resizeView()
+        
         window.addEventListener("resize", resizeView)
+
         return () => {
           window.removeEventListener("resize", resizeView)
         }
