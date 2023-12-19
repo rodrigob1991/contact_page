@@ -1,5 +1,10 @@
-import {UserType} from "chat-common/src/model/types"
-import View, {ContainerProps, Hide, SetOutboundMessageData as SetOutboundMessageDataFromView} from "./useView"
+import { getParsedUsersMessageBody } from "chat-common/src/message/functions"
+import { UserType } from "chat-common/src/model/types"
+import { useState } from "react"
+import { PositionCSS, SizeCSS } from "../../components/ResizableDraggableDiv"
+import { useMessages } from "./useMessages"
+import { LOCAL_USER_ID, LOCAL_USER_NAME, User, useUsers } from "./useUsers"
+import useView, { SetOutboundMessageData as SetOutboundMessageDataFromView } from "./useView"
 import useWebSocket, {
     ConnectionState,
     HandleConMessage,
@@ -10,12 +15,6 @@ import useWebSocket, {
     HandleUserAckMessage,
     HandleUsersMessage
 } from "./useWebSocket"
-import {useState} from "react"
-import {getParsedUsersMessageBody} from "chat-common/src/message/functions"
-import {LOCAL_USER_ID, LOCAL_USER_NAME, User, useUsers} from "./useUsers"
-import {useMessages} from "./useMessages"
-import useView from "./useView"
-import { PositionCSS, SizeCSS } from "../../components/ResizableDraggableDiv"
 
 export type HandleUsersConnection = (names: string[]) => void
 export type HandleUsersDisconnection = (names: string[]) => void
