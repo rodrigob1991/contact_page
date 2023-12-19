@@ -11,7 +11,7 @@ const nextConfig = {
     return config
   },
   experimental: {
-    appDir: true,
+    appDir: false,
   },
   transpilePackages: ["utils", "chat-common"],
   eslint: {
