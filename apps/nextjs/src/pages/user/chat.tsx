@@ -3,7 +3,7 @@ import useChat, {
     HandleUserMessage,
     HandleUsersConnection, HandleUsersDisconnection
 } from "../../hooks/chat/useChat"
-import { HandleNewConnectionState } from "../../hooks/chat/useWebSocket"
+import { HandleConnected, HandleConnecting, HandleDisconnected } from "../../hooks/chat/useWebSocket"
 
 type Props = {}
 
@@ -15,9 +15,14 @@ export default function HostLiveChat({}: Props) {
     const handleGuessMessage: HandleUserMessage = (guessName, messageBody) => {
     }
 
-    const handleNewConnectionState: HandleNewConnectionState = (cs) => {}
+    const handleConnecting: HandleConnecting = () => {
+    }
+    const handleConnected: HandleConnected = () => {
+    }
+    const handleDisconnected: HandleDisconnected = () => {
+    }
 
-    const [setChatVisible, chatView] = useChat({userType: "host", nextHandleNewConnectionState: handleNewConnectionState, viewProps: {allowHide: false, }, handleUsersConnection: handleGuessesConnection,
+    const [connectionState, setChatVisible, chatView] = useChat({userType: "host", handleConnecting, handleConnected, handleDisconnected, viewProps: {allowHide: false, }, handleUsersConnection: handleGuessesConnection,
                                        handleUsersDisconnection: handleGuessesDisconnection, handleUserMessage: handleGuessMessage, connect: true})
 
     return (
