@@ -21,10 +21,12 @@ export const useTooltip = ({style: styleProp}: Props): [JSX.Element, Update] => 
            setVisible(visible)
         if(style !== undefined)
             setStyle(style)
-        if (onMouse !== undefined && onMouse) {
+        const nextUseMousePosition = onMouse !== undefined ? onMouse : useMousePosition
+        if (nextUseMousePosition) {
             setUseMousePosition(true)
             setMouseDeviation({top: top !== undefined ? top : mouseDeviation.top, left: left !== undefined ? left : mouseDeviation.left})
         } else {
+            setUseMousePosition(false)
             setPosition({top: top !== undefined ? top : position.top, left: left !== undefined ? left : position.left})
         }
     }
@@ -33,10 +35,17 @@ export const useTooltip = ({style: styleProp}: Props): [JSX.Element, Update] => 
         const captureMousePosition = (e: MouseEvent) => {
             setPosition({top: e.clientY + mouseDeviation.top , left: e.clientX + mouseDeviation.left})
         }
+        const captureTouchPosition = (e: TouchEvent) => {
+            setPosition({top: e.touches[0].clientY + mouseDeviation.top , left: e.touches[0].clientX + mouseDeviation.left})
+        }
         if (visible && useMousePosition) {
             window.addEventListener("mousemove", captureMousePosition)
+            window.addEventListener("touchstart", captureTouchPosition)
         } 
-        return () => { window.removeEventListener("mousemove", captureMousePosition) }
+        return () => { 
+            window.removeEventListener("mousemove", captureMousePosition) 
+            window.removeEventListener("touchstart", captureTouchPosition)
+        } 
     }, [visible, useMousePosition])
 
     const defaultStyle = css`

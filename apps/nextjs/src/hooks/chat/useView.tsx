@@ -13,7 +13,7 @@ import { GetStyle, PositionCSS, ResizableDraggableDiv, SizeCSS, setPreventFlag }
 import { maxWidthSmallestLayout, messengerLayout as layout, messengerSmallestLayout as smallestLayout} from "../../layouts"
 import { InboundMessageData, MessagesData, OutboundMessageData, UserAckState } from "./useMessages"
 import { GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users } from "./useUsers"
-import { ConnectionState } from "./useWebSocket"
+import { ConnectionState } from "./useChat"
 
 export type SetOutboundMessageData =  (body: string) => boolean
 export type ContainerProps = { show: boolean, left: number, top: number, viewPortPercentage?: number}

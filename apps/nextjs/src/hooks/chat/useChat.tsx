@@ -6,16 +6,18 @@ import { useMessages } from "./useMessages"
 import { LOCAL_USER_ID, LOCAL_USER_NAME, User, useUsers } from "./useUsers"
 import useView, { SetOutboundMessageData as SetOutboundMessageDataFromView } from "./useView"
 import useWebSocket, {
-    ConnectionState,
     HandleConMessage,
+    HandleConnected,
+    HandleConnecting,
     HandleDisMessage,
+    HandleDisconnected,
     HandleMesMessage,
-    HandleNewConnectionState,
     HandleServerAckMessage,
     HandleUserAckMessage,
     HandleUsersMessage
 } from "./useWebSocket"
 
+export enum ConnectionState { CONNECTED, DISCONNECTED, CONNECTING}
 export type HandleUsersConnection = (names: string[]) => void
 export type HandleUsersDisconnection = (names: string[]) => void
 export type HandleUserMessage = (userName: string, messageBody: string) => void
@@ -26,7 +28,9 @@ type Props<UT extends UserType> = {
     handleUsersDisconnection: HandleUsersDisconnection
     handleUserMessage: HandleUserMessage
     connect: boolean
-    nextHandleNewConnectionState: HandleNewConnectionState
+    handleConnecting: HandleConnecting
+    handleConnected: HandleConnected
+    handleDisconnected: HandleDisconnected
     viewProps: {position?: PositionCSS, size?: SizeCSS, allowHide: boolean, handleOnClickHide?: () => void}
 }
 
@@ -36,20 +40,26 @@ export default function useChat<UT extends UserType>({
                                                           handleUsersDisconnection,
                                                           handleUserMessage,
                                                           connect,
-                                                          nextHandleNewConnectionState,
+                                                          handleConnecting: nextHandleConnecting,
+                                                          handleConnected: nextHandleConnected,
+                                                          handleDisconnected: nextHandleDisconnected, 
                                                           viewProps
-                                                      }: Props<UT>): [(visible: boolean) => void, JSX.Element] {
+                                                      }: Props<UT>): [ConnectionState, (visible: boolean) => void, JSX.Element] {
     const [connectionState, setConnectionState] = useState(ConnectionState.DISCONNECTED)
-    const handleNewConnectionState: HandleNewConnectionState = (cs) => {
-        setConnectionState(cs)
-        switch (cs) {
-            case ConnectionState.CONNECTED :
-                setConnectedUser(LOCAL_USER_ID, LOCAL_USER_NAME, Date.now())
-                break
-            case ConnectionState.DISCONNECTED :
-                setDisconnectedAllUsers()
-        }
-        nextHandleNewConnectionState(cs)
+
+    const handleConnecting: HandleConnecting = () => {
+        setConnectionState(ConnectionState.CONNECTING)
+        nextHandleConnecting()
+    }
+    const handleConnected: HandleConnected = () => {
+        setConnectionState(ConnectionState.CONNECTED)
+        setConnectedUser(LOCAL_USER_ID, LOCAL_USER_NAME, Date.now())
+        nextHandleConnected()
+    }
+    const handleDisconnected: HandleDisconnected = () => {
+        setConnectionState(ConnectionState.DISCONNECTED)
+        setDisconnectedAllUsers()
+        nextHandleDisconnected()
     }
 
     const [users, setUsers, getUserColor, setConnectedUser, setDisconnectedUser, setDisconnectedAllUsers, selectOrUnselectUser] = useUsers(userType)
@@ -103,12 +113,14 @@ export default function useChat<UT extends UserType>({
         isMessageAckByServer,
         // addPendingUserAckMessage,
         connect,
-        handleNewConnectionState
+        handleConnecting,
+        handleConnected,
+        handleDisconnected
     })
 
     const [isTargetUser] = userType === "host" ? getHostSpecifics() : getGuessSpecifics()
 
-    return useView({userType, connectionState, users, selectOrUnselectUser, getUserColor, messages: messagesData, setOutboundMessageData: setOutboundMessageDataFromView, ...viewProps})
+    return [connectionState, ...useView({userType, connectionState, users, selectOrUnselectUser, getUserColor, messages: messagesData, setOutboundMessageData: setOutboundMessageDataFromView, ...viewProps})]
 }
 
 type IsTargetUser = (user: User) => boolean

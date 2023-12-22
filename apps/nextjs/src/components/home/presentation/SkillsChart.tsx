@@ -1,16 +1,16 @@
-import styled from "@emotion/styled"
-import {PlusButton} from "../../Buttons"
-import React, {useEffect, useRef, useState, MouseEvent, MouseEventHandler, TouchEventHandler} from "react"
-import {NewSkill, Skill, ViewMode} from "../../../types/home"
-import {Observe} from "../../../pages/user/edit_home"
-import {ImageViewSelector, TextInput} from "../../FormComponents"
-import {useAsk} from "../../../hooks/useAsk"
-import {useTooltip} from "../../../hooks/useTooltip"
-import Image from "next/image"
-import {minWidthFullLayout, skillsChartLayout as layout, skillsChartSmallestLayout as smallestLayout, SkillBarWidth, presentationLayout} from "../../../layouts"
-import {orderByComparePreviousByNumber} from "utils/src/arrays"
 import { css } from "@emotion/react"
+import styled from "@emotion/styled"
+import Image from "next/image"
+import React, { MouseEvent, MouseEventHandler, useEffect, useRef, useState } from "react"
+import { orderByComparePreviousByNumber } from "utils/src/arrays"
+import { useAsk } from "../../../hooks/useAsk"
+import { useTooltip } from "../../../hooks/useTooltip"
+import { SkillBarWidth, skillsChartLayout as layout, minWidthFullLayout, presentationLayout } from "../../../layouts"
+import { Observe } from "../../../pages/user/edit_home"
 import { tooltipStyle } from "../../../theme"
+import { NewSkill, Skill, ViewMode } from "../../../types/home"
+import { PlusButton } from "../../Buttons"
+import { ImageViewSelector, TextInput } from "../../FormComponents"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
@@ -42,16 +42,16 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
         return `hsl(${hue},${saturation}%,${lightness}%)`
     }
 
-    const [NameTooltip, showNameTooltip] = useTooltip({style: tooltipStyle})
+    const [nameTooltip, updateNameTooltip] = useTooltip({style: tooltipStyle})
     const handleMouseEnterSkillView = (e: MouseEvent<HTMLDivElement>, name: string) => {
-        showNameTooltip(true, true, -40, 0, name)
+        updateNameTooltip(true, true, -40, 0, name)
     }
     const handleMouseLeaveSkillView: MouseEventHandler<HTMLDivElement> = (e) => {
-        showNameTooltip(false)
+        updateNameTooltip(false)
     }
     const handleTouchStartSkillView = (e: React.TouchEvent<HTMLDivElement>, name: string) => {
-        showNameTooltip(true, true, e.touches[0].clientY -45, e.touches[0].clientX - 20, name)
-        setTimeout(() => {showNameTooltip(false)}, 1500)
+        updateNameTooltip(true, true, -45, -20, name)
+        setTimeout(() => {updateNameTooltip(false)}, 1500)
     }
 
     const skillBarHasTopMargin = (position: number) => layout.getWidth(position) > width
@@ -206,14 +206,14 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
             <PlusButton size={15} color={"white"} onClick={handleCreateSkill}/>
         </>
 
-
     return (
+        <>{nameTooltip}
         <Container width={width}>
-            {NameTooltip}
             {editing
                 ? getEditableSkillsView()
                 : getSkillsView()}
         </Container>
+        </>
     )
 }
 const Container = styled.div<{ width: number }>`

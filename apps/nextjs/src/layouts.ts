@@ -18,7 +18,7 @@ export const messengerSmallestLayout = {
      sendEmailIconSize: 40,
      chatViewThumbnailWidth: 35,
      chatViewThumbnailHeight: 20,
-     get chatViewThumbnailTop() {return chatViewThumbnailTop - (liveIconSize - this.liveIconSize)},
+     get chatViewThumbnailTop() {return chatViewThumbnailTop - (liveIconSize - this.liveIconSize) + 10},
      get chatViewThumbnailLeft() {return chatViewThumbnailLeft - (liveIconSize - this.liveIconSize)}
 }
 

@@ -192,7 +192,6 @@ const IntroductionContainer = styled.div`
 const Introduction = styled.h2<{ width: number }>`
   font-weight: bold;
   font-size: 2.5rem;
-  text-align: center;
   overflow: auto;
   color: #ffffff;
   text-shadow: 2px 2px 5px #000000;
