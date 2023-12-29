@@ -22,6 +22,7 @@ type InputsValues<E extends InputsProps> = {
 
 const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [JSX.Element, InputsValues<IP>]  => {
     const elementsRef = useRef(<></>)
+    // @ts-expect-error
     const valuesRef = useRef<InputsValues<IP>>({})
 
     useEffect(() => {
@@ -29,16 +30,20 @@ const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [JSX.Eleme
         for (const [key, {type, props}] of Object.entries(inputsProps)) {
             let input
             const setElementValue = (value: InputValue<typeof type>) => {
+            // @ts-expect-error
               valuesRef.current[key] = value
             }
             switch (type) {
                 case "textInput":
+                    // @ts-expect-error
                     input = <TextInput {...props} setValue={(value) => {setElementValue(value)}}/>
                     break
                 case "numberInput":
+                    // @ts-expect-error
                     input = <NumberInput {...props} setValue={(value) => {setElementValue(value)}}/>
                     break
                 case "textAreaInput":
+                    // @ts-expect-error
                     input = <TextAreaInput {...props} setValue={(value) => {setElementValue(value)}}/>
                     break
             }
