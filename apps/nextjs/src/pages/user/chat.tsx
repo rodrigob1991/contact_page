@@ -23,7 +23,7 @@ export default function HostLiveChat({}: Props) {
     }
 
     const [connectionState, setChatVisible, chatView] = useChat({userType: "host", handleConnecting, handleConnected, handleDisconnected, viewProps: {allowHide: false, }, handleUsersConnection: handleGuessesConnection,
-                                       handleUsersDisconnection: handleGuessesDisconnection, handleUserMessage: handleGuessMessage, connect: true})
+                                                                 handleUsersDisconnection: handleGuessesDisconnection, handleUserMessage: handleGuessMessage, connect: true})
 
     return (
         <Container>
@@ -35,5 +35,5 @@ const Container = styled.div`
   display: flex;
   flex-flow: column;
   height: 100vh;
-  background-image: linear-gradient(#00008B,#0000FF);
+  background-image: linear-gradient(#00008B,#0000FF)
   `

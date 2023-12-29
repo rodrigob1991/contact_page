@@ -1,12 +1,11 @@
 import styled from "@emotion/styled"
 import {css} from "@emotion/react"
 
-export type ResultMessageProps = { message: string, succeed: boolean }
+export type ResultMessageProps = { message?: string, succeed: boolean }
 
 export const ResultMessage = ({message, succeed}: ResultMessageProps) => {
-    return (
-        <Label succeed={succeed}>{message}</Label>
-    )
+    return message ? <Label succeed={succeed}>{message}</Label> : null
+    
 }
 
 const Label = styled.label<{ succeed: boolean }>`

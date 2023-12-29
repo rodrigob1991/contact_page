@@ -2,12 +2,12 @@ import styled from "@emotion/styled"
 import { IoIosMail } from "react-icons/io"
 import { maxWidthSmallestLayout } from "../../../../../layouts"
 import { tooltipStyle } from "../../../../../theme"
-import { useFormModal } from "../../../../FormComponents"
 import WithTooltip from "../../../../WithTooltip"
-import { TfiEmail } from "react-icons/tfi";
+import useFormModal from "../../../../../hooks/forms/useFormModal"
+import { postEmail } from "../../../../../httpClient"
 
 export default function SendEmail() {
-    const sendEmail = ({from, subject, message}: { from: string, subject: string, message: string }) => {
+    /* const sendEmail = ({from, subject, message}: { from: string, subject: string, message: string }) => {
         const bodyParams = {
             sender: {email: from},
             to: [{email: process.env.NEXT_PUBLIC_MY_EMAIL, name: "Rodrigo"}],
@@ -49,45 +49,48 @@ export default function SendEmail() {
             logError(e)
             return unsuccessResultMessage
         })
-    }
+    } */
 
-    const [showSendMessageModal, sendMessageModal] = useFormModal(
-        {
-            inputElementsProps: {
-                from: {
-                    type: "textInputEmail",
-                    required: true,
-                    placeholder: "from",
-                    width: 300,
-                    style: {fontSize: "2rem"}
-                },
-                subject: {type: "textInput", placeholder: "subject", width: 300, style: {fontSize: "2rem"}},
-                message: {
-                    type: "textAreaInput",
-                    required: true,
-                    placeholder: "message",
-                    height: 250,
-                    width: 300,
-                    style: {fontSize: "2rem"}
-                }
-            },
-            processSubmission: sendEmail,
-            position: {left: 50, top: 40},
-            resultMessageStyle: {fontStyle: "2rem"},
-            button: {text: "SEND EMAIL", style: {fontSize: "1.7rem"}}
-        })
+    const sendEmail = ({from, subject, message}: {from: string, subject: string, message: string}) => postEmail({sender: {email: from}, receivers: [{email: process.env.NEXT_PUBLIC_MY_EMAIL as string, name: "rodrigo"}], subject, message})
 
-    return (
-        <>
-            {sendMessageModal}
-            <WithTooltip tooltipText={"send email"}
-                         tooltipDeviation={{top: 0, left: 15}}
-                         tooltipStyle={tooltipStyle}>
-            <SendEmailImage onClick={(e) => {showSendMessageModal()}}/>
-            </WithTooltip>
-        </>
+    const [showSendMessageModal, sendMessageModal] = useFormModal({
+                                                                    inputsProps: {
+                                                                        from: {
+                                                                            type: "textInput",
+                                                                            props: {
+                                                                                    required: true,
+                                                                                    email: true,
+                                                                                    placeholder: "from"
+                                                                                    }
+                                                                        },
+                                                                        subject: {
+                                                                            type: "textInput",
+                                                                            props: {
+                                                                                    placeholder: "subject",
+                                                                                    style: {fontSize: "2rem"}
+                                                                                    }
+                                                                        },
+                                                                        message: {
+                                                                            type: "textAreaInput",
+                                                                            props: {
+                                                                                    required: true,
+                                                                                    placeholder: "message",
+                                                                                    style: {fontSize: "2rem"}
+                                                                                    }
+                                                                        }
+                                                                    },
+                                                                    submissionAction: sendEmail,
+                                                                    buttonText: "SEND EMAIL"
+                                                                })
+                                                        
+    return <>
+           {sendMessageModal}
+           <WithTooltip tooltipText={"send email"}
+           tooltipDeviation={{top: 0, left: 15}}tooltipStyle={tooltipStyle}>
+           <SendEmailImage onClick={(e) => {showSendMessageModal(true)}}/>
+           </WithTooltip>
+           </>
 
-    )
 }
 const SendEmailImage = styled(IoIosMail)`
   width: 60px;

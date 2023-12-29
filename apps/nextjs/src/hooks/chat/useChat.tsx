@@ -31,7 +31,7 @@ type Props<UT extends UserType> = {
     handleConnecting: HandleConnecting
     handleConnected: HandleConnected
     handleDisconnected: HandleDisconnected
-    viewProps: {position?: PositionCSS, size?: SizeCSS, allowHide: boolean, handleOnClickHide?: () => void}
+    viewProps: {position?: PositionCSS, size?: SizeCSS, allowHide: boolean, handleOnHide?: () => void}
 }
 
 export default function useChat<UT extends UserType>({

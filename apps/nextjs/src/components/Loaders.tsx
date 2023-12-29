@@ -13,6 +13,7 @@ export const BlocksLoader = ({show}: Props) => {
             <div></div>
             <div></div>
             <div></div>
+            <div></div>
         </div>
     )
 }

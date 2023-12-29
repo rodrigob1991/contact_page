@@ -32,7 +32,7 @@ type Props = {
     getContainerStyle?: GetStyle
     getResizableDivStyle?: GetStyle
     getDraggableDivStyle?: GetStyle
-    children?: JSX.Element[]
+    children?: JSX.Element | JSX.Element[]
     size?: {value: SizeCSS, set: SetSizeCSS}
     position?: {value: PositionCSS, set: SetPositionCSS}
 }

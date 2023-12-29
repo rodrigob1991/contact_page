@@ -1,18 +1,20 @@
 import styled from "@emotion/styled"
-import {FaHandPointLeft, FaHandPointRight, FaPlus, FaTrashRestore} from "react-icons/fa"
-import {BsChevronDoubleDown, BsChevronDoubleUp, BsEyeFill, BsEyeSlashFill, BsFillTrashFill} from "react-icons/bs"
-import React, {HTMLAttributes, InputHTMLAttributes, useState} from "react"
-import {IconBaseProps} from "react-icons"
-import {secondColor} from "../theme";
+import React, { HTMLAttributes, useState } from "react"
+import { IconBaseProps } from "react-icons"
+import { BsChevronDoubleDown, BsChevronDoubleUp, BsEyeFill, BsEyeSlashFill, BsFillTrashFill } from "react-icons/bs"
+import { FaHandPointLeft, FaHandPointRight, FaPlus, FaTrashRestore } from "react-icons/fa"
+import { mainColor, secondColor, thirdColor } from "../theme"
 
 
-export const Button = styled.button<{ backgroundColor?: string }>`
- color: #FFFFFF;
- background-color: ${({backgroundColor}) => backgroundColor || secondColor};
+export const Button = styled.button`
+ color: ${thirdColor};
+ background-color: ${secondColor};
  width: fit-content;
  font-weight: bold;
  cursor: pointer;
  font-size: 2.2rem;
+ margin: 0;
+ border-color: ${mainColor};
 `
 export const PlusButton = ({
                                ...props

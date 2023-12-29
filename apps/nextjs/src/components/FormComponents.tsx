@@ -3,9 +3,11 @@ import {css} from "@emotion/react"
 import React, {
     ChangeEvent, CSSProperties,
     DetailedHTMLProps,
+    FormEventHandler,
     forwardRef,
     ImgHTMLAttributes,
     InputHTMLAttributes,
+    MouseEventHandler,
     Ref,
     TextareaHTMLAttributes,
     useEffect,
@@ -18,6 +20,7 @@ import {ResultMessage, ResultMessageProps} from "./Labels"
 import {BlocksLoader} from "./Loaders"
 import {getContainedString} from "utils/src/strings"
 import { maxWidthSmallestLayout } from "../layouts"
+import { secondColor } from "../theme"
 
 type TextInputProps = {
     setValue: (value: string) => void
@@ -116,11 +119,8 @@ const TextArea = styled.textarea<{ height?: number, width?: number }>`
     vertical-align: top;
     text-align: left;
     font-size: 20px;
-    ${props =>
-    css`
-      height:${props.height}px;
-      width:${props.width}px;
-    `}
+    height: 100%;
+    width: 100%;
 `
 type OptionSelectorProps<E extends string> = {
     id?: string
@@ -303,22 +303,23 @@ const ImageDescription = styled.div<{show: boolean}>`
   padding: 1.5px;
 `
 
-type InputType = "textAreaInput" | "textInput" | "textInputEmail"
-type InputElementProps = {type: InputType}
-type InputElementsProps = { [key: string]: InputElementProps }
-type InputValues<E extends InputElementsProps> = {
-    [K in keyof E]: (E[K]["type"] extends ("textInput" | "textAreaInput" | "textInputEmail") ? string : never)
+type InputType = "textAreaInput" | "textInput" | "numberInput" | "textInputEmail"
+type InputProps = {type: InputType}
+type InputsProps = { [key: string]: InputProps }
+type InputValue<IT extends InputType> =  (IT extends ("textInput" | "textAreaInput" | "textInputEmail") ? string : never) | (IT extends "numberInput" ? number : never)
+type InputsValues<E extends InputsProps> = {
+    [K in keyof E]: E[K]["type"] extends ("textInput" | "textAreaInput" | "textInputEmail") ? string : E[K]["type"] extends "numberInput" ? number :  never
 }
 
-type FormModalProps<E extends InputElementsProps> = {
+type FormModalProps<IP extends InputsProps> = {
     position: {top: number, left: number}
-    inputElementsProps: E
+    inputsProps: IP
     button: {text: string, style?: CSSProperties}
     resultMessageStyle?: CSSProperties
-    processSubmission: (values: InputValues<E>) => Promise<ResultMessageProps>
+    processSubmission: (values: InputsValues<IP>) => Promise<ResultMessageProps>
 }
-const useElementsValues = <E extends InputElementsProps>(inputElementsProps: E) : [JSX.Element, InputValues<E>]  => {
-    const elementsValues = useRef(
+const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [JSX.Element, InputsValues<IP>]  => {
+    /* const elementsValues = useRef(
         (() => {
             const initElementsValues: Record<string, any> = {}
             for (const key in inputElementsProps) {
@@ -328,45 +329,45 @@ const useElementsValues = <E extends InputElementsProps>(inputElementsProps: E) 
         })())
     const setElementValue = (key: keyof InputValues<E>, value: any) => {
         elementsValues.current[key] = value
-    }
+    } */
 
     const elementsRef = useRef(<></>)
+    const valuesRef = useRef<InputsValues<IP>>({})
     useEffect(() => {
         let elements = <></>
-        for (const [key, {type, ...rest}] of Object.entries(inputElementsProps)) {
+        for (const [key, {type, ...rest}] of Object.entries(inputsProps)) {
             let element
+            const setElementValue = (value: InputValue<typeof type>) => {
+              valuesRef.current[key] = value
+            }
             switch (type) {
                 case "textInput":
-                    element = <TextInput {...rest} setValue={(value) => setElementValue(key, value)}/>
+                    element = <TextInput {...rest} setValue={(value) => {setElementValue(value)}}/>
                     break
                 case "textInputEmail":
-                    element = <TextInput {...rest} email setValue={(value) => setElementValue(key, value)}/>
+                    element = <TextInput {...rest} email setValue={(value) => {setElementValue(value)}}/>
                     break
                 case "textAreaInput":
-                    element = <TextAreaInput {...rest} setValue={(value) => setElementValue(key, value)}/>
+                    element = <TextAreaInput {...rest} setValue={(value) => {setElementValue(value)}}/>
                     break
             }
             elements = <>
-                {elements}
-                {element}
-            </>
+                      {elements}
+                      {element}
+                       </>
         }
         elementsRef.current = elements
     }, [])
-    return [elementsRef.current, elementsValues.current]
+    return [elementsRef.current, valuesRef.current]
 }
 
-export const useFormModal = <E extends InputElementsProps>({
-                                                               position: {
-                                                                   top: topPosition,
-                                                                   left: leftPosition
-                                                               },
-                                                               inputElementsProps,
-                                                               button: {text: buttonText, style: buttonStyle},
-                                                               resultMessageStyle,
-                                                               processSubmission,
-                                                           }: FormModalProps<E>) : [()=> void, JSX.Element] => {
-    const [Elements, elementsValues] = useElementsValues(inputElementsProps)
+export const useFormModal = <IP extends InputsProps>({position,
+                                                      inputsProps,
+                                                      button: {text: buttonText, style: buttonStyle},
+                                                      resultMessageStyle,
+                                                      processSubmission,
+                                                      }: FormModalProps<IP>) : [()=> void, JSX.Element] => {
+    const [inputs, inputsValues] = useElementsValues(inputsProps)
 
     const [show, setShow] = useState(false)
     const showModal = () => {
@@ -384,39 +385,38 @@ export const useFormModal = <E extends InputElementsProps>({
         setResultMessage(emptyResultMessage)
     }
 
-    const handleCloseModal = (e: React.MouseEvent<SVGElement>) => {
+    const handleCloseModal: MouseEventHandler = (e) => {
         cleanResultMessage()
         hideModal()
     }
 
-    const handleSubmission = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmission: FormEventHandler = (e) => {
         e.preventDefault()
         cleanResultMessage()
         setLoading(true)
 
-        processSubmission(elementsValues)
-            .then(
-            (resultMessageProps)=> {
+        processSubmission(inputsValues)
+        .then((resultMessageProps) => {
                 setResultMessage(resultMessageProps)
-            })
-            .finally(()=>  setLoading(false))
+        })
+        .finally(() => {setLoading(false)})
+        .catch((e) => {})
     }
 
-    const Modal = <FormModalContainer onSubmit={handleSubmission} show={show} topPosition={topPosition}
-                            leftPosition={leftPosition}>
+    const modal = <FormModalContainer onSubmit={handleSubmission} show={show} {...position}>
                     <IoMdClose size={20} style={{cursor: "pointer", color: "#FFFFFF"}} onClick={handleCloseModal}/>
-                    {Elements}
+                    {inputs}
                     <BlocksLoader show={loading}/>
-                    <Button disabled={loading} style={buttonStyle} backgroundColor={"#00008B"}>{buttonText}</Button>
+                    <Button disabled={loading} style={buttonStyle} backgroundColor={secondColor}>{buttonText}</Button>
                     <ResultMessage {...resultMessage}/>
-                 </FormModalContainer>
+                  </FormModalContainer>
 
-    return [showModal, Modal]
+    return [showModal, modal]
 }
-const FormModalContainer = styled.form<{ show: boolean, topPosition: number, leftPosition: number}>`
-  display: ${({show, topPosition, leftPosition}) => (show ? "flex" : "none") + ";"
-    + "top: " + topPosition + "%;"
-    + "left: " + leftPosition + "%;"}
+const FormModalContainer = styled.form<{ show: boolean, top: number, left: number}>`
+  display: ${({show, top, left}) => (show ? "flex" : "none") + ";"
+    + "top: " + top + "%;"
+    + "left: " + left+ "%;"}
   flex-direction: column;
   align-items: center;
   z-index: 1; 

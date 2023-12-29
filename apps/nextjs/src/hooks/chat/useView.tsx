@@ -7,13 +7,14 @@ import { FiArrowRight } from "react-icons/fi"
 import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
 import { TfiTarget } from "react-icons/tfi"
 import { isEmpty } from "utils/src/strings"
-import { mainColor, secondColor } from "../../theme"
+import { mainColor, secondColor, thirdColor } from "../../theme"
 import { TextInput } from "../../components/FormComponents"
 import { GetStyle, PositionCSS, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../../components/ResizableDraggableDiv"
 import { maxWidthSmallestLayout, messengerLayout as layout, messengerSmallestLayout as smallestLayout} from "../../layouts"
 import { InboundMessageData, MessagesData, OutboundMessageData, UserAckState } from "./useMessages"
 import { GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users } from "./useUsers"
 import { ConnectionState } from "./useChat"
+import useModal from "../useModal"
 
 export type SetOutboundMessageData =  (body: string) => boolean
 export type ContainerProps = { show: boolean, left: number, top: number, viewPortPercentage?: number}
@@ -28,20 +29,20 @@ type Props<UT extends UserType> = {
     setOutboundMessageData: SetOutboundMessageData
     position?: PositionCSS
     size?: SizeCSS
-    allowHide: boolean
-    handleOnClickHide?: () => void
+    hidable?: boolean
+    handleOnHide?: () => void
 }
 
 const fullSize = {height: "100%", width: "100%"}
 const centerPosition = {top: "50%", left: "50%"}
 
-export default function useView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setOutboundMessageData, position: positionProp=centerPosition, size: sizeProp=fullSize, allowHide, handleOnClickHide: handleOnClickHideProp}: Props<UT>): [(visible: boolean) => void, JSX.Element] {
+export default function useView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setOutboundMessageData, position=centerPosition, size=fullSize, hidable, handleOnHide}: Props<UT>): [(visible: boolean) => void, JSX.Element] {
     const isHost = userType === "host"
     const [handleClickUser, getOutboundMessageView] = (isHost ? getHostSpecifics(selectOrUnselectUser) : getGuessSpecifics(selectOrUnselectUser)) as GetUserSpecificsReturn<UT>
 
-    const [visible, setVisible] = useState(!allowHide)
-    const [size, setSize] = useState(sizeProp)
-    const [position, setPosition] = useState(positionProp)
+    //const [visible, setVisible] = useState(!allowHide)
+   // const [size, setSize] = useState(sizeProp)
+    //const [position, setPosition] = useState(positionProp)
     const [messageBody, setMessageBody] = useState("")
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -56,7 +57,7 @@ export default function useView<UT extends UserType>({userType, connectionState,
           }
       }
     }
-    const handleOnClickCenterPosition: MouseEventHandler<SVGElement> = (e) => {
+   /*  const handleOnClickCenterPosition: MouseEventHandler<SVGElement> = (e) => {
        setPosition(centerPosition)
     }
     const handleOnClickDefaultSize: MouseEventHandler<SVGElement> = (e) => {
@@ -69,14 +70,14 @@ export default function useView<UT extends UserType>({userType, connectionState,
         setVisible(false)
         if(handleOnClickHideProp)
            handleOnClickHideProp()
-    }
+    } */
     
     const getInboundMessageView = ({fromUserId, number, body}: InboundMessageData) =>
         <MessageView key={fromUserId + "-" + number} isOutbound={false}>
         <MessageBody serverAck={true} color={getUserColor(fromUserId)}> {body} </MessageBody>
         </MessageView>
 
-    const getContainerStyle: GetStyle = (resizing, dragging) => css`
+   /*  const getContainerStyle: GetStyle = (resizing, dragging) => css`
       display: ${visible ? "flex" :  "none"}; position: fixed; 
       min-height: 350px; min-width: 350px; max-height: 100%; max-width: 100%;
       transform: translate(-50%, -50%);
@@ -88,38 +89,25 @@ export default function useView<UT extends UserType>({userType, connectionState,
       display: flex; flex-direction: column; height: 100%; width: 100%;
     `
     const topIconsCommonProps = {size: 28, css: css`cursor: pointer; color: ${secondColor}; padding: 2px;`, onMouseDown: (e: React.MouseEvent) => {setPreventFlag(e, true, true)}}
+ */
+    const topRightChildren = <ConnectionStateView connectionState={connectionState}/> 
+    const children = <BottomContainer>
+                     <UsersContainer>
+                     {users.map(({id, name, isConnected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={isConnected}>{name}</UserView>)}
+                     </UsersContainer>
+                     <BottomRightContainer>
+                     <MessagesContainer>
+                     {messages.map((md) => md.flow === "in" ? getInboundMessageView(md) : getOutboundMessageView(md, getUserColor))}
+                     <div ref={messagesEndRef}/>
+                     </MessagesContainer>
+                     <InputMessageContainer>
+                     <TextInput css={css`border-color: ${mainColor};`} fromSpan value={messageBody} setValue={setMessageBody} onEnter={handleInputMessage} placeholder={"type message..."} onMouseDown={e => {setPreventFlag(e, true, true)}}/>
+                     <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={handleInputMessage}/>
+                     </InputMessageContainer>
+                     </BottomRightContainer>
+                     </BottomContainer>
 
-    const view = 
-        <ResizableDraggableDiv draggable resizable getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} size={{value: size, set: setSize}} position={{value: position, set: setPosition}}>
-            <TopContainer> 
-                <TopLeftContainer>
-                <TfiTarget {...topIconsCommonProps} onClick={handleOnClickCenterPosition}/>
-                <SlSizeActual  {...topIconsCommonProps} onClick={handleOnClickDefaultSize}/>
-                <SlSizeFullscreen  {...topIconsCommonProps} onClick={handleOnClickFullSize}/>
-                {allowHide && <BsEyeSlashFill {...topIconsCommonProps} onClick={handleOnClickHide}/>}
-              </TopLeftContainer>
-              <TopRightContainer>
-                <ConnectionStateView connectionState={connectionState}/>
-              </TopRightContainer> 
-            </TopContainer>
-            <BottomContainer>
-              <UsersContainer>
-                {users.map(({id, name, isConnected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={isConnected}>{name}</UserView>)}
-              </UsersContainer>
-              <BottomRightContainer>
-              <MessagesContainer>
-                {messages.map((md) => md.flow === "in" ? getInboundMessageView(md) : getOutboundMessageView(md, getUserColor))}
-                <div ref={messagesEndRef}/>
-              </MessagesContainer>
-              <InputMessageContainer>
-                <TextInput css={css`border-color: ${mainColor};`} fromSpan value={messageBody} setValue={setMessageBody} onEnter={handleInputMessage} placeholder={"type message..."} onMouseDown={e => {setPreventFlag(e, true, true)}}/>
-                <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={handleInputMessage}/>
-              </InputMessageContainer>
-              </BottomRightContainer>
-            </BottomContainer>
-        </ResizableDraggableDiv>
-
-    return [setVisible, view]
+    return useModal({topRightChildren, children, handleOnHide})
 }
 
 type HandleClickUser<UT extends UserType> = UT extends "host" ? (e: React.MouseEvent<HTMLSpanElement>, index: number) => void : undefined
@@ -196,7 +184,6 @@ const TopRightContainer = styled.div`
 const ConnectionStateView = styled.span<{connectionState: ConnectionState}>`
   height: 25px;
   width: 25px;
-  margin: 20px;
   border-style: solid;
   border-radius: 50%;
   border-color: ${secondColor};
@@ -209,7 +196,7 @@ const UsersContainer = styled.div`
   border-style: solid;
   border-radius: 10px;
   padding: 5px;
-  background-color: #DCDCDC;
+  background-color: ${thirdColor};
   border-style: solid;
   border-color: ${mainColor};
   margin-bottom: 0px;

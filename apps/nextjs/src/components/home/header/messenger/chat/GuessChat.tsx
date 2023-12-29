@@ -48,7 +48,7 @@ export default function GuessChat({}: Props) {
         setChatVisible(true)
         setChatViewThumbnailVisible(false)
     }
-    const handleOnClickHide = () => {
+    const handleOnHide = () => {
         setChatVisible(false)
         setChatViewThumbnailVisible(true)
     }
@@ -61,7 +61,7 @@ export default function GuessChat({}: Props) {
     }
 
     const [connectionState, setChatVisible, chatView] = useChat({userType: "guess", handleUsersConnection: handleHostConnection, handleUsersDisconnection: handleHostDisconnection, handleUserMessage: handleHostMessage,
-                                                                handleConnecting, handleConnected, handleDisconnected, connect, viewProps: {position: {top: "50%", left: "50%"}, size: {height: "30%", width: "30%"}, allowHide: true, handleOnClickHide}})
+                                                                handleConnecting, handleConnected, handleDisconnected, connect, viewProps: {position: {top: "50%", left: "50%"}, size: {height: "30%", width: "30%"}, allowHide: true, handleOnHide}})
     return (
         <Container>
             <WithTooltip

@@ -47,26 +47,34 @@ a {
 
 .blocks-loader {
   display: inline-block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 80px;
   height: 15px;
+  z-index: 99;
 }
 .blocks-loader div {
   display: inline-block;
-  position: relative;
   width: 15px;
-  background: #fff;
+  margin: 2px;
+  background-color: yellow;
   animation: blocks-loader 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
 }
 .blocks-loader div:nth-child(1) {
   left: 10px;
-  animation-delay: -0.24s;
+  animation-delay: -0.36s;
 }
 .blocks-loader div:nth-child(2) {
   left: 20px;
-  animation-delay: -0.12s;
+  animation-delay: -0.24s;
 }
 .blocks-loader div:nth-child(3) {
   left: 30px;
+  animation-delay: -0.12s
+}
+.blocks-loader div:nth-child(4) {
+  left: 40px;
   animation-delay: 0;
 }
 @keyframes blocks-loader {
