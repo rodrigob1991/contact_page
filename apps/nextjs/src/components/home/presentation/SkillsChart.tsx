@@ -191,30 +191,29 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
         })
     }
 
-    const getEditableSkillsView = () =>
-        <>
-            {AskSkillNameElement}
-            {skillsViewStates.map(({idHtml, skill: {name, rate, image, position}}, index) =>
-                <SkillViewContainer id={idHtml} key={idHtml} draggable={true} onDragStart={(e)=>{ handleDragStart(e, index)}} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDrag={handleDrag} onDrop={(e)=> { handleDrop(e, index)} }>
-                    <ImageViewSelector src={image.src} processSelectedImage={(name, extension, dataUrl)=>  { mutateSkillImage(index, name, extension, dataUrl)}}
-                                       imageMaxSize={1} width={layout.barWidth} height={layout.barWidth} description={name}
-                                       style={{backgroundColor: "white"}}/>
-                    <SkillBar hslColor={getHslColor(rate)} ref={r => {if (r) (observe as Observe)(r, {resize: "default"})}}
-                               id={(getHtmlElementId as GetHtmlElementId)(idHtml)} resize={true} rate={rate} hasTopMargin={skillBarHasTopMargin(position)}
-                               onClick={(e) => { handleOnClickSkill(e, index) }}/>
-                </SkillViewContainer>)}
-            <PlusButton size={15} color={"white"} onClick={handleCreateSkill}/>
-        </>
+    const getEditableSkillsView = () => <>
+                                        {AskSkillNameElement}
+                                        {skillsViewStates.map(({idHtml, skill: {name, rate, image, position}}, index) =>
+                                        <SkillViewContainer id={idHtml} key={idHtml} draggable={true} onDragStart={(e)=>{ handleDragStart(e, index)}} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDrag={handleDrag} onDrop={(e)=> { handleDrop(e, index)} }>
+                                        <ImageViewSelector src={image.src} processSelectedImage={(name, extension, dataUrl)=>  { mutateSkillImage(index, name, extension, dataUrl)}}
+                                                           imageMaxSize={1} width={layout.barWidth} height={layout.barWidth} description={name} style={{backgroundColor: "white"}}/>
+                                        <SkillBar hslColor={getHslColor(rate)} ref={r => {if (r) (observe as Observe)(r, {resize: "default"})}}
+                                                  id={(getHtmlElementId as GetHtmlElementId)(idHtml)} resize={true} rate={rate} hasTopMargin={skillBarHasTopMargin(position)}
+                                                  onClick={(e) => { handleOnClickSkill(e, index) }}/>
+                                        </SkillViewContainer>
+                                        )}
+                                        <PlusButton css={{position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 9999}} size={15} color={"white"} onClick={handleCreateSkill}/>
+                                        </>
 
-    return (
-        <>{nameTooltip}
-        <Container width={width}>
-            {editing
-                ? getEditableSkillsView()
-                : getSkillsView()}
-        </Container>
-        </>
-    )
+     
+    return <>
+           {nameTooltip}
+           <Container width={width}>
+           {editing ? getEditableSkillsView()
+                    : getSkillsView()
+           }
+           </Container>
+           </>
 }
 const Container = styled.div<{ width: number }>`
   display: flex;

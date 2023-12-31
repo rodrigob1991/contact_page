@@ -332,39 +332,36 @@ export default function EditHome(props?: HomeProps) {
     }
     const [revalidationResultMessage, setRevalidationResultMessage] = useState("")
 
-    return (
-        <div ref={refToMutationObserverTarget}>
-            <SpinLoader show={loading}/>
-            <PresentationView editing observe={observe} getHtmlElementId={getPresentationHtmlElementId} presentation={getPresentation()}
-                              createSkill={createNewSkill} deleteSkill={deleteSkill}/>
-            <StoriesView editing observe={observe} stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
-                         createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}/>
-            <Footer>
-                <ButtonsContainer>
-                    <Button disabled={loading} onClick={storeHomeProps}> STORE </Button>
-                    <Button disabled={loading} onClick={revalidateHomeProps}> REVALIDATE </Button>
-                </ButtonsContainer>
-                <OperationMessagesContainer>
-                    <OperationMessage>{storageResultMessage}</OperationMessage>
-                    <OperationMessage>{revalidationResultMessage}</OperationMessage>
-                </OperationMessagesContainer>
-            </Footer>
-        </div>
-    )
+    return <div ref={refToMutationObserverTarget}>
+           <SpinLoader show={loading}/>
+           <PresentationView editing observe={observe} getHtmlElementId={getPresentationHtmlElementId} presentation={getPresentation()}
+                             createSkill={createNewSkill} deleteSkill={deleteSkill}/>
+           <StoriesView editing observe={observe} stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
+                        createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}/>
+           <Footer>
+           <ButtonsContainer>
+           <Button disabled={loading} onClick={storeHomeProps}> STORE </Button>
+           <Button disabled={loading} onClick={revalidateHomeProps}> REVALIDATE </Button>
+           </ButtonsContainer>
+           <OperationMessagesContainer>
+           {storageResultMessage && <OperationMessage>{storageResultMessage}</OperationMessage>}
+           {revalidationResultMessage && <OperationMessage>{revalidationResultMessage}</OperationMessage>}
+           </OperationMessagesContainer>
+           </Footer>
+           </div>
 }
 
 const ButtonsContainer = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: center;
-  padding-top: 20px;
+  padding: 20px;
   gap: 20px;
 `
 const OperationMessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
   gap: 10px;
 `
 const OperationMessage = styled.text`

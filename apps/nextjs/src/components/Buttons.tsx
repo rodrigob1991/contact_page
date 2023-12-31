@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import React, { HTMLAttributes, useState } from "react"
+import { MouseEventHandler, useState } from "react"
 import { IconBaseProps } from "react-icons"
 import { BsChevronDoubleDown, BsChevronDoubleUp, BsEyeFill, BsEyeSlashFill, BsFillTrashFill } from "react-icons/bs"
 import { FaHandPointLeft, FaHandPointRight, FaPlus, FaTrashRestore } from "react-icons/fa"
@@ -16,74 +16,43 @@ export const Button = styled.button`
  margin: 0;
  border-color: ${mainColor};
 `
-export const PlusButton = ({
-                               ...props
-                           }: IconBaseProps) => {
-    return (
-        <FaPlus style={{cursor: "pointer"}} {...props}/>
-    )
+export const PlusButton = ({className,...rest}: IconBaseProps) => {
+    return <FaPlus className={"button " + (className ?? "")} {...rest}/>
 }
-export const DeleteButton = ({
-                                 ...props
-                             }: IconBaseProps) => {
-    return (
-        <BsFillTrashFill style={{cursor: "pointer"}} {...props}/>
-    )
+export const DeleteButton = ({className, ...rest}: IconBaseProps) => {
+    return <BsFillTrashFill className={"button " + (className ?? "")} {...rest}/>
 }
-export const RecoverButton = ({
-                                   ...props
-                               }: IconBaseProps) => {
-    return (
-        <FaTrashRestore style={{cursor: "pointer"}} {...props}/>
-    )
+export const RecoverButton = ({className, ...rest}: IconBaseProps) => {
+    return <FaTrashRestore className={"button " + (className ?? "")} {...rest}/>
 }
-export const OpenOrCloseStoryButton = ({
-                                           isOpen,
-                                           ...rest
-                                       }: { isOpen: boolean } & IconBaseProps) => {
-    return (
-        isOpen ? <BsChevronDoubleUp {...rest} style={{cursor: "pointer"}}/>
-            : <BsChevronDoubleDown {...rest} style={{cursor: "pointer"}}/>
-    )
+export const OpenOrCloseStoryButton = ({className, isOpen, ...rest}: {isOpen: boolean} & IconBaseProps) => {
+    return isOpen ? <BsChevronDoubleUp className={"button " + (className ?? "")} {...rest}/>
+                  : <BsChevronDoubleDown className={"button " + (className ?? "")} {...rest}/>
 }
-export const DeleteOrRecoverButton = ({
-                                          initShowDelete,
-                                          handleDelete,
-                                          handleRecover,
-                                          ...rest
-                                      }: { initShowDelete?: boolean, handleDelete: () => void ,handleRecover: () => void } & IconBaseProps) => {
+export const DeleteOrRecoverButton = ({initShowDelete, handleDelete, handleRecover,...rest}:{ initShowDelete?: boolean, handleDelete: () => void ,handleRecover: () => void } & IconBaseProps) => {
     const [showDelete, setShowDelete] = useState<boolean>(initShowDelete ?? true)
 
-    const handleOnClickRecover = (e: React.MouseEvent<SVGElement>) => {
+    const handleOnClickRecover: MouseEventHandler<SVGElement> = (e) => {
         setShowDelete(true)
         handleRecover()
     }
-    const handleOnClickDelete = (e: React.MouseEvent<SVGElement>) => {
+    const handleOnClickDelete: MouseEventHandler<SVGElement> = (e) => {
         setShowDelete(false)
         handleDelete()
     }
 
-    return (
-        showDelete ? <DeleteButton {...rest} onClick={handleOnClickDelete}/>
-            : <RecoverButton {...rest} onClick={handleOnClickRecover}/>
-    )
+    return showDelete ? <DeleteButton {...rest} onClick={handleOnClickDelete}/>
+                      : <RecoverButton {...rest} onClick={handleOnClickRecover}/>
+    
 }
-export const SeeOrUnseeButton = ({
-                                     see,
-                                     ...rest
-                                 }: { see: boolean } & IconBaseProps) => {
-    return (
-        see ? <BsEyeSlashFill {...rest} style={{cursor: "pointer"}}/>
-            : <BsEyeFill {...rest} style={{cursor: "pointer"}}/>
-    )
+export const SeeOrUnseeButton = ({className, see,...rest}: { see: boolean } & IconBaseProps) => {
+    return see ? <BsEyeSlashFill className={"button " + (className ?? "")} {...rest}/>
+               : <BsEyeFill className={"button " + (className ?? "")} {...rest}/>
 }
 
-export const PointHandLeftOrRightButton = ({left, containerProps, iconProps}: { left: boolean, containerProps: HTMLAttributes<HTMLDivElement>, iconProps: IconBaseProps}) => {
-    return <div {...containerProps}>
-        {left ? <FaHandPointLeft {...iconProps} style={{cursor: "pointer"}}/>
-            : <FaHandPointRight {...iconProps} style={{cursor: "pointer"}}/>
-        }
-    </div>
+export const PointHandLeftOrRightButton = ({className, left, ...rest}: { left: boolean} & IconBaseProps) => {
+    return left ? <FaHandPointLeft className={"button " + (className ?? "")} {...rest}/>
+                : <FaHandPointRight className={"button " + (className ?? "")} {...rest}/>
 }
 
 

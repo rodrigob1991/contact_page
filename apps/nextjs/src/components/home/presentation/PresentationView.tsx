@@ -105,7 +105,7 @@ export default function PresentationView<VM extends ViewMode>({editing, presenta
       <InnerContainer ref={innerContainerRef} flexDirection={innerContainerFlexDirection}>
         <PortraitNameIntroductionContainer ref={portraitNameIntroductionContainerRef}>
           <PortraitNameContainer>
-            {editing ? <ImageViewSelector imageMaxSize={16} width={100} height={90} processSelectedImage={processSelectedImage} src={imageDataUrl} />
+            {editing ? <ImageViewSelector imageMaxSize={16} width={layout.imageSize} height={layout.imageSize} processSelectedImage={processSelectedImage} src={imageDataUrl} />
               : <Portrait alt={name} src={imageDataUrl || ""} width={100} height={90}/>
             }
             <Name id={nameHtmlId} contentEditable={editing} ref={editing ? r => { if (r) (observe)(r, { mutation: "default" }) } : undefined}>

@@ -233,9 +233,6 @@ export default function StoriesView<M extends ViewMode>({
 const Container = styled.div`
   width: 100%;
   background-color: #fff;
-  background-image:
-  linear-gradient(#eee .1em, transparent .1em);
-  background-size: 100% 2.5em;
 `
 const StoriesAnchorsContainer = styled.div<{transparent: boolean}>` 
   position: sticky;
