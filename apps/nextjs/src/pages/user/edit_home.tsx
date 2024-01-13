@@ -1,5 +1,16 @@
 import styled from "@emotion/styled"
-import React, {useEffect, useRef, useState} from "react"
+import { StoryState } from "@prisma/client"
+import React, { MouseEventHandler, useEffect, useRef, useState } from "react"
+import { getContainedString } from "utils/src/strings"
+import { AnyPropertiesCombination } from "utils/src/types"
+import { UserBaseRoute } from "../../baseRoutes"
+import { PropsStorageClient } from "../../classes/PropsStorageClient"
+import { Button } from "../../components/Buttons"
+import { SpinLoader } from "../../components/Loaders"
+import { Footer } from "../../components/home/Layout"
+import PresentationView, { GetHtmlElementId as GetPresentationHtmlElementId } from "../../components/home/presentation/PresentationView"
+import StoriesView from "../../components/home/stories/StoriesView"
+import { skillsChartLayout } from "../../layouts"
 import {
     HomeProps,
     Image,
@@ -11,21 +22,10 @@ import {
     Story,
     StoryHTMLElementIds
 } from "../../types/home"
-import {revalidatePages} from "../api/protected/revalidate/multiple"
-import {RevalidationRouteId} from "../../types/revalidation"
-import {PropsStorageClient} from "../../classes/PropsStorageClient"
-import {Button} from "../../components/Buttons"
-import {Container, Footer} from "../../components/home/Layout"
-import PresentationView, {GetHtmlElementId as GetPresentationHtmlElementId} from "../../components/home/presentation/PresentationView"
-import StoriesView from "../../components/home/stories/StoriesView"
-import {getContainedString} from "utils/src/strings"
-import {patchHomeProps, postHomeProps} from "../api/protected/props/home"
-import {SpinLoader} from "../../components/Loaders"
-import {StoryState} from "@prisma/client"
-import {AnyPropertiesCombination} from "utils/src/types"
-import {lookUpParent} from "../../utils/domManipulations"
-import {UserBaseRoute} from "../../baseRoutes"
-import { skillsChartLayout } from "../../layouts"
+import { RevalidationRouteId } from "../../types/revalidation"
+import { lookUpParent } from "../../utils/domManipulations"
+import { patchHomeProps, postHomeProps } from "../api/protected/props/home"
+import { revalidatePages } from "../api/protected/revalidate/multiple"
 
 export const EditHomeRoute = UserBaseRoute + "/edit_home"
 
@@ -34,7 +34,7 @@ export async function getServerSideProps() {
     const props = await propsStorageClient.getEditHomeProps()
 
     // json parser is use to don`t serialize undefined values, Next.js throw an error otherwise.
-    return {props: JSON.parse(JSON.stringify(props))}
+    return {props: JSON.parse(JSON.stringify(props)) as HomeProps}
 }
 
 export type Observe = (element: HTMLElement, observeWhat: AnyPropertiesCombination<{ mutation: MutationObserverInit | "default", resize: ResizeObserverOptions | "default" }>) => void
@@ -138,8 +138,10 @@ export default function EditHome(props?: HomeProps) {
         return getNewStories().filter(isNoNull)
     }
     const createNewStory = (): [string, NewStory] => {
-        const newStory = {state: StoryState.UNPUBLISHED, title: "title", body: "<div> body </div>"}
-        const id = newEntityIdPrefix + (getNewStories().push(newStory) - 1)
+        const index = getNewStories().length
+        const newStory = {state: StoryState.UNPUBLISHED, title: "new story" + (index + 1), body: "<div> body </div>"}
+        const id = newEntityIdPrefix +  index
+        getNewStories().push(newStory)
         return [id, newStory]
     }
     const mutateNewStory = <K extends keyof NewStory>(id: string, key: K, value: NewStory[K]) => {
@@ -224,14 +226,13 @@ export default function EditHome(props?: HomeProps) {
                         continue
                     }
                     const targetElement = isTargetElement(targetMutation) ? targetMutation
-                        : lookUpParent(targetMutation, (p: ParentNode) => isTargetElement(p))
+                                                                          : lookUpParent(targetMutation, (p: ParentNode) => isTargetElement(p))
 
                     if (!targetElement || !isTargetElement(targetElement)) {
                         throw Error("this should not happen")
                     }
 
                     const {id, innerHTML} = targetElement as HTMLElement
-                    console.log(innerHTML)
 
                     if (id.startsWith(presentationHtmlElementIdPrefix)) {
                         handleMutatedPresentationHTMLElement(id, innerHTML)
@@ -275,11 +276,11 @@ export default function EditHome(props?: HomeProps) {
         setStorageResultMessage("")
         setRevalidationResultMessage("")
         setLoading(true)
-        promise.finally(() => setLoading(false))
+        promise.finally(() => {setLoading(false)})
     }
 
     const [storageResultMessage, setStorageResultMessage] = useState("")
-    const storeHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const storeHomeProps: MouseEventHandler<HTMLButtonElement> = (e) => {
         prepareApiCall(isCreateHomeProps ?
                                postHomeProps({
                                    presentation: { ...getPresentation(), skills: {new: getNotNullsNewSkills()}},
@@ -308,10 +309,10 @@ export default function EditHome(props?: HomeProps) {
                 resultMessage = errorMessage || "home props could not be stored"
             }
             setStorageResultMessage(resultMessage)
-        }).finally(() => setLoading(false)))
+        }).finally(() => {setLoading(false)}))
     }
 
-    const revalidateHomeProps = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const revalidateHomeProps: MouseEventHandler<HTMLButtonElement> = (e) => {
         prepareApiCall(revalidatePages([RevalidationRouteId.HOME])
             .then(({
                        succeed,
@@ -321,8 +322,7 @@ export default function EditHome(props?: HomeProps) {
                     if (succeed) {
                         //there must always be revalidations here
                         if (revalidations) {
-                            const message = revalidations.map(r => r.routeId + ":" + r.message).toString()
-                            setRevalidationResultMessage(message)
+                            setRevalidationResultMessage(revalidations.map(r => r.routeId + ":" + r.message).toString())
                         }
                     } else {
                         setRevalidationResultMessage(errorMessage || "there must be always an error message")

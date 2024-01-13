@@ -1,19 +1,18 @@
 import { Theme } from "@emotion/react"
 import { Interpolation } from "@emotion/styled"
-import { DetailedHTMLProps, HTMLAttributes, MouseEventHandler, TouchEventHandler, useEffect, useRef } from "react"
+import { MouseEventHandler, TouchEventHandler, useEffect, useRef } from "react"
 import { useTooltip } from "../hooks/useTooltip"
 
 type Props = {
-    children: JSX.Element | JSX.Element[]
-    containerStyle?: Interpolation<Theme>
+    renderChildren: (handlers: {onMouseEnter: MouseEventHandler, onMouseLeave: MouseEventHandler, onTouchStart: TouchEventHandler}) => JSX.Element,
     tooltipText: string
     tooltipStyle?: Interpolation<Theme>
     tooltipOnMouse?: boolean
-    tooltipDeviation?: {top: number, left:number}
-} & DetailedHTMLProps<HTMLAttributes<HTMLDivElement>,HTMLDivElement>
-export default function WithTooltip({children, containerStyle, tooltipText, tooltipStyle, tooltipOnMouse=true, tooltipDeviation: {top:tooltipDeviationTop, left:tooltipDeviationLeft} = {top: 0, left: 0}, ...rest} : Props) {
+    tooltipDeviation?: {top: number, left: number}
+}
+
+export default function WithTooltip({renderChildren, tooltipText, tooltipStyle, tooltipOnMouse=true, tooltipDeviation: {top:tooltipDeviationTop, left:tooltipDeviationLeft} = {top: 0, left: 0}, ...rest} : Props) {
     const [tooltip, updateTooltip] = useTooltip({style: tooltipStyle})
-    const containerRef = useRef<HTMLDivElement>(null)
     const touchedRef = useRef(false)
     const isTouched = () => touchedRef.current
     const setTouched = (touched: boolean) => {touchedRef.current = touched}
@@ -29,43 +28,37 @@ export default function WithTooltip({children, containerStyle, tooltipText, tool
         }
     }, [tooltipText, tooltipStyle, tooltipOnMouse, tooltipDeviationTop, tooltipDeviationLeft])
 
-    const showTooltip = () => {
+    const showTooltip = (element: Element) => {
         let top
         let left
         if (tooltipOnMouse) {
           top = tooltipDeviationTop
           left = tooltipDeviationLeft
         } else {
-          const {y, x} = (containerRef.current as HTMLDivElement).getBoundingClientRect()
+          const {y, x} = element.getBoundingClientRect()
           top = y + tooltipDeviationTop
           left = x + tooltipDeviationLeft
         }
         updateTooltip(true, tooltipOnMouse, top, left, tooltipText, tooltipStyle)
     }
 
-    const handleMouseEnter: MouseEventHandler<HTMLDivElement> = (e) => {
-        showTooltip()
+    const handleMouseEnter: MouseEventHandler = (e) => {
+        showTooltip(e.currentTarget)
     }
-    const handleMouseLeave: MouseEventHandler<HTMLDivElement> = (e) => {
+    const handleMouseLeave: MouseEventHandler = (e) => {
         updateTooltip(false)
     }
     const handleTouchStart: TouchEventHandler = (e) => {
         setTouched(true)
-        showTooltip()
+        showTooltip(e.currentTarget)
         setTimeout(() => {
             updateTooltip(false)
             setTouched(false)
         }, 1500)
     }
 
-    return (
-        <>
-        {tooltip}
-        <div ref={containerRef} css={containerStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
-             onTouchStart={handleTouchStart} {...rest}>
-            
-            {children}
-        </div>
-        </>
-    )
+    return <>
+          {tooltip}
+          {renderChildren({onMouseEnter: handleMouseEnter, onMouseLeave: handleMouseLeave, onTouchStart: handleTouchStart})}
+          </>
 }

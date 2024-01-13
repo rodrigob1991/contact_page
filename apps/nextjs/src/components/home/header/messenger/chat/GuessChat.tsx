@@ -62,19 +62,14 @@ export default function GuessChat({}: Props) {
 
     const [connectionState, setChatVisible, chatView] = useChat({userType: "guess", handleUsersConnection: handleHostConnection, handleUsersDisconnection: handleHostDisconnection, handleUserMessage: handleHostMessage,
                                                                 handleConnecting, handleConnected, handleDisconnected, connect, viewProps: {position: {top: "50%", left: "50%"}, size: {height: "30%", width: "30%"}, allowHide: true, handleOnHide}})
-    return (
-        <Container>
-            <WithTooltip
-                tooltipText={tooltipText}
-                tooltipDeviation={{top: 0, left: 15}}
-                tooltipStyle={tooltipStyle}
-                onClick={handleOnClickLiveIcon}>
-            <LiveIconStyled fill={iconColor}/>
-            </WithTooltip>
-            <ChatViewThumbnail visible={chatViewThumbnailVisible} onClick={handleOnClickIconChatView}/>
-            {chatView}
-        </Container>
-    )
+    return <Container>
+           <WithTooltip renderChildren={(handlers) => <LiveIconStyled fill={iconColor} {...handlers}/>}
+                        tooltipText={tooltipText}
+                        tooltipDeviation={{top: 0, left: 15}}
+                        tooltipStyle={tooltipStyle}/>
+           <ChatViewThumbnail visible={chatViewThumbnailVisible} onClick={handleOnClickIconChatView}/>
+           {chatView}
+           </Container>
 }
 
 const Container = styled.div`

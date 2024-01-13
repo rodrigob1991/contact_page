@@ -139,6 +139,7 @@ const Container = styled.div`
   flex-direction: row;
   justify-content: center;
   width: 100%;
+  border-bottom: 3px solid ${mainColor};
   @media (max-width: ${minWidthFullLayout}px) {
   }
     `
@@ -181,6 +182,7 @@ const Name = styled.h1`
   padding: 0;
   margin: 0;
   width: min-content;
+  outline-color: ${mainColor};
     `
 const IntroductionContainer = styled.div`
   display: flex;
@@ -197,6 +199,7 @@ const Introduction = styled.h2<{ width: number }>`
   text-shadow: 2px 2px 5px #000000;
   margin: 0;
   padding: 0;
+  outline-color: ${mainColor};
   ${({ width }) => css`
     width: ${width}px;
   `}

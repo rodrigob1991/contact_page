@@ -1,6 +1,6 @@
 import { Interpolation, Theme, css } from "@emotion/react"
 import styled from "@emotion/styled"
-import { MouseEventHandler, useEffect, useRef, useState } from "react"
+import { MouseEventHandler, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
 import { getNumbers } from "utils/src/strings"
 
 // attach this properties in mousedown event to prevent resize and/or drag 
@@ -25,6 +25,10 @@ export type SizeCSS = {height: string; width: string}
 export type SetSizeCSS = (size: SizeCSS) => void
 export type PositionCSS ={top: string; left: string}
 export type SetPositionCSS = (position: PositionCSS) => void
+export type ContainerDivApi = {
+    observeIntersection: (observer: IntersectionObserver) => void
+    getComputedStyle: () => CSSStyleDeclaration
+} 
 
 type Props = {
     resizable: boolean
@@ -37,9 +41,20 @@ type Props = {
     position?: {value: PositionCSS, set: SetPositionCSS}
 }
 
-export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, size: sizeProp, position: positionProp}: Props) => {
+export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, size: sizeProp, position: positionProp}, containerDivApiRef) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const getContainer = () => containerRef.current as HTMLDivElement
+    useImperativeHandle(containerDivApiRef, () => 
+        ({
+          observeIntersection(observer) {
+            observer.observe(getContainer())
+          },
+          getComputedStyle() {
+            return window.getComputedStyle(getContainer())
+          }
+        })
+    , [])
+    
     const getContainerComputedNumbers = () => {
         const numbers = getNumbers((({height, width, top, left}) => height + width + top + left)(getComputedStyle(getContainer())))
         return {height: numbers[0], width: numbers[1], top: numbers[2], left: numbers[3]}
@@ -63,10 +78,10 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
     const [localPosition, setLocalPosition] = useState({top: "none", left: "none"})
     let position: PositionCSS
     let setPosition: SetPositionCSS
-    if(positionProp){
+    if(positionProp) {
         position = positionProp.value
         setPosition = positionProp.set
-    }else{
+    }else {
         position = localPosition
         setPosition = setLocalPosition
     }
@@ -158,7 +173,7 @@ export const ResizableDraggableDiv = ({resizable, draggable, getContainerStyle, 
     return <Container ref={containerRef} css={[getContainerStyle ? getContainerStyle(resizing, dragging) : undefined, size, position]} resizing={resizing} dragging={dragging} onMouseLeave={handleOnMouseLeaveContainer}>
            {children}
            </Container>
-}
+})
 
 const Container = styled.div<{dragging: boolean, resizing: boolean}>`
     ${({resizing, dragging}) => css`

@@ -119,5 +119,5 @@ export default function useFormModal<IP extends InputsProps>({
                     </FormContainer>
     
 
-    return useModal({children, handleOnHide,...modalProps})
+    return useModal({children, handleOnHide, ...modalProps})
 }

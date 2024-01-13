@@ -85,10 +85,8 @@ export default function SendEmail() {
                                                         
     return <>
            {sendMessageModal}
-           <WithTooltip tooltipText={"send email"}
-           tooltipDeviation={{top: 0, left: 15}}tooltipStyle={tooltipStyle}>
-           <SendEmailImage onClick={(e) => {showSendMessageModal(true)}}/>
-           </WithTooltip>
+           <WithTooltip renderChildren={(handlers) => <SendEmailImage onClick={(e) => {showSendMessageModal(true)}} {...handlers}/>}
+                        tooltipText={"send email"} tooltipDeviation={{top: 0, left: 15}} tooltipStyle={tooltipStyle}/>
            </>
 
 }

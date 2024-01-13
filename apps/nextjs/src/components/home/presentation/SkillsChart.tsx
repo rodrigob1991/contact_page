@@ -7,10 +7,11 @@ import { useAsk } from "../../../hooks/useAsk"
 import { useTooltip } from "../../../hooks/useTooltip"
 import { SkillBarWidth, skillsChartLayout as layout, minWidthFullLayout, presentationLayout } from "../../../layouts"
 import { Observe } from "../../../pages/user/edit_home"
-import { tooltipStyle } from "../../../theme"
+import { mainColor, thirdColor, tooltipStyle } from "../../../theme"
 import { NewSkill, Skill, ViewMode } from "../../../types/home"
 import { PlusButton } from "../../Buttons"
 import { ImageViewSelector, TextInput } from "../../FormComponents"
+import AddButton from "../edit/AddButton"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
@@ -155,7 +156,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
         setSelectedSkillName("")
         hideAskSkillName()
     }
-    const [askSkillName, hideAskSkillName, isAskingSkillName, AskSkillNameElement] =
+    const [askSkillName, hideAskSkillName, isAskingSkillName, askSkillNameElement] =
         useAsk({onShow: focusSkillNameInput,
                                     child: <TextInput placeholder={"name"}
                                                       style={{width: "120px"}}
@@ -192,7 +193,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
     }
 
     const getEditableSkillsView = () => <>
-                                        {AskSkillNameElement}
+                                        {askSkillNameElement}
                                         {skillsViewStates.map(({idHtml, skill: {name, rate, image, position}}, index) =>
                                         <SkillViewContainer id={idHtml} key={idHtml} draggable={true} onDragStart={(e)=>{ handleDragStart(e, index)}} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDrag={handleDrag} onDrop={(e)=> { handleDrop(e, index)} }>
                                         <ImageViewSelector src={image.src} processSelectedImage={(name, extension, dataUrl)=>  { mutateSkillImage(index, name, extension, dataUrl)}}
@@ -202,7 +203,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
                                                   onClick={(e) => { handleOnClickSkill(e, index) }}/>
                                         </SkillViewContainer>
                                         )}
-                                        <PlusButton css={{position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 9999}} size={15} color={"white"} onClick={handleCreateSkill}/>
+                                        <AddButton position="middle" tooltipText="add skill" handleOnClick={handleCreateSkill}/>
                                         </>
 
      
@@ -216,6 +217,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
            </>
 }
 const Container = styled.div<{ width: number }>`
+  position: relative;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -224,7 +226,7 @@ const Container = styled.div<{ width: number }>`
   width: ${({ width }) => width}px;
   @media (max-width: ${minWidthFullLayout}px) {
   }
-`;
+`
 const SkillViewContainer = styled.div`
   display: flex;
   flex-direction: column-reverse;

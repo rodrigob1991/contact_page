@@ -16,16 +16,18 @@ import {
     positionCaretOn,
     removeNodesFromOneSide
 } from "../utils/domManipulations"
-import React, {useEffect, useRef, useState} from "react"
+import React, {MouseEventHandler, useEffect, useRef, useState} from "react"
 import {ImageSelector, NumberInput, TextInput} from "./FormComponents"
 import {FcPicture} from "react-icons/fc"
 import {Ask, IsAsking, useAsk} from "../hooks/useAsk"
 import {useRecordState} from "../hooks/useRecordState"
 import {DeleteOrRecoverButton} from "./Buttons"
+import { css } from "@emotion/react"
+import useModal from "../hooks/useModal"
 
 type Props = {
     rootElementId: string
-    show?: boolean
+    visible: boolean
     isAsking?: (asking: boolean) => void
 }
 type OptionType = "defaultText" | "span" | "link" | "image"
@@ -35,10 +37,42 @@ type OptionTargetElementProps = ImageProps | string
 type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
 type GetOptionTargetNodeWithProps = (text: string, isLast: boolean, props?: OptionTargetElementProps)=> OptionTargetNode
 
-export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
+export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
     const getRootElement = () => {
         return document.getElementById(rootElementId)
     }
+  /*   const containerDivRef = useRef<HTMLDivElement>(null)
+    const getContainerDiv = () => containerDivRef.current as HTMLDivElement
+    const [position, setPosition] = useState("absolute")
+    const [top, setTop] = useState("none")
+    useEffect(() => {
+        const options = {
+            root: undefined,
+            rootMargin: "0px",
+            threshold: 1
+        }
+        const callback: IntersectionObserverCallback = (entries, observer) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) {
+                    const scrollY = window.scrollY
+                    const top = getComputedStyle(getContainerDiv()).top
+                    const handleScroll = (e: Event) => {
+                        if(window.scrollY <= scrollY) {
+                            window.removeEventListener("scroll", handleScroll)
+                            setPosition("absolute")
+                            setTop(top)
+                        }
+                    }
+                    window.addEventListener("scroll", handleScroll)
+                    setPosition("fixed")
+                    setTop("0px")
+                }
+                console.log(entry)
+            })
+        }
+        const observer = new IntersectionObserver(callback, options)
+        observer.observe(getContainerDiv())
+    }, []) */
 
     //THIS EFFECT IS FOR WHEN IS REMOVE A DIV DELETE THE SPAN THAT THE BROWSER CREATE. I DONT LIKE AT ALL.
    /* useEffect(() => {
@@ -86,7 +120,7 @@ export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
     const focusRootElement = () => {
         getRootElement()?.focus()
     }
-    const [askElementId, isAskingElementId, AskElementId] = useAskElementId({id: elementId, setId: setElementId, isAskingFalse: isAskingFalse, focusRootElement: focusRootElement})
+    const [askElementId, isAskingElementId, askElementIdElement] = useAskElementId({id: elementId, setId: setElementId, isAskingFalse: isAskingFalse, focusRootElement: focusRootElement})
     const handleClickElementId = (e: React.MouseEvent<HTMLSpanElement>) => {
         askElementId(e.clientY - 20, e.clientX + 20)
     }
@@ -338,7 +372,7 @@ export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
                 setHandleSelection = (handleSelection) => {
                     updateInsertLink((hRef) => {
                         handleSelection(hRef)
-                        setTimeout(()=> positionCaretOn(lastLinkAdded), 100)
+                        setTimeout(()=> {positionCaretOn(lastLinkAdded)}, 100)
                     })
                 }
 
@@ -378,7 +412,7 @@ export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
             if (isCollapsed) {
                 handleCollapsedSelection(optionType, getNewNode("-", true, p), anchorNode as ChildNode, anchorOffset)
             } else {
-                ranges.forEach((r) => handleRangeSelection(optionType, (text, isLast) => getNewNode(text, isLast, p), r))
+                ranges.forEach((r) => {handleRangeSelection(optionType, (text, isLast) => getNewNode(text, isLast, p), r)})
             }
         }
         if (somethingToAsk) {
@@ -391,7 +425,7 @@ export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
 
     const [insertLink, setInsertLink] = useState<InsertLink>(()=> {})
     const updateInsertLink = (fun: InsertLink)=> { setInsertLink((f: InsertLink)=> fun) }
-    const [askHRef, isAskingHRef, AskHRef] = useAskHRef({insertLink: insertLink, isAskingFalse: isAskingFalse})
+    const [askHRef, isAskingHRef, askHRefElement] = useAskHRef({insertLink: insertLink, isAskingFalse: isAskingFalse})
 
     const modifyImageElement = (img: HTMLImageElement) => {
         const divParent = img.parentElement as HTMLDivElement
@@ -417,9 +451,9 @@ export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
     const updateInsertOrModifyImage = (fun: InsertOrModifyImage)=> { setInsertOrModifyImage((f: InsertOrModifyImage)=> fun) }
     const [removeImage, setRemoveImage] = useState<RemoveImage>(() => {})
     const updateRemoveImage = (fun: RemoveImage) => { setRemoveImage(() => fun) }
-    const [askImageProps, isAskingImageProps, AskImageProps] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage, isAskingFalse: isAskingFalse})
+    const [askImageProps, isAskingImageProps, askImagePropsElement] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage, isAskingFalse: isAskingFalse})
 
-    const handleMouseDown = (e: React.MouseEvent<Element>) => {
+    const handleMouseDown: MouseEventHandler = (e) => {
         e.preventDefault()
     }
 
@@ -432,55 +466,60 @@ export const Pallet = ({show=true, isAsking, rootElementId}: Props) => {
 
     const optionSeparator = <span style={{color: "#000000", fontSize: "2rem"}}>-</span>
 
-    return (
-        <Container show={show || isAskingElementId() || isAskingHRef() || isAskingImageProps()}>
-            <span className={getOptionClass()}
-                  onMouseDown={handleMouseDown}
-                  onClick={(e) => handleClickPalletOption("defaultText")}>
-                a
-            </span>
-            {optionSeparator}
-            {spanClasses.map((spanClass, index) =>
-                <>
-                <span className={getOptionClass(spanClass)}
-                      onMouseDown={handleMouseDown}
-                      onClick={(e) => handleClickPalletOption("span", spanClass)}>
+    const children = <Container>
+                    <span className={getOptionClass()}
+                        onMouseDown={handleMouseDown}
+                        onClick={(e) => {handleClickPalletOption("defaultText")}}>
                     a
-                </span>
+                    </span>
                     {optionSeparator}
-                </>
-            )}
-            <a className={getOptionClass(linkClass)}
-               onMouseDown={handleMouseDown}
-               onClick={(e)=> handleClickPalletOption("link", linkClass)}>
-                Link
-            </a>
-            {optionSeparator}
-            <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e)=> handleClickPalletOption("image")} style={{cursor: "pointer"}}/>
-            {optionSeparator}
-            <span className={getOptionClass(elementId ? idOnClass : idOffClass)}
-                  onMouseDown={handleMouseDown}
-                  onClick={handleClickElementId}>
-                ID
-            </span>
-            {AskElementId}
-            {AskHRef}
-            {AskImageProps}
-        </Container>
-    )
+                    {spanClasses.map((spanClass, index) =>
+                    <>
+                    <span className={getOptionClass(spanClass)} onMouseDown={handleMouseDown}
+                        onClick={(e) => {handleClickPalletOption("span", spanClass)}}>
+                    a
+                    </span>
+                            {optionSeparator}
+                    </>
+                    )}
+                    <a className={getOptionClass(linkClass)}
+                    onMouseDown={handleMouseDown}
+                    onClick={(e) => {handleClickPalletOption("link", linkClass)}}>
+                    Link
+                    </a>
+                    {optionSeparator}
+                    <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e) => {handleClickPalletOption("image")}} style={{cursor: "pointer"}}/>
+                    {optionSeparator}
+                    <span className={getOptionClass(elementId ? idOnClass : idOffClass)}
+                        onMouseDown={handleMouseDown}
+                        onClick={handleClickElementId}>
+                    ID
+                    </span>
+                    {askElementIdElement}
+                    {askHRefElement}
+                    {askImagePropsElement}
+                    </Container>
+
+    const [setVisible, element] = useModal({children, draggable: true, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  positionType: "hooked", position: {top: "0", left: "none"}})
+
+    useEffect(() => {
+        setVisible(visible)
+    }, [visible])
+
+    return element
 }
 
-const Container = styled.div<{ show: boolean}>`
-  display: ${({show}) => (show ? "flex" : "none") + ";"}
+const Container = styled.div`
+  display: flex;
   flex-direction: row;
   align-items: center;
+  justify-items: center;
   padding: 5px;
-  gap: 10px;
-  overflow: auto; 
-  border-style: solid;
-  border-color: #778899;
+  gap: 5px;
+  overflow: auto;
+  border-radius: 5px;
   background-color: #FFFFFF;
- `
+`
 type UseAskElementIdProps = {
     id: string | undefined
     setId: (id: string)=> void
