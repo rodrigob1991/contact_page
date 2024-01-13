@@ -1,16 +1,22 @@
 import { css } from "@emotion/react"
-import { MouseEventHandler, useEffect, useRef, useState } from "react"
-import { mainColor, secondColor, thirdColor } from "../theme"
-import { PositionCSS, SizeCSS, GetStyle, ResizableDraggableDiv, setPreventFlag, ContainerDivApi } from "../components/ResizableDraggableDiv"
 import styled from "@emotion/styled"
+import { MouseEventHandler, useEffect, useRef, useState } from "react"
 import { BsEyeSlashFill } from "react-icons/bs"
 import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
 import { TfiTarget } from "react-icons/tfi"
+import { ContainerDivApi, GetStyle, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../components/ResizableDraggableDiv"
+import { mainColor, secondColor, thirdColor } from "../theme"
+
+type PositionValue = "start" | "middle" |  "end" | `${number}${string}` | "none"
+type Position = {
+  top: PositionValue
+  left: PositionValue
+}
 
 type UseModalProps = {
-    positionType?: "absolute" | "fixed" | "hooked"
     scrollableAncestor?: HTMLElement
-    position?: PositionCSS
+    positionType?: "absolute" | "fixed" | "hooked"
+    position?: Position
     size?: SizeCSS
     minSize?: SizeCSS
     resizable?: boolean
@@ -30,9 +36,9 @@ const fullSize = {height: "100%", width: "100%"}
 const centerPosition = {top: "50%", left: "50%"}
 
 export default function useModal({
-                               positionType: positionTypeProp = "fixed",
                                scrollableAncestor,
-                               position: positionProp = centerPosition,
+                               positionType = "fixed",
+                               position={top: "middle", left: "middle"},
                                size: sizeProp = {height: "fit-content", width: "fit-content"},
                                minSize = {height: "none", width: "none"},
                                resizable=true,
@@ -48,15 +54,59 @@ export default function useModal({
                                handleOnHide}: UseModalProps): [(visible: boolean) => void, JSX.Element] {
 
     const [visible, setVisible] = useState(false)
-    const [position, setPosition] = useState(positionProp)
+
+    const [positionCss, setPositionCss] = useState({top: "none", left: "none", bottom: "none", right: "none"})
+    const [translateCss, setTranslateCss] = useState({top: "none", left: "none"})
+    const setPosition = (topValue: PositionValue, leftValue: PositionValue) => {
+      const nextPositionCss = {top: "none", left: "none", bottom: "none", right: "none"}
+      const nextTranslateCss = {top: "none", left: "none"}
+        switch (topValue) {
+          case "start":
+            nextPositionCss.top = "0"
+            break;
+          case "middle":
+            nextPositionCss.top = "50%"
+            nextTranslateCss.top = "-50%"
+            break;
+          case "end":
+            nextPositionCss.bottom = "0"
+            break;
+          case "none":
+            break;
+          default:
+            nextPositionCss.top = topValue
+        }
+        switch (leftValue) {
+          case "start":
+            nextPositionCss.left = "0"
+            break;
+          case "middle":
+            nextPositionCss.left = "50%"
+            nextTranslateCss.left = "-50%"
+            break;
+          case "end":
+            nextPositionCss.right = "0"
+            break;
+          case "none":
+            break;
+          default:
+            nextPositionCss.left = leftValue
+        }
+      setPositionCss(nextPositionCss)
+      setTranslateCss(nextTranslateCss)
+    }
+    useEffect(() => {
+      setPosition(position.top, position.left)
+    }, [position])
+
     const [size, setSize] = useState(sizeProp)
 
     const containerDivApiRef = useRef<ContainerDivApi>(null)
     const getContainerDivApi = () => containerDivApiRef.current as ContainerDivApi
-    const [positionType, setPositionType] = useState<"absolute" | "fixed">()
+    const [positionTypeCss, setPositionTypeCss] = useState<"absolute" | "fixed">()
 
     useEffect(() => {
-      if(positionTypeProp === "hooked") {
+      if(positionType === "hooked") {
         const getScrollableAncestor = () => scrollableAncestor ?? window
         const getScrollY = () => scrollableAncestor ? scrollableAncestor.scrollTop : window.scrollY
         const options = {
@@ -73,8 +123,8 @@ export default function useModal({
                     const handleScroll = (e: Event) => {
                         if(getScrollY() <= scrollY) {
                           getScrollableAncestor().removeEventListener("scroll", handleScroll)
-                            setPositionType("absolute")
-                            setPosition(({left}) => ({top, left}))
+                            setPositionTypeCss("absolute")
+                            setPositionCss(({left, right}) => ({top, left, right, bottom: "none"}))
                         }
                     }
                     getScrollableAncestor().addEventListener("scroll", handleScroll)
@@ -86,14 +136,14 @@ export default function useModal({
         }
         const observer = new IntersectionObserver(callback, options)
         getContainerDivApi().observeIntersection(observer)
-        setPositionType("absolute")
+        setPositionTypeCss("absolute")
       }else {
-        setPositionType(positionTypeProp)
+        setPositionTypeCss(positionType)
       }
-    }, [positionTypeProp, scrollableAncestor])
+    }, [positionType, scrollableAncestor])
 
     const handleOnClickCenterPosition: MouseEventHandler<SVGElement> = (e) => {
-        setPosition(centerPosition)
+      setPosition("middle", "middle")
      }
      const handleOnClickDefaultSize: MouseEventHandler<SVGElement> = (e) => {
         setSize(sizeProp)
@@ -109,12 +159,13 @@ export default function useModal({
 
     const getContainerStyle: GetStyle = (resizing, dragging) => css`
       display: ${visible ? "flex" : "none"};
-      position: ${positionType};
+      position: ${positionTypeCss};
       min-height: ${minSize.height};
       min-width: ${minSize.width};
       max-height: 100%;
       max-width: 100%;
       transform: translate(-50%, -50%);
+      transform: translate(${translateCss.top}, ${translateCss.left});
     `
     const getResizableDivStyle: GetStyle = (resizing, dragging) => css`
       display: flex;
@@ -145,7 +196,7 @@ export default function useModal({
     const visibleDefaultSizeButton = resizable && visibleDefaultSizeButtonProp
     const visibleFullSizeButton = resizable && visibleFullSizeButtonProp
 
-    const modal = <ResizableDraggableDiv ref={containerDivApiRef} draggable={draggable} resizable={resizable} getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} size={{value: size, set: setSize}} position={{value: position, set: setPosition}}>
+    const modal = <ResizableDraggableDiv ref={containerDivApiRef} draggable={draggable} resizable={resizable} getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} size={{value: size, set: setSize}} position={{value: positionCss, set: setPositionCss}}>
                   <>
                   {(visibleHideButton || visibleCenterPositionButton || visibleDefaultSizeButton || visibleFullSizeButton || topLeftChildren || topRightChildren) &&
                   <TopContainer>
