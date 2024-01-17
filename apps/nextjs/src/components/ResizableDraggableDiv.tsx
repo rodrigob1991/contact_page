@@ -23,11 +23,13 @@ export const dragPrevented = (e: MouseEvent | React.MouseEvent) => {
 export type GetStyle = (resizing: boolean, dragging: boolean) => Interpolation<Theme>
 export type SizeCSS = {height: string; width: string}
 export type SetSizeCSS = (size: SizeCSS) => void
-export type PositionCSS ={top: string; left: string, bottom?: string, right?: string}
+export type PositionCSS = {top: string; left: string, bottom?: string, right?: string}
+export type PositionCSSKey = keyof PositionCSS
 export type SetPositionCSS = (position: PositionCSS) => void
 export type ContainerDivApi = {
     observeIntersection: (observer: IntersectionObserver) => void
     getComputedStyle: () => CSSStyleDeclaration
+    getRect: () => DOMRect
 } 
 
 type Props = {
@@ -51,6 +53,9 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
           },
           getComputedStyle() {
             return window.getComputedStyle(getContainer())
+          },
+          getRect() {
+            return getContainer().getBoundingClientRect()
           }
         })
     , [])

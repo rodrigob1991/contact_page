@@ -4,17 +4,17 @@ import { MouseEventHandler, useEffect, useRef, useState } from "react"
 import { BsEyeSlashFill } from "react-icons/bs"
 import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
 import { TfiTarget } from "react-icons/tfi"
-import { ContainerDivApi, GetStyle, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../components/ResizableDraggableDiv"
+import { ContainerDivApi, GetStyle, PositionCSSKey, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../components/ResizableDraggableDiv"
 import { mainColor, secondColor, thirdColor } from "../theme"
 
+type PositionKey = "top" | "left"
 type PositionValue = "start" | "middle" |  "end" | `${number}${string}` | "none"
 type Position = {
-  top: PositionValue
-  left: PositionValue
+  [K in PositionKey] : PositionValue
 }
 
 type UseModalProps = {
-    scrollableAncestor?: HTMLElement
+    scrollableElement?: HTMLElement
     positionType?: "absolute" | "fixed" | "hooked"
     position?: Position
     size?: SizeCSS
@@ -35,8 +35,12 @@ type UseModalProps = {
 const fullSize = {height: "100%", width: "100%"}
 const centerPosition = {top: "50%", left: "50%"}
 
+const positionsCssOpposites = {
+  top: "bottom", bottom: "top", left: "right", right: "left"
+} as const
+
 export default function useModal({
-                               scrollableAncestor,
+                               scrollableElement,
                                positionType = "fixed",
                                position={top: "middle", left: "middle"},
                                size: sizeProp = {height: "fit-content", width: "fit-content"},
@@ -56,48 +60,33 @@ export default function useModal({
     const [visible, setVisible] = useState(false)
 
     const [positionCss, setPositionCss] = useState({top: "none", left: "none", bottom: "none", right: "none"})
-    const [translateCss, setTranslateCss] = useState({top: "none", left: "none"})
-    const setPosition = (topValue: PositionValue, leftValue: PositionValue) => {
+    const [translateCss, setTranslateCss] = useState({top: "0", left: "0"})
+    const setPosition = (position: Position) => {
       const nextPositionCss = {top: "none", left: "none", bottom: "none", right: "none"}
-      const nextTranslateCss = {top: "none", left: "none"}
-        switch (topValue) {
+      const nextTranslateCss = {top: "0", left: "0"}
+      for (const [key, value] of Object.entries(position)) {
+        switch (value) {
           case "start":
-            nextPositionCss.top = "0"
+            nextPositionCss[key as PositionKey] = "0"
             break;
           case "middle":
-            nextPositionCss.top = "50%"
-            nextTranslateCss.top = "-50%"
+            nextPositionCss[key as PositionKey] = "50%"
+            nextTranslateCss[key as PositionKey] = "-50%"
             break;
           case "end":
-            nextPositionCss.bottom = "0"
-            break;
-          case "none":
+            nextPositionCss[positionsCssOpposites[key as PositionKey]]  = "0"
             break;
           default:
-            nextPositionCss.top = topValue
+            nextPositionCss[key as PositionKey]  = value
         }
-        switch (leftValue) {
-          case "start":
-            nextPositionCss.left = "0"
-            break;
-          case "middle":
-            nextPositionCss.left = "50%"
-            nextTranslateCss.left = "-50%"
-            break;
-          case "end":
-            nextPositionCss.right = "0"
-            break;
-          case "none":
-            break;
-          default:
-            nextPositionCss.left = leftValue
-        }
+      }
+
       setPositionCss(nextPositionCss)
       setTranslateCss(nextTranslateCss)
     }
     useEffect(() => {
-      setPosition(position.top, position.left)
-    }, [position])
+      setPosition(position)
+    }, [position.top, position.left])
 
     const [size, setSize] = useState(sizeProp)
 
@@ -106,44 +95,66 @@ export default function useModal({
     const [positionTypeCss, setPositionTypeCss] = useState<"absolute" | "fixed">()
 
     useEffect(() => {
-      if(positionType === "hooked") {
-        const getScrollableAncestor = () => scrollableAncestor ?? window
-        const getScrollY = () => scrollableAncestor ? scrollableAncestor.scrollTop : window.scrollY
-        const options = {
-            root: undefined,
-            rootMargin: "0px",
-            threshold: 1
+      if (positionType === "hooked") {
+        let scrollableAncestor: HTMLElement | Window
+        let getScrollAxis: () => {y: number, x: number}
+        if (scrollableElement){
+            scrollableAncestor = scrollableElement
+          getScrollAxis = () => ({y: scrollableElement.scrollTop, x: scrollableElement.scrollLeft})
+        }else{
+          scrollableAncestor = window
+          getScrollAxis = () => ({y: window.scrollY, x: window.scrollX})
         }
-        const callback: IntersectionObserverCallback = (intersections, observer) => {
-          intersections.forEach(intersection => {
-                if (!intersection.isIntersecting) {
-                    console.log("INTERSECT")
-                    const scrollY = getScrollY()
-                    const top = getContainerDivApi().getComputedStyle().top
-                    const handleScroll = (e: Event) => {
-                        if(getScrollY() <= scrollY) {
-                          getScrollableAncestor().removeEventListener("scroll", handleScroll)
-                            setPositionTypeCss("absolute")
-                            setPositionCss(({left, right}) => ({top, left, right, bottom: "none"}))
-                        }
-                    }
-                    getScrollableAncestor().addEventListener("scroll", handleScroll)
-                    //setPositionType("fixed")
-                    //setPosition(({left}) => ({top: "0px", left}))
-                }
-                console.log(intersection)
-            })
+
+        const handleOverflow = (positionCssKey: PositionCSSKey, backToAbsolutePositionIf: () => boolean) => {
+          const beforeOverflowPositionCssValue = getContainerDivApi().getComputedStyle()[positionCssKey]
+          scrollableAncestor.removeEventListener("scroll", handleScroll)
+          setPositionTypeCss("fixed")
+          setPositionCss((positionCss) => {
+            const nextPositionCss = {...positionCss}
+            nextPositionCss[positionCssKey] = "0"
+            nextPositionCss[positionsCssOpposites[positionCssKey]] = "none"
+            return nextPositionCss
+          })
+          const handleSecondScroll = (e: Event) => {
+            if (backToAbsolutePositionIf()) {
+                scrollableAncestor.removeEventListener("scroll", handleSecondScroll)
+                setPositionTypeCss("absolute")
+                setPositionCss((positionCss) => {
+                  const nextPositionCss = {...positionCss}
+                  nextPositionCss[positionCssKey] = beforeOverflowPositionCssValue
+                  return nextPositionCss
+                })
+                scrollableAncestor.addEventListener("scroll", handleScroll)
+            }
+          }
+          scrollableAncestor.addEventListener("scroll", handleSecondScroll)
         }
-        const observer = new IntersectionObserver(callback, options)
-        getContainerDivApi().observeIntersection(observer)
+
+        const handleScroll = () => {
+          const {top, bottom, left, right} = getContainerDivApi().getRect()
+          const {y: scrollY, x: scrollX} = getScrollAxis()
+
+          if (top <= 0) {
+            handleOverflow("top", () => getScrollAxis().y <= scrollY)
+          } else if (bottom <= 0) {
+            handleOverflow("bottom", () => getScrollAxis().y >= scrollY)
+          } else if (left <= 0) {
+            handleOverflow("left", () => getScrollAxis().x <= scrollX)
+          } else if (right <= 0) {
+            handleOverflow("right", () => getScrollAxis().x >= scrollX)
+          }
+        }
+
         setPositionTypeCss("absolute")
-      }else {
+        scrollableAncestor.addEventListener("scroll", handleScroll)
+      } else {
         setPositionTypeCss(positionType)
       }
-    }, [positionType, scrollableAncestor])
+    }, [positionType, scrollableElement])
 
     const handleOnClickCenterPosition: MouseEventHandler<SVGElement> = (e) => {
-      setPosition("middle", "middle")
+        setPosition({top: "middle", left: "middle"})
      }
      const handleOnClickDefaultSize: MouseEventHandler<SVGElement> = (e) => {
         setSize(sizeProp)
@@ -164,8 +175,7 @@ export default function useModal({
       min-width: ${minSize.width};
       max-height: 100%;
       max-width: 100%;
-      transform: translate(-50%, -50%);
-      transform: translate(${translateCss.top}, ${translateCss.left});
+      transform: translate(${translateCss.left}, ${translateCss.top});
     `
     const getResizableDivStyle: GetStyle = (resizing, dragging) => css`
       display: flex;

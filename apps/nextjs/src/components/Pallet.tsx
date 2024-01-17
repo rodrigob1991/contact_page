@@ -500,7 +500,7 @@ export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
                     {askImagePropsElement}
                     </Container>
 
-    const [setVisible, element] = useModal({children, draggable: true, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  positionType: "hooked", position: {top: "0", left: "none"}})
+    const [setVisible, element] = useModal({children, draggable: true, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  positionType: "hooked", position: {top: "start", left: "end"}})
 
     useEffect(() => {
         setVisible(visible)
