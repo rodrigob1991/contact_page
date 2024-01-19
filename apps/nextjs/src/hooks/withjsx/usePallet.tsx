@@ -1,43 +1,27 @@
 import styled from "@emotion/styled"
-import {getContainedString, isEmpty} from "utils/src/strings"
-import {
-    createAnchor,
-    createDiv,
-    createImage,
-    createSpan,
-    createText,
-    getTexts,
-    hasSiblingOrParentSibling,
-    isAnchor,
-    isDiv,
-    isSpan,
-    isText,
-    lookUpDivParent,
-    positionCaretOn,
-    removeNodesFromOneSide
-} from "../utils/domManipulations"
-import React, {MouseEventHandler, useEffect, useRef, useState} from "react"
-import {ImageSelector, NumberInput, TextInput} from "./FormComponents"
-import {FcPicture} from "react-icons/fc"
-import {Ask, IsAsking, useAsk} from "../hooks/useAsk"
-import {useRecordState} from "../hooks/useRecordState"
-import {DeleteOrRecoverButton} from "./Buttons"
-import { css } from "@emotion/react"
-import useModal from "../hooks/useModal"
+import { MouseEventHandler, ReactNode, useEffect, useRef, useState } from "react"
+import { getContainedString, isEmpty } from "utils/src/strings"
+import { DeleteOrRecoverButton } from "../../components/Buttons"
+import { ImageSelector, NumberInput, TextInput } from "../../components/FormComponents"
+import { ContainsNode } from "../../components/ResizableDraggableDiv"
+import { createAnchor, createDiv, createImage, createSpan, createText, getTexts, hasSiblingOrParentSibling, isAnchor, isDiv, isSpan, isText, lookUpDivParent, positionCaretOn, removeNodesFromOneSide } from "../../utils/domManipulations"
+import { useRecordState } from "../useRecordState"
+import { Ask, useAsk } from "./useAsk"
+import useModal, { ModalPosition, SetVisible } from "./useModal"
+import useFormModal from "./forms/useFormModal"
+import { FcPicture } from "react-icons/fc"
 
 type Props = {
     rootElementId: string
-    visible: boolean
-    isAsking?: (asking: boolean) => void
 }
 type OptionType = "defaultText" | "span" | "link" | "image"
 type OptionTargetElement = HTMLSpanElement | HTMLAnchorElement | HTMLImageElement
 type OptionTargetNode = Text | OptionTargetElement
 type OptionTargetElementProps = ImageProps | string
-type GetOptionTargetNode = (text: string, isLast: boolean)=> OptionTargetNode
-type GetOptionTargetNodeWithProps = (text: string, isLast: boolean, props?: OptionTargetElementProps)=> OptionTargetNode
+type GetOptionTargetNode = (text: string, isLast: boolean) => OptionTargetNode
+type GetOptionTargetNodeWithProps = (text: string, isLast: boolean, props?: OptionTargetElementProps) => OptionTargetNode
 
-export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
+export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNode, ContainsNode] {
     const getRootElement = () => {
         return document.getElementById(rootElementId)
     }
@@ -99,16 +83,6 @@ export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
         return removeListener
     }, [show])*/
 
-    const isAskingTrue = () => {
-        if (isAsking) {
-            isAsking(true)
-        }
-    }
-    const isAskingFalse = () => {
-        if (isAsking) {
-            isAsking(false)
-        }
-    }
 
     const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
@@ -116,13 +90,12 @@ export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
         setElementId(undefined)
         return id
     }
-
-    const focusRootElement = () => {
-        getRootElement()?.focus()
-    }
-    const [askElementId, isAskingElementId, askElementIdElement] = useAskElementId({id: elementId, setId: setElementId, isAskingFalse: isAskingFalse, focusRootElement: focusRootElement})
-    const handleClickElementId = (e: React.MouseEvent<HTMLSpanElement>) => {
-        askElementId(e.clientY - 20, e.clientX + 20)
+    const [elementIdFormPosition, setElementIdFormPosition] = useState<ModalPosition>({top: "middle", left: "middle"})
+    const [setVisibleElementIdForm, elementIdForm] = useFormModal({positionType: "absolute", position: elementIdFormPosition, buttonText: "add", inputsProps: {elementId: {type: "textInput"}}, submissionAction: ({elementId}) => {setElementId(elementId)}})
+    //const [askElementId, askElementIdElement] = useAskElementId({id: elementId, setId: setElementId, focusRootElement: focusRootElement})
+    const handleClickElementId: MouseEventHandler<HTMLSpanElement> = (e) => {
+        setElementIdFormPosition({top: `${e.clientY - 20}px`, left: `${e.clientX + 20}px`})
+        setVisibleElementIdForm(true)
     }
 
     const handleCollapsedSelection = (optionType: OptionType, newNode: OptionTargetNode, anchor: ChildNode, anchorOffSet: number) => {
@@ -377,7 +350,6 @@ export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
                 }
 
                 onFinally = () => {
-                    isAskingTrue()
                     askHRef(rectTop, rectLeft)
                 }
                 break
@@ -402,7 +374,6 @@ export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
                     return div
                 }
                 onFinally = () => {
-                    isAskingTrue()
                     askImageProps(rectTop, rectLeft)
                 }
                 break
@@ -425,7 +396,7 @@ export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
 
     const [insertLink, setInsertLink] = useState<InsertLink>(()=> {})
     const updateInsertLink = (fun: InsertLink)=> { setInsertLink((f: InsertLink)=> fun) }
-    const [askHRef, isAskingHRef, askHRefElement] = useAskHRef({insertLink: insertLink, isAskingFalse: isAskingFalse})
+    const [askHRef, askHRefElement] = useAskHRef({insertLink: insertLink})
 
     const modifyImageElement = (img: HTMLImageElement) => {
         const divParent = img.parentElement as HTMLDivElement
@@ -440,7 +411,6 @@ export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
             (img.parentElement as HTMLDivElement).remove()
         })
 
-        isAskingTrue()
         const imgRect = img.getBoundingClientRect()
         askImageProps(imgRect.top, imgRect.left, {image:{id: img.id, src: img.src, height: img.height, width: img.width}, parent:{left: parseInt(getContainedString(divParent.style.paddingLeft, undefined, "px"))}})
     }
@@ -451,7 +421,7 @@ export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
     const updateInsertOrModifyImage = (fun: InsertOrModifyImage)=> { setInsertOrModifyImage((f: InsertOrModifyImage)=> fun) }
     const [removeImage, setRemoveImage] = useState<RemoveImage>(() => {})
     const updateRemoveImage = (fun: RemoveImage) => { setRemoveImage(() => fun) }
-    const [askImageProps, isAskingImageProps, askImagePropsElement] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage, isAskingFalse: isAskingFalse})
+    const [askImageProps, askImagePropsElement] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage})
 
     const handleMouseDown: MouseEventHandler = (e) => {
         e.preventDefault()
@@ -467,46 +437,33 @@ export const Pallet = ({visible, isAsking, rootElementId}: Props) => {
     const optionSeparator = <span style={{color: "#000000", fontSize: "2rem"}}>-</span>
 
     const children = <Container>
-                    <span className={getOptionClass()}
-                        onMouseDown={handleMouseDown}
-                        onClick={(e) => {handleClickPalletOption("defaultText")}}>
-                    a
-                    </span>
-                    {optionSeparator}
-                    {spanClasses.map((spanClass, index) =>
-                    <>
-                    <span className={getOptionClass(spanClass)} onMouseDown={handleMouseDown}
-                        onClick={(e) => {handleClickPalletOption("span", spanClass)}}>
-                    a
-                    </span>
-                            {optionSeparator}
-                    </>
-                    )}
-                    <a className={getOptionClass(linkClass)}
-                    onMouseDown={handleMouseDown}
-                    onClick={(e) => {handleClickPalletOption("link", linkClass)}}>
-                    Link
-                    </a>
-                    {optionSeparator}
-                    <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e) => {handleClickPalletOption("image")}} style={{cursor: "pointer"}}/>
-                    {optionSeparator}
-                    <span className={getOptionClass(elementId ? idOnClass : idOffClass)}
-                        onMouseDown={handleMouseDown}
-                        onClick={handleClickElementId}>
-                    ID
-                    </span>
-                    {askElementIdElement}
-                    {askHRefElement}
-                    {askImagePropsElement}
-                    </Container>
+                     <span className={getOptionClass()} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("defaultText")}}>
+                     a
+                     </span>
+                     {optionSeparator}
+                     {spanClasses.map((spanClass, index) =>
+                        <>
+                        <span className={getOptionClass(spanClass)} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("span", spanClass)}}>
+                        a
+                        </span>
+                        {optionSeparator}
+                        </>
+                     )}
+                     <a className={getOptionClass(linkClass)} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("link", linkClass)}}>
+                     Link
+                     </a>
+                     {optionSeparator}
+                     <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e) => {handleClickPalletOption("image")}} style={{cursor: "pointer"}}/>
+                     {optionSeparator}
+                     <span className={getOptionClass(elementId ? idOnClass : idOffClass)} onMouseDown={handleMouseDown} onClick={handleClickElementId}>
+                     ID
+                     </span>
+                     {elementIdForm}
+                     {askHRefElement}
+                     {askImagePropsElement}
+                     </Container>
 
-    const [setVisible, element] = useModal({children, draggable: true, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  positionType: "hooked", position: {top: "start", left: "end"}})
-
-    useEffect(() => {
-        setVisible(visible)
-    }, [visible])
-
-    return element
+    return useModal({children, draggable: true, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  positionType: "hooked", position: {top: "start", left: "end"}})
 }
 
 const Container = styled.div`
@@ -523,30 +480,27 @@ const Container = styled.div`
 type UseAskElementIdProps = {
     id: string | undefined
     setId: (id: string)=> void
-    isAskingFalse: ()=> void
     focusRootElement: ()=> void
 }
-const useAskElementId = ({id, setId, isAskingFalse, focusRootElement}: UseAskElementIdProps): [Ask, IsAsking, JSX.Element] => {
+const useAskElementId = ({id, setId, focusRootElement}: UseAskElementIdProps): [Ask, JSX.Element] => {
     //const [localId, setLocalId] = useState(id || "")
 
     const refToInput = useRef<HTMLInputElement | null>(null)
     const focusInput = () => refToInput.current?.focus()
 
     const handleOnEnter = () => {
-        isAskingFalse()
         //setId(localId)
         //setLocalId("")
         hide()
         focusRootElement()
     }
     const handleOnEscape = () => {
-        isAskingFalse()
         setId("")
         hide()
         focusRootElement()
     }
 
-    const [ask, hide, isAsking, Ask] = useAsk({
+    const [ask, hide, isAsking, askElement] = useAsk({
         child: <TextInput placeholder={"id"}
                           style={{width: "200px", fontSize: "1.8rem"}}
                           ref={refToInput}
@@ -556,33 +510,30 @@ const useAskElementId = ({id, setId, isAskingFalse, focusRootElement}: UseAskEle
                           onEscape={handleOnEscape}  />,
         onShow: focusInput
     })
-    return [ask, isAsking, Ask]
+    return [ask, askElement]
 }
 
 type InsertLink = (hRef: string) => void
 type UseAskHRefProps = {
     insertLink: InsertLink
-    isAskingFalse: ()=> void
 }
-const useAskHRef = ({insertLink, isAskingFalse}: UseAskHRefProps): [Ask, IsAsking, JSX.Element] => {
+const useAskHRef = ({insertLink}: UseAskHRefProps): [Ask, JSX.Element] => {
     const [hRef, setHRef] = useState("")
 
     const refToInput = useRef<HTMLInputElement | null>(null)
     const focusInput = () => refToInput.current?.focus()
 
     const handleOnEnter = () => {
-        isAskingFalse()
         insertLink(hRef)
         setHRef("")
         hide()
     }
     const handleOnEscape = () => {
-        isAskingFalse()
         setHRef("")
         hide()
     }
 
-    const [ask, hide, isAsking, Ask] = useAsk({
+    const [ask, hide, isAsking, askElement] = useAsk({
         child: <TextInput placeholder={"href"}
                           style={{width: "200px", fontSize: "1.8rem"}}
                           ref={refToInput}
@@ -592,7 +543,7 @@ const useAskHRef = ({insertLink, isAskingFalse}: UseAskHRefProps): [Ask, IsAskin
                           onEscape={handleOnEscape}  />,
         onShow: focusInput
     })
-    return [ask, isAsking, Ask]
+    return [ask, askElement]
 }
 
 type ImageProps = { image: {id: string, src: string, height: number, width: number}, parent: {left: number}}
@@ -601,9 +552,8 @@ type RemoveImage = () => void
 type UseAskImagePropsProps = {
     insertOrModifyImage: InsertOrModifyImage
     removeImage: RemoveImage
-    isAskingFalse: ()=> void
 }
-const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps)=> void, IsAsking, JSX.Element] => {
+const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps) => void, JSX.Element] => {
     const {state: imageProps, setState: setImageProp, setDefaultState: setImagePropsDefault} = useRecordState({image: {id: "", src: "", height: 0, width: 0}, parent: {left: 0}})
     const {height, width, id, src} = imageProps.image
     const {left} = imageProps.parent
@@ -623,13 +573,12 @@ const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: Use
     }
 
     const close = () => {
-        isAskingFalse()
         setImagePropsDefault()
         setRemove(false)
         setModifying(false)
         hide()
     }
-    const handleOnClickAccept = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const handleOnClickAccept: MouseEventHandler<HTMLButtonElement> = (e) => {
         if (remove) {
             removeImage()
         } else {
@@ -637,7 +586,7 @@ const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: Use
         }
         close()
     }
-    const handleOnClickCancel = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const handleOnClickCancel: MouseEventHandler<HTMLButtonElement> = (e) => {
         close()
     }
 
@@ -649,7 +598,7 @@ const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: Use
         setRemove(false)
     }
 
-    const refToHeightInput = useRef<HTMLInputElement | null>(null)
+    const refToHeightInput = useRef<HTMLInputElement>(null)
     const focusHeightInput = ()=> refToHeightInput.current?.focus()
 
     const getWrapFormOption = (e: JSX.Element) =>
@@ -659,21 +608,21 @@ const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: Use
     const getFormOptionLabel = (str: string) =>
         <span style={{fontSize: "2rem", width: 70}}>{str}:</span>
 
-    const [ask, hide, isAsking, Ask] = useAsk({
+    const [ask, hide, isAsking, askElement] = useAsk({
         child:   <div style={{padding: 5}}>
                         {getWrapFormOption(<>
                                            {getFormOptionLabel("height")}
-                                           <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} ref={refToHeightInput} value={height} setValue={(v) => setImageProp({image:{height: v}})}/>
+                                           <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} ref={refToHeightInput} value={height} setValue={(v) => {setImageProp({image:{height: v}})}}/>
                                            </>)
                         }
                         {getWrapFormOption(<>
                                            {getFormOptionLabel("width")}
-                                           <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} value={width} setValue={(v) => setImageProp({image:{width: v}})}/>
+                                           <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} value={width} setValue={(v) => {setImageProp({image:{width: v}})}}/>
                                            </>)
                         }
                         {getWrapFormOption(<>
                             {getFormOptionLabel("left")}
-                            <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} value={left} setValue={(v) => setImageProp({parent:{left: v}})}/>
+                            <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} value={left} setValue={(v) => {setImageProp({parent:{left: v}})}}/>
                         </>)
                         }
                         {getWrapFormOption(<>
@@ -697,5 +646,5 @@ const useAskImageProps = ({insertOrModifyImage, removeImage, isAskingFalse}: Use
         onShow: focusHeightInput,
         maxWidth: 290
     })
-    return [askImageProps, isAsking, Ask]
+    return [askImageProps, askElement]
 }

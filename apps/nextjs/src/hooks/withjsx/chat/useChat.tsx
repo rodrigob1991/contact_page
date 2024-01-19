@@ -1,9 +1,9 @@
 import { getParsedUsersMessageBody } from "chat-common/src/message/functions"
 import { UserType } from "chat-common/src/model/types"
 import { useState } from "react"
-import { PositionCSS, SizeCSS } from "../../components/ResizableDraggableDiv"
-import { useMessages } from "./useMessages"
-import { LOCAL_USER_ID, LOCAL_USER_NAME, User, useUsers } from "./useUsers"
+import { PositionCSS, SizeCSS } from "../../../components/ResizableDraggableDiv"
+import { useMessages } from "../../chat/useMessages"
+import { LOCAL_USER_ID, LOCAL_USER_NAME, User, useUsers } from "../../chat/useUsers"
 import useView, { SetOutboundMessageData as SetOutboundMessageDataFromView } from "./useView"
 import useWebSocket, {
     HandleConMessage,
@@ -15,7 +15,7 @@ import useWebSocket, {
     HandleServerAckMessage,
     HandleUserAckMessage,
     HandleUsersMessage
-} from "./useWebSocket"
+} from "../../chat/useWebSocket"
 
 export enum ConnectionState { CONNECTED, DISCONNECTED, CONNECTING}
 export type HandleUsersConnection = (names: string[]) => void

@@ -1,15 +1,16 @@
 import { css } from "@emotion/react"
 import styled from "@emotion/styled"
-import { DetailedHTMLProps, InputHTMLAttributes, forwardRef, Ref } from "react"
+import { Ref, forwardRef } from "react"
 import { mainColor } from "../../theme"
 
 export type TextInputProps = {
+    value?: string
     setValue: (value: string) => void
     fromSpan?: boolean
     email?: boolean
     onEnter?: () => void
     onEscape?: () => void
-} & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>,HTMLInputElement>
+}
 
 export const TextInput = forwardRef(({value, setValue, fromSpan=false, email, onEnter, onEscape, ...rest}: TextInputProps, ref : Ref<HTMLInputElement>) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -29,7 +30,9 @@ export const TextInput = forwardRef(({value, setValue, fromSpan=false, email, on
         }
     }
 // TODO:  add placeholder to span variety
-    return ( fromSpan ? <SpanInput ref={ref} {...rest} contentEditable onInput={(e) => {setValue((e.target as HTMLSpanElement).innerText)}} onKeyDown={handleKeyDown}/>
+    return ( fromSpan ? <SpanInput ref={ref} {...rest} contentEditable onInput={(e) => {setValue((e.target as HTMLSpanElement).innerText)}} onKeyDown={handleKeyDown}>
+                        {value}
+                        </SpanInput>
                       : <Input ref={ref} value={value} {...rest} type={email ? "email" : "text"} 
                                onInput={(e) => { setValue((e.target as HTMLInputElement).value) }}
                                onKeyDown={handleKeyDown}

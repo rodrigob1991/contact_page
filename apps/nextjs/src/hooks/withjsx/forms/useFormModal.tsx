@@ -1,50 +1,46 @@
 import styled from "@emotion/styled"
-import { FormEventHandler, useEffect, useRef, useState } from "react"
-import { Button } from "../../components/Buttons"
-import { ResultMessage, ResultMessageProps } from "../../components/Labels"
-import { BlocksLoader } from "../../components/Loaders"
-import { PositionCSS, SizeCSS } from "../../components/ResizableDraggableDiv"
-import { secondColor } from "../../theme"
-import useModal from "../useModal"
-import { TextInput, TextInputProps } from "../../components/forms/TextInput"
-import { NumberInput, NumberInputProps } from "../../components/forms/NumberInput"
-import { TextAreaInput, TextAreaInputProps } from "../../components/forms/TextAreaInput"
+import { FormEventHandler, ReactNode, useEffect, useRef, useState } from "react"
+import { Button } from "../../../components/Buttons"
+import { ResultMessage, ResultMessageProps } from "../../../components/Labels"
+import { BlocksLoader } from "../../../components/Loaders"
+import { NumberInput, NumberInputProps } from "../../../components/forms/NumberInput"
+import { TextAreaInput, TextAreaInputProps } from "../../../components/forms/TextAreaInput"
+import { TextInput, TextInputProps } from "../../../components/forms/TextInput"
+import { secondColor } from "../../../theme"
+import useModal, { SetVisible, UseModalProps } from "../useModal"
+import { ContainsNode } from "../../../components/ResizableDraggableDiv"
 
 type InputType = "textAreaInput" | "textInput" | "numberInput"
-type TextInputType = {type: "textInput", props: Omit<TextInputProps, "setValue">}
-type NumberInputType = {type: "numberInput", props: Omit<NumberInputProps, "setValue">}
-type TextAreaInputType = {type: "textAreaInput", props: Omit<TextAreaInputProps, "setValue">}
+type TextInputTypeProps = Omit<TextInputProps, "setValue">
+type TextInputType = {type: "textInput", props?: TextInputTypeProps}
+type NumberInputTypeProps = Omit<NumberInputProps, "setValue">
+type NumberInputType = {type: "numberInput", props?: NumberInputTypeProps}
+type TextAreaInputTypeProps = Omit<TextAreaInputProps, "setValue">
+type TextAreaInputType = {type: "textAreaInput", props?: TextAreaInputTypeProps}
 type InputsProps = { [key: string]: TextInputType | NumberInputType | TextAreaInputType}
 type InputValue<IT extends InputType> =  (IT extends ("textInput" | "textAreaInput") ? string : never) | (IT extends "numberInput" ? number : never)
 type InputsValues<E extends InputsProps> = {
     [K in keyof E]: E[K]["type"] extends ("textInput" | "textAreaInput") ? string : E[K]["type"] extends "numberInput" ? number :  never
 }
 
-const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [JSX.Element, InputsValues<IP>]  => {
+const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, InputsValues<IP>]  => {
     const elementsRef = useRef(<></>)
-    // @ts-expect-error
-    const valuesRef = useRef<InputsValues<IP>>({})
+    const valuesRef = useRef({})
 
     useEffect(() => {
         let inputs = <></>
-        for (const [key, {type, props}] of Object.entries(inputsProps)) {
+        for (const key in inputsProps) {
+            const {type, props} = inputsProps[key]
             let input
-            const setElementValue = (value: InputValue<typeof type>) => {
-            // @ts-expect-error
-              valuesRef.current[key] = value
-            }
             switch (type) {
                 case "textInput":
-                    // @ts-expect-error
-                    input = <TextInput {...props} setValue={(value) => {setElementValue(value)}}/>
+                    input = <TextInput {...props} setValue={(value) => {Object.assign(valuesRef.current, {key: value})}}/>
                     break
                 case "numberInput":
-                    // @ts-expect-error
-                    input = <NumberInput {...props} setValue={(value) => {setElementValue(value)}}/>
+                    input = <NumberInput {...props} setValue={(value) => {Object.assign(valuesRef.current, {key: value})}}/>
                     break
                 case "textAreaInput":
-                    // @ts-expect-error
-                    input = <TextAreaInput {...props} setValue={(value) => {setElementValue(value)}}/>
+                    input = <TextAreaInput {...props} setValue={(value) => {Object.assign(valuesRef.current, {key: value})}}/>
                     break
             }
             inputs = <>
@@ -55,7 +51,7 @@ const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [JSX.Eleme
         elementsRef.current = inputs
     }, [])
 
-    return [elementsRef.current, valuesRef.current]
+    return [elementsRef.current, valuesRef.current as InputsValues<IP>]
 }
 
 const FormContainer = styled.form`
@@ -70,22 +66,18 @@ const FormContainer = styled.form`
  `
 
 type UseFormModalProps<IP extends InputsProps> = {
-    position?: PositionCSS
-    size?: SizeCSS
-    resizable?: boolean
-    draggable?: boolean
-    hidable?: boolean
     inputsProps: IP
     buttonText: string
-    submissionAction: (values: InputsValues<IP>) => Promise<ResultMessageProps>
-}
+    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+    submissionAction: (values: InputsValues<IP>) => Promise<ResultMessageProps> | void
+} & Omit<UseModalProps, "children">
 
 export default function useFormModal<IP extends InputsProps>({
                                                       inputsProps,
                                                       buttonText,
                                                       submissionAction,
                                                       ... modalProps
-                                                      }: UseFormModalProps<IP>) : [(visible: boolean) => void, JSX.Element] {
+                                                      }: UseFormModalProps<IP>) : [SetVisible, ReactNode, ContainsNode] {
     const [inputs, inputsValues] = useElementsValues(inputsProps)
 
     const [loading, setLoading] = useState(false)
@@ -104,9 +96,13 @@ export default function useFormModal<IP extends InputsProps>({
         e.preventDefault()
         cleanResultMessage()
         setLoading(true)
-
-        submissionAction(inputsValues)
-        .then((resultMessage) => {setResultMessage(resultMessage)})
+ 
+        Promise.resolve(
+        submissionAction(inputsValues))
+        .then((resultMessage) => { 
+            if(resultMessage)
+            setResultMessage(resultMessage)
+        })
         .finally(() => {setLoading(false)})
         .catch((e) => {})
     }

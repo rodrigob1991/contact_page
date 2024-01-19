@@ -1,14 +1,14 @@
 import styled from "@emotion/styled"
-import { DetailedHTMLProps, TextareaHTMLAttributes } from "react"
 import { inputShareStyles } from "./TextInput"
 
 export type TextAreaInputProps = {
+    value?: string
     setValue: (value: string) => void
-} & DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>
+} 
 
-export const TextAreaInput = ({setValue, ...rest}: TextAreaInputProps) => {
+export const TextAreaInput = ({value, setValue}: TextAreaInputProps) => {
     return (
-        <TextArea {...rest} onChange={(e) => {setValue(e.target.value)}}/>
+        <TextArea value={value} onChange={(e) => {setValue(e.target.value)}}/>
     )
 }
 const TextArea = styled.textarea`

@@ -26,10 +26,12 @@ export type SetSizeCSS = (size: SizeCSS) => void
 export type PositionCSS = {top: string; left: string, bottom?: string, right?: string}
 export type PositionCSSKey = keyof PositionCSS
 export type SetPositionCSS = (position: PositionCSS) => void
+export type ContainsNode = (node: Node | undefined | null) => boolean
 export type ContainerDivApi = {
     observeIntersection: (observer: IntersectionObserver) => void
     getComputedStyle: () => CSSStyleDeclaration
     getRect: () => DOMRect
+    containsNode: ContainsNode
 } 
 
 type Props = {
@@ -56,6 +58,9 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
           },
           getRect() {
             return getContainer().getBoundingClientRect()
+          },
+          containsNode(node) {
+           return  node && getContainer().contains(node)
           }
         })
     , [])

@@ -1,22 +1,24 @@
 import { css } from "@emotion/react"
 import styled from "@emotion/styled"
-import { MouseEventHandler, useEffect, useRef, useState } from "react"
+import { MouseEventHandler, ReactNode, useEffect, useRef, useState } from "react"
 import { BsEyeSlashFill } from "react-icons/bs"
 import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
 import { TfiTarget } from "react-icons/tfi"
-import { ContainerDivApi, GetStyle, PositionCSSKey, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../components/ResizableDraggableDiv"
-import { mainColor, secondColor, thirdColor } from "../theme"
+import { ContainerDivApi, ContainsNode, GetStyle, PositionCSSKey, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../../components/ResizableDraggableDiv"
+import { mainColor, secondColor, thirdColor } from "../../theme"
+
+export type SetVisible = (visible: boolean) => void
 
 type PositionKey = "top" | "left"
 type PositionValue = "start" | "middle" |  "end" | `${number}${string}` | "none"
-type Position = {
+export type ModalPosition = {
   [K in PositionKey] : PositionValue
 }
 
-type UseModalProps = {
+export type UseModalProps = {
     scrollableElement?: HTMLElement
     positionType?: "absolute" | "fixed" | "hooked"
-    position?: Position
+    position?: ModalPosition
     size?: SizeCSS
     minSize?: SizeCSS
     resizable?: boolean
@@ -26,9 +28,9 @@ type UseModalProps = {
     visibleCenterPositionButton?: boolean
     visibleDefaultSizeButton?: boolean
     visibleFullSizeButton?: boolean
-    children: JSX.Element
-    topLeftChildren?: JSX.Element
-    topRightChildren?: JSX.Element
+    children: ReactNode
+    topLeftChildren?: ReactNode
+    topRightChildren?: ReactNode
     handleOnHide?: () => void
 }
 
@@ -55,13 +57,13 @@ export default function useModal({
                                children,
                                topLeftChildren,
                                topRightChildren,
-                               handleOnHide}: UseModalProps): [(visible: boolean) => void, JSX.Element] {
+                               handleOnHide}: UseModalProps): [SetVisible, ReactNode, ContainsNode] {
 
     const [visible, setVisible] = useState(false)
 
     const [positionCss, setPositionCss] = useState({top: "none", left: "none", bottom: "none", right: "none"})
     const [translateCss, setTranslateCss] = useState({top: "0", left: "0"})
-    const setPosition = (position: Position) => {
+    const setPosition = (position: ModalPosition) => {
       const nextPositionCss = {top: "none", left: "none", bottom: "none", right: "none"}
       const nextTranslateCss = {top: "0", left: "0"}
       for (const [key, value] of Object.entries(position)) {
@@ -234,7 +236,7 @@ export default function useModal({
                   </>
                   </ResizableDraggableDiv>
                  
-    return [setVisible, modal]             
+    return [setVisible, modal, getContainerDivApi().containsNode]             
 }
 
 const buttonsCommonProps = {size: 28, css: css`cursor: pointer; color: ${thirdColor}; padding: 2px;`, onMouseDown: (e: React.MouseEvent) => {setPreventFlag(e, true, true)}}

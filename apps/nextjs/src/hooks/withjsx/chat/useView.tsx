@@ -5,14 +5,14 @@ import React, { DetailedHTMLProps, HTMLAttributes, useEffect, useRef, useState }
 import { BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill } from "react-icons/bs"
 import { FiArrowRight } from "react-icons/fi"
 import { isEmpty } from "utils/src/strings"
-import { TextInput } from "../../components/FormComponents"
-import { PositionCSS, SizeCSS, setPreventFlag } from "../../components/ResizableDraggableDiv"
-import { messengerLayout as layout, maxWidthSmallestLayout, messengerSmallestLayout as smallestLayout } from "../../layouts"
-import { mainColor, secondColor, thirdColor } from "../../theme"
+import { TextInput } from "../../../components/FormComponents"
+import { PositionCSS, SizeCSS, setPreventFlag } from "../../../components/ResizableDraggableDiv"
+import { messengerLayout as layout, maxWidthSmallestLayout, messengerSmallestLayout as smallestLayout } from "../../../layouts"
+import { mainColor, secondColor, thirdColor } from "../../../theme"
 import useModal from "../useModal"
 import { ConnectionState } from "./useChat"
-import { InboundMessageData, MessagesData, OutboundMessageData, UserAckState } from "./useMessages"
-import { GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users } from "./useUsers"
+import { InboundMessageData, MessagesData, OutboundMessageData, UserAckState } from "../../chat/useMessages"
+import { GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users } from "../../chat/useUsers"
 
 export type SetOutboundMessageData =  (body: string) => boolean
 export type ContainerProps = { show: boolean, left: number, top: number, viewPortPercentage?: number}

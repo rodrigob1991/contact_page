@@ -1,14 +1,15 @@
-import { DetailedHTMLProps, InputHTMLAttributes, forwardRef, Ref } from "react"
+import { Ref, forwardRef } from "react"
 import { Input } from "./TextInput"
 
 export type NumberInputProps = {
+    value?: number
     setValue: (value: number) => void
     onEnter?: () => void
-} & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>,HTMLInputElement>
-export const NumberInput = forwardRef(({
-                                         setValue,
-                                         onEnter,
-                                         ...rest
+}
+export const NumberInput = forwardRef(({ 
+                                        value,
+                                        setValue,
+                                        onEnter,
                                      }: NumberInputProps, ref : Ref<HTMLInputElement>) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         switch (e.key.toLowerCase()) {
@@ -21,10 +22,7 @@ export const NumberInput = forwardRef(({
     }
 
     return (
-        <Input {...rest} type={"number"} ref={ref}
-               onChange={(e) => {setValue(Number(e.target.value))}}
-               onKeyDown={handleKeyDown}
-        />
+        <Input type={"number"} ref={ref} value={value} onChange={(e) => {setValue(Number(e.target.value))}} onKeyDown={handleKeyDown}/>
     )
 })
 NumberInput.displayName = "NumberInput"

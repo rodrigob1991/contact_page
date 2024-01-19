@@ -1,14 +1,14 @@
-import {NewStory, Story, StoryHTMLElementIds, StoryWithJSXBody, ViewMode} from "../../../types/home"
-import React, {FocusEventHandler, MouseEventHandler, TouchEventHandler, useEffect, useRef, useState} from "react"
+import { css } from "@emotion/react"
 import styled from "@emotion/styled"
-import {DeleteOrRecoverButton, OpenOrCloseStoryButton, PlusButton} from "../../Buttons"
-import {Pallet} from "../../Pallet"
-import {OptionSelector} from "../../FormComponents"
-import {StoryState} from "@prisma/client"
-import {Observe} from "../../../pages/user/edit_home"
-import {mainColor, secondColor} from "../../../theme"
+import { StoryState } from "@prisma/client"
+import React, { FocusEventHandler, MouseEventHandler, TouchEventHandler, useEffect, useRef, useState } from "react"
+import usePallet from "../../../hooks/withjsx/usePallet"
+import { Observe } from "../../../pages/user/edit_home"
+import { mainColor, secondColor } from "../../../theme"
+import { NewStory, Story, StoryHTMLElementIds, StoryWithJSXBody, ViewMode } from "../../../types/home"
+import { DeleteOrRecoverButton, OpenOrCloseStoryButton } from "../../Buttons"
+import { OptionSelector } from "../../FormComponents"
 import AddButton from "../edit/AddButton"
-import { isEmpty } from "utils/src/strings"
 
 const storiesAnchorsContainerWidth = 150
 
@@ -164,22 +164,20 @@ export default function StoriesView<M extends ViewMode>({
         setStoriesViewStates(updatedStoriesViewStates)
     }
     const [editingStoryIdHtml, setEditingStoryIdHtml] = useState("")
-    const isEditingStory = (idHtml: string) => {
-        return editingStoryIdHtml === idHtml
-    }
-    const refToIsAsking = useRef(false)
-    const isAsking = (asking: boolean) => {
-        refToIsAsking.current = asking
-    }
+    
+    const [setPalletVisible, pallet, palletContainsNode] = usePallet({rootElementId: editingStoryIdHtml})
+
     const getEditableStoriesView = () => storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
                                          const {title,body, state} = story as Story
                                          const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
                                          const handleOnFocusBody: FocusEventHandler<HTMLDivElement> = (e) => {
+                                             setPalletVisible(true)
                                              setEditingStoryIdHtml(idHtml)
                                          }
                                          const handleOnBlurBody: FocusEventHandler<HTMLDivElement> = (e) => {
-                                             if (!refToIsAsking.current) {
+                                             if (!palletContainsNode(e.relatedTarget)) {
+                                                 setPalletVisible(false)
                                                  setEditingStoryIdHtml("")
                                              }
                                          }
@@ -197,21 +195,18 @@ export default function StoriesView<M extends ViewMode>({
                                                 {/* <Pallet rootElementId={htmlIds.body} show={isEditingStory(idHtml)} isAsking={isAsking}/> */}
                                                 </StoryTitleContainer>
                                                 {isOpen && 
-                                                <StoryBody id={htmlIds.body} contentEditable={!toDelete}
+                                                <StoryBody id={htmlIds.body} focus={idHtml === editingStoryIdHtml} contentEditable={!toDelete}
                                                            ref={r => {if(r) {refToLastStory.current = r; (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
                                                            dangerouslySetInnerHTML={{__html: body}} onFocus={handleOnFocusBody} onBlur={handleOnBlurBody}/>
                                                 }
                                                 </StoryContainer>
                                          })
 
-    return <>
-           <Container>
-           {editing && <Pallet rootElementId={editingStoryIdHtml} visible={!isEmpty(editingStoryIdHtml)} isAsking={isAsking}/>}
+    return <Container>
+           {editing && pallet}
            <LeftContainer>
            {editing &&
-           <>
            <AddButton position="right" tooltipText="add story" handleOnClick={handleAddNewStory}/>
-           </>
            }
            <StoriesAnchorsContainer ref={storiesAnchorsRef} transparent={transparentStoriesAnchors} onClick={handleOnClickStoriesAnchors} onTouchStart={handleOnTouchStoriesAnchors} onMouseOver={handleOnMouseOverStoriesAnchors} onMouseLeave={handleOnMouseLeaveStoriesAnchors}>
            <StoriesAnchorsTitle>stories index</StoriesAnchorsTitle>
@@ -232,7 +227,6 @@ export default function StoriesView<M extends ViewMode>({
            {editing ? getEditableStoriesView() : getStoriesView()}
            </StoriesContainer>
            </Container>
-           </>
 }
 
 const Container = styled.div`
@@ -313,13 +307,21 @@ const StoryContainer = styled.li`
         border-bottom-style: none;
     }
 `
-const StoryBody = styled.div`
+const focusStyle = css`
+  outline-color: ${secondColor};
+  outline-style: solid;
+  outline-width: 3px;
+`
+const StoryBody = styled.div<{focus?: boolean}>`
   color: #696969;
   line-height: 1.5;
   font-size: 3rem;
   text-align: justify;
   padding: 6px;
-  outline-color: ${secondColor};
+  ${({focus}) => focus ? focusStyle : ""}
+  &:focus {
+  ${focusStyle}
+  }
 `
 const StoryTitleContainer = styled.div`
   display: flex;
