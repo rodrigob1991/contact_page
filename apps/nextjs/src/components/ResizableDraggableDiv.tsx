@@ -1,6 +1,7 @@
 import { Interpolation, Theme, css } from "@emotion/react"
 import styled from "@emotion/styled"
 import { MouseEventHandler, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
+import { exist } from "utils/src/objects"
 import { getNumbers } from "utils/src/strings"
 
 // attach this properties in mousedown event to prevent resize and/or drag 
@@ -60,7 +61,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
             return getContainer().getBoundingClientRect()
           },
           containsNode(node) {
-           return  node && getContainer().contains(node)
+           return  exist(node) && getContainer().contains(node)
           }
         })
     , [])
@@ -180,7 +181,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
         //setDragging(false)
      }
     
-    return <Container ref={containerRef} css={[getContainerStyle ? getContainerStyle(resizing, dragging) : undefined, size, position]} resizing={resizing} dragging={dragging} onMouseLeave={handleOnMouseLeaveContainer}>
+    return <Container ref={containerRef} tabIndex={1} css={[getContainerStyle ? getContainerStyle(resizing, dragging) : undefined, size, position]} resizing={resizing} dragging={dragging} onMouseLeave={handleOnMouseLeaveContainer}>
            {children}
            </Container>
 })

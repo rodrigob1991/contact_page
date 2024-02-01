@@ -10,4 +10,5 @@ export const getObjectWithNewProps = <O extends object, P extends [keyof O, any]
     return modifiedObject
 }
 
-export const isEmpty = (object: object) => Object.keys(object).length === 0
+export const isEmpty = (o: object) => Object.keys(o).length === 0
+export const exist = <O extends object>(o: O | null | undefined): o is O => o !== undefined && o !== null

@@ -176,8 +176,9 @@ export default function StoriesView<M extends ViewMode>({
                                              setEditingStoryIdHtml(idHtml)
                                          }
                                          const handleOnBlurBody: FocusEventHandler<HTMLDivElement> = (e) => {
+                                          console.log(e.nativeEvent.relatedTarget)
                                              if (!palletContainsNode(e.relatedTarget)) {
-                                                 setPalletVisible(false)
+                                                // setPalletVisible(false)
                                                  setEditingStoryIdHtml("")
                                              }
                                          }

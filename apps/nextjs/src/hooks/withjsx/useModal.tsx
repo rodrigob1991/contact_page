@@ -7,7 +7,7 @@ import { TfiTarget } from "react-icons/tfi"
 import { ContainerDivApi, ContainsNode, GetStyle, PositionCSSKey, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../../components/ResizableDraggableDiv"
 import { mainColor, secondColor, thirdColor } from "../../theme"
 
-export type SetVisible = (visible: boolean) => void
+export type SetVisible = (visible: boolean, position?: ModalPosition) => void
 
 type PositionKey = "top" | "left"
 type PositionValue = "start" | "middle" |  "end" | `${number}${string}` | "none"
@@ -94,56 +94,66 @@ export default function useModal({
 
     const containerDivApiRef = useRef<ContainerDivApi>(null)
     const getContainerDivApi = () => containerDivApiRef.current as ContainerDivApi
+    const containsNode: ContainsNode = (node) => getContainerDivApi() ? getContainerDivApi().containsNode(node) : false
     const [positionTypeCss, setPositionTypeCss] = useState<"absolute" | "fixed">()
 
     useEffect(() => {
       if (positionType === "hooked") {
         let scrollableAncestor: HTMLElement | Window
-        let getScrollAxis: () => {y: number, x: number}
-        if (scrollableElement){
-            scrollableAncestor = scrollableElement
-          getScrollAxis = () => ({y: scrollableElement.scrollTop, x: scrollableElement.scrollLeft})
-        }else{
+        let getScrollAxis: () => { y: number; x: number }
+        let limits: {top: number, left: number, bottom: number, right: number}
+        if (scrollableElement) {
+          scrollableAncestor = scrollableElement
+          getScrollAxis = () => ({
+            y: scrollableElement.scrollTop,
+            x: scrollableElement.scrollLeft,
+          })
+          limits = {top: 0, left: 0, bottom: 0, right: 0}
+        } else {
           scrollableAncestor = window
-          getScrollAxis = () => ({y: window.scrollY, x: window.scrollX})
+          getScrollAxis = () => ({ y: window.scrollY, x: window.scrollX })
+          limits = {top: 0, left: 0, bottom: window.innerHeight, right: window.innerWidth}
         }
 
-        const handleOverflow = (positionCssKey: PositionCSSKey, backToAbsolutePositionIf: () => boolean) => {
+        const handleOverflow = (
+          positionCssKey: PositionCSSKey,
+          goBackToAbsolutePosition: () => boolean
+        ) => {
           const beforeOverflowPositionCssValue = getContainerDivApi().getComputedStyle()[positionCssKey]
           scrollableAncestor.removeEventListener("scroll", handleScroll)
           setPositionTypeCss("fixed")
           setPositionCss((positionCss) => {
-            const nextPositionCss = {...positionCss}
-            nextPositionCss[positionCssKey] = "0"
+            const nextPositionCss = { ...positionCss }
+            nextPositionCss[positionCssKey] = limits[positionCssKey] + "px"
             nextPositionCss[positionsCssOpposites[positionCssKey]] = "none"
             return nextPositionCss
           })
           const handleSecondScroll = (e: Event) => {
-            if (backToAbsolutePositionIf()) {
-                scrollableAncestor.removeEventListener("scroll", handleSecondScroll)
-                setPositionTypeCss("absolute")
-                setPositionCss((positionCss) => {
-                  const nextPositionCss = {...positionCss}
-                  nextPositionCss[positionCssKey] = beforeOverflowPositionCssValue
-                  return nextPositionCss
-                })
-                scrollableAncestor.addEventListener("scroll", handleScroll)
+            if (goBackToAbsolutePosition()) {
+              scrollableAncestor.removeEventListener("scroll", handleSecondScroll)
+              setPositionTypeCss("absolute")
+              setPositionCss((positionCss) => {
+                const nextPositionCss = { ...positionCss }
+                nextPositionCss[positionCssKey] = beforeOverflowPositionCssValue
+                return nextPositionCss
+              })
+              scrollableAncestor.addEventListener("scroll", handleScroll)
             }
           }
           scrollableAncestor.addEventListener("scroll", handleSecondScroll)
         }
 
         const handleScroll = () => {
-          const {top, bottom, left, right} = getContainerDivApi().getRect()
-          const {y: scrollY, x: scrollX} = getScrollAxis()
+          const { top, bottom, left, right } = getContainerDivApi().getRect()
+          const { y: scrollY, x: scrollX } = getScrollAxis()
 
-          if (top <= 0) {
+          if (top <= limits.top) {
             handleOverflow("top", () => getScrollAxis().y <= scrollY)
-          } else if (bottom <= 0) {
+          } else if (bottom >= limits.bottom) {
             handleOverflow("bottom", () => getScrollAxis().y >= scrollY)
-          } else if (left <= 0) {
+          } else if (left <= limits.left) {
             handleOverflow("left", () => getScrollAxis().x <= scrollX)
-          } else if (right <= 0) {
+          } else if (right <= limits.right) {
             handleOverflow("right", () => getScrollAxis().x >= scrollX)
           }
         }
@@ -178,6 +188,7 @@ export default function useModal({
       max-height: 100%;
       max-width: 100%;
       transform: translate(${translateCss.left}, ${translateCss.top});
+      z-index: 9;
     `
     const getResizableDivStyle: GetStyle = (resizing, dragging) => css`
       display: flex;
@@ -236,7 +247,16 @@ export default function useModal({
                   </>
                   </ResizableDraggableDiv>
                  
-    return [setVisible, modal, getContainerDivApi().containsNode]             
+    return [
+      (visible, position) => {
+        if (position) {
+          setPosition(position)
+        }
+        setVisible(visible)
+      },
+      modal,
+      containsNode,
+    ]             
 }
 
 const buttonsCommonProps = {size: 28, css: css`cursor: pointer; color: ${thirdColor}; padding: 2px;`, onMouseDown: (e: React.MouseEvent) => {setPreventFlag(e, true, true)}}

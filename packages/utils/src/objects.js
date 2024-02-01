@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isEmpty = exports.getObjectWithNewProps = void 0;
+exports.exist = exports.isEmpty = exports.getObjectWithNewProps = void 0;
 const getObjectWithNewProps = (object, newProps) => {
     const modifiedObject = Object.assign({}, object);
     for (const [key, newProp] of newProps) {
@@ -9,5 +9,7 @@ const getObjectWithNewProps = (object, newProps) => {
     return modifiedObject;
 };
 exports.getObjectWithNewProps = getObjectWithNewProps;
-const isEmpty = (object) => Object.keys(object).length === 0;
+const isEmpty = (o) => Object.keys(o).length === 0;
 exports.isEmpty = isEmpty;
+const exist = (o) => o !== undefined && o !== null;
+exports.exist = exist;

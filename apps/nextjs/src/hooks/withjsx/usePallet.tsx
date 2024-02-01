@@ -2,24 +2,43 @@ import styled from "@emotion/styled"
 import { MouseEventHandler, ReactNode, useEffect, useRef, useState } from "react"
 import { getContainedString, isEmpty } from "utils/src/strings"
 import { DeleteOrRecoverButton } from "../../components/Buttons"
-import { ImageSelector, NumberInput, TextInput } from "../../components/FormComponents"
+import { NumberInput, TextInput } from "../../components/FormComponents"
 import { ContainsNode } from "../../components/ResizableDraggableDiv"
 import { createAnchor, createDiv, createImage, createSpan, createText, getTexts, hasSiblingOrParentSibling, isAnchor, isDiv, isSpan, isText, lookUpDivParent, positionCaretOn, removeNodesFromOneSide } from "../../utils/domManipulations"
 import { useRecordState } from "../useRecordState"
 import { Ask, useAsk } from "./useAsk"
 import useModal, { ModalPosition, SetVisible } from "./useModal"
-import useFormModal from "./forms/useFormModal"
+import useFormModal, { SubmissionAction } from "./forms/useFormModal"
 import { FcPicture } from "react-icons/fc"
+import ImageSelector, {ImageData} from "../../components/forms/ImageSelector"
+import { FaLastfmSquare } from "react-icons/fa"
+
+const optionsTypesWithForm = {link: "link", image: "image"} as const
+type OptionTypeWithForm = keyof typeof optionsTypesWithForm
+const isWithForm = (ot: OptionType) : ot is OptionTypeWithForm => ot in optionsTypesWithForm
+
+const optionsTypesWithoutForm = {defaultText: "defaultText", span: "span"} as const
+type OptionTypeWithoutForm = keyof typeof optionsTypesWithoutForm
+const isWithoutForm = (ot: OptionType) : ot is OptionTypeWithoutForm => ot in optionsTypesWithoutForm
+
+type OptionType = OptionTypeWithForm | OptionTypeWithoutForm
+type TargetOptionNode<OT extends OptionType = OptionType> = {defaultText: Text, span: HTMLSpanElement, link: HTMLAnchorElement, image: HTMLDivElement}[OT]
+
+type ElementOptionType = Exclude<OptionType, "defaultText">
+type ElementOptionTarget<OT extends ElementOptionType = ElementOptionType> = TargetOptionNode<OT>
+
+type OptionTypeWithoutImage = Exclude<OptionType, "image"> 
+
+type GetTargetOptionNode<OT extends OptionType = OptionType> = ({image: () => HTMLDivElement} &  {[K in OptionTypeWithoutImage] : (text: string, isLast: boolean) => TargetOptionNode<K>})[OT]
+type HandleSelection = (getOptionTargetNode: GetTargetOptionNode) => void
+
+type ImageOptionAttr = ImageData & {height: number, width: number}
+type InsertOrModifyImage = (ip: ImageOptionAttr) => void
+type RemoveImage = () => void
 
 type Props = {
     rootElementId: string
 }
-type OptionType = "defaultText" | "span" | "link" | "image"
-type OptionTargetElement = HTMLSpanElement | HTMLAnchorElement | HTMLImageElement
-type OptionTargetNode = Text | OptionTargetElement
-type OptionTargetElementProps = ImageProps | string
-type GetOptionTargetNode = (text: string, isLast: boolean) => OptionTargetNode
-type GetOptionTargetNodeWithProps = (text: string, isLast: boolean, props?: OptionTargetElementProps) => OptionTargetNode
 
 export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNode, ContainsNode] {
     const getRootElement = () => {
@@ -91,17 +110,17 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
         return id
     }
     const [elementIdFormPosition, setElementIdFormPosition] = useState<ModalPosition>({top: "middle", left: "middle"})
-    const [setVisibleElementIdForm, elementIdForm] = useFormModal({positionType: "absolute", position: elementIdFormPosition, buttonText: "add", inputsProps: {elementId: {type: "textInput"}}, submissionAction: ({elementId}) => {setElementId(elementId)}})
+    const [setVisibleElementIdForm, elementIdForm] = useFormModal({positionType: "absolute", position: elementIdFormPosition, buttonText: "add", inputsProps: {id: {type: "textInput"}}, submissionAction: ({id}) => {setElementId(id)}})
     //const [askElementId, askElementIdElement] = useAskElementId({id: elementId, setId: setElementId, focusRootElement: focusRootElement})
     const handleClickElementId: MouseEventHandler<HTMLSpanElement> = (e) => {
         setElementIdFormPosition({top: `${e.clientY - 20}px`, left: `${e.clientX + 20}px`})
         setVisibleElementIdForm(true)
     }
 
-    const handleCollapsedSelection = (optionType: OptionType, newNode: OptionTargetNode, anchor: ChildNode, anchorOffSet: number) => {
-        const anchorParent = anchor.parentElement as HTMLDivElement | OptionTargetElement
+    const handleCollapsedSelection = (optionType: OptionType, getTargetOptionNode: GetTargetOptionNode, anchor: ChildNode, anchorOffSet: number) => {
+        const anchorParent = anchor.parentElement as HTMLElement
         const anchorValue = anchor.nodeValue as string
-        const anchorLength = anchorValue?.length
+        const anchorLength = anchorValue.length
 
         const isInside = anchorOffSet !== anchorLength
         const isStart = anchorOffSet === 0
@@ -119,9 +138,11 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
         const isInsideTextInSpanOrAnchor = isAnchorText && isParentSpanOrAnchor && isInside
         const isTextEndInSpanOrAnchor = isAnchorText && isParentSpanOrAnchor && isEnd
 
+        const targetOptionNode = optionType === "image" ? (getTargetOptionNode as GetTargetOptionNode<"image">)() : getTargetOptionNode("-", true) 
+
         switch (true) {
             case (!isAnchorText):
-                anchor.after(newNode)
+                anchor.after(targetOptionNode)
                 break
             case (optionType === "defaultText" && (isTextStart || isInsideText || isTextEnd)):
                 // do nothing.
@@ -131,44 +152,39 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
                 if (!divParent) {
                     throw new Error("must be an div parent always")
                 }
-                divParent.after(newNode)
+                divParent.after(targetOptionNode)
                 break
             case (isTextStart):
-                anchor.before(newNode)
+                anchor.before(targetOptionNode)
                 break
             case (isInsideText):
                 const leftText = createText(anchorValue.substring(0, anchorOffSet))
                 const rightText = createText(anchorValue.substring(anchorOffSet))
-                anchor.after(leftText, newNode, rightText)
+                anchor.after(leftText, targetOptionNode, rightText)
                 anchor.remove()
                 break
             case (isTextEnd):
-                anchor.after(newNode)
+                anchor.after(targetOptionNode)
                 break
             case (isTextStartInSpanOrAnchor):
-                anchorParent.before(newNode)
+                anchorParent.before(targetOptionNode)
                 break
             case (isInsideTextInSpanOrAnchor):
                 const leftSpanOrAnchor = anchorParent.cloneNode()
                 leftSpanOrAnchor.appendChild(createText(anchorValue.substring(0, anchorOffSet)))
                 const rightSpanOrAnchor = anchorParent.cloneNode()
                 rightSpanOrAnchor.appendChild(createText(anchorValue.substring(anchorOffSet)))
-                anchorParent.after(leftSpanOrAnchor, newNode, rightSpanOrAnchor)
+                anchorParent.after(leftSpanOrAnchor, targetOptionNode, rightSpanOrAnchor)
                 anchorParent.remove()
                 break
             case (isTextEndInSpanOrAnchor):
-                anchorParent.after(newNode)
+                anchorParent.after(targetOptionNode)
                 break
             default:
                 throw new Error("Could not enter in any case, maybe other cases have to be added")
         }
     }
-    const handleRangeSelection = (optionType: OptionType, getNewNode: GetOptionTargetNode, range: Range) => {
-        if (optionType === "image") {
-            // for now i don't  insert images when select ranges
-            return
-        }
-
+    const handleRangeSelection = (optionType: OptionTypeWithoutImage, getTargetOptionNode: GetTargetOptionNode<OptionTypeWithoutImage>, range: Range) => {
         const copySelectedFragment = range.cloneContents()
 
         // it seem that range.startContainer is always a text node
@@ -187,7 +203,7 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
             }
 
             const texts = getTexts(startSelectedFragment)
-            const newNode = getNewNode(texts, false)
+            const newNode = getTargetOptionNode(texts, false)
 
             let nodeToRemoveFrom
             let removeNodeToRemoveFrom
@@ -224,7 +240,7 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
             }
 
             const texts = getTexts(endSelectedFragment)
-            const newNode = getNewNode(texts, true)
+            const newNode = getTargetOptionNode(texts, true)
 
             let nodeToRemoveFrom
             let removeNodeToRemoveFrom
@@ -249,7 +265,7 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
             const texts = getTexts(copySelectedFragment)
             if (!isEmpty(texts)) {
                 const children = []
-                children[1] = getNewNode(texts, true)
+                children[1] = getTargetOptionNode(texts, true)
                 // this is to avoid getting an span inside other span
                 if (copySelectedFragment.childNodes.length === 1
                     && isText(copySelectedFragment.childNodes[0])
@@ -279,7 +295,7 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
             const divs = copySelectedFragment.childNodes
             divs.forEach((n,i) => {
                 if (n instanceof HTMLDivElement) {
-                    const newNode = getNewNode(getTexts(n), !modifyEndRange && (i + 1 === divs.length))
+                    const newNode = getTargetOptionNode(getTexts(n), !modifyEndRange && (i + 1 === divs.length))
                     n.replaceChildren(newNode)
                 } else {
                     throw new Error("I do not expect a node here not to be a div")
@@ -290,7 +306,111 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
         range.insertNode(copySelectedFragment)
     }
 
-    const handleClickPalletOption = (optionType: OptionType, className?: string) => {
+    const getCommonElementOptionAttr = () => ({tabIndex: -1, id: consumeElementId()})
+
+    const handleClickOptionWithForm = (optionType: OptionTypeWithForm, handleSelection: HandleSelection, selectionRectTop: number, selectionRectLeft: number) => {
+      let setVisible: SetVisible
+
+      switch (optionType) {
+        case "link":
+          let lastLinkAdded: HTMLAnchorElement
+          const getTargetOptionLink: GetTargetOptionNode<"link"> = (t, isLast, hRef) => {
+            const link = createAnchor({ innerHTML: t, ...elementProps })
+            //link.id = lastElementAddedId
+            link.href = hRef as string
+            if (isLast) {
+              lastLinkAdded = link
+            }
+            return link
+          }
+          setHandleSelection = (handleSelection) => {
+            updateInsertLink((hRef) => {
+              handleSelection(hRef)
+              setTimeout(() => {
+                positionCaretOn(lastLinkAdded)
+              }, 100)
+            })
+          }
+          setVisible = setVisibleHrefForm
+          break
+        case "image":
+          updateInsertOrModifyImage(({dataUrl, name, extension, ...dimensions}) => {
+            const getTargetOptionImage: GetTargetOptionNode<"image"> = () => {
+              const div = createDiv({
+                props: {contentEditable: "false"},
+                styles: {width: "100%", height: "fit-content", justifyContent: "center", display: "flex"}
+              })
+              const imageElement = createImage({src: dataUrl, ...dimensions, ...getCommonElementOptionAttr()})
+              imageElement.dataset.name = name
+              imageElement.dataset.extension = extension
+              imageElement.setAttribute("onclick",`{window.modifyImageElement(this)}`)
+              div.append(imageElement)
+              return div
+            }
+            handleSelection(getTargetOptionImage)
+          })
+          setVisible = setVisibleImageForm
+          break
+      }
+
+      setVisible(true, {top: `${selectionRectTop}px`, left: `${selectionRectLeft}px`})
+    }
+    const handleClickOptionWithoutForm = (optionType: OptionTypeWithoutForm, handleSelection: HandleSelection, className: string) => {
+        let getTargetOptionNode: GetTargetOptionNode<OptionTypeWithoutForm>
+        let lastNode: Node
+        switch (optionType) {
+            case "defaultText":
+                getTargetOptionNode = (t, isLast) => {
+                    const defaultText = createText(t)
+                    if (isLast) {
+                        lastNode = defaultText
+                    }
+                    return defaultText
+                }
+                break
+            case "span":
+                getTargetOptionNode = (t, isLast) => {
+                    const span = createSpan({innerHTML: t, className, ...getCommonElementOptionAttr()})
+                    if (isLast) {
+                        lastNode = span
+                    }
+                    return span
+                }
+                break
+        }
+        handleSelection(getTargetOptionNode)
+        setTimeout(() => {positionCaretOn(lastNode)}, 100)
+        
+    }
+    const handleClickPalletOption = <OT extends OptionType>(optionType: OT, className: OT extends OptionTypeWithoutForm ? string : never) => {
+        const selection = window.getSelection() as Selection
+        const {isCollapsed, rangeCount, anchorNode, anchorOffset} = selection
+        const ranges : Range[] = []
+        for (let i = 0; i < rangeCount; i++) {
+            ranges.push(selection.getRangeAt(i))
+        }
+
+        const handleSelection = (getTargetOptionNode: GetTargetOptionNode) => {
+            if (isCollapsed) {
+                handleCollapsedSelection(optionType, getTargetOptionNode, anchorNode as ChildNode, anchorOffset)
+            } else {
+                if (optionType !== "image") {
+                  ranges.forEach((r) => {handleRangeSelection(optionType, getTargetOptionNode, r)})
+                }
+            }
+        }
+        
+        if (isWithForm(optionType)) {
+            const {y: rectTop,x: rectLeft} = ranges[0].getBoundingClientRect()
+            handleClickOptionWithForm(optionType, handleSelection, rectTop, rectLeft)
+
+        } else {
+            handleClickOptionWithoutForm(optionType, handleSelection, className)
+        }
+    }
+
+
+    /* const handleClickPalletOption = (optionType: OptionType, className?: string) => {
         const selection = window.getSelection() as Selection
         const {isCollapsed, rangeCount, anchorNode, anchorOffset} = selection
         const ranges : Range[] = []
@@ -374,7 +494,8 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
                     return div
                 }
                 onFinally = () => {
-                    askImageProps(rectTop, rectLeft)
+                    setVisibleImageForm(true, {top: `${rectTop}px`, left: `${rectLeft}px`})
+                    //askImageProps(rectTop, rectLeft)
                 }
                 break
         }
@@ -393,36 +514,86 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
         }
         setTimeout(onFinally, 100)
     }
-
+ */
     const [insertLink, setInsertLink] = useState<InsertLink>(()=> {})
     const updateInsertLink = (fun: InsertLink)=> { setInsertLink((f: InsertLink)=> fun) }
     const [askHRef, askHRefElement] = useAskHRef({insertLink: insertLink})
 
-    const modifyImageElement = (img: HTMLImageElement) => {
+    const imageFormInputsProps  = {
+        imageData: {type: "imageSelector"},
+        height: {type: "numberInput"},
+        width: {type: "numberInput"},
+        remove: {type: "checkbox", props: {label: "remove"}}
+    } as const
+    const imageFormSubmissionAction: SubmissionAction<typeof imageFormInputsProps>  = ({remove, imageData, ...dimensions}) => {
+        if (remove){
+            removeImage()
+        } else {
+            insertOrModifyImage({...imageData, ...dimensions})
+        }
+    }
+    const [setVisibleImageForm, imageForm] = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: imageFormInputsProps, submissionAction: imageFormSubmissionAction})
+
+    useEffect(() => {
+      window.modifyImageElement = (img: HTMLImageElement) => {
         const divParent = img.parentElement as HTMLDivElement
-        updateInsertOrModifyImage(({image:{id, src, height,width}, parent:{left}}) => {
-            img.id = id
-            img.src = src
+        updateInsertOrModifyImage(({dataUrl, name, extension, height, width}) => {
+            //img.id = id
+            img.src = dataUrl
             img.height = height
             img.width = width
+            img.dataset.name = name
+            img.dataset.extension = extension
             //divParent.style.paddingLeft = left + "px"
-        })
+          }
+        )
         updateRemoveImage(() => {
-            (img.parentElement as HTMLDivElement).remove()
+          (img.parentElement as HTMLDivElement).remove()
         })
 
-        const imgRect = img.getBoundingClientRect()
-        askImageProps(imgRect.top, imgRect.left, {image:{id: img.id, src: img.src, height: img.height, width: img.width}, parent:{left: parseInt(getContainedString(divParent.style.paddingLeft, undefined, "px"))}})
-    }
-    useEffect(() => {
-        window.modifyImageElement = modifyImageElement
+        const {top, left} = img.getBoundingClientRect()
+        setVisibleImageForm(
+          true,
+          { top: `${top}px`, left: `${left}px` },
+          {
+            imageData: {
+              dataUrl: img.src,
+              name: img.dataset.name as string,
+              extension: img.dataset.extension as string,
+            },
+            height: img.height,
+            width: img.width,
+            remove: false
+          }
+        )
+        /* askImageProps(imgRect.top, imgRect.left, {
+          image: {
+            id: img.id,
+            src: img.src,
+            height: img.height,
+            width: img.width,
+          },
+          parent: {
+            left: parseInt(
+              getContainedString(divParent.style.paddingLeft, undefined, "px")
+            ),
+          },
+        }) */
+      }
     }, [])
-    const [insertOrModifyImage, setInsertOrModifyImage] = useState<InsertOrModifyImage>((ip)=> {})
-    const updateInsertOrModifyImage = (fun: InsertOrModifyImage)=> { setInsertOrModifyImage((f: InsertOrModifyImage)=> fun) }
+    const [insertOrModifyImage, setInsertOrModifyImage] = useState<InsertOrModifyImage>(() => {})
+    const updateInsertOrModifyImage = (fn: InsertOrModifyImage) => {
+      setInsertOrModifyImage(() => fn)
+    }
     const [removeImage, setRemoveImage] = useState<RemoveImage>(() => {})
-    const updateRemoveImage = (fun: RemoveImage) => { setRemoveImage(() => fun) }
-    const [askImageProps, askImagePropsElement] = useAskImageProps({insertOrModifyImage: insertOrModifyImage, removeImage: removeImage})
-
+    const updateRemoveImage = (fn: RemoveImage) => {
+      setRemoveImage(() => fn)
+    }
+   /*  const [askImageProps, askImagePropsElement] = useAskImageProps({
+      insertOrModifyImage: insertOrModifyImage,
+      removeImage: removeImage,
+    })
+ */
     const handleMouseDown: MouseEventHandler = (e) => {
         e.preventDefault()
     }
@@ -546,9 +717,6 @@ const useAskHRef = ({insertLink}: UseAskHRefProps): [Ask, JSX.Element] => {
     return [ask, askElement]
 }
 
-type ImageProps = { image: {id: string, src: string, height: number, width: number}, parent: {left: number}}
-type InsertOrModifyImage = (ip: ImageProps) => void
-type RemoveImage = () => void
 type UseAskImagePropsProps = {
     insertOrModifyImage: InsertOrModifyImage
     removeImage: RemoveImage
