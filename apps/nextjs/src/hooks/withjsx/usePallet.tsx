@@ -1,17 +1,16 @@
 import styled from "@emotion/styled"
 import { MouseEventHandler, ReactNode, useEffect, useRef, useState } from "react"
-import { getContainedString, isEmpty } from "utils/src/strings"
+import { FcPicture } from "react-icons/fc"
+import { isEmpty } from "utils/src/strings"
 import { DeleteOrRecoverButton } from "../../components/Buttons"
 import { NumberInput, TextInput } from "../../components/FormComponents"
 import { ContainsNode } from "../../components/ResizableDraggableDiv"
+import ImageSelector, { ImageData } from "../../components/forms/ImageSelector"
 import { createAnchor, createDiv, createImage, createSpan, createText, getTexts, hasSiblingOrParentSibling, isAnchor, isDiv, isSpan, isText, lookUpDivParent, positionCaretOn, removeNodesFromOneSide } from "../../utils/domManipulations"
 import { useRecordState } from "../useRecordState"
+import useFormModal, { SubmissionAction } from "./forms/useFormModal"
 import { Ask, useAsk } from "./useAsk"
 import useModal, { ModalPosition, SetVisible } from "./useModal"
-import useFormModal, { SubmissionAction } from "./forms/useFormModal"
-import { FcPicture } from "react-icons/fc"
-import ImageSelector, {ImageData} from "../../components/forms/ImageSelector"
-import { FaLastfmSquare } from "react-icons/fa"
 
 const optionsTypesWithForm = {link: "link", image: "image"} as const
 type OptionTypeWithForm = keyof typeof optionsTypesWithForm
@@ -29,12 +28,16 @@ type ElementOptionTarget<OT extends ElementOptionType = ElementOptionType> = Tar
 
 type OptionTypeWithoutImage = Exclude<OptionType, "image"> 
 
+type ClassName<OT extends OptionType> = OT extends "span" | "link" ? string : undefined 
+
 type GetTargetOptionNode<OT extends OptionType = OptionType> = ({image: () => HTMLDivElement} &  {[K in OptionTypeWithoutImage] : (text: string, isLast: boolean) => TargetOptionNode<K>})[OT]
 type HandleSelection = (getOptionTargetNode: GetTargetOptionNode) => void
 
 type ImageOptionAttr = ImageData & {height: number, width: number}
 type InsertOrModifyImage = (ip: ImageOptionAttr) => void
 type RemoveImage = () => void
+
+type InsertLink = (hRef: string) => void
 
 type Props = {
     rootElementId: string
@@ -314,24 +317,21 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
       switch (optionType) {
         case "link":
           let lastLinkAdded: HTMLAnchorElement
-          const getTargetOptionLink: GetTargetOptionNode<"link"> = (t, isLast, hRef) => {
-            const link = createAnchor({ innerHTML: t, ...elementProps })
-            //link.id = lastElementAddedId
-            link.href = hRef as string
-            if (isLast) {
-              lastLinkAdded = link
-            }
-            return link
-          }
-          setHandleSelection = (handleSelection) => {
             updateInsertLink((hRef) => {
-              handleSelection(hRef)
+              const getTargetOptionLink: GetTargetOptionNode<"link"> = (t, isLast) => {
+                const link = createAnchor({innerHTML: t, ...getCommonElementOptionAttr()})
+                link.href = hRef
+                if (isLast) {
+                  lastLinkAdded = link
+                }
+                return link
+              }
+              handleSelection(getTargetOptionLink)
               setTimeout(() => {
                 positionCaretOn(lastLinkAdded)
               }, 100)
             })
-          }
-          setVisible = setVisibleHrefForm
+          setVisible = setVisibleLinkForm
           break
         case "image":
           updateInsertOrModifyImage(({dataUrl, name, extension, ...dimensions}) => {
@@ -355,7 +355,7 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
 
       setVisible(true, {top: `${selectionRectTop}px`, left: `${selectionRectLeft}px`})
     }
-    const handleClickOptionWithoutForm = (optionType: OptionTypeWithoutForm, handleSelection: HandleSelection, className: string) => {
+    const handleClickOptionWithoutForm = (optionType: OptionTypeWithoutForm, handleSelection: HandleSelection, className: ClassName<OptionTypeWithoutForm>) => {
         let getTargetOptionNode: GetTargetOptionNode<OptionTypeWithoutForm>
         let lastNode: Node
         switch (optionType) {
@@ -382,7 +382,7 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
         setTimeout(() => {positionCaretOn(lastNode)}, 100)
         
     }
-    const handleClickPalletOption = <OT extends OptionType>(optionType: OT, className: OT extends OptionTypeWithoutForm ? string : never) => {
+    const handleClickPalletOption = <OT extends OptionType>(optionType: OT, className: ClassName<OT>) => {
         const selection = window.getSelection() as Selection
         const {isCollapsed, rangeCount, anchorNode, anchorOffset} = selection
         const ranges : Range[] = []
@@ -515,9 +515,17 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
         setTimeout(onFinally, 100)
     }
  */
-    const [insertLink, setInsertLink] = useState<InsertLink>(()=> {})
-    const updateInsertLink = (fun: InsertLink)=> { setInsertLink((f: InsertLink)=> fun) }
-    const [askHRef, askHRefElement] = useAskHRef({insertLink: insertLink})
+    const [insertLink, setInsertLink] = useState<InsertLink>(() => {})
+    const updateInsertLink = (fn: InsertLink)=> { setInsertLink(() => fn) }
+    //const [askHRef, askHRefElement] = useAskHRef({insertLink: insertLink}
+    const linkFormInputsProps  = {
+        href: {type: "textInput"}
+    } as const
+    const linkFormSubmissionAction: SubmissionAction<typeof linkFormInputsProps>  = ({href}) => {
+        insertLink(href)
+    }
+    const [setVisibleLinkForm, linkForm] = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: linkFormInputsProps, submissionAction: linkFormSubmissionAction})
+
 
     const imageFormInputsProps  = {
         imageData: {type: "imageSelector"},
@@ -608,7 +616,7 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
     const optionSeparator = <span style={{color: "#000000", fontSize: "2rem"}}>-</span>
 
     const children = <Container>
-                     <span className={getOptionClass()} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("defaultText")}}>
+                     <span className={getOptionClass()} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("defaultText", undefined)}}>
                      a
                      </span>
                      {optionSeparator}
@@ -624,14 +632,14 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
                      Link
                      </a>
                      {optionSeparator}
-                     <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e) => {handleClickPalletOption("image")}} style={{cursor: "pointer"}}/>
+                     <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e) => {handleClickPalletOption("image", undefined)}} style={{cursor: "pointer"}}/>
                      {optionSeparator}
                      <span className={getOptionClass(elementId ? idOnClass : idOffClass)} onMouseDown={handleMouseDown} onClick={handleClickElementId}>
                      ID
                      </span>
                      {elementIdForm}
-                     {askHRefElement}
-                     {askImagePropsElement}
+                     {linkForm}
+                     {imageForm}
                      </Container>
 
     return useModal({children, draggable: true, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  positionType: "hooked", position: {top: "start", left: "end"}})
@@ -648,7 +656,7 @@ const Container = styled.div`
   border-radius: 5px;
   background-color: #FFFFFF;
 `
-type UseAskElementIdProps = {
+/* type UseAskElementIdProps = {
     id: string | undefined
     setId: (id: string)=> void
     focusRootElement: ()=> void
@@ -815,4 +823,4 @@ const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsPr
         maxWidth: 290
     })
     return [askImageProps, askElement]
-}
+} */

@@ -76,7 +76,7 @@ export default function useModal({
             nextTranslateCss[key as PositionKey] = "-50%"
             break;
           case "end":
-            nextPositionCss[positionsCssOpposites[key as PositionKey]]  = "0"
+            nextPositionCss[positionsCssOpposites[key as PositionKey]] = "0"
             break;
           default:
             nextPositionCss[key as PositionKey]  = value
@@ -112,19 +112,16 @@ export default function useModal({
         } else {
           scrollableAncestor = window
           getScrollAxis = () => ({ y: window.scrollY, x: window.scrollX })
-          limits = {top: 0, left: 0, bottom: window.innerHeight, right: window.innerWidth}
+          limits = {top: 0, left: 0, get bottom() {return document.documentElement.clientHeight}, get right() {return document.documentElement.clientWidth}}
         }
 
-        const handleOverflow = (
-          positionCssKey: PositionCSSKey,
-          goBackToAbsolutePosition: () => boolean
-        ) => {
+        const handleOverflow = (positionCssKey: PositionCSSKey, goBackToAbsolutePosition: () => boolean) => {
           const beforeOverflowPositionCssValue = getContainerDivApi().getComputedStyle()[positionCssKey]
           scrollableAncestor.removeEventListener("scroll", handleScroll)
           setPositionTypeCss("fixed")
           setPositionCss((positionCss) => {
             const nextPositionCss = { ...positionCss }
-            nextPositionCss[positionCssKey] = limits[positionCssKey] + "px"
+            nextPositionCss[positionCssKey] = "0px"
             nextPositionCss[positionsCssOpposites[positionCssKey]] = "none"
             return nextPositionCss
           })
@@ -147,13 +144,16 @@ export default function useModal({
           const { top, bottom, left, right } = getContainerDivApi().getRect()
           const { y: scrollY, x: scrollX } = getScrollAxis()
 
+          console.log("bottom: " + bottom + " , LIMIT: " + limits.bottom)
+
           if (top <= limits.top) {
             handleOverflow("top", () => getScrollAxis().y <= scrollY)
           } else if (bottom >= limits.bottom) {
             handleOverflow("bottom", () => getScrollAxis().y >= scrollY)
           } else if (left <= limits.left) {
+            console.log("LEFT: " + left + " , LIMIT: " + limits.left)
             handleOverflow("left", () => getScrollAxis().x <= scrollX)
-          } else if (right <= limits.right) {
+          } else if (right >= limits.right) {
             handleOverflow("right", () => getScrollAxis().x >= scrollX)
           }
         }

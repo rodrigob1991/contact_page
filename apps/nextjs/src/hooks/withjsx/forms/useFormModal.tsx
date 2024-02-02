@@ -84,7 +84,7 @@ const FormContainer = styled.form`
 // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
 export type SubmissionAction<IP extends InputsProps> = (values: InputsValues<IP>) => Promise<ResultMessageProps> | void
 type SetVisibleModalArgs = Parameters<SetVisibleModal>
-export type SetVisible<IP extends InputsProps> = (visible: SetVisibleModalArgs[0], position: SetVisibleModalArgs[1], values?: InputsValues<IP>) => void
+export type SetVisible<IP extends InputsProps> = (visible: SetVisibleModalArgs[0], position?: SetVisibleModalArgs[1], values?: InputsValues<IP>) => void
 
 type UseFormModalProps<IP extends InputsProps> = {
     inputsProps: IP
