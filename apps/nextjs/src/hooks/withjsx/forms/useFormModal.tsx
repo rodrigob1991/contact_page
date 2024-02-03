@@ -90,12 +90,14 @@ type UseFormModalProps<IP extends InputsProps> = {
     inputsProps: IP
     buttonText: string
     submissionAction: SubmissionAction<IP>
+    showLoadingBars?: boolean
 } & Omit<UseModalProps, "children">
 
 export default function useFormModal<IP extends InputsProps>({
                                                       inputsProps,
                                                       buttonText,
                                                       submissionAction,
+                                                      showLoadingBars = true,
                                                       ... modalProps
                                                       }: UseFormModalProps<IP>) : [SetVisible<IP>, ReactNode, ContainsNode] {
     const [inputs, values, setValues] = useElementsValues(inputsProps)
@@ -115,7 +117,7 @@ export default function useFormModal<IP extends InputsProps>({
     const handleSubmission: FormEventHandler<HTMLFormElement> = (e) => {
         e.preventDefault()
         cleanResultMessage()
-        setLoading(true)
+        if (showLoadingBars) setLoading(true)
  
         Promise.resolve(
         submissionAction(values))
@@ -130,7 +132,7 @@ export default function useFormModal<IP extends InputsProps>({
     const children = <FormContainer onSubmit={handleSubmission}>
                     {inputs}
                     <Button disabled={loading}>{buttonText}</Button>
-                    <BlocksLoader show={loading}/>
+                    {showLoadingBars && <BlocksLoader show={loading}/>}
                     <ResultMessage {...resultMessage}/>
                     </FormContainer>
     

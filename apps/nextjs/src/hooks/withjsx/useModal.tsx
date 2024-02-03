@@ -31,6 +31,7 @@ export type UseModalProps = {
     children: ReactNode
     topLeftChildren?: ReactNode
     topRightChildren?: ReactNode
+    sibling?: ReactNode
     handleOnHide?: () => void
 }
 
@@ -57,6 +58,7 @@ export default function useModal({
                                children,
                                topLeftChildren,
                                topRightChildren,
+                               sibling,
                                handleOnHide}: UseModalProps): [SetVisible, ReactNode, ContainsNode] {
 
     const [visible, setVisible] = useState(false)
@@ -108,6 +110,7 @@ export default function useModal({
             y: scrollableElement.scrollTop,
             x: scrollableElement.scrollLeft,
           })
+          //TODO: do change this
           limits = {top: 0, left: 0, bottom: 0, right: 0}
         } else {
           scrollableAncestor = window
@@ -144,14 +147,11 @@ export default function useModal({
           const { top, bottom, left, right } = getContainerDivApi().getRect()
           const { y: scrollY, x: scrollX } = getScrollAxis()
 
-          console.log("bottom: " + bottom + " , LIMIT: " + limits.bottom)
-
           if (top <= limits.top) {
             handleOverflow("top", () => getScrollAxis().y <= scrollY)
           } else if (bottom >= limits.bottom) {
             handleOverflow("bottom", () => getScrollAxis().y >= scrollY)
           } else if (left <= limits.left) {
-            console.log("LEFT: " + left + " , LIMIT: " + limits.left)
             handleOverflow("left", () => getScrollAxis().x <= scrollX)
           } else if (right >= limits.right) {
             handleOverflow("right", () => getScrollAxis().x >= scrollX)
@@ -166,19 +166,18 @@ export default function useModal({
     }, [positionType, scrollableElement])
 
     const handleOnClickCenterPosition: MouseEventHandler<SVGElement> = (e) => {
-        setPosition({top: "middle", left: "middle"})
-     }
-     const handleOnClickDefaultSize: MouseEventHandler<SVGElement> = (e) => {
-        setSize(sizeProp)
-     }
-     const handleOnClickFullSize: MouseEventHandler<SVGElement> = (e) => {
-        setSize(fullSize)
-     }
-     const handleOnClickHide: MouseEventHandler<SVGElement> = (e) => {
-         setVisible(false)
-         if(handleOnHide)
-            handleOnHide()
-     }
+      setPosition({ top: "middle", left: "middle" })
+    }
+    const handleOnClickDefaultSize: MouseEventHandler<SVGElement> = (e) => {
+      setSize(sizeProp)
+    }
+    const handleOnClickFullSize: MouseEventHandler<SVGElement> = (e) => {
+      setSize(fullSize)
+    }
+    const handleOnClickHide: MouseEventHandler<SVGElement> = (e) => {
+      setVisible(false)
+      if (handleOnHide) handleOnHide()
+    }
 
     const getContainerStyle: GetStyle = (resizing, dragging) => css`
       display: ${visible ? "flex" : "none"};
@@ -219,7 +218,8 @@ export default function useModal({
     const visibleDefaultSizeButton = resizable && visibleDefaultSizeButtonProp
     const visibleFullSizeButton = resizable && visibleFullSizeButtonProp
 
-    const modal = <ResizableDraggableDiv ref={containerDivApiRef} draggable={draggable} resizable={resizable} getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} size={{value: size, set: setSize}} position={{value: positionCss, set: setPositionCss}}>
+    const modal = <>
+                  <ResizableDraggableDiv ref={containerDivApiRef} draggable={draggable} resizable={resizable} getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} size={{value: size, set: setSize}} position={{value: positionCss, set: setPositionCss}}>
                   <>
                   {(visibleHideButton || visibleCenterPositionButton || visibleDefaultSizeButton || visibleFullSizeButton || topLeftChildren || topRightChildren) &&
                   <TopContainer>
@@ -246,6 +246,8 @@ export default function useModal({
                   {children}
                   </>
                   </ResizableDraggableDiv>
+                  {sibling && sibling}
+                  </>
                  
     return [
       (visible, position) => {

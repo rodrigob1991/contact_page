@@ -524,8 +524,7 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
     const linkFormSubmissionAction: SubmissionAction<typeof linkFormInputsProps>  = ({href}) => {
         insertLink(href)
     }
-    const [setVisibleLinkForm, linkForm] = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: linkFormInputsProps, submissionAction: linkFormSubmissionAction})
-
+    const [setVisibleLinkForm, linkForm] = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: linkFormInputsProps, submissionAction: linkFormSubmissionAction, ...formModalCommonProps})
 
     const imageFormInputsProps  = {
         imageData: {type: "imageSelector"},
@@ -540,7 +539,7 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
             insertOrModifyImage({...imageData, ...dimensions})
         }
     }
-    const [setVisibleImageForm, imageForm] = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: imageFormInputsProps, submissionAction: imageFormSubmissionAction})
+    const [setVisibleImageForm, imageForm] = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: imageFormInputsProps, submissionAction: imageFormSubmissionAction, ...formModalCommonProps})
 
     useEffect(() => {
       window.modifyImageElement = (img: HTMLImageElement) => {
@@ -562,17 +561,15 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
         const {top, left} = img.getBoundingClientRect()
         setVisibleImageForm(
           true,
-          { top: `${top}px`, left: `${left}px` },
-          {
-            imageData: {
-              dataUrl: img.src,
+          {top: `${top}px`, left: `${left}px`},
+          {imageData: {
+            dataUrl: img.src,
               name: img.dataset.name as string,
               extension: img.dataset.extension as string,
-            },
-            height: img.height,
-            width: img.width,
-            remove: false
-          }
+           },
+           height: img.height,
+           width: img.width,
+           remove: false}
         )
         /* askImageProps(imgRect.top, imgRect.left, {
           image: {
@@ -602,6 +599,11 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
       removeImage: removeImage,
     })
  */
+    const sibling = <>
+                    {elementIdForm}
+                    {linkForm}
+                    {imageForm}
+                    </>
     const handleMouseDown: MouseEventHandler = (e) => {
         e.preventDefault()
     }
@@ -637,13 +639,12 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
                      <span className={getOptionClass(elementId ? idOnClass : idOffClass)} onMouseDown={handleMouseDown} onClick={handleClickElementId}>
                      ID
                      </span>
-                     {elementIdForm}
-                     {linkForm}
-                     {imageForm}
                      </Container>
 
-    return useModal({children, draggable: true, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  positionType: "hooked", position: {top: "start", left: "end"}})
+    return useModal({children, sibling, positionType: "hooked", position: {top: "start", left: "end"}, ...modalCommonProps})
 }
+const modalCommonProps = {draggable: true, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false}
+const formModalCommonProps = {showLoadingBars: false, ...modalCommonProps}
 
 const Container = styled.div`
   display: flex;
