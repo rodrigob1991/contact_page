@@ -5,4 +5,5 @@ export declare const getIndexOnOccurrence: (str: string, search: string, occurre
 type RecursiveSplitResult<S extends (NonEmptyArray<string>)> = S extends [infer F, ...infer R] ? R extends (NonEmptyArray<string>) ? RecursiveSplitResult<R>[] : string[] : never;
 export declare const recursiveSplit: <S extends NonEmptyArray<string>>(str: string, separators: S) => RecursiveSplitResult<S>;
 export declare const getNumbers: (str: string) => number[];
+export declare const getNumber: (str: string) => number | undefined;
 export {};

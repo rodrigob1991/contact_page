@@ -40,6 +40,9 @@ export default function StoriesView<M extends ViewMode>({
                                                             recoverStory
 
                                                         }: Props<M>) {
+    const containerRef = useRef<HTMLDivElement>(null)
+    const getContainer = () => containerRef.current as HTMLDivElement
+
     // idHtml is use to identify the html element. Can be story id or index of new stories array
     const [storiesViewStates, setStoriesViewStates] = useState<StoryViewStates[]>(stories.map((s) => {
         return {idHtml: s.id, story: s, toDelete: false, isOpen: true}
@@ -163,23 +166,24 @@ export default function StoriesView<M extends ViewMode>({
         updatedStoriesViewStates[index].toDelete = false
         setStoriesViewStates(updatedStoriesViewStates)
     }
-    const [editingStoryIdHtml, setEditingStoryIdHtml] = useState("")
-    
-    const [setPalletVisible, pallet, palletContainsNode] = usePallet({rootElementId: editingStoryIdHtml})
+    const [editingStoryId, setEditingStoryId] = useState<string>()
+
+    const [setPalletVisible, pallet, palletContainsNode] = usePallet({containerAncestor: getContainer(), onBlurHandler: (e) => {setEditingStoryId(undefined)}})
+    useEffect(() => {
+      setPalletVisible(editingStoryId !== undefined)
+    }, [editingStoryId])
 
     const getEditableStoriesView = () => storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
                                          const {title,body, state} = story as Story
                                          const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
                                          const handleOnFocusBody: FocusEventHandler<HTMLDivElement> = (e) => {
-                                             setPalletVisible(true)
-                                             setEditingStoryIdHtml(idHtml)
+                                             setEditingStoryId(idHtml)
                                          }
                                          const handleOnBlurBody: FocusEventHandler<HTMLDivElement> = (e) => {
                                           console.log(e.nativeEvent.relatedTarget)
                                              if (!palletContainsNode(e.relatedTarget)) {
-                                                // setPalletVisible(false)
-                                                 setEditingStoryIdHtml("")
+                                                 setEditingStoryId(undefined)
                                              }
                                          }
 
@@ -196,14 +200,14 @@ export default function StoriesView<M extends ViewMode>({
                                                 {/* <Pallet rootElementId={htmlIds.body} show={isEditingStory(idHtml)} isAsking={isAsking}/> */}
                                                 </StoryTitleContainer>
                                                 {isOpen && 
-                                                <StoryBody id={htmlIds.body} focus={idHtml === editingStoryIdHtml} contentEditable={!toDelete}
+                                                <StoryBody id={htmlIds.body} focus={idHtml === editingStoryId} contentEditable={!toDelete}
                                                            ref={r => {if(r) {refToLastStory.current = r; (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
                                                            dangerouslySetInnerHTML={{__html: body}} onFocus={handleOnFocusBody} onBlur={handleOnBlurBody}/>
                                                 }
                                                 </StoryContainer>
                                          })
 
-    return <Container>
+    return <Container ref={containerRef}>
            {editing && pallet}
            <LeftContainer>
            {editing &&

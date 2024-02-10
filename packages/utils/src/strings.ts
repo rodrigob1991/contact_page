@@ -56,3 +56,7 @@ export const recursiveSplit = <S extends (NonEmptyArray<string>)>(str: string, s
 export const getNumbers = (str: string): number[] => {
     return [...str.matchAll(numberRgx)].map(([numberStr]) => +numberStr)
 }
+export const getNumber = (str: string): number | undefined => {
+    const matched = str.match(numberRgx)
+    return matched ? +matched : undefined
+}

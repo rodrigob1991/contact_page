@@ -7,7 +7,7 @@ import { NumberInput, NumberInputProps } from "../../../components/forms/NumberI
 import { TextAreaInput, TextAreaInputProps } from "../../../components/forms/TextAreaInput"
 import { TextInput, TextInputProps } from "../../../components/forms/TextInput"
 import { secondColor } from "../../../theme"
-import useModal, { SetVisible as SetVisibleModal, UseModalProps } from "../useModal"
+import useModal, { PositionType, SetVisible as SetVisibleModal, UseModalProps } from "../useModal"
 import { ContainsNode } from "../../../components/ResizableDraggableDiv"
 import ImageSelector, { ImageSelectorProps, ImageData } from "../../../components/forms/ImageSelector"
 import Checkbox, { CheckboxProps } from "../../../components/forms/Checkbox"
@@ -86,20 +86,20 @@ export type SubmissionAction<IP extends InputsProps> = (values: InputsValues<IP>
 type SetVisibleModalArgs = Parameters<SetVisibleModal>
 export type SetVisible<IP extends InputsProps> = (visible: SetVisibleModalArgs[0], position?: SetVisibleModalArgs[1], values?: InputsValues<IP>) => void
 
-type UseFormModalProps<IP extends InputsProps> = {
+type UseFormModalProps<IP extends InputsProps, PT extends PositionType> = {
     inputsProps: IP
     buttonText: string
     submissionAction: SubmissionAction<IP>
     showLoadingBars?: boolean
-} & Omit<UseModalProps, "children">
+} & Omit<UseModalProps<PT>, "children">
 
-export default function useFormModal<IP extends InputsProps>({
+export default function useFormModal<IP extends InputsProps, PT extends PositionType>({
                                                       inputsProps,
                                                       buttonText,
                                                       submissionAction,
                                                       showLoadingBars = true,
                                                       ... modalProps
-                                                      }: UseFormModalProps<IP>) : [SetVisible<IP>, ReactNode, ContainsNode] {
+                                                      }: UseFormModalProps<IP, PT>) : [SetVisible<IP>, ReactNode, ContainsNode] {
     const [inputs, values, setValues] = useElementsValues(inputsProps)
 
     const [loading, setLoading] = useState(false)

@@ -1,8 +1,9 @@
 import { Interpolation, Theme, css } from "@emotion/react"
 import styled from "@emotion/styled"
-import { MouseEventHandler, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
+import { FocusEventHandler, MouseEventHandler, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
 import { exist } from "utils/src/objects"
 import { getNumbers } from "utils/src/strings"
+import { GetRect } from "../types/dom"
 
 // attach this properties in mousedown event to prevent resize and/or drag 
 const preventResizeMouseDownEventPropertyKey = "preventResize"
@@ -22,31 +23,37 @@ export const dragPrevented = (e: MouseEvent | React.MouseEvent) => {
 }
 
 export type GetStyle = (resizing: boolean, dragging: boolean) => Interpolation<Theme>
-export type SizeCSS = {height: string; width: string}
+export type SizeCSS = {height?: string; width?: string}
 export type SetSizeCSS = (size: SizeCSS) => void
-export type PositionCSS = {top: string; left: string, bottom?: string, right?: string}
+export type PositionCSS = {top?: string; left?: string, bottom?: string, right?: string}
 export type PositionCSSKey = keyof PositionCSS
 export type SetPositionCSS = (position: PositionCSS) => void
 export type ContainsNode = (node: Node | undefined | null) => boolean
 export type ContainerDivApi = {
     observeIntersection: (observer: IntersectionObserver) => void
     getComputedStyle: () => CSSStyleDeclaration
-    getRect: () => DOMRect
+    getRect: GetRect
     containsNode: ContainsNode
-} 
+}
+export type EventsHandlers = {
+    onFocusHandler?: FocusEventHandler<HTMLDivElement>
+    onBlurHandler?: FocusEventHandler<HTMLDivElement>
+}
 
 type Props = {
     resizable: boolean
     draggable: boolean
+    onStartResizing?: () => void
+    onStartDragging?: () => void
     getContainerStyle?: GetStyle
     getResizableDivStyle?: GetStyle
     getDraggableDivStyle?: GetStyle
     children?: JSX.Element | JSX.Element[]
     size?: {value: SizeCSS, set: SetSizeCSS}
     position?: {value: PositionCSS, set: SetPositionCSS}
-}
+} & EventsHandlers
 
-export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, size: sizeProp, position: positionProp}, containerDivApiRef) => {
+export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, onStartResizing, onStartDragging, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, size: sizeProp, position: positionProp, onFocusHandler, onBlurHandler}, containerDivApiRef) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const getContainer = () => containerRef.current as HTMLDivElement
     useImperativeHandle(containerDivApiRef, () => 
@@ -75,7 +82,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
         return {rectHeight: height, rectWidth: width, rectTop: top , rectLeft: left}
     }
 
-    const [localSize, setLocalSize] = useState({height: "none", width: "none"})
+    const [localSize, setLocalSize] = useState({})
     let size: SizeCSS
     let setSize : SetSizeCSS
     if(sizeProp){
@@ -86,7 +93,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
         setSize = setLocalSize
     }
 
-    const [localPosition, setLocalPosition] = useState({top: "none", left: "none"})
+    const [localPosition, setLocalPosition] = useState({})
     let position: PositionCSS
     let setPosition: SetPositionCSS
     if(positionProp) {
@@ -103,7 +110,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
     let children = <>{propsChildren}</>
 
     useEffect(() => {
-        if(draggable) {
+        if (draggable) {
             const handleMouseMove = (e: MouseEvent) => {
                 e.preventDefault()
                 const {height, width, top, left} = getContainerComputedNumbers()
@@ -116,7 +123,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
                 e.preventDefault()
             }
                 
-            if(dragging) {
+            if (dragging) {
                 window.addEventListener("mousemove", handleMouseMove)
                 window.addEventListener("mouseup", handleMouseUp)
                 window.addEventListener("selectstart", handleSelectStart)
@@ -127,11 +134,12 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
                 window.removeEventListener("selectstart", handleSelectStart)
             }
         }
-        },[dragging])
+    },[dragging])
 
-    if(draggable) {
+    if (draggable) {
         const handleOnMouseDownDraggableDiv: MouseEventHandler<HTMLDivElement>  = (e) => {
-            if(e.target == e.currentTarget || !dragPrevented(e)) {
+            if (e.target == e.currentTarget || !dragPrevented(e)) {
+                if (onStartDragging) onStartDragging()
                 setDragging(true)
                 setPreventFlag(e, true, false)
             }
@@ -140,7 +148,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
     }
 
     useEffect(() => {
-        if(resizable) {
+        if (resizable) {
             const handleMouseMove = (e: MouseEvent) => {
                 e.preventDefault()
                 const {height, width, top, left} = getContainerComputedNumbers()
@@ -154,7 +162,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
                 e.preventDefault()
             }
 
-            if(resizing) {
+            if (resizing) {
                 window.addEventListener("mousemove", handleMouseMove)
                 window.addEventListener("mouseup", handleMouseUp)
                 window.addEventListener("selectstart", handleSelectStart)
@@ -164,12 +172,13 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
                 window.removeEventListener("mouseup", handleMouseUp)
                 window.removeEventListener("", handleSelectStart)
             }
-    }
+        }
     },[resizing])
 
-    if(resizable) {
+    if (resizable) {
         const handleOnMouseDownResizableDiv: MouseEventHandler<HTMLDivElement>  = (e) => {
             if(e.target === e.currentTarget || !resizePrevented(e)) {
+                if (onStartResizing) onStartResizing()
                 setResizing(true)
             }
         }
@@ -181,7 +190,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
         //setDragging(false)
      }
     
-    return <Container ref={containerRef} tabIndex={1} css={[getContainerStyle ? getContainerStyle(resizing, dragging) : undefined, size, position]} resizing={resizing} dragging={dragging} onMouseLeave={handleOnMouseLeaveContainer}>
+    return <Container ref={containerRef} tabIndex={1} css={[getContainerStyle ? getContainerStyle(resizing, dragging) : undefined, size, position]} resizing={resizing} dragging={dragging} onMouseLeave={handleOnMouseLeaveContainer} onFocus={onFocusHandler} onBlur={onBlurHandler}>
            {children}
            </Container>
 })

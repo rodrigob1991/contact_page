@@ -1,16 +1,12 @@
 import styled from "@emotion/styled"
-import { MouseEventHandler, ReactNode, useEffect, useRef, useState } from "react"
+import { MouseEventHandler, ReactNode, useEffect, useState } from "react"
 import { FcPicture } from "react-icons/fc"
 import { isEmpty } from "utils/src/strings"
-import { DeleteOrRecoverButton } from "../../components/Buttons"
-import { NumberInput, TextInput } from "../../components/FormComponents"
-import { ContainsNode } from "../../components/ResizableDraggableDiv"
-import ImageSelector, { ImageData } from "../../components/forms/ImageSelector"
+import { ContainsNode, EventsHandlers } from "../../components/ResizableDraggableDiv"
+import { ImageData } from "../../components/forms/ImageSelector"
 import { createAnchor, createDiv, createImage, createSpan, createText, getTexts, hasSiblingOrParentSibling, isAnchor, isDiv, isSpan, isText, lookUpDivParent, positionCaretOn, removeNodesFromOneSide } from "../../utils/domManipulations"
-import { useRecordState } from "../useRecordState"
 import useFormModal, { SubmissionAction } from "./forms/useFormModal"
-import { Ask, useAsk } from "./useAsk"
-import useModal, { ModalPosition, SetVisible } from "./useModal"
+import useModal, { ModalPosition, SetVisible, UseModalHookedProps } from "./useModal"
 
 const optionsTypesWithForm = {link: "link", image: "image"} as const
 type OptionTypeWithForm = keyof typeof optionsTypesWithForm
@@ -40,72 +36,9 @@ type RemoveImage = () => void
 type InsertLink = (hRef: string) => void
 
 type Props = {
-    rootElementId: string
-}
+} & UseModalHookedProps & EventsHandlers
 
-export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNode, ContainsNode] {
-    const getRootElement = () => {
-        return document.getElementById(rootElementId)
-    }
-  /*   const containerDivRef = useRef<HTMLDivElement>(null)
-    const getContainerDiv = () => containerDivRef.current as HTMLDivElement
-    const [position, setPosition] = useState("absolute")
-    const [top, setTop] = useState("none")
-    useEffect(() => {
-        const options = {
-            root: undefined,
-            rootMargin: "0px",
-            threshold: 1
-        }
-        const callback: IntersectionObserverCallback = (entries, observer) => {
-            entries.forEach(entry => {
-                if (!entry.isIntersecting) {
-                    const scrollY = window.scrollY
-                    const top = getComputedStyle(getContainerDiv()).top
-                    const handleScroll = (e: Event) => {
-                        if(window.scrollY <= scrollY) {
-                            window.removeEventListener("scroll", handleScroll)
-                            setPosition("absolute")
-                            setTop(top)
-                        }
-                    }
-                    window.addEventListener("scroll", handleScroll)
-                    setPosition("fixed")
-                    setTop("0px")
-                }
-                console.log(entry)
-            })
-        }
-        const observer = new IntersectionObserver(callback, options)
-        observer.observe(getContainerDiv())
-    }, []) */
-
-    //THIS EFFECT IS FOR WHEN IS REMOVE A DIV DELETE THE SPAN THAT THE BROWSER CREATE. I DONT LIKE AT ALL.
-   /* useEffect(() => {
-        const listener = (e: InputEvent) => {
-            if (e.inputType === "deleteContentBackward") {
-                const nextToCaretSibling = getNextSiblingOrParentSibling((window.getSelection() as Selection).anchorNode as Node, "right")
-                if (nextToCaretSibling && nextToCaretSibling instanceof HTMLSpanElement) {
-                    if (isEmpty(nextToCaretSibling.className)) {
-                        nextToCaretSibling.parentElement?.append(getTexts(nextToCaretSibling))
-                        nextToCaretSibling.remove()
-                    }
-
-                }
-            }
-        }
-        const removeListener = () => {
-            getRootElement()?.removeEventListener("input", listener)
-        }
-        if (show) {
-            getRootElement()?.addEventListener<"input">("input", listener)
-        } else {
-            removeListener()
-        }
-        return removeListener
-    }, [show])*/
-
-
+export default function usePallet({...modalProps}: Props) : [SetVisible, ReactNode, ContainsNode] {
     const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
         const id = elementId
@@ -114,7 +47,6 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
     }
     const [elementIdFormPosition, setElementIdFormPosition] = useState<ModalPosition>({top: "middle", left: "middle"})
     const [setVisibleElementIdForm, elementIdForm] = useFormModal({positionType: "absolute", position: elementIdFormPosition, buttonText: "add", inputsProps: {id: {type: "textInput"}}, submissionAction: ({id}) => {setElementId(id)}})
-    //const [askElementId, askElementIdElement] = useAskElementId({id: elementId, setId: setElementId, focusRootElement: focusRootElement})
     const handleClickElementId: MouseEventHandler<HTMLSpanElement> = (e) => {
         setElementIdFormPosition({top: `${e.clientY - 20}px`, left: `${e.clientX + 20}px`})
         setVisibleElementIdForm(true)
@@ -409,115 +341,8 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
         }
     }
 
-
-    /* const handleClickPalletOption = (optionType: OptionType, className?: string) => {
-        const selection = window.getSelection() as Selection
-        const {isCollapsed, rangeCount, anchorNode, anchorOffset} = selection
-        const ranges : Range[] = []
-        for (let i = 0; i < rangeCount; i++) {
-            ranges.push(selection.getRangeAt(i))
-        }
-        // use to ask href of links and props of images
-        const {y: rectTop,x: rectLeft} = ranges[0].getBoundingClientRect()
-        let somethingToAsk = false
-        let setHandleSelection: (f: (p?: OptionTargetElementProps) => void) => void = () => {}
-
-        let getNewNode : GetOptionTargetNodeWithProps
-        let onFinally: () => void
-
-        const elementProps = {className: className, tabIndex: -1, ...(elementId ? {id: consumeElementId()} : {})}
-
-        switch (optionType) {
-            case "defaultText":
-                let lastDefaultText: Text
-                getNewNode = (t, isLast) => {
-                    const defaultText = createText(t)
-                    if (isLast) {
-                        lastDefaultText = defaultText
-                    }
-                    return defaultText
-                }
-                onFinally = () => { positionCaretOn(lastDefaultText) }
-                break
-            case "span":
-                let lastSpan: HTMLSpanElement
-                getNewNode = (t, isLast) => {
-                    const span = createSpan({innerHTML: t, ...elementProps})
-                    if (isLast) {
-                        lastSpan = span
-                    }
-                    return span
-                }
-                onFinally = () => { positionCaretOn(lastSpan) }
-                break
-            case "link":
-                let lastLinkAdded : HTMLAnchorElement
-                getNewNode = (t, isLast, hRef) => {
-                    const link = createAnchor({innerHTML: t, ...elementProps})
-                    //link.id = lastElementAddedId
-                    link.href = hRef as string
-                    if (isLast) {
-                        lastLinkAdded = link
-                    }
-                    return link
-                }
-                somethingToAsk = true
-                setHandleSelection = (handleSelection) => {
-                    updateInsertLink((hRef) => {
-                        handleSelection(hRef)
-                        setTimeout(()=> {positionCaretOn(lastLinkAdded)}, 100)
-                    })
-                }
-
-                onFinally = () => {
-                    askHRef(rectTop, rectLeft)
-                }
-                break
-            case "image":
-                somethingToAsk = true
-                setHandleSelection = (handleSelection) => {
-                    updateInsertOrModifyImage((ip) => {
-                        handleSelection(ip)
-                    })
-                }
-                getNewNode = (t, isLast, ip) => {
-                    const {parent, image} = ip as ImageProps
-                    const div = createDiv({
-                        props: {... elementProps, contentEditable: "false"},
-                        styles: {width: "100%", justifyContent: "center", display: "flex"}
-                    })
-                    const imageElement = createImage(image)
-                    imageElement.setAttribute("onclick", `{
-                        window.modifyImageElement(this)
-                    }`)
-                    div.append(imageElement)
-                    return div
-                }
-                onFinally = () => {
-                    setVisibleImageForm(true, {top: `${rectTop}px`, left: `${rectLeft}px`})
-                    //askImageProps(rectTop, rectLeft)
-                }
-                break
-        }
-
-        const handleSelection = (p?: OptionTargetElementProps) => {
-            if (isCollapsed) {
-                handleCollapsedSelection(optionType, getNewNode("-", true, p), anchorNode as ChildNode, anchorOffset)
-            } else {
-                ranges.forEach((r) => {handleRangeSelection(optionType, (text, isLast) => getNewNode(text, isLast, p), r)})
-            }
-        }
-        if (somethingToAsk) {
-            setHandleSelection(handleSelection)
-        } else {
-            handleSelection()
-        }
-        setTimeout(onFinally, 100)
-    }
- */
     const [insertLink, setInsertLink] = useState<InsertLink>(() => {})
     const updateInsertLink = (fn: InsertLink)=> { setInsertLink(() => fn) }
-    //const [askHRef, askHRefElement] = useAskHRef({insertLink: insertLink}
     const linkFormInputsProps  = {
         href: {type: "textInput"}
     } as const
@@ -571,19 +396,6 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
            width: img.width,
            remove: false}
         )
-        /* askImageProps(imgRect.top, imgRect.left, {
-          image: {
-            id: img.id,
-            src: img.src,
-            height: img.height,
-            width: img.width,
-          },
-          parent: {
-            left: parseInt(
-              getContainedString(divParent.style.paddingLeft, undefined, "px")
-            ),
-          },
-        }) */
       }
     }, [])
     const [insertOrModifyImage, setInsertOrModifyImage] = useState<InsertOrModifyImage>(() => {})
@@ -594,11 +406,6 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
     const updateRemoveImage = (fn: RemoveImage) => {
       setRemoveImage(() => fn)
     }
-   /*  const [askImageProps, askImagePropsElement] = useAskImageProps({
-      insertOrModifyImage: insertOrModifyImage,
-      removeImage: removeImage,
-    })
- */
     const sibling = <>
                     {elementIdForm}
                     {linkForm}
@@ -641,7 +448,7 @@ export default function usePallet({rootElementId}: Props) : [SetVisible, ReactNo
                      </span>
                      </Container>
 
-    return useModal({children, sibling, positionType: "hooked", position: {top: "start", left: "end"}, ...modalCommonProps})
+    return useModal({children, sibling, positionType: "hooked", position: {top: "start", left: "end"}, ...modalProps, ...modalCommonProps})
 }
 const modalCommonProps = {draggable: true, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false}
 const formModalCommonProps = {showLoadingBars: false, ...modalCommonProps}
@@ -657,171 +464,3 @@ const Container = styled.div`
   border-radius: 5px;
   background-color: #FFFFFF;
 `
-/* type UseAskElementIdProps = {
-    id: string | undefined
-    setId: (id: string)=> void
-    focusRootElement: ()=> void
-}
-const useAskElementId = ({id, setId, focusRootElement}: UseAskElementIdProps): [Ask, JSX.Element] => {
-    //const [localId, setLocalId] = useState(id || "")
-
-    const refToInput = useRef<HTMLInputElement | null>(null)
-    const focusInput = () => refToInput.current?.focus()
-
-    const handleOnEnter = () => {
-        //setId(localId)
-        //setLocalId("")
-        hide()
-        focusRootElement()
-    }
-    const handleOnEscape = () => {
-        setId("")
-        hide()
-        focusRootElement()
-    }
-
-    const [ask, hide, isAsking, askElement] = useAsk({
-        child: <TextInput placeholder={"id"}
-                          style={{width: "200px", fontSize: "1.8rem"}}
-                          ref={refToInput}
-                          value={id || ""}
-                          setValue={setId}
-                          onEnter={handleOnEnter}
-                          onEscape={handleOnEscape}  />,
-        onShow: focusInput
-    })
-    return [ask, askElement]
-}
-
-type InsertLink = (hRef: string) => void
-type UseAskHRefProps = {
-    insertLink: InsertLink
-}
-const useAskHRef = ({insertLink}: UseAskHRefProps): [Ask, JSX.Element] => {
-    const [hRef, setHRef] = useState("")
-
-    const refToInput = useRef<HTMLInputElement | null>(null)
-    const focusInput = () => refToInput.current?.focus()
-
-    const handleOnEnter = () => {
-        insertLink(hRef)
-        setHRef("")
-        hide()
-    }
-    const handleOnEscape = () => {
-        setHRef("")
-        hide()
-    }
-
-    const [ask, hide, isAsking, askElement] = useAsk({
-        child: <TextInput placeholder={"href"}
-                          style={{width: "200px", fontSize: "1.8rem"}}
-                          ref={refToInput}
-                          value={hRef}
-                          setValue={setHRef}
-                          onEnter={handleOnEnter}
-                          onEscape={handleOnEscape}  />,
-        onShow: focusInput
-    })
-    return [ask, askElement]
-}
-
-type UseAskImagePropsProps = {
-    insertOrModifyImage: InsertOrModifyImage
-    removeImage: RemoveImage
-}
-const useAskImageProps = ({insertOrModifyImage, removeImage}: UseAskImagePropsProps): [(top: number, left: number, ip?: ImageProps) => void, JSX.Element] => {
-    const {state: imageProps, setState: setImageProp, setDefaultState: setImagePropsDefault} = useRecordState({image: {id: "", src: "", height: 0, width: 0}, parent: {left: 0}})
-    const {height, width, id, src} = imageProps.image
-    const {left} = imageProps.parent
-
-    const [modifying, setModifying] = useState(false)
-
-    const askImageProps = (top: number, left: number, ip?: ImageProps) => {
-        if (ip) {
-            setModifying(true)
-            setImageProp(ip)
-        }
-        ask(top, left)
-    }
-
-    const processImage = (name: string, extension: string, dataUrl: string) => {
-        setImageProp({image: {id: name, src: dataUrl}})
-    }
-
-    const close = () => {
-        setImagePropsDefault()
-        setRemove(false)
-        setModifying(false)
-        hide()
-    }
-    const handleOnClickAccept: MouseEventHandler<HTMLButtonElement> = (e) => {
-        if (remove) {
-            removeImage()
-        } else {
-            insertOrModifyImage(imageProps)
-        }
-        close()
-    }
-    const handleOnClickCancel: MouseEventHandler<HTMLButtonElement> = (e) => {
-        close()
-    }
-
-    const [remove, setRemove] = useState(false)
-    const handleRemove = () => {
-        setRemove(true)
-    }
-    const handleRecover = () => {
-        setRemove(false)
-    }
-
-    const refToHeightInput = useRef<HTMLInputElement>(null)
-    const focusHeightInput = ()=> refToHeightInput.current?.focus()
-
-    const getWrapFormOption = (e: JSX.Element) =>
-        <div style={{color: "grey", display: "flex", flexDirection: "row", paddingBottom: 2, paddingTop: 2, borderBottomStyle: "solid", borderWidth: "thin",width: "150px"}}>
-            {e}
-        </div>
-    const getFormOptionLabel = (str: string) =>
-        <span style={{fontSize: "2rem", width: 70}}>{str}:</span>
-
-    const [ask, hide, isAsking, askElement] = useAsk({
-        child:   <div style={{padding: 5}}>
-                        {getWrapFormOption(<>
-                                           {getFormOptionLabel("height")}
-                                           <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} ref={refToHeightInput} value={height} setValue={(v) => {setImageProp({image:{height: v}})}}/>
-                                           </>)
-                        }
-                        {getWrapFormOption(<>
-                                           {getFormOptionLabel("width")}
-                                           <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} value={width} setValue={(v) => {setImageProp({image:{width: v}})}}/>
-                                           </>)
-                        }
-                        {getWrapFormOption(<>
-                            {getFormOptionLabel("left")}
-                            <NumberInput disabled={remove} style={{ width: "60%", fontSize: "1.9rem"}} value={left} setValue={(v) => {setImageProp({parent:{left: v}})}}/>
-                        </>)
-                        }
-                        {getWrapFormOption(<>
-                                           <ImageSelector disabled={remove} processSelectedImage={processImage}
-                                               label={getFormOptionLabel("src")} imageMaxSize={10}/>
-                                           <span style={{
-                                               fontSize: "2rem", display: "inline-block", overflow: "hidden",
-                                               textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
-                                               {id}</span>
-                                           </>)
-                        }
-                        {modifying && <div style={{display: "flex", justifyContent: "center", padding: 5}}>
-                                      <DeleteOrRecoverButton handleRecover={()=> {handleRecover()}} handleDelete={()=> {handleRemove()}} color={"gray"} size={15}/>
-                                      </div>
-                        }
-                        <div style={{display: "flex"}}>
-                            <button style={{width: "50%", fontSize: "1.8rem"}} onClick={handleOnClickAccept}>accept</button>
-                            <button style={{width: "50%", fontSize: "1.8rem"}} onClick={handleOnClickCancel}>cancel</button>
-                        </div>
-                        </div>,
-        onShow: focusHeightInput,
-        maxWidth: 290
-    })
-    return [askImageProps, askElement]
-} */
