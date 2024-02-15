@@ -23,16 +23,8 @@ export const isImage = (node: Node) => {
 export const positionCaretOn = (node: Node) => {
     const selection = document.getSelection()
     if (selection) {
-        let offset = 0
-        switch (node.nodeType) {
-            case 3:
-                offset = (node.nodeValue as string).length
-                break
-            case 1:
-                offset = node.childNodes.length
-                break
-        }
-        selection.collapse(node, offset)
+        selection.removeAllRanges()
+        selection.setPosition(node, node instanceof  Text ? node.length : node.childNodes.length)
     }
 }
 

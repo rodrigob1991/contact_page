@@ -56,3 +56,14 @@ export const skillsChartSmallestLayout = {barWidth: 15} as const
 export type SkillsChartLayout = typeof skillsChartLayout
 export type SkillsChartSmallestLayout = typeof skillsChartSmallestLayout
 export type SkillBarWidth = (SkillsChartLayout | SkillsChartSmallestLayout)["barWidth"]
+
+export const modalLayout = {
+    borderWidth: 6,
+    draggableDivPadding: 5
+}
+
+export const palletLayout = {
+    padding: 5,
+    optionHeight: 20,
+    get height() {return modalLayout.borderWidth*2 + modalLayout.draggableDivPadding*2 + this.padding*2 + this.optionHeight}
+ }

@@ -4,9 +4,11 @@ import { FcPicture } from "react-icons/fc"
 import { isEmpty } from "utils/src/strings"
 import { ContainsNode, EventsHandlers } from "../../components/ResizableDraggableDiv"
 import { ImageData } from "../../components/forms/ImageSelector"
+import { palletLayout } from "../../layouts"
+import { GetRect } from "../../types/dom"
 import { createAnchor, createDiv, createImage, createSpan, createText, getTexts, hasSiblingOrParentSibling, isAnchor, isDiv, isSpan, isText, lookUpDivParent, positionCaretOn, removeNodesFromOneSide } from "../../utils/domManipulations"
 import useFormModal, { SubmissionAction } from "./forms/useFormModal"
-import useModal, { ModalPosition, SetVisible, UseModalHookedProps } from "./useModal"
+import useModal, { ModalPosition, SetVisible} from "./useModal"
 
 const optionsTypesWithForm = {link: "link", image: "image"} as const
 type OptionTypeWithForm = keyof typeof optionsTypesWithForm
@@ -35,10 +37,13 @@ type RemoveImage = () => void
 
 type InsertLink = (hRef: string) => void
 
-type Props = {
-} & UseModalHookedProps & EventsHandlers
+type SetVisibleOnSelection = (visible: boolean, mousePosition?: {top: number, left: number}) => void
 
-export default function usePallet({...modalProps}: Props) : [SetVisible, ReactNode, ContainsNode] {
+type Props = {
+    getContainerRect: GetRect
+} & EventsHandlers
+
+export default function usePallet({getContainerRect, ...modalProps}: Props) : [SetVisibleOnSelection, ReactNode, ContainsNode] {
     const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
         const id = elementId
@@ -289,13 +294,13 @@ export default function usePallet({...modalProps}: Props) : [SetVisible, ReactNo
     }
     const handleClickOptionWithoutForm = (optionType: OptionTypeWithoutForm, handleSelection: HandleSelection, className: ClassName<OptionTypeWithoutForm>) => {
         let getTargetOptionNode: GetTargetOptionNode<OptionTypeWithoutForm>
-        let lastNode: Node
+        let lastText: Text
         switch (optionType) {
             case "defaultText":
                 getTargetOptionNode = (t, isLast) => {
                     const defaultText = createText(t)
                     if (isLast) {
-                        lastNode = defaultText
+                        lastText = defaultText
                     }
                     return defaultText
                 }
@@ -304,40 +309,45 @@ export default function usePallet({...modalProps}: Props) : [SetVisible, ReactNo
                 getTargetOptionNode = (t, isLast) => {
                     const span = createSpan({innerHTML: t, className, ...getCommonElementOptionAttr()})
                     if (isLast) {
-                        lastNode = span
+                        lastText = span.firstChild as Text
                     }
                     return span
                 }
                 break
         }
         handleSelection(getTargetOptionNode)
-        setTimeout(() => {positionCaretOn(lastNode)}, 100)
+        setTimeout(() => {
+            positionCaretOn(lastText)
+            setVisibleOnSelection(true)
+        })
         
     }
     const handleClickPalletOption = <OT extends OptionType>(optionType: OT, className: ClassName<OT>) => {
-        const selection = window.getSelection() as Selection
-        const {isCollapsed, rangeCount, anchorNode, anchorOffset} = selection
-        const ranges : Range[] = []
-        for (let i = 0; i < rangeCount; i++) {
-            ranges.push(selection.getRangeAt(i))
-        }
+        const selection = window.getSelection()
+        if (selection) {
+            const {isCollapsed, rangeCount, anchorNode, anchorOffset} = selection
+            const ranges : Range[] = []
+            for (let i = 0; i < rangeCount; i++) {
+                ranges.push(selection.getRangeAt(i))
+            }
 
-        const handleSelection = (getTargetOptionNode: GetTargetOptionNode) => {
-            if (isCollapsed) {
-                handleCollapsedSelection(optionType, getTargetOptionNode, anchorNode as ChildNode, anchorOffset)
-            } else {
-                if (optionType !== "image") {
-                  ranges.forEach((r) => {handleRangeSelection(optionType, getTargetOptionNode, r)})
+            const handleSelection = (getTargetOptionNode: GetTargetOptionNode) => {
+                if (isCollapsed) {
+                    handleCollapsedSelection(optionType, getTargetOptionNode, anchorNode as ChildNode, anchorOffset)
+                } else {
+                    if (optionType !== "image") {
+                    ranges.forEach((r) => {handleRangeSelection(optionType, getTargetOptionNode, r)})
+                    }
                 }
             }
-        }
-        
-        if (isWithForm(optionType)) {
-            const {y: rectTop,x: rectLeft} = ranges[0].getBoundingClientRect()
-            handleClickOptionWithForm(optionType, handleSelection, rectTop, rectLeft)
+            
+            if (isWithForm(optionType)) {
+                const {y: rectTop,x: rectLeft} = ranges[0].getBoundingClientRect()
+                handleClickOptionWithForm(optionType, handleSelection, rectTop, rectLeft)
 
-        } else {
-            handleClickOptionWithoutForm(optionType, handleSelection, className)
+            } else {
+                handleClickOptionWithoutForm(optionType, handleSelection, className)
+            }
         }
     }
 
@@ -406,11 +416,13 @@ export default function usePallet({...modalProps}: Props) : [SetVisible, ReactNo
     const updateRemoveImage = (fn: RemoveImage) => {
       setRemoveImage(() => fn)
     }
+    
     const sibling = <>
                     {elementIdForm}
                     {linkForm}
                     {imageForm}
                     </>
+    
     const handleMouseDown: MouseEventHandler = (e) => {
         e.preventDefault()
     }
@@ -441,16 +453,45 @@ export default function usePallet({...modalProps}: Props) : [SetVisible, ReactNo
                      Link
                      </a>
                      {optionSeparator}
-                     <FcPicture onMouseDown={handleMouseDown} size={25} onClick={(e) => {handleClickPalletOption("image", undefined)}} style={{cursor: "pointer"}}/>
+                     <FcPicture onMouseDown={handleMouseDown} size={30} onClick={(e) => {handleClickPalletOption("image", undefined)}} style={{cursor: "pointer"}}/>
                      {optionSeparator}
                      <span className={getOptionClass(elementId ? idOnClass : idOffClass)} onMouseDown={handleMouseDown} onClick={handleClickElementId}>
                      ID
                      </span>
                      </Container>
 
-    return useModal({children, sibling, positionType: "hooked", position: {top: "start", left: "end"}, ...modalProps, ...modalCommonProps})
+    const [setVisible, reactNode, containsNode, getRect] = useModal({children, sibling, positionType: "absolute", ...modalProps, ...modalCommonProps})
+    const setVisibleOnSelection: SetVisibleOnSelection = (visible, mousePosition) => {
+        if (visible) {
+            // the setTimeout is because when click over an existing range the top of the new range rectangle remain like the older one
+            const selection = document.getSelection()
+                if (selection) {
+                  const {height} = getRect()
+                  const {top: containerTop, left: containerLeft} = getContainerRect()
+                  const {top: rangeTop, left: rangeLeft, height: rangeHeight} = selection.getRangeAt(0).getBoundingClientRect()
+                  let top = rangeTop - containerTop
+                  let left = -containerLeft
+                  if(mousePosition){
+                    top += mousePosition.top > rangeTop + rangeHeight/2 ? rangeHeight + 5 :-(height + 5)
+                    left += mousePosition.left
+                  }else{
+                    top -= height + 5
+                    left += rangeLeft
+                  }
+                  setVisible(true, {top: `${top}px`, left: `${left}px`})
+                }
+        } else {
+            setVisible(false)
+        }
+    }
+    
+    return [
+        setVisibleOnSelection,
+        reactNode,
+        containsNode
+    ]
 }
-const modalCommonProps = {draggable: true, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false}
+const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false}
 const formModalCommonProps = {showLoadingBars: false, ...modalCommonProps}
 
 const Container = styled.div`

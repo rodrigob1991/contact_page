@@ -1,12 +1,14 @@
 import { css } from "@emotion/react"
 import styled from "@emotion/styled"
-import { MouseEventHandler, ReactNode, useEffect, useRef, useState } from "react"
+import { FocusEventHandler, MouseEventHandler, ReactNode, useEffect, useRef, useState } from "react"
 import { BsEyeSlashFill } from "react-icons/bs"
 import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
 import { TfiTarget } from "react-icons/tfi"
 import { getNumber } from "utils/src/strings"
 import { ContainerDivApi, ContainsNode, EventsHandlers, GetStyle, PositionCSS, PositionCSSKey, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../../components/ResizableDraggableDiv"
 import { mainColor, secondColor, thirdColor } from "../../theme"
+import { modalLayout } from "../../layouts"
+import { GetRect } from "../../types/dom"
 
 export type SetVisible = (visible: boolean, position?: ModalPosition) => void
 
@@ -38,7 +40,7 @@ export type UseModalProps<PT extends PositionType> = {
   topLeftChildren?: ReactNode
   topRightChildren?: ReactNode
   sibling?: ReactNode
-  handleOnHide?: () => void
+  onHideHandler?: () => void
 } & UseModalHookedProps<PT> & EventsHandlers
 
 const fullSize = {height: "100%", width: "100%"}
@@ -65,15 +67,19 @@ export default function useModal<PT extends PositionType>({
                                topLeftChildren,
                                topRightChildren,
                                sibling,
-                               handleOnHide,
                                scrollableAncestor,
                                containerAncestor,
-                               ...eventsHandlers
-                              }: UseModalProps<PT>): [SetVisible, ReactNode, ContainsNode] {
-
+                               onHideHandler,
+                               onFocusHandler: onFocusHandlerProp,
+                               onBlurHandler: onBlurHandlerProp,
+                               onStartResizingHandler: onStartResizingHandlerProp, 
+                               onEndResizingHandler: onEndResizingHandlerProp, 
+                               onStartDraggingHandler: onStartDraggingHandlerProp, 
+                               onEndDraggingHandler: onEndDraggingHandlerProp
+                              }: UseModalProps<PT>): [SetVisible, ReactNode, ContainsNode, GetRect] {
     const [visible, setVisible] = useState(false)
 
-    const [positionCss, setPositionCss] = useState({top: "none", left: "none", bottom: "none", right: "none"})
+    const [positionCss, setPositionCss] = useState<PositionCSS>({})
     const [translateCss, setTranslateCss] = useState({top: "0", left: "0"})
     const setPosition = (position: ModalPosition) => {
       const nextPositionCss = {top: "none", left: "none", bottom: "none", right: "none"}
@@ -106,7 +112,8 @@ export default function useModal<PT extends PositionType>({
 
     const containerDivApiRef = useRef<ContainerDivApi>(null)
     const getContainerDivApi = () => containerDivApiRef.current as ContainerDivApi
-    const containsNode: ContainsNode = (node) => getContainerDivApi() ? getContainerDivApi().containsNode(node) : false
+    const containsNode: ContainsNode = (node) => getContainerDivApi().containsNode(node)
+    const getRect: GetRect = () => getContainerDivApi().getRect()
     const [positionTypeCss, setPositionTypeCss] = useState<"absolute" | "fixed">()
 
     // <specifics for hooked position type>
@@ -125,19 +132,13 @@ export default function useModal<PT extends PositionType>({
       setPositionCss({top, left, bottom, right})
     }
 
+    // just use for manually re-execute the effect
     const [executeEffectValue, setExecuteEffectValue] = useState<1 | 2>(1)
-    const onStartDragging = () => {
-      if(positionTypeCss === "fixed") {
-        switchPositionTypeCss("absolute")
-        setExecuteEffectValue(executeEffectValues[executeEffectValue])
-      }
-    }
     // </specifics for hooked position type>
 
     useEffect(() => {
       if (positionType === "hooked") {
         const scrollableAncestor = getScrollableAncestor()
-        scrollableAncestor.scroll
         const getScrollAxis = () => ({y: scrollableAncestor.scrollTop, x: scrollableAncestor.scrollLeft})
         const addInitialScrollEventHandler = () => {
           scrollableAncestor.addEventListener("scroll", initialScrollEventHandler)
@@ -227,22 +228,45 @@ export default function useModal<PT extends PositionType>({
       }
     }, [positionType, scrollableAncestor, containerAncestor, executeEffectValue])
 
-    const handleOnClickCenterPosition: MouseEventHandler<SVGElement> = (e) => {
+    const onClickCenterPositionHandler: MouseEventHandler<SVGElement> = (e) => {
       setPosition({ top: "middle", left: "middle" })
     }
-    const handleOnClickDefaultSize: MouseEventHandler<SVGElement> = (e) => {
+    const onClickDefaultSizeHandler: MouseEventHandler<SVGElement> = (e) => {
       setSize(sizeProp)
     }
-    const handleOnClickFullSize: MouseEventHandler<SVGElement> = (e) => {
+    const onClickFullSizeHandler: MouseEventHandler<SVGElement> = (e) => {
       setSize(fullSize)
     }
-    const handleOnClickHide: MouseEventHandler<SVGElement> = (e) => {
+    const onClickHideHandler: MouseEventHandler<SVGElement> = (e) => {
       setVisible(false)
-      if (handleOnHide) handleOnHide()
+      if (onHideHandler) onHideHandler()
+    }
+    const onFocusHandler: FocusEventHandler<HTMLDivElement> = (e) => {
+      if (onFocusHandlerProp) onFocusHandlerProp(e)
+    }
+    const onBlurHandler: FocusEventHandler<HTMLDivElement> = (e) => {
+      if (onBlurHandlerProp) onBlurHandlerProp(e)
+    }
+    const onStartResizingHandler = () => {
+      if (onStartResizingHandlerProp) onStartResizingHandlerProp()
+    }
+    const onEndResizingHandler = () => {
+      if (onEndResizingHandlerProp) onEndResizingHandlerProp()
+    }
+    const onStartDraggingHandler = () => {
+      if (positionTypeCss === "fixed") {
+        switchPositionTypeCss("absolute")
+        setExecuteEffectValue(executeEffectValues[executeEffectValue])
+      }
+      if (onStartDraggingHandlerProp) onStartDraggingHandlerProp()
+    }
+    const onEndDraggingHandler = () => {
+      if (onEndDraggingHandlerProp) onEndDraggingHandlerProp()
     }
 
     const getContainerStyle: GetStyle = (resizing, dragging) => css`
-      display: ${visible ? "flex" : "none"};
+      display: flex;
+      visibility: ${visible ? "visible" : "hidden"};
       position: ${positionTypeCss};
       min-height: ${minSize.height};
       min-width: ${minSize.width};
@@ -250,6 +274,14 @@ export default function useModal<PT extends PositionType>({
       max-width: 100%;
       transform: translate(${translateCss.left}, ${translateCss.top});
       z-index: 9;
+      ${!resizable && !draggable
+        ? css`
+            border: ${modalLayout.borderWidth}px solid ${mainColor};
+            border-radius: 10px;
+            padding: ${modalLayout.draggableDivPadding}px;
+            background-color: ${secondColor};
+          `
+        : ""}
     `
     const getResizableDivStyle: GetStyle = (resizing, dragging) => css`
       display: flex;
@@ -258,7 +290,7 @@ export default function useModal<PT extends PositionType>({
       justify-content: center;
       height: 100%;
       width: 100%;
-      padding: 6px;
+      padding: ${modalLayout.borderWidth}px;
       border-radius: 10px;
       background-color: ${mainColor};
     `
@@ -267,12 +299,12 @@ export default function useModal<PT extends PositionType>({
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 5px;
+      padding: ${modalLayout.draggableDivPadding}px;
       height: 100%;
       width: 100%;
       border-radius: 10px;
       background-color: ${secondColor};
-      ${!resizable ? css`border: 6px solid ${mainColor};`
+      ${!resizable ? css`border: ${modalLayout.borderWidth}px solid ${mainColor};`
                    : ""
       }
     `
@@ -281,7 +313,7 @@ export default function useModal<PT extends PositionType>({
     const visibleFullSizeButton = resizable && visibleFullSizeButtonProp
 
     const modal = <>
-                  <ResizableDraggableDiv ref={containerDivApiRef} draggable={draggable} resizable={resizable} getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} size={{value: size, set: setSize}} position={{value: positionCss, set: setPositionCss}} onStartDragging={onStartDragging} {...eventsHandlers}>
+                  <ResizableDraggableDiv ref={containerDivApiRef} draggable={draggable} resizable={resizable} getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} size={{value: size, set: setSize}} position={{value: positionCss, set: setPositionCss}} onFocusHandler={onFocusHandler} onBlurHandler={onBlurHandler} onStartResizingHandler={onStartResizingHandler} onEndResizingHandler={onEndResizingHandler} onStartDraggingHandler={onStartDraggingHandler} onEndDraggingHandler={onEndDraggingHandler}>
                   <>
                   {(visibleHideButton || visibleCenterPositionButton || visibleDefaultSizeButton || visibleFullSizeButton || topLeftChildren || topRightChildren) &&
                   <TopContainer>
@@ -289,16 +321,16 @@ export default function useModal<PT extends PositionType>({
                   {topLeftChildren}
                   </TopLeftContainer>
                   {visibleCenterPositionButton &&
-                  <TfiTarget {...buttonsCommonProps} onClick={handleOnClickCenterPosition}/>
+                  <TfiTarget {...buttonsCommonProps} onClick={onClickCenterPositionHandler}/>
                   }
                   {visibleDefaultSizeButton &&
-                  <SlSizeActual  {...buttonsCommonProps} onClick={handleOnClickDefaultSize}/>
+                  <SlSizeActual  {...buttonsCommonProps} onClick={onClickDefaultSizeHandler}/>
                   }
                   {visibleFullSizeButton &&
-                  <SlSizeFullscreen  {...buttonsCommonProps} onClick={handleOnClickFullSize}/>
+                  <SlSizeFullscreen  {...buttonsCommonProps} onClick={onClickFullSizeHandler}/>
                   }
                   {visibleHideButton && 
-                  <BsEyeSlashFill {...buttonsCommonProps} onClick={handleOnClickHide}/>
+                  <BsEyeSlashFill {...buttonsCommonProps} onClick={onClickHideHandler}/>
                   }
                   <TopRightContainer>
                   {topRightChildren}
@@ -320,6 +352,7 @@ export default function useModal<PT extends PositionType>({
       },
       modal,
       containsNode,
+      getRect
     ]             
 }
 

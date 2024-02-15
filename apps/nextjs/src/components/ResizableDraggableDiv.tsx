@@ -38,13 +38,15 @@ export type ContainerDivApi = {
 export type EventsHandlers = {
     onFocusHandler?: FocusEventHandler<HTMLDivElement>
     onBlurHandler?: FocusEventHandler<HTMLDivElement>
+    onStartResizingHandler?: () => void
+    onEndResizingHandler?: () => void
+    onStartDraggingHandler?: () => void
+    onEndDraggingHandler?: () => void
 }
 
 type Props = {
     resizable: boolean
     draggable: boolean
-    onStartResizing?: () => void
-    onStartDragging?: () => void
     getContainerStyle?: GetStyle
     getResizableDivStyle?: GetStyle
     getDraggableDivStyle?: GetStyle
@@ -53,7 +55,7 @@ type Props = {
     position?: {value: PositionCSS, set: SetPositionCSS}
 } & EventsHandlers
 
-export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, onStartResizing, onStartDragging, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, size: sizeProp, position: positionProp, onFocusHandler, onBlurHandler}, containerDivApiRef) => {
+export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, onStartResizingHandler, onEndResizingHandler, onStartDraggingHandler, onEndDraggingHandler, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, size: sizeProp, position: positionProp, onFocusHandler, onBlurHandler}, containerDivApiRef) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const getContainer = () => containerRef.current as HTMLDivElement
     useImperativeHandle(containerDivApiRef, () => 
@@ -118,6 +120,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
             }
             const handleMouseUp = (e: MouseEvent) => {
                 setDragging(false)
+                if (onEndDraggingHandler) onEndDraggingHandler()
             }
             const handleSelectStart = (e: Event) => {
                 e.preventDefault()
@@ -139,7 +142,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
     if (draggable) {
         const handleOnMouseDownDraggableDiv: MouseEventHandler<HTMLDivElement>  = (e) => {
             if (e.target == e.currentTarget || !dragPrevented(e)) {
-                if (onStartDragging) onStartDragging()
+                if (onStartDraggingHandler) onStartDraggingHandler()
                 setDragging(true)
                 setPreventFlag(e, true, false)
             }
@@ -157,6 +160,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
             }
             const handleMouseUp = (e: MouseEvent) => {
                 setResizing(false)
+                if (onEndResizingHandler) onEndResizingHandler()
             }
             const handleSelectStart = (e: Event) => {
                 e.preventDefault()
@@ -178,7 +182,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
     if (resizable) {
         const handleOnMouseDownResizableDiv: MouseEventHandler<HTMLDivElement>  = (e) => {
             if(e.target === e.currentTarget || !resizePrevented(e)) {
-                if (onStartResizing) onStartResizing()
+                if (onStartResizingHandler) onStartResizingHandler()
                 setResizing(true)
             }
         }

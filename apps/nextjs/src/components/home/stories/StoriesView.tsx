@@ -1,7 +1,7 @@
 import { css } from "@emotion/react"
 import styled from "@emotion/styled"
 import { StoryState } from "@prisma/client"
-import React, { FocusEventHandler, MouseEventHandler, TouchEventHandler, useEffect, useRef, useState } from "react"
+import React, { FocusEventHandler, MouseEventHandler, TouchEventHandler, memo, useEffect, useRef, useState } from "react"
 import usePallet from "../../../hooks/withjsx/usePallet"
 import { Observe } from "../../../pages/user/edit_home"
 import { mainColor, secondColor } from "../../../theme"
@@ -9,6 +9,7 @@ import { NewStory, Story, StoryHTMLElementIds, StoryWithJSXBody, ViewMode } from
 import { DeleteOrRecoverButton, OpenOrCloseStoryButton } from "../../Buttons"
 import { OptionSelector } from "../../FormComponents"
 import AddButton from "../edit/AddButton"
+import { palletLayout } from "../../../layouts"
 
 const storiesAnchorsContainerWidth = 150
 
@@ -168,23 +169,18 @@ export default function StoriesView<M extends ViewMode>({
     }
     const [editingStoryId, setEditingStoryId] = useState<string>()
 
-    const [setPalletVisible, pallet, palletContainsNode] = usePallet({containerAncestor: getContainer(), onBlurHandler: (e) => {setEditingStoryId(undefined)}})
-    useEffect(() => {
-      setPalletVisible(editingStoryId !== undefined)
-    }, [editingStoryId])
+    const [setPalletVisible, pallet, palletContainsNode] = usePallet({getContainerRect: () => getContainer().getBoundingClientRect()})
+
+    const onMouseUpHandler: MouseEventHandler = (e) => {
+      setPalletVisible(true, {top: e.clientY, left: e.clientX})
+    }
 
     const getEditableStoriesView = () => storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
                                          const {title,body, state} = story as Story
                                          const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
-                                         const handleOnFocusBody: FocusEventHandler<HTMLDivElement> = (e) => {
-                                             setEditingStoryId(idHtml)
-                                         }
                                          const handleOnBlurBody: FocusEventHandler<HTMLDivElement> = (e) => {
-                                          console.log(e.nativeEvent.relatedTarget)
-                                             if (!palletContainsNode(e.relatedTarget)) {
-                                                 setEditingStoryId(undefined)
-                                             }
+                                             setPalletVisible(false)
                                          }
 
                                          return <StoryContainer id={idHtml} key={idHtml}>
@@ -194,16 +190,12 @@ export default function StoriesView<M extends ViewMode>({
                                                 <StoryTitle id={htmlIds.title} ref={r => {if(r) (observe as Observe)(r, {mutation: "default"})}} toDelete={toDelete} contentEditable={!toDelete}>
                                                 {title}
                                                 </StoryTitle>
-                                                {/* {getOpenOrCloseStoryButton(isOpen, (e) => {openOrCloseStory(index)})} */}
                                                 <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20} handleDelete={() => {handleDeleteStory(idHtml, index, !("id" in story))}}
                                                                        handleRecover={() => {handleRecoverStory(idHtml, index)}}/>
-                                                {/* <Pallet rootElementId={htmlIds.body} show={isEditingStory(idHtml)} isAsking={isAsking}/> */}
                                                 </StoryTitleContainer>
-                                                {isOpen && 
-                                                <StoryBody id={htmlIds.body} focus={idHtml === editingStoryId} contentEditable={!toDelete}
-                                                           ref={r => {if(r) {refToLastStory.current = r; (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
-                                                           dangerouslySetInnerHTML={{__html: body}} onFocus={handleOnFocusBody} onBlur={handleOnBlurBody}/>
-                                                }
+                                                <MemoizedStoryBody id={htmlIds.body} contentEditable={!toDelete}
+                                                                   ref={r => {if(r) {refToLastStory.current = r; (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
+                                                                   dangerouslySetInnerHTML={{__html: body}} onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody}/>
                                                 </StoryContainer>
                                          })
 
@@ -312,22 +304,21 @@ const StoryContainer = styled.li`
         border-bottom-style: none;
     }
 `
-const focusStyle = css`
-  outline-color: ${secondColor};
-  outline-style: solid;
-  outline-width: 3px;
-`
-const StoryBody = styled.div<{focus?: boolean}>`
-  color: #696969;
+const storyBodyStyle = css`
+  color: #2c3338;
   line-height: 1.5;
   font-size: 3rem;
   text-align: justify;
   padding: 6px;
-  ${({focus}) => focus ? focusStyle : ""}
   &:focus {
-  ${focusStyle}
+    outline-color: ${secondColor};
+    outline-style: solid;
+    outline-width: 3px;
   }
 `
+const MemoizedStoryBody = memo<React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>>((props) =>
+  <div css={storyBodyStyle} {...props}/>
+)
 const StoryTitleContainer = styled.div`
   display: flex;
   flex-direction: row;
@@ -336,7 +327,6 @@ const StoryTitleContainer = styled.div`
   gap: 15px;
   width: 100%;
   color: #FFFFFF;
-  cursor: pointer;
 `
 const StoryTitle = styled.h4<{ toDelete?: boolean }>`
   font-size: 3.5rem;
