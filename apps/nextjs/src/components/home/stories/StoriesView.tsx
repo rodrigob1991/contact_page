@@ -169,7 +169,7 @@ export default function StoriesView<M extends ViewMode>({
     }
     const [editingStoryId, setEditingStoryId] = useState<string>()
 
-    const [setPalletVisible, pallet, palletContainsNode] = usePallet({getContainerRect: () => getContainer().getBoundingClientRect()})
+    const [setPalletVisible, pallet, palletContainsNode] = usePallet({getContainerRect: () => getContainer().getBoundingClientRect(), colorClassesNames: ["redOption", "blueOption"], spanClassesNames: ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"], linkClassName: "linkOption"})
 
     const onMouseUpHandler: MouseEventHandler = (e) => {
       setPalletVisible(true, {top: e.clientY, left: e.clientX})

@@ -41,9 +41,12 @@ type SetVisibleOnSelection = (visible: boolean, mousePosition?: {top: number, le
 
 type Props = {
     getContainerRect: GetRect
+    colorClassesNames: string[]
+    spanClassesNames: string[]
+    linkClassName: string
 } & EventsHandlers
 
-export default function usePallet({getContainerRect, ...modalProps}: Props) : [SetVisibleOnSelection, ReactNode, ContainsNode] {
+export default function usePallet({getContainerRect, colorClassesNames, spanClassesNames, linkClassName, ...modalProps}: Props) : [SetVisibleOnSelection, ReactNode, ContainsNode] {
     const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
         const id = elementId
@@ -351,6 +354,23 @@ export default function usePallet({getContainerRect, ...modalProps}: Props) : [S
         }
     }
 
+    const handleMouseDown: MouseEventHandler = (e) => {
+        e.preventDefault()
+    }
+
+    const [selectedColorClassName, setSelectedColorClassName] = useState(colorClassesNames[0])
+    const colorsModalChildren = <ColorsModalChildrenContainer>
+                                {colorClassesNames.map(colorClassName => 
+                                <ColorOption className={colorClassName} onClick={(e) => {setSelectedColorClassName(colorClassName); setVisibleColorsModal(false)}} onMouseDown={handleMouseDown}/>
+                                )}
+                                </ColorsModalChildrenContainer>
+    const [setVisibleColorsModal, colorsModal, colorsModalcontainsNode, getColorsModalRect] = useModal({positionType: "absolute", children: colorsModalChildren, ...formModalCommonProps})
+    const onClickSelectedColorOptionHandler: MouseEventHandler = (e) => {
+        const {top, left} = e.currentTarget.getBoundingClientRect()
+        const {top: topContainer, left: leftContainer} = getContainerRect()
+        setVisibleColorsModal(true, {top: `${top - topContainer - getColorsModalRect().height}px`, left:   `${left - leftContainer - getColorsModalRect().width}px`})
+    }
+
     const [insertLink, setInsertLink] = useState<InsertLink>(() => {})
     const updateInsertLink = (fn: InsertLink)=> { setInsertLink(() => fn) }
     const linkFormInputsProps  = {
@@ -418,46 +438,43 @@ export default function usePallet({getContainerRect, ...modalProps}: Props) : [S
     }
     
     const sibling = <>
+                    {colorsModal}
                     {elementIdForm}
                     {linkForm}
                     {imageForm}
                     </>
     
-    const handleMouseDown: MouseEventHandler = (e) => {
-        e.preventDefault()
-    }
-
-    const palletOptionClass = "palletOption"
-    const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
-    const linkClass = "linkOption"
-    const idOffClass = "idOff"
-    const idOnClass = "idOn"
-    const getOptionClass = (className?: string) =>  className ? palletOptionClass + " " + className : palletOptionClass
-
-    const optionSeparator = <span style={{color: "#000000", fontSize: "2rem"}}>-</span>
+    const palletOptionClassName = "palletOption"
+    //const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
+    //const linkClass = "linkOption"
+    //const idOffClass = "idOff"
+    //const idOnClass = "idOn"
+    const getOptionClassName = (className?: string) =>  selectedColorClassName + " " + palletOptionClassName   + (className ? " " + className : "")
 
     const children = <Container>
-                     <span className={getOptionClass()} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("defaultText", undefined)}}>
+                     <Row>
+                     <ColorOption className={selectedColorClassName} onClick={onClickSelectedColorOptionHandler} onMouseDown={handleMouseDown}/>
+                     </Row>
+                     <Row>
+                     <span className={getOptionClassName()} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("defaultText", undefined)}}>
                      a
                      </span>
-                     {optionSeparator}
-                     {spanClasses.map((spanClass, index) =>
+                     {spanClassesNames.map((spanClassName, index) =>
                         <>
-                        <span className={getOptionClass(spanClass)} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("span", spanClass)}}>
+                        <span className={getOptionClassName(spanClassName)} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("span", spanClassName)}}>
                         a
                         </span>
-                        {optionSeparator}
                         </>
                      )}
-                     <a className={getOptionClass(linkClass)} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("link", linkClass)}}>
+                     <a className={getOptionClassName(linkClassName)} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("link", linkClassName)}}>
                      Link
                      </a>
-                     {optionSeparator}
                      <FcPicture onMouseDown={handleMouseDown} size={30} onClick={(e) => {handleClickPalletOption("image", undefined)}} style={{cursor: "pointer"}}/>
-                     {optionSeparator}
+                     {/* {optionSeparator}
                      <span className={getOptionClass(elementId ? idOnClass : idOffClass)} onMouseDown={handleMouseDown} onClick={handleClickElementId}>
                      ID
-                     </span>
+                     </span> */}
+                     </Row>
                      </Container>
 
     const [setVisible, reactNode, containsNode, getRect] = useModal({children, sibling, positionType: "absolute", ...modalProps, ...modalCommonProps})
@@ -496,12 +513,24 @@ const formModalCommonProps = {showLoadingBars: false, ...modalCommonProps}
 
 const Container = styled.div`
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
+  align-items: start;
   justify-items: center;
-  padding: 5px;
   gap: 5px;
-  overflow: auto;
+  padding: 5px;
   border-radius: 5px;
   background-color: #FFFFFF;
+`
+const Row = styled.div`
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  background-color: #FFFFFF;
+`
+const ColorsModalChildrenContainer = styled.div`
+  display: grid;
+`
+const ColorOption = styled.div`
+  padding: 10px;
+  cursor: pointer;
 `

@@ -104,30 +104,33 @@ textarea:invalid {
   border-radius: 5px;
 }
 
+.blueOption {
+  color: blue;
+  background-color: blue;
+}
+.redOption {
+  color: red;
+  background-color: red;
+}
 .palletOption {
-  font-size: 20px;
-  color: #696969;
+  font-size: 25px;
   cursor: pointer;
+  background-color: white;
 }
 .blackTextOption {
-  color: black;
   font-weight: bold;
 }
 .blackUnderlineTextOption {
-  color: black;
   text-decoration: underline;
 }
 .blackTitleTextOption {
-  color: black;
   text-transform: uppercase;
   font-weight: bold;
 }
 .redTextOption {
-  color: brown;
   font-weight: bold;
 }
 .linkOption{
-  color: black;
 }
 
 .idOff {
