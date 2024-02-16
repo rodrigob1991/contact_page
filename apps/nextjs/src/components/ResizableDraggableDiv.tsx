@@ -36,6 +36,7 @@ export type ContainerDivApi = {
     containsNode: ContainsNode
 }
 export type EventsHandlers = {
+    onMouseDownHandler?: MouseEventHandler<HTMLDivElement>
     onFocusHandler?: FocusEventHandler<HTMLDivElement>
     onBlurHandler?: FocusEventHandler<HTMLDivElement>
     onStartResizingHandler?: () => void
@@ -55,7 +56,7 @@ type Props = {
     position?: {value: PositionCSS, set: SetPositionCSS}
 } & EventsHandlers
 
-export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, onStartResizingHandler, onEndResizingHandler, onStartDraggingHandler, onEndDraggingHandler, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, size: sizeProp, position: positionProp, onFocusHandler, onBlurHandler}, containerDivApiRef) => {
+export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, onStartResizingHandler, onEndResizingHandler, onStartDraggingHandler, onEndDraggingHandler, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, size: sizeProp, position: positionProp, onMouseDownHandler, onFocusHandler, onBlurHandler}, containerDivApiRef) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const getContainer = () => containerRef.current as HTMLDivElement
     useImperativeHandle(containerDivApiRef, () => 
@@ -194,7 +195,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
         //setDragging(false)
      }
     
-    return <Container ref={containerRef} tabIndex={1} css={[getContainerStyle ? getContainerStyle(resizing, dragging) : undefined, size, position]} resizing={resizing} dragging={dragging} onMouseLeave={handleOnMouseLeaveContainer} onFocus={onFocusHandler} onBlur={onBlurHandler}>
+    return <Container ref={containerRef} tabIndex={1} css={[getContainerStyle ? getContainerStyle(resizing, dragging) : undefined, size, position]} resizing={resizing} dragging={dragging} onMouseLeave={handleOnMouseLeaveContainer} onMouseDown={onMouseDownHandler} onFocus={onFocusHandler} onBlur={onBlurHandler}>
            {children}
            </Container>
 })

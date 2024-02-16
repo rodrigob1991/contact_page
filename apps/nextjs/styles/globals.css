@@ -112,6 +112,18 @@ textarea:invalid {
   color: red;
   background-color: red;
 }
+.greenOption {
+  color: green;
+  background-color: green;
+}
+.yellowOption {
+  color: yellow;
+  background-color: yellow;
+}
+.blackOption {
+  color: black;
+  background-color: black;
+}
 .palletOption {
   font-size: 25px;
   cursor: pointer;

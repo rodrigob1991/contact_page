@@ -70,6 +70,7 @@ export default function useModal<PT extends PositionType>({
                                scrollableAncestor,
                                containerAncestor,
                                onHideHandler,
+                               onMouseDownHandler: onMouseDownHandlerProp,
                                onFocusHandler: onFocusHandlerProp,
                                onBlurHandler: onBlurHandlerProp,
                                onStartResizingHandler: onStartResizingHandlerProp, 
@@ -241,7 +242,10 @@ export default function useModal<PT extends PositionType>({
       setVisible(false)
       if (onHideHandler) onHideHandler()
     }
-    const onFocusHandler: FocusEventHandler<HTMLDivElement> = (e) => {
+    const onMouseDownHandler: FocusEventHandler<HTMLDivElement> = (e) => {
+      if (onMouseDownHandlerProp) onMouseDownHandlerProp(e)
+    }
+    const onFocusHandler: MouseEventHandler<HTMLDivElement> = (e) => {
       if (onFocusHandlerProp) onFocusHandlerProp(e)
     }
     const onBlurHandler: FocusEventHandler<HTMLDivElement> = (e) => {
@@ -313,7 +317,7 @@ export default function useModal<PT extends PositionType>({
     const visibleFullSizeButton = resizable && visibleFullSizeButtonProp
 
     const modal = <>
-                  <ResizableDraggableDiv ref={containerDivApiRef} draggable={draggable} resizable={resizable} getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} size={{value: size, set: setSize}} position={{value: positionCss, set: setPositionCss}} onFocusHandler={onFocusHandler} onBlurHandler={onBlurHandler} onStartResizingHandler={onStartResizingHandler} onEndResizingHandler={onEndResizingHandler} onStartDraggingHandler={onStartDraggingHandler} onEndDraggingHandler={onEndDraggingHandler}>
+                  <ResizableDraggableDiv ref={containerDivApiRef} draggable={draggable} resizable={resizable} getContainerStyle={getContainerStyle} getResizableDivStyle={getResizableDivStyle} getDraggableDivStyle={getDraggableDivStyle} size={{value: size, set: setSize}} position={{value: positionCss, set: setPositionCss}} onMouseDownHandler={onMouseDownHandler} onFocusHandler={onFocusHandler} onBlurHandler={onBlurHandler} onStartResizingHandler={onStartResizingHandler} onEndResizingHandler={onEndResizingHandler} onStartDraggingHandler={onStartDraggingHandler} onEndDraggingHandler={onEndDraggingHandler}>
                   <>
                   {(visibleHideButton || visibleCenterPositionButton || visibleDefaultSizeButton || visibleFullSizeButton || topLeftChildren || topRightChildren) &&
                   <TopContainer>

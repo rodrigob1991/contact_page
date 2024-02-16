@@ -8,7 +8,7 @@ import { palletLayout } from "../../layouts"
 import { GetRect } from "../../types/dom"
 import { createAnchor, createDiv, createImage, createSpan, createText, getTexts, hasSiblingOrParentSibling, isAnchor, isDiv, isSpan, isText, lookUpDivParent, positionCaretOn, removeNodesFromOneSide } from "../../utils/domManipulations"
 import useFormModal, { SubmissionAction } from "./forms/useFormModal"
-import useModal, { ModalPosition, SetVisible} from "./useModal"
+import useModal, { ModalPosition, SetVisible, UseModalProps} from "./useModal"
 
 const optionsTypesWithForm = {link: "link", image: "image"} as const
 type OptionTypeWithForm = keyof typeof optionsTypesWithForm
@@ -354,21 +354,18 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
         }
     }
 
-    const handleMouseDown: MouseEventHandler = (e) => {
-        e.preventDefault()
-    }
-
     const [selectedColorClassName, setSelectedColorClassName] = useState(colorClassesNames[0])
-    const colorsModalChildren = <ColorsModalChildrenContainer>
+    const colorsModalChildren = <ColorsModalChildrenContainer columns={Math.ceil(Math.sqrt(colorClassesNames.length))}>
                                 {colorClassesNames.map(colorClassName => 
-                                <ColorOption className={colorClassName} onClick={(e) => {setSelectedColorClassName(colorClassName); setVisibleColorsModal(false)}} onMouseDown={handleMouseDown}/>
+                                <ColorOption className={colorClassName} onClick={(e) => {setSelectedColorClassName(colorClassName); setVisibleColorsModal(false)}}/>
                                 )}
                                 </ColorsModalChildrenContainer>
-    const [setVisibleColorsModal, colorsModal, colorsModalcontainsNode, getColorsModalRect] = useModal({positionType: "absolute", children: colorsModalChildren, ...formModalCommonProps})
+    const [setVisibleColorsModal, colorsModal, colorsModalContainsNode, getColorsModalRect] = useModal({positionType: "absolute", children: colorsModalChildren, ...formModalCommonProps})
     const onClickSelectedColorOptionHandler: MouseEventHandler = (e) => {
         const {top, left} = e.currentTarget.getBoundingClientRect()
         const {top: topContainer, left: leftContainer} = getContainerRect()
-        setVisibleColorsModal(true, {top: `${top - topContainer - getColorsModalRect().height}px`, left:   `${left - leftContainer - getColorsModalRect().width}px`})
+        const {height} = getColorsModalRect()
+        setVisibleColorsModal(true, {top: `${top - topContainer - height}px`, left: `${left - leftContainer}px`})
     }
 
     const [insertLink, setInsertLink] = useState<InsertLink>(() => {})
@@ -453,23 +450,23 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
 
     const children = <Container>
                      <Row>
-                     <ColorOption className={selectedColorClassName} onClick={onClickSelectedColorOptionHandler} onMouseDown={handleMouseDown}/>
+                     <ColorOption className={selectedColorClassName} onClick={onClickSelectedColorOptionHandler}/>
                      </Row>
                      <Row>
-                     <span className={getOptionClassName()} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("defaultText", undefined)}}>
+                     <span className={getOptionClassName()} onClick={(e) => {handleClickPalletOption("defaultText", undefined)}}>
                      a
                      </span>
                      {spanClassesNames.map((spanClassName, index) =>
                         <>
-                        <span className={getOptionClassName(spanClassName)} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("span", spanClassName)}}>
+                        <span className={getOptionClassName(spanClassName)} onClick={(e) => {handleClickPalletOption("span", spanClassName)}}>
                         a
                         </span>
                         </>
                      )}
-                     <a className={getOptionClassName(linkClassName)} onMouseDown={handleMouseDown} onClick={(e) => {handleClickPalletOption("link", linkClassName)}}>
+                     <a className={getOptionClassName(linkClassName)} onClick={(e) => {handleClickPalletOption("link", linkClassName)}}>
                      Link
                      </a>
-                     <FcPicture onMouseDown={handleMouseDown} size={30} onClick={(e) => {handleClickPalletOption("image", undefined)}} style={{cursor: "pointer"}}/>
+                     <FcPicture size={30} onClick={(e) => {handleClickPalletOption("image", undefined)}} style={{cursor: "pointer"}}/>
                      {/* {optionSeparator}
                      <span className={getOptionClass(elementId ? idOnClass : idOffClass)} onMouseDown={handleMouseDown} onClick={handleClickElementId}>
                      ID
@@ -480,6 +477,9 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
     const [setVisible, reactNode, containsNode, getRect] = useModal({children, sibling, positionType: "absolute", ...modalProps, ...modalCommonProps})
     const setVisibleOnSelection: SetVisibleOnSelection = (visible, mousePosition) => {
         if (visible) {
+            setVisibleColorsModal(false)
+            setVisibleImageForm(false)
+            setVisibleLinkForm(false)
             // the setTimeout is because when click over an existing range the top of the new range rectangle remain like the older one
             const selection = document.getSelection()
                 if (selection) {
@@ -508,7 +508,7 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
         containsNode
     ]
 }
-const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false}
+const modalCommonProps: Partial<UseModalProps<"absolute">> = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false, onMouseDownHandler: (e) => {e.preventDefault()}}
 const formModalCommonProps = {showLoadingBars: false, ...modalCommonProps}
 
 const Container = styled.div`
@@ -527,10 +527,12 @@ const Row = styled.div`
   gap: 10px;
   background-color: #FFFFFF;
 `
-const ColorsModalChildrenContainer = styled.div`
+const ColorsModalChildrenContainer = styled.div<{columns: number}>`
   display: grid;
+  grid-template-columns: repeat(${({columns}) => columns}, auto);
 `
 const ColorOption = styled.div`
-  padding: 10px;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
 `
