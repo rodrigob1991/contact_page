@@ -42,6 +42,7 @@ export type UseModalProps<PT extends PositionType> = {
   sibling?: ReactNode
   onHideHandler?: () => void
 } & UseModalHookedProps<PT> & EventsHandlers
+export type UseModalReturn = {setVisible: SetVisible, isVisible: () => boolean , modal: ReactNode ,containsNode: ContainsNode, getRect: GetRect}
 
 const fullSize = {height: "100%", width: "100%"}
 const centerPosition = {top: "50%", left: "50%"}
@@ -77,7 +78,7 @@ export default function useModal<PT extends PositionType>({
                                onEndResizingHandler: onEndResizingHandlerProp, 
                                onStartDraggingHandler: onStartDraggingHandlerProp, 
                                onEndDraggingHandler: onEndDraggingHandlerProp
-                              }: UseModalProps<PT>): [SetVisible, ReactNode, ContainsNode, GetRect] {
+                              }: UseModalProps<PT>): UseModalReturn {
     const [visible, setVisible] = useState(false)
 
     const [positionCss, setPositionCss] = useState<PositionCSS>({})
@@ -347,17 +348,18 @@ export default function useModal<PT extends PositionType>({
                   {sibling && sibling}
                   </>
                  
-    return [
-      (visible, position) => {
+    return {
+      setVisible: (visible, position) => {
         if (position) {
           setPosition(position)
         }
         setVisible(visible)
       },
+      isVisible: () => visible,
       modal,
       containsNode,
-      getRect
-    ]             
+      getRect,
+    }            
 }
 
 const buttonsCommonProps = {size: 28, css: css`cursor: pointer; color: ${thirdColor}; padding: 2px;`, onMouseDown: (e: React.MouseEvent) => {setPreventFlag(e, true, true)}}

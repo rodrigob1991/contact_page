@@ -1,14 +1,15 @@
+import { css } from "@emotion/css"
 import styled from "@emotion/styled"
-import { MouseEventHandler, ReactNode, useEffect, useState } from "react"
+import { MouseEventHandler, useEffect, useState } from "react"
 import { FcPicture } from "react-icons/fc"
 import { isEmpty } from "utils/src/strings"
-import { ContainsNode, EventsHandlers } from "../../components/ResizableDraggableDiv"
+import { ChangePropertyType } from "utils/src/types"
+import { EventsHandlers } from "../../components/ResizableDraggableDiv"
 import { ImageData } from "../../components/forms/ImageSelector"
-import { palletLayout } from "../../layouts"
 import { GetRect } from "../../types/dom"
 import { createAnchor, createDiv, createImage, createSpan, createText, getTexts, hasSiblingOrParentSibling, isAnchor, isDiv, isSpan, isText, lookUpDivParent, positionCaretOn, removeNodesFromOneSide } from "../../utils/domManipulations"
 import useFormModal, { SubmissionAction } from "./forms/useFormModal"
-import useModal, { ModalPosition, SetVisible, UseModalProps} from "./useModal"
+import useModal, { ModalPosition, SetVisible, UseModalProps, UseModalReturn } from "./useModal"
 
 const optionsTypesWithForm = {link: "link", image: "image"} as const
 type OptionTypeWithForm = keyof typeof optionsTypesWithForm
@@ -41,12 +42,19 @@ type SetVisibleOnSelection = (visible: boolean, mousePosition?: {top: number, le
 
 type Props = {
     getContainerRect: GetRect
-    colorClassesNames: string[]
-    spanClassesNames: string[]
-    linkClassName: string
+    colors?: string[]
+    getColorClassName?: (color: string) => string
+    spanClassesNames?: string[]
+    linkClassName?: string
 } & EventsHandlers
+type Return = ChangePropertyType<UseModalReturn, ["setVisible", SetVisibleOnSelection]>
 
-export default function usePallet({getContainerRect, colorClassesNames, spanClassesNames, linkClassName, ...modalProps}: Props) : [SetVisibleOnSelection, ReactNode, ContainsNode] {
+const defaultSpanClassesNames = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
+const defaultLinkClassName = "linkOption"
+const defaultColors = ["red", "blue", "green", "yellow", "black"]
+const defaultGetColorClassName = (color: string) => "color" + color + "Option"
+
+export default function usePallet({getContainerRect, colors=defaultColors, getColorClassName=defaultGetColorClassName, spanClassesNames=defaultSpanClassesNames, linkClassName=defaultLinkClassName, ...modalProps}: Props) : Return {
     const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
         const id = elementId
@@ -54,7 +62,7 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
         return id
     }
     const [elementIdFormPosition, setElementIdFormPosition] = useState<ModalPosition>({top: "middle", left: "middle"})
-    const [setVisibleElementIdForm, elementIdForm] = useFormModal({positionType: "absolute", position: elementIdFormPosition, buttonText: "add", inputsProps: {id: {type: "textInput"}}, submissionAction: ({id}) => {setElementId(id)}})
+    const {setVisible: setVisibleElementIdForm, modal: elementIdForm} = useFormModal({positionType: "absolute", position: elementIdFormPosition, buttonText: "add", inputsProps: {id: {type: "textInput"}}, submissionAction: ({id}) => {setElementId(id)}})
     const handleClickElementId: MouseEventHandler<HTMLSpanElement> = (e) => {
         setElementIdFormPosition({top: `${e.clientY - 20}px`, left: `${e.clientX + 20}px`})
         setVisibleElementIdForm(true)
@@ -354,18 +362,25 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
         }
     }
 
-    const [selectedColorClassName, setSelectedColorClassName] = useState(colorClassesNames[0])
-    const colorsModalChildren = <ColorsModalChildrenContainer columns={Math.ceil(Math.sqrt(colorClassesNames.length))}>
-                                {colorClassesNames.map(colorClassName => 
-                                <ColorOption className={colorClassName} onClick={(e) => {setSelectedColorClassName(colorClassName); setVisibleColorsModal(false)}}/>
+    const [selectedColor, setSelectedColor] = useState(colors[0])
+    const colorsModalChildren = <ColorsModalChildrenContainer columns={Math.ceil(Math.sqrt(colors.length))}>
+                                {colors.map(color => 
+                                <ColorOption backgroundColor={color} onClick={(e) => {setSelectedColor(color); setVisibleColorsModal(false)}}/>
                                 )}
                                 </ColorsModalChildrenContainer>
-    const [setVisibleColorsModal, colorsModal, colorsModalContainsNode, getColorsModalRect] = useModal({positionType: "absolute", children: colorsModalChildren, ...formModalCommonProps})
+    const {setVisible: setVisibleColorsModal, isVisible: isColorsModalVisible, modal: colorsModal, getRect: getColorsModalRect} = useModal({positionType: "absolute", children: colorsModalChildren, ...formModalCommonProps})
     const onClickSelectedColorOptionHandler: MouseEventHandler = (e) => {
-        const {top, left} = e.currentTarget.getBoundingClientRect()
-        const {top: topContainer, left: leftContainer} = getContainerRect()
-        const {height} = getColorsModalRect()
-        setVisibleColorsModal(true, {top: `${top - topContainer - height}px`, left: `${left - leftContainer}px`})
+      if (!isColorsModalVisible()) {
+        const { top, left } = e.currentTarget.getBoundingClientRect()
+        const { top: topContainer, left: leftContainer } = getContainerRect()
+        const { height } = getColorsModalRect()
+        setVisibleColorsModal(true, {
+          top: `${top - topContainer - height}px`,
+          left: `${left - leftContainer}px`,
+        })
+      } else {
+        setVisibleColorsModal(false)
+      }
     }
 
     const [insertLink, setInsertLink] = useState<InsertLink>(() => {})
@@ -376,7 +391,7 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
     const linkFormSubmissionAction: SubmissionAction<typeof linkFormInputsProps>  = ({href}) => {
         insertLink(href)
     }
-    const [setVisibleLinkForm, linkForm] = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: linkFormInputsProps, submissionAction: linkFormSubmissionAction, ...formModalCommonProps})
+    const {setVisible: setVisibleLinkForm, modal: linkForm} = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: linkFormInputsProps, submissionAction: linkFormSubmissionAction, ...formModalCommonProps})
 
     const imageFormInputsProps  = {
         imageData: {type: "imageSelector"},
@@ -391,7 +406,7 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
             insertOrModifyImage({...imageData, ...dimensions})
         }
     }
-    const [setVisibleImageForm, imageForm] = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: imageFormInputsProps, submissionAction: imageFormSubmissionAction, ...formModalCommonProps})
+    const {setVisible: setVisibleImageForm, modal: imageForm} = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: imageFormInputsProps, submissionAction: imageFormSubmissionAction, ...formModalCommonProps})
 
     useEffect(() => {
       window.modifyImageElement = (img: HTMLImageElement) => {
@@ -441,29 +456,26 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
                     {imageForm}
                     </>
     
-    const palletOptionClassName = "palletOption"
     //const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
     //const linkClass = "linkOption"
     //const idOffClass = "idOff"
     //const idOnClass = "idOn"
-    const getOptionClassName = (className?: string) =>  selectedColorClassName + " " + palletOptionClassName   + (className ? " " + className : "")
+    const getOptionClassName = (className?: string) =>  getColorClassName(selectedColor) + (className ? " " + className : "")
 
     const children = <Container>
                      <Row>
-                     <ColorOption className={selectedColorClassName} onClick={onClickSelectedColorOptionHandler}/>
+                     <ColorOption backgroundColor={selectedColor} onClick={onClickSelectedColorOptionHandler}/>
                      </Row>
                      <Row>
-                     <span className={getOptionClassName()} onClick={(e) => {handleClickPalletOption("defaultText", undefined)}}>
+                     <span className={getOptionClassName() + " " + optionClassName} onClick={(e) => {handleClickPalletOption("defaultText", undefined)}}>
                      a
                      </span>
                      {spanClassesNames.map((spanClassName, index) =>
-                        <>
-                        <span className={getOptionClassName(spanClassName)} onClick={(e) => {handleClickPalletOption("span", spanClassName)}}>
+                        <span className={getOptionClassName(spanClassName) + " " + optionClassName} onClick={(e) => {handleClickPalletOption("span", getOptionClassName(spanClassName))}}>
                         a
                         </span>
-                        </>
                      )}
-                     <a className={getOptionClassName(linkClassName)} onClick={(e) => {handleClickPalletOption("link", linkClassName)}}>
+                     <a className={getOptionClassName(linkClassName) + " " + optionClassName} onClick={(e) => {handleClickPalletOption("link", getOptionClassName(linkClassName))}}>
                      Link
                      </a>
                      <FcPicture size={30} onClick={(e) => {handleClickPalletOption("image", undefined)}} style={{cursor: "pointer"}}/>
@@ -474,7 +486,7 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
                      </Row>
                      </Container>
 
-    const [setVisible, reactNode, containsNode, getRect] = useModal({children, sibling, positionType: "absolute", ...modalProps, ...modalCommonProps})
+    const {setVisible, getRect, ...restReturn} = useModal({children, sibling, positionType: "absolute", ...modalProps, ...modalCommonProps})
     const setVisibleOnSelection: SetVisibleOnSelection = (visible, mousePosition) => {
         if (visible) {
             setVisibleColorsModal(false)
@@ -502,11 +514,11 @@ export default function usePallet({getContainerRect, colorClassesNames, spanClas
         }
     }
     
-    return [
-        setVisibleOnSelection,
-        reactNode,
-        containsNode
-    ]
+    return {
+      setVisible: setVisibleOnSelection,
+      getRect,
+      ...restReturn,
+    }
 }
 const modalCommonProps: Partial<UseModalProps<"absolute">> = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false, onMouseDownHandler: (e) => {e.preventDefault()}}
 const formModalCommonProps = {showLoadingBars: false, ...modalCommonProps}
@@ -531,8 +543,13 @@ const ColorsModalChildrenContainer = styled.div<{columns: number}>`
   display: grid;
   grid-template-columns: repeat(${({columns}) => columns}, auto);
 `
-const ColorOption = styled.div`
+const ColorOption = styled.div<{backgroundColor: string}>`
+  background-color: ${({backgroundColor}) => backgroundColor};
   width: 20px;
   height: 20px;
+  cursor: pointer;
+`
+const optionClassName = css`
+  font-size: 25px;
   cursor: pointer;
 `
