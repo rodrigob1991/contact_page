@@ -9,7 +9,6 @@ import { NewStory, Story, StoryHTMLElementIds, StoryWithJSXBody, ViewMode } from
 import { DeleteOrRecoverButton, OpenOrCloseStoryButton } from "../../Buttons"
 import { OptionSelector } from "../../FormComponents"
 import AddButton from "../edit/AddButton"
-import { palletLayout } from "../../../layouts"
 
 const storiesAnchorsContainerWidth = 150
 
@@ -169,10 +168,10 @@ export default function StoriesView<M extends ViewMode>({
     }
     const [editingStoryId, setEditingStoryId] = useState<string>()
 
-    const {setVisiblePallet, pallet, palletContainsNode} = usePallet({getContainerRect: () => getContainer().getBoundingClientRect()})
+    const {setPalletModalVisible, palletModal, containsPalletModalNode} = usePallet({getContainerRect: () => getContainer().getBoundingClientRect()})
 
     const onMouseUpHandler: MouseEventHandler = (e) => {
-      setPalletVisible(true, {top: e.clientY, left: e.clientX})
+      setPalletModalVisible(true, {top: e.clientY, left: e.clientX})
     }
 
     const getEditableStoriesView = () => storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
@@ -180,7 +179,7 @@ export default function StoriesView<M extends ViewMode>({
                                          const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
                                          const handleOnBlurBody: FocusEventHandler<HTMLDivElement> = (e) => {
-                                             setPalletVisible(false)
+                                          setPalletModalVisible(false)
                                          }
 
                                          return <StoryContainer id={idHtml} key={idHtml}>
@@ -200,7 +199,7 @@ export default function StoriesView<M extends ViewMode>({
                                          })
 
     return <Container ref={containerRef}>
-           {editing && pallet}
+           {editing && palletModal}
            <LeftContainer>
            {editing &&
            <AddButton position="right" tooltipText="add story" handleOnClick={handleAddNewStory}/>

@@ -60,3 +60,5 @@ export const getNumber = (str: string): number | undefined => {
     const matched = str.match(numberRgx)
     return matched ? +matched : undefined
 }
+
+export const upperCaseFirstChar = <S extends string>(str: S) => (str.substring(0, 1).toUpperCase() + str.substring(1)) as Capitalize<S>

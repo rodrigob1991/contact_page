@@ -4,13 +4,13 @@ import { FocusEventHandler, MouseEventHandler, ReactNode, useEffect, useRef, use
 import { BsEyeSlashFill } from "react-icons/bs"
 import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
 import { TfiTarget } from "react-icons/tfi"
-import { getNumber } from "utils/src/strings"
+import { getNumber, upperCaseFirstChar } from "utils/src/strings"
 import { ContainerDivApi, ContainsNode, EventsHandlers, GetStyle, PositionCSS, PositionCSSKey, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../../components/ResizableDraggableDiv"
-import { mainColor, secondColor, thirdColor } from "../../theme"
 import { modalLayout } from "../../layouts"
+import { mainColor, secondColor, thirdColor } from "../../theme"
 import { GetRect } from "../../types/dom"
 
-export type SetVisible = (visible: boolean, position?: ModalPosition) => void
+export type SetModalVisible = (visible: boolean, position?: ModalPosition) => void
 
 type PositionKey = "top" | "left"
 type PositionValue = "start" | "middle" |  "end" | `${number}${string}` | "none"
@@ -24,8 +24,13 @@ export type UseModalHookedProps<PT extends PositionType="hooked"> = {
   containerAncestor?: Ancestor<PT>
 }
 
-export type UseModalProps<PT extends PositionType> = {
-  positionType: PT
+export type ModalName = string | undefined
+export const modalDefaultName = "modal"
+export type ModalDefaultName = typeof modalDefaultName
+export type ModalFullName<N extends ModalName> =  N extends undefined | "" ? ModalDefaultName : `${N}${Capitalize<ModalDefaultName>}`
+export type UseModalProps<N extends ModalName, PT extends PositionType> = {
+  name?: N
+  positionType?: PT
   position?: ModalPosition
   size?: SizeCSS
   minSize?: SizeCSS
@@ -42,7 +47,17 @@ export type UseModalProps<PT extends PositionType> = {
   sibling?: ReactNode
   onHideHandler?: () => void
 } & UseModalHookedProps<PT> & EventsHandlers
-export type UseModalReturn = {setVisible: SetVisible, isVisible: () => boolean , modal: ReactNode ,containsNode: ContainsNode, getRect: GetRect}
+export type SetVisibleKey<N extends ModalName> = `set${Capitalize<ModalFullName<N>>}Visible`
+export type isVisibleKey<N extends ModalName> = `is${Capitalize<ModalFullName<N>>}Visible`
+export type ModalKey<N extends ModalName> = ModalFullName<N>
+export type ContainsNodeKey<N extends ModalName> = `contains${Capitalize<ModalFullName<N>>}Node`
+export type GetRectKey<N extends ModalName> = `get${Capitalize<ModalFullName<N>>}Rect`
+export type UseModalReturn<N extends ModalName> = 
+{[K in SetVisibleKey<N>]: SetModalVisible} & 
+{[K in isVisibleKey<N>]: () => boolean} & 
+{[K in ModalKey<N>]: ReactNode} &
+{[K in ContainsNodeKey<N>]: ContainsNode} & 
+{[K in GetRectKey<N>]: GetRect}
 
 const fullSize = {height: "100%", width: "100%"}
 const centerPosition = {top: "50%", left: "50%"}
@@ -52,7 +67,10 @@ const positionsCssOpposites = {
 } as const
 const executeEffectValues = {1: 2, 2: 1} as const
 
-export default function useModal<PT extends PositionType>({
+const defaultPositionTypeCss = "absolute"
+
+export default function useModal<N extends ModalName=undefined, PT extends PositionType="absolute">({
+                               name,
                                positionType,
                                position={top: "middle", left: "middle"},
                                size: sizeProp = {height: "fit-content", width: "fit-content"},
@@ -78,7 +96,7 @@ export default function useModal<PT extends PositionType>({
                                onEndResizingHandler: onEndResizingHandlerProp, 
                                onStartDraggingHandler: onStartDraggingHandlerProp, 
                                onEndDraggingHandler: onEndDraggingHandlerProp
-                              }: UseModalProps<PT>): UseModalReturn {
+                              }: UseModalProps<N, PT>): UseModalReturn<N> {
     const [visible, setVisible] = useState(false)
 
     const [positionCss, setPositionCss] = useState<PositionCSS>({})
@@ -116,7 +134,7 @@ export default function useModal<PT extends PositionType>({
     const getContainerDivApi = () => containerDivApiRef.current as ContainerDivApi
     const containsNode: ContainsNode = (node) => getContainerDivApi().containsNode(node)
     const getRect: GetRect = () => getContainerDivApi().getRect()
-    const [positionTypeCss, setPositionTypeCss] = useState<"absolute" | "fixed">()
+    const [positionTypeCss, setPositionTypeCss] = useState<"absolute" | "fixed">(defaultPositionTypeCss)
 
     // <specifics for hooked position type>
     const getScrollableAncestor = () => scrollableAncestor ?? document.body
@@ -226,7 +244,7 @@ export default function useModal<PT extends PositionType>({
           removeSecondScrollEventHandler()
         }
       } else {
-        setPositionTypeCss(positionType)
+        setPositionTypeCss(positionType || defaultPositionTypeCss)
       }
     }, [positionType, scrollableAncestor, containerAncestor, executeEffectValue])
 
@@ -347,19 +365,30 @@ export default function useModal<PT extends PositionType>({
                   </ResizableDraggableDiv>
                   {sibling && sibling}
                   </>
+    
+    const setModalVisible: SetModalVisible = (visible, position) => {
+      if (position) {
+        setPosition(position)
+      }
+      setVisible(visible)
+    }
+
+    const fullName = (name ? name + upperCaseFirstChar(modalDefaultName) : modalDefaultName) as ModalFullName<N>
+    const capitalizedFullName = upperCaseFirstChar(fullName)
                  
+    const setVisibleKey: SetVisibleKey<N> = `set${capitalizedFullName}Visible`
+    const isVisibleKey: isVisibleKey<N> = `is${capitalizedFullName}Visible`
+    const modalKey: ModalKey<N> = fullName
+    const containsNodeKey: ContainsNodeKey<N> = `contains${capitalizedFullName}Node`
+    const getRectKey: GetRectKey<N> = `get${capitalizedFullName}Rect`
+    
     return {
-      setVisible: (visible, position) => {
-        if (position) {
-          setPosition(position)
-        }
-        setVisible(visible)
-      },
-      isVisible: () => visible,
-      modal,
-      containsNode,
-      getRect,
-    }            
+      [setVisibleKey]: setModalVisible,
+      [isVisibleKey]: () => visible,
+      [modalKey]: modal,
+      [containsNodeKey]: containsNode,
+      [getRectKey]: getRect,
+    } as UseModalReturn<N>         
 }
 
 const buttonsCommonProps = {size: 28, css: css`cursor: pointer; color: ${thirdColor}; padding: 2px;`, onMouseDown: (e: React.MouseEvent) => {setPreventFlag(e, true, true)}}

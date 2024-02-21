@@ -1,17 +1,17 @@
 import styled from "@emotion/styled"
 import { FormEventHandler, ReactNode, useEffect, useRef, useState } from "react"
+import { upperCaseFirstChar } from "utils/src/strings"
+import { ChangePropertyType } from "utils/src/types"
 import { Button } from "../../../components/Buttons"
 import { ResultMessage, ResultMessageProps } from "../../../components/Labels"
 import { BlocksLoader } from "../../../components/Loaders"
+import Checkbox, { CheckboxProps } from "../../../components/forms/Checkbox"
+import ImageSelector, { ImageData, ImageSelectorProps } from "../../../components/forms/ImageSelector"
 import { NumberInput, NumberInputProps } from "../../../components/forms/NumberInput"
 import { TextAreaInput, TextAreaInputProps } from "../../../components/forms/TextAreaInput"
 import { TextInput, TextInputProps } from "../../../components/forms/TextInput"
 import { secondColor } from "../../../theme"
-import useModal, { PositionType, SetVisible as SetVisibleModal, UseModalProps, UseModalReturn } from "../useModal"
-import { ContainsNode } from "../../../components/ResizableDraggableDiv"
-import ImageSelector, { ImageSelectorProps, ImageData } from "../../../components/forms/ImageSelector"
-import Checkbox, { CheckboxProps } from "../../../components/forms/Checkbox"
-import { ChangePropertyType } from "utils/src/types"
+import useModal, { ModalName, PositionType, SetVisibleKey, SetModalVisible, UseModalProps, UseModalReturn, ModalFullName, modalDefaultName } from "../useModal"
 
 type InputType = "textAreaInput" | "textInput" | "numberInput" | "imageSelector" | "checkbox"
 type TextInputTypeProps = Omit<TextInputProps, "setValue">
@@ -84,24 +84,29 @@ const FormContainer = styled.form`
  `
 // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
 export type SubmissionAction<IP extends InputsProps> = (values: InputsValues<IP>) => Promise<ResultMessageProps> | void
-type SetVisibleModalArgs = Parameters<SetVisibleModal>
+type SetVisibleModalArgs = Parameters<SetModalVisible>
 export type SetVisible<IP extends InputsProps> = (visible: SetVisibleModalArgs[0], position?: SetVisibleModalArgs[1], values?: InputsValues<IP>) => void
 
-type UseFormModalProps<IP extends InputsProps, PT extends PositionType> = {
+const formModalDefaultNamePrefix = "form"
+type FormModalDefaultNamePrefix = typeof formModalDefaultNamePrefix
+type FormModalNamePrefix<N extends ModalName> = N extends undefined | "" ? FormModalDefaultNamePrefix : `${N}${Capitalize<FormModalDefaultNamePrefix>}`
+export type FormModalFullName<N extends ModalName> = ModalFullName<FormModalNamePrefix<N>>
+type UseFormModalProps<IP extends InputsProps, N extends ModalName, PT extends PositionType> = {
     inputsProps: IP
     buttonText: string
     submissionAction: SubmissionAction<IP>
     showLoadingBars?: boolean
-} & Omit<UseModalProps<PT>, "children">
-type UseFormModalReturn<IP extends InputsProps> = ChangePropertyType<UseModalReturn, ["setVisible", SetVisible<IP>]>
+} & Omit<UseModalProps<N, PT>, "children">
+type UseFormModalReturn<N extends ModalName, IP extends InputsProps> = ChangePropertyType<UseModalReturn<FormModalNamePrefix<N>>, [SetVisibleKey<FormModalNamePrefix<N>>, SetVisible<IP>]>
 
-export default function useFormModal<IP extends InputsProps, PT extends PositionType>({
+export default function useFormModal<IP extends InputsProps, N extends ModalName=undefined, PT extends PositionType="absolute">({
                                                       inputsProps,
                                                       buttonText,
                                                       submissionAction,
                                                       showLoadingBars = true,
+                                                      name,
                                                       ... modalProps
-                                                      }: UseFormModalProps<IP, PT>) : UseFormModalReturn<IP> {
+                                                      }: UseFormModalProps<IP, N, PT>) : UseFormModalReturn<N, IP> {
     const [inputs, values, setValues] = useElementsValues(inputsProps)
 
     const [loading, setLoading] = useState(false)
@@ -138,7 +143,19 @@ export default function useFormModal<IP extends InputsProps, PT extends Position
                     <ResultMessage {...resultMessage}/>
                     </FormContainer>
     
-    const {setVisible, ...restReturn} = useModal({children, onHideHandler, ...modalProps})
-
-    return {setVisible: (visible, position, values) => {if (values) setValues(values); setVisible(visible, position)}, ...restReturn}
+    const namePrefix = (name ?  name + upperCaseFirstChar(formModalDefaultNamePrefix) : formModalDefaultNamePrefix) as FormModalNamePrefix<N>
+    const fullName = namePrefix + upperCaseFirstChar(modalDefaultName) as FormModalFullName<N>
+    const setVisibleKey: SetVisibleKey<FormModalNamePrefix<N>> = `set${upperCaseFirstChar(fullName)}Visible`
+    const {[setVisibleKey]: setVisible, ...returnRest} = useModal({name: namePrefix, children, onHideHandler, ...modalProps})
+    const setFormModalVisible: SetVisible<IP> = (visible, position, values) => {
+      if (values) {
+        setValues(values)
+      }
+      (setVisible as SetModalVisible)(visible, position)
+    }
+    
+    return {
+        [setVisibleKey]: setFormModalVisible,
+        ...returnRest
+    }  as UseFormModalReturn<N, IP>
 }

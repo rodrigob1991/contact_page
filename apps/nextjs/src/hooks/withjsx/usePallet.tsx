@@ -9,7 +9,7 @@ import { ImageData } from "../../components/forms/ImageSelector"
 import { GetRect } from "../../types/dom"
 import { createAnchor, createDiv, createImage, createSpan, createText, getTexts, hasSiblingOrParentSibling, isAnchor, isDiv, isSpan, isText, lookUpDivParent, positionCaretOn, removeNodesFromOneSide } from "../../utils/domManipulations"
 import useFormModal, { SubmissionAction } from "./forms/useFormModal"
-import useModal, { ModalPosition, SetVisible, UseModalProps, UseModalReturn } from "./useModal"
+import useModal, { ModalPosition, SetModalVisible, UseModalReturn } from "./useModal"
 
 const optionsTypesWithForm = {link: "link", image: "image"} as const
 type OptionTypeWithForm = keyof typeof optionsTypesWithForm
@@ -47,7 +47,7 @@ type Props = {
     spanClassesNames?: string[]
     linkClassName?: string
 } & EventsHandlers
-type Return = ChangePropertyType<UseModalReturn, ["setVisible", SetVisibleOnSelection]>
+type Return = ChangePropertyType<UseModalReturn<"pallet">, ["setPalletModalVisible", SetVisibleOnSelection]>
 
 const defaultSpanClassesNames = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
 const defaultLinkClassName = "linkOption"
@@ -62,10 +62,10 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
         return id
     }
     const [elementIdFormPosition, setElementIdFormPosition] = useState<ModalPosition>({top: "middle", left: "middle"})
-    const {setVisible: setVisibleElementIdForm, modal: elementIdForm} = useFormModal({positionType: "absolute", position: elementIdFormPosition, buttonText: "add", inputsProps: {id: {type: "textInput"}}, submissionAction: ({id}) => {setElementId(id)}})
+    const {setElementIdFormModalVisible, elementIdFormModal} = useFormModal({name: "elementId", positionType: "absolute", position: elementIdFormPosition, buttonText: "add", inputsProps: {id: {type: "textInput"}}, submissionAction: ({id}) => {setElementId(id)}})
     const handleClickElementId: MouseEventHandler<HTMLSpanElement> = (e) => {
         setElementIdFormPosition({top: `${e.clientY - 20}px`, left: `${e.clientX + 20}px`})
-        setVisibleElementIdForm(true)
+        setElementIdFormModalVisible(true)
     }
 
     const handleCollapsedSelection = (optionType: OptionType, getTargetOptionNode: GetTargetOptionNode, anchor: ChildNode, anchorOffSet: number) => {
@@ -260,7 +260,7 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
     const getCommonElementOptionAttr = () => ({tabIndex: -1, id: consumeElementId()})
 
     const handleClickOptionWithForm = (optionType: OptionTypeWithForm, handleSelection: HandleSelection, selectionRectTop: number, selectionRectLeft: number) => {
-      let setVisible: SetVisible
+      let setVisible: SetModalVisible
 
       switch (optionType) {
         case "link":
@@ -279,7 +279,7 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
                 positionCaretOn(lastLinkAdded)
               }, 100)
             })
-          setVisible = setVisibleLinkForm
+          setVisible = setLinkFormModalVisible
           break
         case "image":
           updateInsertOrModifyImage(({dataUrl, name, extension, ...dimensions}) => {
@@ -297,7 +297,7 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
             }
             handleSelection(getTargetOptionImage)
           })
-          setVisible = setVisibleImageForm
+          setVisible = setImageFormModalVisible
           break
       }
 
@@ -365,21 +365,21 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
     const [selectedColor, setSelectedColor] = useState(colors[0])
     const colorsModalChildren = <ColorsModalChildrenContainer columns={Math.ceil(Math.sqrt(colors.length))}>
                                 {colors.map(color => 
-                                <ColorOption backgroundColor={color} onClick={(e) => {setSelectedColor(color); setVisibleColorsModal(false)}}/>
+                                <ColorOption backgroundColor={color} onClick={(e) => {setSelectedColor(color); setColorsModalVisible(false)}}/>
                                 )}
                                 </ColorsModalChildrenContainer>
-    const {setVisible: setVisibleColorsModal, isVisible: isColorsModalVisible, modal: colorsModal, getRect: getColorsModalRect} = useModal({positionType: "absolute", children: colorsModalChildren, ...formModalCommonProps})
+    const {setColorsModalVisible, isColorsModalVisible, colorsModal, getColorsModalRect} = useModal({name: "colors", positionType: "absolute", children: colorsModalChildren, ...formModalCommonProps})
     const onClickSelectedColorOptionHandler: MouseEventHandler = (e) => {
       if (!isColorsModalVisible()) {
         const { top, left } = e.currentTarget.getBoundingClientRect()
         const { top: topContainer, left: leftContainer } = getContainerRect()
         const { height } = getColorsModalRect()
-        setVisibleColorsModal(true, {
+        setColorsModalVisible(true, {
           top: `${top - topContainer - height}px`,
           left: `${left - leftContainer}px`,
         })
       } else {
-        setVisibleColorsModal(false)
+        setColorsModalVisible(false)
       }
     }
 
@@ -391,7 +391,7 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
     const linkFormSubmissionAction: SubmissionAction<typeof linkFormInputsProps>  = ({href}) => {
         insertLink(href)
     }
-    const {setVisible: setVisibleLinkForm, modal: linkForm} = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: linkFormInputsProps, submissionAction: linkFormSubmissionAction, ...formModalCommonProps})
+    const {setLinkFormModalVisible, linkFormModal} = useFormModal({name: "link", positionType: "absolute", buttonText: "insert", inputsProps: linkFormInputsProps, submissionAction: linkFormSubmissionAction, ...formModalCommonProps})
 
     const imageFormInputsProps  = {
         imageData: {type: "imageSelector"},
@@ -406,7 +406,7 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
             insertOrModifyImage({...imageData, ...dimensions})
         }
     }
-    const {setVisible: setVisibleImageForm, modal: imageForm} = useFormModal({positionType: "absolute", buttonText: "insert", inputsProps: imageFormInputsProps, submissionAction: imageFormSubmissionAction, ...formModalCommonProps})
+    const {setImageFormModalVisible, imageFormModal} = useFormModal({name: "image", positionType: "absolute", buttonText: "insert", inputsProps: imageFormInputsProps, submissionAction: imageFormSubmissionAction, ...formModalCommonProps})
 
     useEffect(() => {
       window.modifyImageElement = (img: HTMLImageElement) => {
@@ -426,7 +426,7 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
         })
 
         const {top, left} = img.getBoundingClientRect()
-        setVisibleImageForm(
+        setImageFormModalVisible(
           true,
           {top: `${top}px`, left: `${left}px`},
           {imageData: {
@@ -451,9 +451,9 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
     
     const sibling = <>
                     {colorsModal}
-                    {elementIdForm}
-                    {linkForm}
-                    {imageForm}
+                    {elementIdFormModal}
+                    {linkFormModal}
+                    {imageFormModal}
                     </>
     
     //const spanClasses = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"]
@@ -486,16 +486,16 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
                      </Row>
                      </Container>
 
-    const {setVisible, getRect, ...restReturn} = useModal({children, sibling, positionType: "absolute", ...modalProps, ...modalCommonProps})
+    const {setPalletModalVisible, getPalletModalRect, ...restReturn} = useModal({name: "pallet", children, sibling, positionType: "absolute", ...modalProps, ...modalCommonProps})
     const setVisibleOnSelection: SetVisibleOnSelection = (visible, mousePosition) => {
         if (visible) {
-            setVisibleColorsModal(false)
-            setVisibleImageForm(false)
-            setVisibleLinkForm(false)
+            setColorsModalVisible(false)
+            setImageFormModalVisible(false)
+            setLinkFormModalVisible(false)
             // the setTimeout is because when click over an existing range the top of the new range rectangle remain like the older one
             const selection = document.getSelection()
                 if (selection) {
-                  const {height} = getRect()
+                  const {height} = getPalletModalRect()
                   const {top: containerTop, left: containerLeft} = getContainerRect()
                   const {top: rangeTop, left: rangeLeft, height: rangeHeight} = selection.getRangeAt(0).getBoundingClientRect()
                   let top = rangeTop - containerTop
@@ -507,20 +507,20 @@ export default function usePallet({getContainerRect, colors=defaultColors, getCo
                     top -= height + 5
                     left += rangeLeft
                   }
-                  setVisible(true, {top: `${top}px`, left: `${left}px`})
+                  setPalletModalVisible(true, {top: `${top}px`, left: `${left}px`})
                 }
         } else {
-            setVisible(false)
+          setPalletModalVisible(false)
         }
     }
     
     return {
-      setVisible: setVisibleOnSelection,
-      getRect,
+      setPalletModalVisible: setVisibleOnSelection,
+      getPalletModalRect,
       ...restReturn,
     }
 }
-const modalCommonProps: Partial<UseModalProps<"absolute">> = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false, onMouseDownHandler: (e) => {e.preventDefault()}}
+const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false, onMouseDownHandler: (e: React.MouseEvent) => {e.preventDefault()}}
 const formModalCommonProps = {showLoadingBars: false, ...modalCommonProps}
 
 const Container = styled.div`
