@@ -2,7 +2,7 @@ import { css } from "@emotion/react"
 import styled from "@emotion/styled"
 import { StoryState } from "@prisma/client"
 import React, { FocusEventHandler, MouseEventHandler, TouchEventHandler, memo, useEffect, useRef, useState } from "react"
-import usePallet from "../../../hooks/withjsx/usePallet"
+import useHtmlEditor from "../../../hooks/with_jsx/html_editor/useHtmlEditor"
 import { Observe } from "../../../pages/user/edit_home"
 import { mainColor, secondColor } from "../../../theme"
 import { NewStory, Story, StoryHTMLElementIds, StoryWithJSXBody, ViewMode } from "../../../types/home"
@@ -168,10 +168,10 @@ export default function StoriesView<M extends ViewMode>({
     }
     const [editingStoryId, setEditingStoryId] = useState<string>()
 
-    const {setPalletModalVisible, palletModal, containsPalletModalNode} = usePallet({getContainerRect: () => getContainer().getBoundingClientRect()})
+    const {setHtmlEditorModalVisible, htmlEditorModal, containsHtmlEditorModalNode} = useHtmlEditor({getContainerRect: () => getContainer().getBoundingClientRect()})
 
     const onMouseUpHandler: MouseEventHandler = (e) => {
-      setPalletModalVisible(true, {top: e.clientY, left: e.clientX})
+      setHtmlEditorModalVisible(true, {top: e.clientY, left: e.clientX})
     }
 
     const getEditableStoriesView = () => storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
@@ -179,7 +179,7 @@ export default function StoriesView<M extends ViewMode>({
                                          const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
                                          const handleOnBlurBody: FocusEventHandler<HTMLDivElement> = (e) => {
-                                          setPalletModalVisible(false)
+                                          //setPalletModalVisible(false)
                                          }
 
                                          return <StoryContainer id={idHtml} key={idHtml}>
@@ -199,7 +199,7 @@ export default function StoriesView<M extends ViewMode>({
                                          })
 
     return <Container ref={containerRef}>
-           {editing && palletModal}
+           {editing && htmlEditorModal}
            <LeftContainer>
            {editing &&
            <AddButton position="right" tooltipText="add story" handleOnClick={handleAddNewStory}/>
@@ -310,9 +310,7 @@ const storyBodyStyle = css`
   text-align: justify;
   padding: 6px;
   &:focus {
-    outline-color: ${secondColor};
-    outline-style: solid;
-    outline-width: 3px;
+    outline: none;
   }
 `
 const MemoizedStoryBody = memo<React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>>((props) =>

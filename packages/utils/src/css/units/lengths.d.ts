@@ -1,0 +1,38 @@
+export declare const cssAbsoluteUnitsLengths: {
+    readonly centimeters: "cm";
+    readonly millimeters: "mm";
+    readonly quarterMillimeters: "Q";
+    readonly inches: "in";
+    readonly picas: "pc";
+    readonly points: "pt";
+    readonly pixels: "px";
+};
+export declare const cssRelativeUnitsLengths: {
+    readonly parentLength: "em";
+    readonly heightFont: "ex";
+    readonly widthCeroCharacter: "ch";
+    readonly fontSizeRootElement: "rem";
+    readonly lineHeightElement: "lh";
+    readonly lineHeightRootElement: "rlh";
+    readonly onePercentViewportWidth: "vw";
+    readonly onePercentViewportHeight: "vh";
+    readonly onePercentViewportSmallerDimension: "vmin";
+    readonly onePercentViewportLargerDimension: "vmax";
+    readonly onePercentSizeContainingBlockDirectionRootElementBlockAxis: "vb";
+    readonly onePercentSizeContainingBlockDirectionRootElementInlineAxis: "vi";
+    readonly onePercentSmallViewportWidth: "svw";
+    readonly onePercentSmallViewportHeight: "svh";
+    readonly onePercentLargeViewportWidth: "lvw";
+    readonly onePercentLargeViewportHeight: "lvh";
+    readonly onePercentDynamicViewportWidth: "dvw";
+    readonly onePercentDynamicViewportHeight: "dvh";
+};
+export type CSSAbsoluteUnitsLengths = typeof cssAbsoluteUnitsLengths;
+export type CSSAbsoluteUnitsLengthsKey = keyof CSSAbsoluteUnitsLengths;
+export type CSSAbsoluteUnitLength = CSSAbsoluteUnitsLengths[CSSAbsoluteUnitsLengthsKey];
+export type CSSRelativeUnitsLengths = typeof cssRelativeUnitsLengths;
+export type CSSRelativeUnitsLengthsKey = keyof CSSRelativeUnitsLengths;
+export type CSSRelativeUnitLength = CSSRelativeUnitsLengths[CSSRelativeUnitsLengthsKey];
+export type CSSUnitsLengths = CSSAbsoluteUnitsLengths | CSSRelativeUnitsLengths;
+export type CSSUnitsLengthsKey = CSSAbsoluteUnitsLengthsKey | CSSRelativeUnitsLengthsKey;
+export type CSSUnitLength = CSSAbsoluteUnitLength | CSSRelativeUnitLength;

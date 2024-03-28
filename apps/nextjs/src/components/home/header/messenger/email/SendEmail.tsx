@@ -3,7 +3,7 @@ import { IoIosMail } from "react-icons/io"
 import { maxWidthSmallestLayout } from "../../../../../layouts"
 import { tooltipStyle } from "../../../../../theme"
 import WithTooltip from "../../../../WithTooltip"
-import useFormModal from "../../../../../hooks/withjsx/forms/useFormModal"
+import useFormModal from "../../../../../hooks/with_jsx/forms/useFormModal"
 import { postEmail } from "../../../../../httpClient"
 
 export default function SendEmail() {

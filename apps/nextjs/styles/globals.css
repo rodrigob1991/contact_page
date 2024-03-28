@@ -104,25 +104,20 @@ textarea:invalid {
   border-radius: 5px;
 }
 
-.blueOption {
+.colorBlueOption {
   color: blue;
-  background-color: blue;
 }
-.redOption {
+.colorRedOption {
   color: red;
-  background-color: red;
 }
-.greenOption {
+.colorGreenOption {
   color: green;
-  background-color: green;
 }
-.yellowOption {
+.colorYellowOption {
   color: yellow;
-  background-color: yellow;
 }
-.blackOption {
+.colorBlackOption {
   color: black;
-  background-color: black;
 }
 .palletOption {
   font-size: 25px;

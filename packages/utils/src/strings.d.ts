@@ -6,4 +6,5 @@ type RecursiveSplitResult<S extends (NonEmptyArray<string>)> = S extends [infer 
 export declare const recursiveSplit: <S extends NonEmptyArray<string>>(str: string, separators: S) => RecursiveSplitResult<S>;
 export declare const getNumbers: (str: string) => number[];
 export declare const getNumber: (str: string) => number | undefined;
+export declare const upperCaseFirstChar: <S extends string>(str: S) => Capitalize<S>;
 export {};

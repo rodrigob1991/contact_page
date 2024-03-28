@@ -1,7 +1,7 @@
 import { Theme } from "@emotion/react"
 import { Interpolation } from "@emotion/styled"
 import { MouseEventHandler, TouchEventHandler, useEffect, useRef } from "react"
-import { useTooltip } from "../hooks/withjsx/useTooltip"
+import { useTooltip } from "../hooks/with_jsx/useTooltip"
 
 type Props = {
     renderChildren: (handlers: {onMouseEnter: MouseEventHandler, onMouseLeave: MouseEventHandler, onTouchStart: TouchEventHandler}) => JSX.Element,

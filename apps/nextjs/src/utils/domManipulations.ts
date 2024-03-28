@@ -35,21 +35,29 @@ export const createText = (text: string) => document.createTextNode(text)
 
 type StylesProps = Partial<ExtractWritableProps<CSSStyleDeclaration>>
 type DivProps = Partial<ExtractWritableProps<HTMLDivElement>>
-export const createDiv = ({props, styles}: {props?: DivProps, styles?: StylesProps}) => {
-    const d = document.createElement("div")
-    if (props) {
-        for (const [k, v] of Object.entries(props)) {
+type CreateDivArgs = {props?: DivProps, styles?: StylesProps}
+export const createDiv = (args?: CreateDivArgs) => {
+    const div = document.createElement("div")
+    if (args) {
+        if ("props" in args)
+            Object.assign(div, args.props)
+        if ("styles" in args)
+            Object.assign(div, args.styles)
+    }
+    /* if (props) {
+        Object.assign(div, {props})
+         for (const [k, v] of Object.entries(props)) {
             // @ts-ignore
             d[k] = v
-        }
+        } 
     }
     if (styles) {
         for (const [k, v] of Object.entries(styles)) {
             // @ts-ignore
             d.style[k] = v
-        }
-    }
-    return d
+        } 
+    } */
+    return div
 }
 type SpanProps = Partial<ExtractWritableProps<HTMLSpanElement>>
 export const createSpan = (props?: SpanProps) => {

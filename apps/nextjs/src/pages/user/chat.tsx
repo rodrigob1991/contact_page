@@ -2,7 +2,7 @@ import styled from "@emotion/styled"
 import useChat, {
     HandleUserMessage,
     HandleUsersConnection, HandleUsersDisconnection
-} from "../../hooks/withjsx/chat/useChat"
+} from "../../hooks/with_jsx/chat/useChat"
 import { HandleConnected, HandleConnecting, HandleDisconnected } from "../../hooks/chat/useWebSocket"
 
 type Props = {}

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getNumber = exports.getNumbers = exports.recursiveSplit = exports.getIndexOnOccurrence = exports.isEmpty = exports.getContainedString = void 0;
+exports.upperCaseFirstChar = exports.getNumber = exports.getNumbers = exports.recursiveSplit = exports.getIndexOnOccurrence = exports.isEmpty = exports.getContainedString = void 0;
 const regularExpressions_1 = require("./regularExpressions");
 const types_1 = require("./types");
 const getContainedString = (str, betweenLeft, betweenRight) => {
@@ -66,3 +66,5 @@ const getNumber = (str) => {
     return matched ? +matched : undefined;
 };
 exports.getNumber = getNumber;
+const upperCaseFirstChar = (str) => (str.substring(0, 1).toUpperCase() + str.substring(1));
+exports.upperCaseFirstChar = upperCaseFirstChar;

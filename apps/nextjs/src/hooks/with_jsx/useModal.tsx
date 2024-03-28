@@ -4,8 +4,10 @@ import { FocusEventHandler, MouseEventHandler, ReactNode, useEffect, useRef, use
 import { BsEyeSlashFill } from "react-icons/bs"
 import { SlSizeActual, SlSizeFullscreen } from "react-icons/sl"
 import { TfiTarget } from "react-icons/tfi"
+import { PartialPositionCSS, PositionCSSKey, PositionCSSValue } from "utils/src/css/position"
+import { PartialSizeCSS } from "utils/src/css/size"
 import { getNumber, upperCaseFirstChar } from "utils/src/strings"
-import { ContainerDivApi, ContainsNode, EventsHandlers, GetStyle, PositionCSS, PositionCSSKey, ResizableDraggableDiv, SizeCSS, setPreventFlag } from "../../components/ResizableDraggableDiv"
+import { ContainerDivApi, ContainsNode, EventsHandlers, GetStyle, ResizableDraggableDiv, setPreventFlag } from "../../components/ResizableDraggableDiv"
 import { modalLayout } from "../../layouts"
 import { mainColor, secondColor, thirdColor } from "../../theme"
 import { GetRect } from "../../types/dom"
@@ -13,7 +15,7 @@ import { GetRect } from "../../types/dom"
 export type SetModalVisible = (visible: boolean, position?: ModalPosition) => void
 
 type PositionKey = "top" | "left"
-type PositionValue = "start" | "middle" |  "end" | `${number}${string}` | "none"
+type PositionValue = "start" | "middle" |  "end" | PositionCSSValue
 export type ModalPosition = {
   [K in PositionKey] : PositionValue
 }
@@ -28,12 +30,13 @@ export type ModalName = string | undefined
 export const modalDefaultName = "modal"
 export type ModalDefaultName = typeof modalDefaultName
 export type ModalFullName<N extends ModalName> =  N extends undefined | "" ? ModalDefaultName : `${N}${Capitalize<ModalDefaultName>}`
+
 export type UseModalProps<N extends ModalName, PT extends PositionType> = {
   name?: N
   positionType?: PT
   position?: ModalPosition
-  size?: SizeCSS
-  minSize?: SizeCSS
+  size?: PartialSizeCSS
+  minSize?: PartialSizeCSS
   resizable?: boolean
   draggable?: boolean
   visibleHideButton?: boolean
@@ -59,8 +62,8 @@ export type UseModalReturn<N extends ModalName> =
 {[K in ContainsNodeKey<N>]: ContainsNode} & 
 {[K in GetRectKey<N>]: GetRect}
 
-const fullSize = {height: "100%", width: "100%"}
-const centerPosition = {top: "50%", left: "50%"}
+const fullSize = {height: "100%", width: "100%"} as const
+const centerPosition = {top: "50%", left: "50%"} as const
 
 const positionsCssOpposites = {
   top: "bottom", bottom: "top", left: "right", right: "left"
@@ -74,7 +77,7 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
                                positionType,
                                position={top: "middle", left: "middle"},
                                size: sizeProp = {height: "fit-content", width: "fit-content"},
-                               minSize = {height: "none", width: "none"},
+                               minSize,
                                resizable=true,
                                draggable=true,
                                visibleHideButton=true,
@@ -98,11 +101,11 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
                                onEndDraggingHandler: onEndDraggingHandlerProp
                               }: UseModalProps<N, PT>): UseModalReturn<N> {
     const [visible, setVisible] = useState(false)
-
-    const [positionCss, setPositionCss] = useState<PositionCSS>({})
+ 
+    const [positionCss, setPositionCss] = useState<PartialPositionCSS>({})
     const [translateCss, setTranslateCss] = useState({top: "0", left: "0"})
     const setPosition = (position: ModalPosition) => {
-      const nextPositionCss = {top: "none", left: "none", bottom: "none", right: "none"}
+      const nextPositionCss: PartialPositionCSS = {}
       const nextTranslateCss = {top: "0", left: "0"}
       for (const [key, value] of Object.entries(position)) {
         switch (value) {
@@ -117,7 +120,7 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
             nextPositionCss[positionsCssOpposites[key as PositionKey]] = "0"
             break;
           default:
-            nextPositionCss[key as PositionKey]  = value
+            nextPositionCss[key as PositionKey] = value
         }
       }
 
@@ -140,14 +143,14 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
     const getScrollableAncestor = () => scrollableAncestor ?? document.body
     const getContainerAncestor = () => containerAncestor ?? getScrollableAncestor()
 
-    const switchPositionTypeCss = (toType: "absolute" | "fixed", positionCss: PositionCSS={}) => {
+    const switchPositionTypeCss = (toType: "absolute" | "fixed", positionCss: PartialPositionCSS={}) => {
       setPositionTypeCss(toType)
       const {top: containerAncestorTop, left: containerAncestorLeft} = (toType === "absolute" ? getContainerAncestor() : getScrollableAncestor()).getBoundingClientRect()
       const {top: containerTop, left: containerLeft} = getContainerDivApi().getRect()
       const top = positionCss.top ?? `${containerTop - containerAncestorTop}px`
       const left = positionCss.left ?? `${containerLeft - containerAncestorLeft}px`
-      const bottom = positionCss.bottom ?? "none"
-      const right = positionCss.right ?? "none"
+      const bottom = positionCss.bottom 
+      const right = positionCss.right
 
       setPositionCss({top, left, bottom, right})
     }
@@ -249,7 +252,7 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
     }, [positionType, scrollableAncestor, containerAncestor, executeEffectValue])
 
     const onClickCenterPositionHandler: MouseEventHandler<SVGElement> = (e) => {
-      setPosition({ top: "middle", left: "middle" })
+      setPosition({top: "middle", left: "middle"})
     }
     const onClickDefaultSizeHandler: MouseEventHandler<SVGElement> = (e) => {
       setSize(sizeProp)
@@ -261,10 +264,10 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
       setVisible(false)
       if (onHideHandler) onHideHandler()
     }
-    const onMouseDownHandler: FocusEventHandler<HTMLDivElement> = (e) => {
+    const onMouseDownHandler: MouseEventHandler<HTMLDivElement> = (e) => {
       if (onMouseDownHandlerProp) onMouseDownHandlerProp(e)
     }
-    const onFocusHandler: MouseEventHandler<HTMLDivElement> = (e) => {
+    const onFocusHandler: FocusEventHandler<HTMLDivElement> = (e) => {
       if (onFocusHandlerProp) onFocusHandlerProp(e)
     }
     const onBlurHandler: FocusEventHandler<HTMLDivElement> = (e) => {
@@ -291,8 +294,12 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
       display: flex;
       visibility: ${visible ? "visible" : "hidden"};
       position: ${positionTypeCss};
-      min-height: ${minSize.height};
-      min-width: ${minSize.width};
+      top: ${positionCss.top};
+      left: ${positionCss.left};
+      bottom: ${positionCss.bottom};
+      right: ${positionCss.right};
+      min-height: ${minSize?.height};
+      min-width: ${minSize?.width};
       max-height: 100%;
       max-width: 100%;
       transform: translate(${translateCss.left}, ${translateCss.top});

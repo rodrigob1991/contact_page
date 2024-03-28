@@ -20,11 +20,11 @@ type NumberInputTypeProps = Omit<NumberInputProps, "setValue">
 type NumberInputType = {type: "numberInput", props?: NumberInputTypeProps}
 type TextAreaInputTypeProps = Omit<TextAreaInputProps, "setValue">
 type TextAreaInputType = {type: "textAreaInput", props?: TextAreaInputTypeProps}
-type ImageSelectorTypeProps = Omit<ImageSelectorProps, "setValue">
+type ImageSelectorTypeProps = Omit<ImageSelectorProps, "setValue" | "processSelectedImage">
 type ImageSelectorType = {type: "imageSelector", props?: ImageSelectorTypeProps}
 type CheckboxTypeProps = Omit<CheckboxProps, "onChange">
 type CheckboxType = {type: "checkbox", props?: CheckboxTypeProps}
-type InputsProps = {[key: string]: TextInputType | NumberInputType | TextAreaInputType | ImageSelectorType | CheckboxType}
+export type InputsProps = {[key: string]: TextInputType | NumberInputType | TextAreaInputType | ImageSelectorType | CheckboxType}
 type InputValue<IT extends InputType=InputType> =  {textInput: string, textAreaInput: string, numberInput: number, imageSelector: ImageData, checkbox: boolean}[IT]
 //type InputValue<IT extends InputType> =  (IT extends ("textInput" | "textAreaInput") ? string : never) | (IT extends "numberInput" ? number : never) | (IT extends "imageSelector" ? ImageData : never)
 type InputsValues<IP extends InputsProps> = {
@@ -32,33 +32,35 @@ type InputsValues<IP extends InputsProps> = {
 }
 type SetValues<IP extends InputsProps> = (iv: InputsValues<IP>) => void
 
-const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, InputsValues<IP>, SetValues<IP>] => {
+const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, InputsValues<IP>, SetValues<IP>, () => void] => {
     const elementsRef = useRef(<></>)
     //const valuesRef = useRef({})
     const [values, setValues] = useState<InputsValues<IP>>(() => (() => {const values: {[k: string]: InputValue | undefined} = {}; Object.entries(inputsProps).forEach(([key, value]) =>  {values[key] = value.props?.value}); return values as InputsValues<IP>})())
+    const firstInputRef = useRef<HTMLInputElement | null>(null)
+    const setFirstInputRef = (input: HTMLInputElement | null) => {if(!firstInputRef.current) firstInputRef.current = input}
 
     useEffect(() => {
         let inputs = <></>
         for (const key in inputsProps) {
             const {type, props} = inputsProps[key]
-            const propsRest =  props ? (({value, ...propsRest}) =>  propsRest)(props) : undefined
+            //const propsRest =  props ? (({value, ...propsRest}) =>  propsRest)(props) : undefined
             const setValue = (value: InputValue<typeof type>) => {setValues((values) => {const nextValues = {...values}; nextValues[key] = value; return nextValues})}
             let input
             switch (type) {
                 case "textInput":
-                    input = <TextInput {...propsRest} value={values[key]} setValue={setValue}/>
+                    input = <TextInput ref={setFirstInputRef} {...props} setValue={setValue}/>
                     break
                 case "numberInput":
-                    input = <NumberInput {...propsRest} value={values[key]} setValue={setValue}/>
+                    input = <NumberInput ref={setFirstInputRef} {...props} setValue={setValue}/>
                     break
                 case "textAreaInput":
-                    input = <TextAreaInput {...propsRest} value={values[key]} setValue={setValue}/>
+                    input = <TextAreaInput ref={setFirstInputRef} {...props} setValue={setValue}/>
                     break
                 case "imageSelector":
-                    input = <ImageSelector {...propsRest} value={values[key]} processSelectedImage={setValue}/>
+                    input = <ImageSelector ref={setFirstInputRef} {...props} processSelectedImage={setValue}/>
                     break
                 case "checkbox":
-                    input = <Checkbox {...propsRest} value={values[key]} onChange={setValue}/>
+                    input = <Checkbox ref={setFirstInputRef} {...props} onChange={setValue}/>
                     break
             }
             inputs = <>
@@ -67,9 +69,9 @@ const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode
                      </>
         }
         elementsRef.current = inputs
-    }, [])
+    }, [inputsProps])
 
-    return [elementsRef.current, values, setValues]
+    return [elementsRef.current, values, setValues, () => {firstInputRef.current?.focus()}]
 }
 
 const FormContainer = styled.form`
@@ -85,7 +87,7 @@ const FormContainer = styled.form`
 // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
 export type SubmissionAction<IP extends InputsProps> = (values: InputsValues<IP>) => Promise<ResultMessageProps> | void
 type SetVisibleModalArgs = Parameters<SetModalVisible>
-export type SetVisible<IP extends InputsProps> = (visible: SetVisibleModalArgs[0], position?: SetVisibleModalArgs[1], values?: InputsValues<IP>) => void
+export type SetFormModalVisible<IP extends InputsProps> = (visible: SetVisibleModalArgs[0], position?: SetVisibleModalArgs[1], values?: InputsValues<IP>) => void
 
 const formModalDefaultNamePrefix = "form"
 type FormModalDefaultNamePrefix = typeof formModalDefaultNamePrefix
@@ -93,21 +95,21 @@ type FormModalNamePrefix<N extends ModalName> = N extends undefined | "" ? FormM
 export type FormModalFullName<N extends ModalName> = ModalFullName<FormModalNamePrefix<N>>
 type UseFormModalProps<IP extends InputsProps, N extends ModalName, PT extends PositionType> = {
     inputsProps: IP
-    buttonText: string
     submissionAction: SubmissionAction<IP>
+    buttonText?: string
     showLoadingBars?: boolean
 } & Omit<UseModalProps<N, PT>, "children">
-type UseFormModalReturn<N extends ModalName, IP extends InputsProps> = ChangePropertyType<UseModalReturn<FormModalNamePrefix<N>>, [SetVisibleKey<FormModalNamePrefix<N>>, SetVisible<IP>]>
+type UseFormModalReturn<N extends ModalName, IP extends InputsProps> = ChangePropertyType<UseModalReturn<FormModalNamePrefix<N>>, [SetVisibleKey<FormModalNamePrefix<N>>, SetFormModalVisible<IP>]>
 
 export default function useFormModal<IP extends InputsProps, N extends ModalName=undefined, PT extends PositionType="absolute">({
                                                       inputsProps,
-                                                      buttonText,
                                                       submissionAction,
+                                                      buttonText="accept",
                                                       showLoadingBars = true,
                                                       name,
                                                       ... modalProps
                                                       }: UseFormModalProps<IP, N, PT>) : UseFormModalReturn<N, IP> {
-    const [inputs, values, setValues] = useElementsValues(inputsProps)
+    const [inputs, values, setValues, focusFirstInput] = useElementsValues(inputsProps)
 
     const [loading, setLoading] = useState(false)
 
@@ -147,11 +149,13 @@ export default function useFormModal<IP extends InputsProps, N extends ModalName
     const fullName = namePrefix + upperCaseFirstChar(modalDefaultName) as FormModalFullName<N>
     const setVisibleKey: SetVisibleKey<FormModalNamePrefix<N>> = `set${upperCaseFirstChar(fullName)}Visible`
     const {[setVisibleKey]: setVisible, ...returnRest} = useModal({name: namePrefix, children, onHideHandler, ...modalProps})
-    const setFormModalVisible: SetVisible<IP> = (visible, position, values) => {
+    const setFormModalVisible: SetFormModalVisible<IP> = (visible, position, values) => {
       if (values) {
         setValues(values)
       }
       (setVisible as SetModalVisible)(visible, position)
+      if(visible) 
+        setTimeout(() => {focusFirstInput()})
     }
     
     return {

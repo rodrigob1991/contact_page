@@ -6,6 +6,7 @@ import { mainColor } from "../../theme"
 export type TextInputProps = {
     value?: string
     setValue: (value: string) => void
+    placeholder?: string
     fromSpan?: boolean
     email?: boolean
     onEnter?: () => void

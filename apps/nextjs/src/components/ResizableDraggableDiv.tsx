@@ -1,6 +1,7 @@
-import { Interpolation, Theme, css } from "@emotion/react"
-import styled from "@emotion/styled"
+import { Interpolation, SerializedStyles, Theme, css } from "@emotion/react"
 import { FocusEventHandler, MouseEventHandler, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
+import { PartialPositionCSS } from "utils/src/css/position"
+import { PartialSizeCSS } from "utils/src/css/size"
 import { exist } from "utils/src/objects"
 import { getNumbers } from "utils/src/strings"
 import { GetRect } from "../types/dom"
@@ -23,17 +24,15 @@ export const dragPrevented = (e: MouseEvent | React.MouseEvent) => {
 }
 
 export type GetStyle = (resizing: boolean, dragging: boolean) => Interpolation<Theme>
-export type SizeCSS = {height?: string; width?: string}
-export type SetSizeCSS = (size: SizeCSS) => void
-export type PositionCSS = {top?: string; left?: string, bottom?: string, right?: string}
-export type PositionCSSKey = keyof PositionCSS
-export type SetPositionCSS = (position: PositionCSS) => void
+export type SetSizeCSS = (size: PartialSizeCSS) => void
+export type SetPositionCSS = (position: PartialPositionCSS) => void
 export type ContainsNode = (node: Node | undefined | null) => boolean
 export type ContainerDivApi = {
     observeIntersection: (observer: IntersectionObserver) => void
     getComputedStyle: () => CSSStyleDeclaration
     getRect: GetRect
     containsNode: ContainsNode
+    focus: () => void
 }
 export type EventsHandlers = {
     onMouseDownHandler?: MouseEventHandler<HTMLDivElement>
@@ -43,6 +42,7 @@ export type EventsHandlers = {
     onEndResizingHandler?: () => void
     onStartDraggingHandler?: () => void
     onEndDraggingHandler?: () => void
+    
 }
 
 type Props = {
@@ -52,11 +52,11 @@ type Props = {
     getResizableDivStyle?: GetStyle
     getDraggableDivStyle?: GetStyle
     children?: JSX.Element | JSX.Element[]
-    size?: {value: SizeCSS, set: SetSizeCSS}
-    position?: {value: PositionCSS, set: SetPositionCSS}
+    size?: {value: PartialSizeCSS, set: SetSizeCSS}
+    position?: {value: PartialPositionCSS, set: SetPositionCSS}
 } & EventsHandlers
 
-export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, onStartResizingHandler, onEndResizingHandler, onStartDraggingHandler, onEndDraggingHandler, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: propsChildren, size: sizeProp, position: positionProp, onMouseDownHandler, onFocusHandler, onBlurHandler}, containerDivApiRef) => {
+export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, onStartResizingHandler, onEndResizingHandler, onStartDraggingHandler, onEndDraggingHandler, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: childrenProp, size: sizeProp, position: positionProp, onMouseDownHandler, onFocusHandler, onBlurHandler}, containerDivApiRef) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const getContainer = () => containerRef.current as HTMLDivElement
     useImperativeHandle(containerDivApiRef, () => 
@@ -72,6 +72,9 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
           },
           containsNode(node) {
            return  exist(node) && getContainer().contains(node)
+          },
+          focus() {
+           getContainer().focus()
           }
         })
     , [])
@@ -85,8 +88,8 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
         return {rectHeight: height, rectWidth: width, rectTop: top , rectLeft: left}
     }
 
-    const [localSize, setLocalSize] = useState({})
-    let size: SizeCSS
+    /* const [localSize, setLocalSize] = useState({})
+    let size: PartialSizeCSS
     let setSize : SetSizeCSS
     if(sizeProp){
         size = sizeProp.value
@@ -97,7 +100,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
     }
 
     const [localPosition, setLocalPosition] = useState({})
-    let position: PositionCSS
+    let position: PartialPositionCSS
     let setPosition: SetPositionCSS
     if(positionProp) {
         position = positionProp.value
@@ -105,19 +108,24 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
     }else {
         position = localPosition
         setPosition = setLocalPosition
-    }
+    } */
+
+    const [translate, setTranslate] = useState({x: 0, y: 0})
+    const [scale, setScale] = useState({x: 1, y: 1})
+
 
     const [resizing, setResizing] = useState(false)
     const [dragging, setDragging] = useState(false)
 
-    let children = <>{propsChildren}</>
+    let children = <>{childrenProp}</>
 
     useEffect(() => {
         if (draggable) {
             const handleMouseMove = (e: MouseEvent) => {
                 e.preventDefault()
-                const {height, width, top, left} = getContainerComputedNumbers()
-                setPosition({top: (top + e.movementY) + "px", left: (left + e.movementX) + "px"})
+                /* const {height, width, top, left} = getContainerComputedNumbers()
+                setPosition({top: `${top + e.movementY}px`, left: `${left + e.movementX}px`}) */
+                setTranslate(({x,y}) => ({x: x + e.movementX, y: y + e.movementY}))
             }
             const handleMouseUp = (e: MouseEvent) => {
                 setDragging(false)
@@ -148,16 +156,17 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
                 setPreventFlag(e, true, false)
             }
         }
-        children = <DraggableDiv css={getDraggableDivStyle ? getDraggableDivStyle(resizing, dragging) : undefined} dragging={dragging} resizing={resizing} onMouseDown={handleOnMouseDownDraggableDiv}>{children}</DraggableDiv>
+        children = <div css={[getCursorStyle(resizing, dragging, draggableDivCursorStyle), getDraggableDivStyle ? getDraggableDivStyle(resizing, dragging) : undefined]} onMouseDown={handleOnMouseDownDraggableDiv}>{children}</div>
     }
 
     useEffect(() => {
         if (resizable) {
             const handleMouseMove = (e: MouseEvent) => {
                 e.preventDefault()
-                const {height, width, top, left} = getContainerComputedNumbers()
+                /* const {height, width, top, left} = getContainerComputedNumbers()
                 const {rectHeight, rectWidth, rectTop, rectLeft} = getContainerRectNumbers()
-                setSize({height: (height + e.movementY*2*(e.clientY >  rectTop + (rectHeight/2) ? 1 : -1)) + "px", width: (width + e.movementX*2*(e.clientX >  rectLeft + (rectWidth/2)  ? 1 : -1)) + "px"})
+                setSize({height: `${height + e.movementY*2*(e.clientY >  rectTop + (rectHeight/2) ? 1 : -1)}px`, width: `${width + e.movementX*2*(e.clientX >  rectLeft + (rectWidth/2)  ? 1 : -1)}px`}) */
+                setScale(({x, y}) => ({x: x + e.movementX/100, y: y + e.movementY/100}))
             }
             const handleMouseUp = (e: MouseEvent) => {
                 setResizing(false)
@@ -178,7 +187,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
                 window.removeEventListener("", handleSelectStart)
             }
         }
-    },[resizing])
+    }, [resizing])
 
     if (resizable) {
         const handleOnMouseDownResizableDiv: MouseEventHandler<HTMLDivElement>  = (e) => {
@@ -187,7 +196,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
                 setResizing(true)
             }
         }
-        children = <ResizableDiv css={getResizableDivStyle ? getResizableDivStyle(resizing, dragging) : undefined} dragging={dragging} onMouseDown={handleOnMouseDownResizableDiv}>{children}</ResizableDiv>
+        children = <div css={[getCursorStyle(resizing, dragging, resizableDivCursorStyle), getResizableDivStyle ? getResizableDivStyle(resizing, dragging) : undefined]} onMouseDown={handleOnMouseDownResizableDiv}>{children}</div>
     }
 
     const handleOnMouseLeaveContainer: MouseEventHandler<HTMLDivElement>  = (e) => {
@@ -195,12 +204,36 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
         //setDragging(false)
      }
     
-    return <Container ref={containerRef} tabIndex={1} css={[getContainerStyle ? getContainerStyle(resizing, dragging) : undefined, size, position]} resizing={resizing} dragging={dragging} onMouseLeave={handleOnMouseLeaveContainer} onMouseDown={onMouseDownHandler} onFocus={onFocusHandler} onBlur={onBlurHandler}>
+    return <div ref={containerRef} style={{transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale.x}, ${scale.y})`}} css={[getCursorStyle(resizing, dragging), getContainerStyle ? getContainerStyle(resizing, dragging) : undefined]} onMouseLeave={handleOnMouseLeaveContainer} onMouseDown={onMouseDownHandler} onFocus={onFocusHandler} onBlur={onBlurHandler}>
            {children}
-           </Container>
+           </div>
 })
 
-const Container = styled.div<{dragging: boolean, resizing: boolean}>`
+const resizableDivCursorStyle = css`
+  cursor: nesw-resize;
+`
+const draggableDivCursorStyle = css`
+  cursor: grab;
+`
+const draggingStyle = css`
+  cursor: grabbing;
+`
+const resizingStyle = css`
+  cursor: nesw-resize;
+`
+const getCursorStyle = (resizing: boolean, dragging: boolean, defaultCursorStyle?: SerializedStyles) => {
+    let style
+    if (resizing) {
+      style = resizingStyle
+    }else if (dragging) {
+      style = draggingStyle
+    }else{
+      style = defaultCursorStyle
+    }
+    return style
+}
+
+/* const Container = styled.div<{dragging: boolean, resizing: boolean}>`
     ${({resizing, dragging}) => css`
         cursor: ${resizing ?  "nesw-resize" : dragging ? "grabbing" : "default"};
     `}
@@ -212,8 +245,6 @@ const ResizableDiv = styled.div<{dragging: boolean}>`
       cursor: ${dragging ? "grabbing"  : "nesw-resize"};
     `}
 `
-const DraggableDiv = styled.div<{dragging: boolean, resizing: boolean}>`
-    ${({dragging, resizing}) => css`
-     cursor: ${dragging ? "grabbing" :  resizing ? "nesw-resize" : "grab"};
-    `}
-`
+const DraggableDiv = styled.div`
+     cursor: grab;
+` */
