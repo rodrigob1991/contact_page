@@ -278,6 +278,8 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
     const updateRemoveImage = (fn: RemoveImage) => {
       setRemoveImage(() => fn)
     } */
+    const getOptionClassesNames = (className?: string) =>  getColorClassName(selectedColor) + (className ? " " + className : "")
+
     const getFormModalPosition = (formModalHeight: number): ModalPosition => {
       const rangeTop = document.getSelection()?.getRangeAt(0).getBoundingClientRect().top
       const {top, left, height} = getHtmlEditorModalRect()
@@ -285,7 +287,7 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
       return {top: `${top - containerTop + (((rangeTop ?? 0) > top) ? -formModalHeight-5 : height + 5)}px`, left: `${left - containerLeft}px`}
     }
     const setVisibleOnSelectionTrue = () => {setVisibleOnSelection(true)}
-    const {linkOption, linkFormModal} = useLinkOption({getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
+    const {linkOption, linkFormModal} = useLinkOption({className: getOptionClassesNames(linkClassName), getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
     const {imageOption, imageFormModal} = useImageOption({getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState({visible: false, top: 0, left: 0, height: 0, width: 0})
@@ -300,20 +302,21 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
     
     //const idOffClass = "idOff"
     //const idOnClass = "idOn"
-    const getOptionClassName = (className?: string) =>  getColorClassName(selectedColor) + (className ? " " + className : "")
 
     const children = <Container>
                      <Row>
                      <ColorOption backgroundColor={selectedColor} onClick={onClickSelectedColorOptionHandler}/>
                      </Row>
                      <Row>
-                     <Option getNewOptionNode={(t) => createText(t)} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setVisibleOnSelectionTrue} className={getOptionClassName()}>
+                     <Option getNewOptionNode={(t) => createText(t)} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setVisibleOnSelectionTrue} className={getOptionClassesNames()}>
                      T
                      </Option>
-                     {spanClassesNames.map((className) =>
-                        <Option getNewOptionNode={(t) => createSpan({innerHTML: t, className})} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setVisibleOnSelectionTrue} className={getOptionClassName(className)}>
-                        S
-                        </Option>
+                     {spanClassesNames.map((className) => {
+                      const classesNames = getOptionClassesNames(className)
+                      return  <Option getNewOptionNode={(t) => createSpan({innerHTML: t, className: classesNames})} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setVisibleOnSelectionTrue} className={classesNames}>
+                              S
+                              </Option>
+                     }
                      )}
                      {linkOption}
                      {imageOption}

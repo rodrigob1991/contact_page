@@ -2,15 +2,15 @@ import { isEmpty } from "utils/src/strings"
 import { createDiv, createText, getTexts, hasSiblingOrParentSibling, isAnchor, isDiv, isSpan, isText, lookUpDivParent, removeNodesFromOneSide } from "../../../../utils/domManipulations"
 import { GetNewOptionNode } from "../options/Option"
 
-export default function rangeSelectionHandler(getNewOptionNode: GetNewOptionNode, withText: boolean, insertInNewLine: boolean, range: Range) {
+export default function rangeSelectionHandler<WT extends boolean>(withText: WT, getNewOptionNode: GetNewOptionNode<WT>, insertInNewLine: boolean, range: Range) {
     const copySelectedFragment = range.cloneContents()
 
     if (!withText && !insertInNewLine) {
-        copySelectedFragment.replaceChildren(getNewOptionNode())
+        copySelectedFragment.replaceChildren((getNewOptionNode as GetNewOptionNode<false>)())
     }
     else if (!withText && insertInNewLine) {
         const newLineDiv = createDiv()
-        newLineDiv.appendChild(getNewOptionNode())
+        newLineDiv.appendChild((getNewOptionNode as GetNewOptionNode<false>)())
         copySelectedFragment.replaceChildren(newLineDiv)
     }
     else if (withText && insertInNewLine) {
@@ -22,7 +22,7 @@ export default function rangeSelectionHandler(getNewOptionNode: GetNewOptionNode
         // it seem that range.startContainer is always a text node
         const rangeStartText = range.startContainer as Text
         const rangeStartTextValue = rangeStartText.nodeValue as string
-        const rangeStartTextParent = rangeStartText.parentElement as HTMLDivElement | HTMLSpanElement
+        const rangeStartTextParent = rangeStartText.parentElement as HTMLElement
         const startOffSet = range.startOffset
         const firstCharRangeStartTextSelected = startOffSet === 0
         const startSelectedFragment = copySelectedFragment.firstChild
@@ -92,11 +92,10 @@ export default function rangeSelectionHandler(getNewOptionNode: GetNewOptionNode
             const texts = getTexts(copySelectedFragment)
             if (!isEmpty(texts)) {
                 const children = []
-                children[1] = getNewOptionNode(texts)
+                children.push(getNewOptionNode(texts))
                 // this is to avoid getting an span inside other span
-                if (copySelectedFragment.childNodes.length === 1
-                    && isText(copySelectedFragment.childNodes[0])
-                    && (isSpan(rangeStartTextParent) || isAnchor(rangeStartTextParent))) {
+                if (copySelectedFragment.childNodes.length === 1 && isText(copySelectedFragment.childNodes[0]) && !isDiv(rangeStartTextParent)) {
+                    //&& (isSpan(rangeStartTextParent) || isAnchor(rangeStartTextParent))) {
                     if (firstCharRangeStartTextSelected || lastCharRangeEndTextSelected) {
                         if (firstCharRangeStartTextSelected) {
                             range.setStartBefore(rangeStartTextParent)
@@ -105,12 +104,13 @@ export default function rangeSelectionHandler(getNewOptionNode: GetNewOptionNode
                             range.setEndAfter(rangeStartTextParent)
                         }
                     } else {
-                        const leftSpanOrAnchor = rangeStartTextParent.cloneNode()
-                        leftSpanOrAnchor.appendChild(createText(rangeStartTextValue.substring(0, startOffSet)))
-                        children[0] = leftSpanOrAnchor
-                        const rightSpanOrAnchor = rangeStartTextParent.cloneNode()
-                        rightSpanOrAnchor.appendChild(createText(rangeEndTextValue.substring(endOffSet, rangeEndTextValue.length)))
-                        children[2] = rightSpanOrAnchor
+                        const leftElement = rangeStartTextParent.cloneNode()
+                        leftElement.appendChild(createText(rangeStartTextValue.substring(0, startOffSet)))
+                        children.push(leftElement)
+                        children.reverse()
+                        const rightElement = rangeStartTextParent.cloneNode()
+                        rightElement.appendChild(createText(rangeEndTextValue.substring(endOffSet, rangeEndTextValue.length)))
+                        children.push(rightElement)
 
                         range.setStartBefore(rangeStartTextParent)
                         range.setEndAfter(rangeStartTextParent)
@@ -132,5 +132,6 @@ export default function rangeSelectionHandler(getNewOptionNode: GetNewOptionNode
         }
     }
     range.deleteContents()
+    console.table(copySelectedFragment)
     range.insertNode(copySelectedFragment)
 }
