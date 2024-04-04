@@ -2,7 +2,7 @@ import styled from "@emotion/styled"
 import { MouseEventHandler, useState } from "react"
 import { upperCaseFirstChar } from "utils/src/strings"
 import { ChangePropertyType } from "utils/src/types"
-import { EventsHandlers } from "../../../components/ResizableDraggableDiv"
+import { ContainsNode, EventsHandlers } from "../../../components/ResizableDraggableDiv"
 import SyntheticCaret from "../../../components/SyntheticCaret"
 import { ImageData } from "../../../components/forms/ImageSelector"
 import { GetRect } from "../../../types/dom"
@@ -287,8 +287,8 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
       return {top: `${top - containerTop + (((rangeTop ?? 0) > top) ? -formModalHeight-5 : height + 5)}px`, left: `${left - containerLeft}px`}
     }
     const setVisibleOnSelectionTrue = () => {setVisibleOnSelection(true)}
-    const {linkOption, linkFormModal} = useLinkOption({className: getOptionClassesNames(linkClassName), getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
-    const {imageOption, imageFormModal} = useImageOption({getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
+    const {linkOption, linkFormModal, containsLinkFormModalNode} = useLinkOption({className: getOptionClassesNames(linkClassName), getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
+    const {imageOption, imageFormModal, containsImageFormModalNode} = useImageOption({getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState({visible: false, top: 0, left: 0, height: 0, width: 0})
     
@@ -339,7 +339,7 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
                      </Row>
                      </Container>
 
-    const {setHtmlEditorModalVisible, getHtmlEditorModalRect, ...restReturn} = useModal({name: "htmlEditor", children, sibling, positionType: "absolute", onMouseDownHandler: (e) => {e.preventDefault()}, ...modalProps, ...modalCommonProps})
+    const {setHtmlEditorModalVisible, getHtmlEditorModalRect, containsHtmlEditorModalNode, ...restReturn} = useModal({name: "htmlEditor", children, sibling, positionType: "absolute", onMouseDownHandler: (e) => {e.preventDefault()}, ...modalProps, ...modalCommonProps})
     const setVisibleOnSelection: SetVisibleOnSelection = (visible, mousePosition) => {
         setColorsModalVisible(false)
         //setImageFormModalVisible(false)
@@ -377,10 +377,12 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
         } else {
         }
     }
+    const containsHtmlEditorModalAndFormModalsNode: ContainsNode = (node) => containsHtmlEditorModalNode(node) || containsLinkFormModalNode(node) || containsImageFormModalNode(node)
     
     return {
       setHtmlEditorModalVisible: setVisibleOnSelection,
       getHtmlEditorModalRect,
+      containsHtmlEditorModalNode: containsHtmlEditorModalAndFormModalsNode,
       ...restReturn,
     }
 }

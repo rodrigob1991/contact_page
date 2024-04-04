@@ -179,7 +179,9 @@ export default function StoriesView<M extends ViewMode>({
                                          const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
                                          const handleOnBlurBody: FocusEventHandler<HTMLDivElement> = (e) => {
-                                          //setPalletModalVisible(false)
+                                          console.table(e.relatedTarget)
+                                          if(!containsHtmlEditorModalNode(e.relatedTarget))
+                                            setHtmlEditorModalVisible(false)
                                          }
 
                                          return <StoryContainer id={idHtml} key={idHtml}>

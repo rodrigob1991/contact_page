@@ -19,7 +19,7 @@ type Props = {
 const useImageOption: UseOptionWithForm<Props, "image"> = function({getFormModalPosition, setHtmlEditorVisibleTrue}) {
     const [imageFormModalPropsRest, setImageFormModalPropsRest] = useState({inputsProps, submissionAction})
     //const updateImageFormModalProps = {inputsProps: updateImageFormInputsProps, submissionAction: updateImageFormSubmissionAction}
-    const {setImageFormModalVisible, imageFormModal, getImageFormModalRect} = useFormModal({name: "image", buttonText: "insert", ...formModalCommonProps, ...imageFormModalPropsRest})
+    const {setImageFormModalVisible, imageFormModal, getImageFormModalRect, containsImageFormModalNode} = useFormModal({name: "image", buttonText: "insert", ...formModalCommonProps, ...imageFormModalPropsRest})
     const askAttributes: AskAttributes = (modifyNewNodes, finish) => {
       const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
         modifyNewNodes(values)
@@ -92,7 +92,7 @@ const useImageOption: UseOptionWithForm<Props, "image"> = function({getFormModal
                         <FcPicture size={30}/>
                         </Option>
 
-    return {imageOption, imageFormModal}
+    return {imageOption, imageFormModal, containsImageFormModalNode}
 }
 
 export default useImageOption

@@ -15,7 +15,7 @@ type Props = {
 }
 const useLinkOption: UseOptionWithForm<Props, "link"> = function({getFormModalPosition, setHtmlEditorVisibleTrue, className}) {
   const [linkFormModalPropsRest, setLinkFormModalPropsRest] = useState({inputsProps: linkFormInputsProps, submissionAction: linkFormModalSubmissionAction})
-  const {setLinkFormModalVisible, linkFormModal, getLinkFormModalRect} = useFormModal({name: "link", ...linkFormModalPropsRest, ...formModalCommonProps})
+  const {setLinkFormModalVisible, linkFormModal, getLinkFormModalRect, containsLinkFormModalNode} = useFormModal({name: "link", ...linkFormModalPropsRest, ...formModalCommonProps})
   const askAttributes: AskAttributes = (modifyNewNodes, finish) => {
     const submissionAction: SubmissionAction<typeof linkFormInputsProps> = (values) => {
       setLinkFormModalVisible(false)
@@ -29,7 +29,7 @@ const useLinkOption: UseOptionWithForm<Props, "link"> = function({getFormModalPo
                      Link
                      </Option>
 
-  return {linkOption, linkFormModal}
+  return {linkOption, linkFormModal, containsLinkFormModalNode}
 }
 
 export default useLinkOption
