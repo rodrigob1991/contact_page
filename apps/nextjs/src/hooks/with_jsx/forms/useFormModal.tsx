@@ -5,31 +5,36 @@ import { Button } from "../../../components/Buttons"
 import { ResultMessage, ResultMessageProps } from "../../../components/Labels"
 import { BlocksLoader } from "../../../components/Loaders"
 import Checkbox, { CheckboxProps } from "../../../components/forms/Checkbox"
-import ImageSelector, { ImageData, ImageSelectorProps } from "../../../components/forms/ImageSelector"
+import ImageSelector, { ImageSelectorProps } from "../../../components/forms/ImageSelector"
 import { NumberInput, NumberInputProps } from "../../../components/forms/NumberInput"
 import { TextAreaInput, TextAreaInputProps } from "../../../components/forms/TextAreaInput"
 import { TextInput, TextInputProps } from "../../../components/forms/TextInput"
 import { secondColor } from "../../../theme"
 import useModal, { ModalFullName, ModalName, PositionType, SetModalVisible, SetVisibleKey, UseModalProps, UseModalReturn, modalDefaultName } from "../useModal"
 
-type InputType = "textAreaInput" | "textInput" | "numberInput" | "imageSelector" | "checkbox"
+//type InputType = "textAreaInput" | "textInput" | "numberInput" | "imageSelector" | "checkbox"
 type TextInputTypeProps = Omit<TextInputProps, "setValue">
-type TextInputType = {type: "textInput", props?: TextInputTypeProps}
+//type TextInputType = {type: "textInput", props?: TextInputTypeProps}
 type NumberInputTypeProps = Omit<NumberInputProps, "setValue">
-type NumberInputType = {type: "numberInput", props?: NumberInputTypeProps}
+//type NumberInputType = {type: "numberInput", props?: NumberInputTypeProps}
 type TextAreaInputTypeProps = Omit<TextAreaInputProps, "setValue">
-type TextAreaInputType = {type: "textAreaInput", props?: TextAreaInputTypeProps}
+//type TextAreaInputType = {type: "textAreaInput", props?: TextAreaInputTypeProps}
 type ImageSelectorTypeProps = Omit<ImageSelectorProps, "setValue" | "processSelectedImage">
-type ImageSelectorType = {type: "imageSelector", props?: ImageSelectorTypeProps}
+//type ImageSelectorType = {type: "imageSelector", props?: ImageSelectorTypeProps}
 type CheckboxTypeProps = Omit<CheckboxProps, "onChange">
-type CheckboxType = {type: "checkbox", props?: CheckboxTypeProps}
-export type InputsProps = {[key: string]: TextInputType | NumberInputType | TextAreaInputType | ImageSelectorType | CheckboxType}
-type InputValue<IT extends InputType=InputType> =  {textInput: string, textAreaInput: string, numberInput: number, imageSelector: ImageData, checkbox: boolean}[IT]
-//type InputValue<IT extends InputType> =  (IT extends ("textInput" | "textAreaInput") ? string : never) | (IT extends "numberInput" ? number : never) | (IT extends "imageSelector" ? ImageData : never)
+//type CheckboxType = {type: "checkbox", props?: CheckboxTypeProps}
+type InputTypesProps = {textInput: TextInputTypeProps, textAreaInput: TextAreaInputTypeProps, numberInput: NumberInputTypeProps, imageSelector: ImageSelectorTypeProps, checkbox: CheckboxTypeProps}
+type InputType = keyof InputTypesProps
+type InputProp<IT extends InputType=InputType> = {[K in IT]: {type: K, props?: InputTypesProps[K]}}[IT]
+export type InputsProps = {[key: string]: InputProp}
+type InputValue<IT extends InputType=InputType> = Exclude<InputTypesProps[IT]["value"], undefined>
+//type InputValue<IT extends InputType=InputType> = {textInput: string, textAreaInput: string, numberInput: number, imageSelector: ImageData, checkbox: boolean}[IT]
 type InputsValues<IP extends InputsProps> = {
     [K in keyof IP]: InputValue<IP[K]["type"]>
 }
-type SetValues<IP extends InputsProps> = (iv: InputsValues<IP>) => void
+//export type AssignableInputType<V extends InputValue> = {[K in InputType]: V extends InputValue<K> ? K : never}[InputType]
+export type AssignableInputProp<V> = {[K in InputType]: V extends InputValue<K> ? InputProp<K> : never}[InputType]
+//type SetValues<IP extends InputsProps> = (iv: InputsValues<IP>) => void
 
 const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, InputsValues<IP>, () => void] => {
     const elementsRef = useRef(<></>)

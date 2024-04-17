@@ -52,3 +52,5 @@ export const isNonEmpty = <T>(a: T[]): a is NonEmptyArray<T> => a.length > 0
 
 export type ChangeKeysNames<O extends object, NewKeysNames extends [keyof O, PropertyKey][]> = {[K in keyof O as SeekNewType<K, NewKeysNames> extends infer V ? V extends PropertyKey ? V : K : never]: O[K]}
 export type ChangeKeyName<O extends object, NewKeyName extends [keyof O, PropertyKey]> = ChangeKeysNames<O, [NewKeyName]>
+
+export type EmptyObject = Record<string, never>

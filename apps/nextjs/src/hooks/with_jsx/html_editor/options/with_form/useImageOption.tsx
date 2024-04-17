@@ -88,7 +88,9 @@ const useImageOption: UseOptionWithForm<Props, "image"> = function({getFormModal
     const updateRemoveImage = (fn: RemoveImage) => {
       setRemoveImage(() => fn)
     } */
-    const imageOption = <Option getNewOptionNode={() => createImage()} withText={false} insertInNewLine={false} askAttributes={askAttributes} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue}>
+    const getNewImage = () => createImage({onclick: window.modifyImageElement})
+  
+    const imageOption = <Option getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} askAttributes={askAttributes} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue}>
                         <FcPicture size={30}/>
                         </Option>
 

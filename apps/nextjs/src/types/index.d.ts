@@ -3,6 +3,6 @@ export {}
 
 declare global {
     interface Window {
-        modifyImageElement: (img: HTMLImageElement) => void
+        modifyImageElement: (event: MouseEvent<HTMLImageElement>) => void
     }
 }

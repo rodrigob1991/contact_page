@@ -182,7 +182,7 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
                                 <ColorOption backgroundColor={color} onClick={(e) => {setSelectedColor(color); setColorsModalVisible(false)}}/>
                                 )}
                                 </ColorsModalChildrenContainer>
-    const {setColorsModalVisible, isColorsModalVisible, colorsModal, getColorsModalRect} = useModal({name: "colors", children: colorsModalChildren, ...formModalCommonProps})
+    const {setColorsModalVisible, isColorsModalVisible, colorsModal, getColorsModalRect} = useModal({name: "colors", children: colorsModalChildren, ...modalCommonProps})
     const onClickSelectedColorOptionHandler: MouseEventHandler = (e) => {
       if (!isColorsModalVisible()) {
         const { top, left } = e.currentTarget.getBoundingClientRect()
@@ -387,7 +387,7 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
     }
 }
 const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false, /* onMouseDownHandler: (e: React.MouseEvent) => {e.preventDefault()} */}
-export const formModalCommonProps = {positionType: "absolute", showLoadingBars: false, ...modalCommonProps} as const
+//export const formModalCommonProps = {positionType: "absolute", showLoadingBars: false, ...modalCommonProps} as const
 
 const Container = styled.div`
   display: flex;
