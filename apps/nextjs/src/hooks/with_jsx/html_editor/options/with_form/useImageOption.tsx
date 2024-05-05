@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react"
 import { FcPicture } from "react-icons/fc"
+import { ImageData } from "../../../../../components/forms/ImageSelector"
 import { createImage } from "../../../../../utils/domManipulations"
-import useFormModal, { SubmissionAction } from "../../../forms/useFormModal"
-import { formModalCommonProps } from "../../useHtmlEditor"
-import Option, { AskAttributes } from "../Option"
+import { } from "../../useHtmlEditor"
+import Option, { ShowFormModal } from "../Option"
 import { UseOptionWithForm } from "./types"
 
 const inputsProps = {
@@ -11,75 +10,26 @@ const inputsProps = {
   height: {type: "numberInput"},
   width: {type: "numberInput"},
 } as const
-const submissionAction: SubmissionAction<typeof inputsProps> = () => {
-}
+//type AttributesToAsk = {imageData: ImageData, height: number, width: number}
+/* const submissionAction: SubmissionAction<typeof inputsProps> = () => {
+} */
 
 type Props = {
 }
-const useImageOption: UseOptionWithForm<Props, "image"> = function({getFormModalPosition, setHtmlEditorVisibleTrue}) {
-    const [imageFormModalPropsRest, setImageFormModalPropsRest] = useState({inputsProps, submissionAction})
+const useImageOption: UseOptionWithForm<Props, "image"> = function({setupFormModal, setHtmlEditorVisibleTrue}) {
+    //const [imageFormModalPropsRest, setImageFormModalPropsRest] = useState({inputsProps, submissionAction})
     //const updateImageFormModalProps = {inputsProps: updateImageFormInputsProps, submissionAction: updateImageFormSubmissionAction}
-    const {setImageFormModalVisible, imageFormModal, getImageFormModalRect, containsImageFormModalNode} = useFormModal({name: "image", buttonText: "insert", ...formModalCommonProps, ...imageFormModalPropsRest})
-    const askAttributes: AskAttributes = (modifyNewNodes, finish) => {
-      const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
-        modifyNewNodes(values)
-        finish()
-      }
-      setImageFormModalPropsRest({inputsProps, submissionAction})
-      setImageFormModalVisible(true, getFormModalPosition(getImageFormModalRect().height))
+    //const {setImageFormModalVisible, imageFormModal, getImageFormModalRect, containsImageFormModalNode} = useFormModal({name: "image", buttonText: "insert", ...formModalCommonProps, ...imageFormModalPropsRest})
+    const showFormModal: ShowFormModal<HTMLImageElement, {src: string, height: number, width: number}> = (modifyNewImage, finish) => {
+      // const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
+      //   modifyNewNodes(values)
+      //   finish()
+      // }
+      // setImageFormModalPropsRest({inputsProps, submissionAction})
+      // setImageFormModalVisible(true, getFormModalPosition(getImageFormModalRect().height))
+      setupFormModal<HTMLImageElement, {imageData: ImageData, height: number, width: number}>(inputsProps, ({imageData, ...rest}) => {modifyNewImage({src: imageData.dataUrl, ...rest})}, finish)
     }
 
-    useEffect(() => {
-      window.modifyImageElement = (img: HTMLImageElement) => {
-        const inputsProps = {
-          imageData: {type: "imageSelector", props: {value: {dataUrl: img.src, name: img.dataset.name as string, extension: img.dataset.extension as string}}},
-          height: {type: "numberInput"},
-          width: {type: "numberInput"},
-          remove: {type: "checkbox", props: {label: "remove"}}
-        } as const
-        const submissionAction: SubmissionAction<typeof inputsProps> = ({remove, imageData: {dataUrl, name, extension}, height, width}) => {
-          if (remove) {
-            img.remove()
-          } else {
-            img.src = dataUrl
-            img.height = height
-            img.width = width
-            img.dataset.name = name
-            img.dataset.extension = extension
-          }
-          setHtmlEditorVisibleTrue()
-        }
-        setImageFormModalPropsRest({inputsProps, submissionAction})
-        //const divParent = img.parentElement as HTMLDivElement
-        /* updateInsertOrModifyImage(({dataUrl, name, extension, height, width}) => {
-            //img.id = id
-            img.src = dataUrl
-            img.height = height
-            img.width = width
-            img.dataset.name = name
-            img.dataset.extension = extension
-            //divParent.style.paddingLeft = left + "px"
-          }
-        ) */
-        /* updateRemoveImage(() => {
-          (img.parentElement as HTMLDivElement).remove()
-        }) */
-
-        const {top, left} = img.getBoundingClientRect()
-        setImageFormModalVisible(
-          true,
-          {top: `${top}px`, left: `${left}px`},
-         /*  {imageData: {
-            dataUrl: img.src,
-              name: img.dataset.name as string,
-              extension: img.dataset.extension as string,
-           },
-           height: img.height,
-           width: img.width,
-           remove: false} */
-        )
-      }
-    }, [])
    /*  const [insertOrModifyImage, setInsertOrModifyImage] = useState<InsertOrModifyImage>(() => {})
     const updateInsertOrModifyImage = (fn: InsertOrModifyImage) => {
       setInsertOrModifyImage(() => fn)
@@ -88,13 +38,13 @@ const useImageOption: UseOptionWithForm<Props, "image"> = function({getFormModal
     const updateRemoveImage = (fn: RemoveImage) => {
       setRemoveImage(() => fn)
     } */
-    const getNewImage = () => createImage({onclick: window.modifyImageElement})
+    const getNewImage = () => createImage({onclick: (e) => {window.modifyElement(e.target as HTMLImageElement, inputsProps)}})
   
-    const imageOption = <Option getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} askAttributes={askAttributes} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue}>
+    const imageOption = <Option getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} showFormModal={showFormModal} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue}>
                         <FcPicture size={30}/>
                         </Option>
 
-    return {imageOption, imageFormModal, containsImageFormModalNode}
+    return {imageOption}
 }
 
 export default useImageOption

@@ -280,12 +280,12 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
     } */
     const getOptionClassesNames = (className?: string) =>  getColorClassName(selectedColor) + (className ? " " + className : "")
 
-    const getFormModalPosition = (formModalHeight: number): ModalPosition => {
-      const rangeTop = document.getSelection()?.getRangeAt(0).getBoundingClientRect().top
-      const {top, left, height} = getHtmlEditorModalRect()
-      const {top: containerTop, left: containerLeft} = getContainerRect()
-      return {top: `${top - containerTop + (((rangeTop ?? 0) > top) ? -formModalHeight-5 : height + 5)}px`, left: `${left - containerLeft}px`}
-    }
+    // const getFormModalPosition = (formModalHeight: number): ModalPosition => {
+    //   const rangeTop = document.getSelection()?.getRangeAt(0).getBoundingClientRect().top
+    //   const {top, left, height} = getHtmlEditorModalRect()
+    //   const {top: containerTop, left: containerLeft} = getContainerRect()
+    //   return {top: `${top - containerTop + (((rangeTop ?? 0) > top) ? -formModalHeight-5 : height + 5)}px`, left: `${left - containerLeft}px`}
+    // }
     const setVisibleOnSelectionTrue = () => {setVisibleOnSelection(true)}
     const {linkOption, linkFormModal, containsLinkFormModalNode} = useLinkOption({className: getOptionClassesNames(linkClassName), getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
     const {imageOption, imageFormModal, containsImageFormModalNode} = useImageOption({getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
@@ -386,7 +386,7 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
       ...restReturn,
     }
 }
-const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false, /* onMouseDownHandler: (e: React.MouseEvent) => {e.preventDefault()} */}
+export const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false, /* onMouseDownHandler: (e: React.MouseEvent) => {e.preventDefault()} */}
 //export const formModalCommonProps = {positionType: "absolute", showLoadingBars: false, ...modalCommonProps} as const
 
 const Container = styled.div`

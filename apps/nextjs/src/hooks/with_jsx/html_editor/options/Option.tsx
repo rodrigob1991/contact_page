@@ -1,17 +1,17 @@
 import styled from "@emotion/styled"
 import { MouseEventHandler, ReactNode } from "react"
+import { positionCaretOn } from "../../../../utils/domManipulations"
 import collapsedSelectionHandler from "../selection_handlers/collapsed"
 import rangeSelectionHandler from "../selection_handlers/range"
-import { positionCaretOn } from "../../../../utils/domManipulations"
-import { EmptyObject } from "utils/src/types"
 
 export type OptionNode = Text | Element
 export type GetNewOptionNode<WT extends boolean, ON extends OptionNode> = WT extends true ? (text: string) => ON : () => ON
 export type CollapsedSelectionText<WT> = WT extends true ? string : undefined
+export type SetHtmlEditorVisibleTrue = () => void
 
-export type ModifyNewNodes<ONA extends Partial<OptionNode>> = (attr: ONA) =>  void
+export type ModifyNewNodes<ON extends OptionNode, ONA extends Partial<ON>> = (attr: ONA) =>  void
 export type Finish = () =>  void
-export type AskAttributes<ON extends OptionNode, ONA extends Partial<ON>> = (modifyNewNodes: ModifyNewNodes<ONA>, finish: Finish) => void
+export type ShowFormModal<ON extends OptionNode, ONA extends Partial<ON>> = (modifyNewNodes: ModifyNewNodes<ON, ONA>, finish: Finish) => void
 
 export type OptionProps<WT extends boolean, ON extends OptionNode, ONA extends Partial<ON> | undefined> = {
   children: ReactNode
@@ -20,9 +20,9 @@ export type OptionProps<WT extends boolean, ON extends OptionNode, ONA extends P
   collapsedSelectionText?: CollapsedSelectionText<WT>
   insertInNewLine: boolean
   className?: string
-  setHtmlEditorVisibleTrue: () => void
-} & (ONA extends Partial<ON> ? {askAttributes: AskAttributes<ON, ONA>} : EmptyObject)
-export default function Option<WT extends boolean, ON extends OptionNode, ONA extends Partial<ON> | undefined>({children, withText, getNewOptionNode, collapsedSelectionText=" ...", insertInNewLine, askAttributes, className, setHtmlEditorVisibleTrue}: OptionProps<WT, ON, ONA>) {
+  setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
+} & (ONA extends Partial<ON> ? {showFormModal: ShowFormModal<ON, ONA>} : {})
+export default function Option<WT extends boolean, ON extends OptionNode, ONA extends Partial<ON> | undefined>({children, withText, getNewOptionNode, collapsedSelectionText=" ...", insertInNewLine, showFormModal, className, setHtmlEditorVisibleTrue}: OptionProps<WT, ON, ONA>) {
   const onClickHandler: MouseEventHandler = (e) => {
     //selectionHandler(optionType, getTargetOptionNode)
     const selection = document.getSelection()
@@ -55,11 +55,12 @@ export default function Option<WT extends boolean, ON extends OptionNode, ONA ex
           // ????
           }
         }
-        if (askAttributes) {
-          const modifyNewNodes = (attr: unknown) => {
-            newNodes.forEach(n => Object.assign(n, attr))
+        if (showFormModal) {
+          type ONANU = Exclude<ONA, undefined>
+          const modifyNewNodes = (attr: ONANU) => {
+            newNodes.forEach((n) => Object.assign(n, attr))
           }
-          askAttributes(modifyNewNodes, finish)
+          (showFormModal as ShowFormModal<ON, ONANU>)(modifyNewNodes, finish)
         } else {
           finish()
         }

@@ -29,7 +29,7 @@ type InputProp<IT extends InputType=InputType> = {[K in IT]: {type: K, props?: I
 export type InputsProps = {[key: string]: InputProp}
 type InputValue<IT extends InputType=InputType> = Exclude<InputTypesProps[IT]["value"], undefined>
 //type InputValue<IT extends InputType=InputType> = {textInput: string, textAreaInput: string, numberInput: number, imageSelector: ImageData, checkbox: boolean}[IT]
-type InputsValues<IP extends InputsProps> = {
+export type InputsValues<IP extends InputsProps> = {
     [K in keyof IP]: InputValue<IP[K]["type"]>
 }
 //export type AssignableInputType<V extends InputValue> = {[K in InputType]: V extends InputValue<K> ? K : never}[InputType]
@@ -97,12 +97,14 @@ const formModalDefaultNamePrefix = "form"
 type FormModalDefaultNamePrefix = typeof formModalDefaultNamePrefix
 export type FormModalNamePrefix<N extends ModalName> = N extends undefined | "" ? FormModalDefaultNamePrefix : `${N}${Capitalize<FormModalDefaultNamePrefix>}`
 export type FormModalFullName<N extends ModalName> = ModalFullName<FormModalNamePrefix<N>>
-type UseFormModalProps<IP extends InputsProps, N extends ModalName, PT extends PositionType> = {
+
+export type UseFormModalProps<IP extends InputsProps=InputsProps, N extends ModalName=undefined, PT extends PositionType="absolute"> = {
     inputsProps: IP
     submissionAction: SubmissionAction<IP>
     buttonText?: string
     showLoadingBars?: boolean
 } & Omit<UseModalProps<N, PT>, "children">
+
 //type UseFormModalReturn<N extends ModalName, IP extends InputsProps> = ChangePropertyType<UseModalReturn<FormModalNamePrefix<N>>, [SetVisibleKey<FormModalNamePrefix<N>>, SetFormModalVisible<IP>]>
 export type UseFormModalReturn<N extends ModalName> = UseModalReturn<FormModalNamePrefix<N>>
 
