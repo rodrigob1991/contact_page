@@ -5,8 +5,8 @@ import collapsedSelectionHandler from "../selection_handlers/collapsed"
 import rangeSelectionHandler from "../selection_handlers/range"
 
 export type OptionNode = Text | Element
-export type GetNewOptionNode<WT extends boolean, ON extends OptionNode> = WT extends true ? (text: string) => ON : () => ON
-export type CollapsedSelectionText<WT> = WT extends true ? string : undefined
+export type GetNewOptionNode<WT extends boolean, ON extends OptionNode> = WT extends true ? (text: string) => ON : WT extends false ? () => ON : (text?: string) => ON
+export type CollapsedSelectionText<WT> = WT extends true ? string : undefined // 
 export type SetHtmlEditorVisibleTrue = () => void
 
 export type ModifyNewNodes<ON extends OptionNode, ONA extends Partial<ON>> = (attr: ONA) =>  void
@@ -21,7 +21,7 @@ export type OptionProps<WT extends boolean, ON extends OptionNode, ONA extends P
   insertInNewLine: boolean
   className?: string
   setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
-} & (ONA extends Partial<ON> ? {showFormModal: ShowFormModal<ON, ONA>} : {})
+} & (ONA extends ON ? {showFormModal: ShowFormModal<ON, ONA>} : {})
 export default function Option<WT extends boolean, ON extends OptionNode, ONA extends Partial<ON> | undefined>({children, withText, getNewOptionNode, collapsedSelectionText=" ...", insertInNewLine, showFormModal, className, setHtmlEditorVisibleTrue}: OptionProps<WT, ON, ONA>) {
   const onClickHandler: MouseEventHandler = (e) => {
     //selectionHandler(optionType, getTargetOptionNode)

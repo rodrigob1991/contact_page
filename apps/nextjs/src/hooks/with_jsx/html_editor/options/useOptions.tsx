@@ -4,7 +4,7 @@ import { createSpan, createText } from "../../../../utils/domManipulations"
 import useFormModal, { SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
 import { ModalPosition } from "../../useModal"
 import { modalCommonProps } from "../useHtmlEditor"
-import Option, { SetHtmlEditorVisibleTrue } from "./Option"
+import Option, { OptionNode, OptionProps, SetHtmlEditorVisibleTrue, ShowFormModal } from "./Option"
 import { InputsPropsOptionNodeAttributes, SetupFormModal } from "./with_form/types"
 import useImageOption from "./with_form/useImageOption"
 import useLinkOption from "./with_form/useLinkOption"
@@ -20,20 +20,25 @@ const defaultSpanClassesNames = ["blackTextOption", "blackUnderlineTextOption", 
 type UseDefaultSpanClassesNames = {[K in DefaultSpanClassName]: boolean} */
 const defaultLinkClassName = "linkOption"
 
-type ExtensionOption = {
+type ExtensionOptionProps<WT extends boolean, ON extends OptionNode, ONA extends Partial<ON> | undefined> = 
+  Omit<OptionProps<WT, ON, ONA>, "setHtmlEditorVisibleTrue" | "showFormModal"> 
+  & ONA extends ON ? {inputsProps: InputsPropsOptionNodeAttributes<ON, Exclude<ONA, undefined>>} : {}
+type ExtensionOptionPropsArray<ONA extends OptionNode[], ONAA extends Partial<ONA>[], WTA extends boolean[], R extends ExtensionOptionProps<boolean, OptionNode, {}>[]=[]> = {
 
-} & OptionProps
+}
 
-type Props = {
+type MapOptionNodeTo<ONA extends OptionNode[], TO extends "attr" | "wt", R extends (Partial<ONA> | undefined | boolean)[]=[]> = ONA extends [infer ON, ...infer Rest] ? [TO extends "attr" ? Partial<ON> : boolean, ...(Rest extends [] ? MapOptionNodeTo<Rest, TO>: [])] : R
+
+type Props<ONA extends OptionNode[], ONAA extends MapOptionNodeTo<ONA, "attr">, WTA extends MapOptionNodeTo<ONA, "wt">>= {
     spanClassesNames?: string[]
     linkClassName?: string
-    extensionOptions?: ExtensionOption[]
     getClassesNames: (className?: string) => string
     getContainerRect: GetRect
-    getHtmlEditorRect: GetRect
+    getHtmlEditorModalRect: GetRect
     setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
-}
-export default function Options({spanClassesNames=[], linkClassName, extensionOptions=[], getClassesNames, getContainerRect, getHtmlEditorRect, setHtmlEditorVisibleTrue}: Props) {
+} & ONA extends OptionNode[] ? {extensionsOptionsProps: ExtensionOptionPropsArray<ONA, ONAA, WTA>} : {}
+
+export default function useOptions({spanClassesNames=[], linkClassName=defaultLinkClassName, extensionOptionsProps=[], getClassesNames, getContainerRect, getHtmlEditorModalRect, setHtmlEditorVisibleTrue}: Props) {
     const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: {}, submissionAction: () => {}})
     const {setFormModalVisible, formModal, getFormModalRect, containsFormModalNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
     const setupFormModal: SetupFormModal = (inputsProps, modifyNewNodes, finish) => {
@@ -47,7 +52,7 @@ export default function Options({spanClassesNames=[], linkClassName, extensionOp
     }
     const getFormModalPosition = (formModalHeight: number): ModalPosition => {
       const rangeTop = document.getSelection()?.getRangeAt(0).getBoundingClientRect().top
-      const {top, left, height} = getHtmlEditorRect()
+      const {top, left, height} = getHtmlEditorModalRect()
       const {top: containerTop, left: containerLeft} = getContainerRect()
       return {top: `${top - containerTop + (((rangeTop ?? 0) > top) ? -formModalHeight-5 : height + 5)}px`, left: `${left - containerLeft}px`}
     }
@@ -66,7 +71,7 @@ export default function Options({spanClassesNames=[], linkClassName, extensionOp
     const {linkOption} = useLinkOption({className: getClassesNames(linkClassName), setupFormModal, setHtmlEditorVisibleTrue})
     const {imageOption} = useImageOption({setupFormModal, setHtmlEditorVisibleTrue})
 
-    return <>
+    const options = <>
            <Option getNewOptionNode={(t) => createText(t)} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={getClassesNames()}>
             T
            </Option>
@@ -79,12 +84,21 @@ export default function Options({spanClassesNames=[], linkClassName, extensionOp
             )}
            {linkOption}
            {imageOption}
-           {extensionOptions.map((extensionOption) => {
-                const classesNames = getClassesNames(className)
-                return  <Option getNewOptionNode={(t) => createSpan({innerHTML: t, className: classesNames})} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={classesNames}>
-                        S
-                        </Option>
-                }
-            )}
+           {extensionOptionsProps.map(({className, inputsProps, ...extensionOptionsPropsRest}) => {
+            const optionPropsRest = {...extensionOptionsPropsRest}
+            if (inputsProps) {
+              const showFormModal: ShowFormModal<, > = (modifyNewLinks, finish) => {
+                setupFormModal<HTMLAnchorElement, AttributesToAsk>(inputsProps, modifyNewLinks, finish)
+              }
+              Object.assign(optionPropsRest, {showFormModal})
+            }
+
+            return  <Option  setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={getClassesNames(className)} {...optionPropsRest}>
+                    S
+                    </Option>
+            }
+           )}
            </>
+
+           return {options, formModal}
 }

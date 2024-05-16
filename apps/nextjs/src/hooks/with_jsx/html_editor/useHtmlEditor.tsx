@@ -12,6 +12,7 @@ import useModal, { ModalPosition, UseModalReturn } from "../useModal"
 import Option from "./options/Option"
 import useImageOption from "./options/with_form/useImageOption"
 import useLinkOption from "./options/with_form/useLinkOption"
+import useOptions from "./options/useOptions"
 
 const optionsTypesWithForm = {link: "link", image: "image"} as const
 type OptionTypeWithForm = keyof typeof optionsTypesWithForm
@@ -287,16 +288,18 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
     //   return {top: `${top - containerTop + (((rangeTop ?? 0) > top) ? -formModalHeight-5 : height + 5)}px`, left: `${left - containerLeft}px`}
     // }
     const setVisibleOnSelectionTrue = () => {setVisibleOnSelection(true)}
-    const {linkOption, linkFormModal, containsLinkFormModalNode} = useLinkOption({className: getOptionClassesNames(linkClassName), getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
+    const {options, formModal} = useOptions({getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
+    /* const {linkOption, linkFormModal, containsLinkFormModalNode} = useLinkOption({className: getOptionClassesNames(linkClassName), getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
     const {imageOption, imageFormModal, containsImageFormModalNode} = useImageOption({getFormModalPosition, setHtmlEditorVisibleTrue: setVisibleOnSelectionTrue})
-
+ */
     const [syntheticCaretStates, setSyntheticCaretStates] = useState({visible: false, top: 0, left: 0, height: 0, width: 0})
     
     const sibling = <>
                     {colorsModal}
                     {elementIdFormModal}
-                    {linkFormModal}
-                    {imageFormModal}
+                    {formModal}
+                    {/* {linkFormModal}
+                    {imageFormModal} */}
                     {/* <SyntheticCaret {...syntheticCaretStates}/> */}
                     </>
     
@@ -308,34 +311,7 @@ export default function useHtmlEditor({getContainerRect, colors=defaultColors, g
                      <ColorOption backgroundColor={selectedColor} onClick={onClickSelectedColorOptionHandler}/>
                      </Row>
                      <Row>
-                     <Option getNewOptionNode={(t) => createText(t)} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setVisibleOnSelectionTrue} className={getOptionClassesNames()}>
-                     T
-                     </Option>
-                     {spanClassesNames.map((className) => {
-                      const classesNames = getOptionClassesNames(className)
-                      return  <Option getNewOptionNode={(t) => createSpan({innerHTML: t, className: classesNames})} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setVisibleOnSelectionTrue} className={classesNames}>
-                              S
-                              </Option>
-                     }
-                     )}
-                     {linkOption}
-                     {imageOption}
-                     {/* <span className={getOptionClassName()} css={optionCss} onClick={(e) => {handleClickPalletOption("defaultText", undefined)}}>
-                     a
-                     </span>
-                     {spanClassesNames.map((spanClassName, index) =>
-                        <span className={getOptionClassName(spanClassName)} css={optionCss} onClick={(e) => {handleClickPalletOption("span", getOptionClassName(spanClassName))}}>
-                        a
-                        </span>
-                     )}
-                     <a className={getOptionClassName(linkClassName)} css={optionCss} onClick={(e) => {handleClickPalletOption("link", getOptionClassName(linkClassName))}}>
-                     Link
-                     </a>
-                     <FcPicture size={30} onClick={(e) => {handleClickPalletOption("image", undefined)}} style={{cursor: "pointer"}}/> */}
-                     {/* {optionSeparator}
-                     <span className={getOptionClass(elementId ? idOnClass : idOffClass)} onMouseDown={handleMouseDown} onClick={handleClickElementId}>
-                     ID
-                     </span> */}
+                     {options}
                      </Row>
                      </Container>
 
