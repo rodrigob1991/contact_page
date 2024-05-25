@@ -3,6 +3,7 @@ import { MouseEventHandler, ReactNode } from "react"
 import { positionCaretOn } from "../../../../utils/domManipulations"
 import collapsedSelectionHandler from "../selection_handlers/collapsed"
 import rangeSelectionHandler from "../selection_handlers/range"
+import { AvailableKey } from "utils/src/types"
 
 export type OptionNode = Text | Element
 export type GetNewOptionNode<WT extends boolean, ON extends OptionNode> = WT extends true ? (text: string) => ON : WT extends false ? () => ON : (text?: string) => ON
@@ -13,7 +14,7 @@ export type ModifyNewNodes<ON extends OptionNode, ONA extends Partial<ON>> = (at
 export type Finish = () =>  void
 export type ShowFormModal<ON extends OptionNode, ONA extends Partial<ON>> = (modifyNewNodes: ModifyNewNodes<ON, ONA>, finish: Finish) => void
 
-export type OptionProps<WT extends boolean, ON extends OptionNode, ONA extends Partial<ON> | undefined> = {
+export type OptionProps<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean> = {
   children: ReactNode
   withText: WT
   getNewOptionNode: GetNewOptionNode<WT, ON>
@@ -21,8 +22,8 @@ export type OptionProps<WT extends boolean, ON extends OptionNode, ONA extends P
   insertInNewLine: boolean
   className?: string
   setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
-} & (ONA extends ON ? {showFormModal: ShowFormModal<ON, ONA>} : {})
-export default function Option<WT extends boolean, ON extends OptionNode, ONA extends Partial<ON> | undefined>({children, withText, getNewOptionNode, collapsedSelectionText=" ...", insertInNewLine, showFormModal, className, setHtmlEditorVisibleTrue}: OptionProps<WT, ON, ONA>) {
+} & AvailableKey<ON, ONA, {showFormModal: ShowFormModal<ON, Exclude<ONA, undefined>>}>
+export default function Option<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean>({children, withText, getNewOptionNode, collapsedSelectionText=" ...", insertInNewLine, className, setHtmlEditorVisibleTrue, showFormModal}: OptionProps<ON, ONA, WT>) {
   const onClickHandler: MouseEventHandler = (e) => {
     //selectionHandler(optionType, getTargetOptionNode)
     const selection = document.getSelection()
@@ -60,7 +61,7 @@ export default function Option<WT extends boolean, ON extends OptionNode, ONA ex
           const modifyNewNodes = (attr: ONANU) => {
             newNodes.forEach((n) => Object.assign(n, attr))
           }
-          (showFormModal as ShowFormModal<ON, ONANU>)(modifyNewNodes, finish)
+          showFormModal(modifyNewNodes, finish)
         } else {
           finish()
         }

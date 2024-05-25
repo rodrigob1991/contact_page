@@ -56,3 +56,5 @@ export type ChangeKeysNames<O extends object, NewKeysNames extends [keyof O, Pro
 export type ChangeKeyName<O extends object, NewKeyName extends [keyof O, PropertyKey]> = ChangeKeysNames<O, [NewKeyName]>
 
 export type EmptyObject = Record<PropertyKey, never>
+
+export type AvailableKey<T, U, A extends object> = T extends U ? A : {[K in keyof A]?: never}

@@ -8,6 +8,7 @@ import Option, { OptionNode, OptionProps, SetHtmlEditorVisibleTrue, ShowFormModa
 import { InputsPropsOptionNodeAttributes, SetupFormModal } from "./with_form/types"
 import useImageOption from "./with_form/useImageOption"
 import useLinkOption from "./with_form/useLinkOption"
+import { AvailableKey, NonEmptyArray } from "utils/src/types"
 
 declare global {
   interface Window {
@@ -20,25 +21,47 @@ const defaultSpanClassesNames = ["blackTextOption", "blackUnderlineTextOption", 
 type UseDefaultSpanClassesNames = {[K in DefaultSpanClassName]: boolean} */
 const defaultLinkClassName = "linkOption"
 
-type ExtensionOptionProps<WT extends boolean, ON extends OptionNode, ONA extends Partial<ON> | undefined> = 
-  Omit<OptionProps<WT, ON, ONA>, "setHtmlEditorVisibleTrue" | "showFormModal"> 
-  & ONA extends ON ? {inputsProps: InputsPropsOptionNodeAttributes<ON, Exclude<ONA, undefined>>} : {}
-type ExtensionOptionPropsArray<ONA extends OptionNode[], ONAA extends Partial<ONA>[], WTA extends boolean[], R extends ExtensionOptionProps<boolean, OptionNode, {}>[]=[]> = {
+// Define the generic type T with a parameter P
+type T<P extends boolean> = {
+    one: P;
+    two: P extends true ? "si" : "no";
+};
 
-}
+// Define a type for a union of T<true> and T<false>
+type TUnion = T<true> | T<false>;
 
-type MapOptionNodeTo<ONA extends OptionNode[], TO extends "attr" | "wt", R extends (Partial<ONA> | undefined | boolean)[]=[]> = ONA extends [infer ON, ...infer Rest] ? [TO extends "attr" ? Partial<ON> : boolean, ...(Rest extends [] ? MapOptionNodeTo<Rest, TO>: [])] : R
+// Define the type L to be an object with a property `list` which is an array of TUnion objects
+type L = {
+    list: TUnion[];
+};
 
-type Props<ONA extends OptionNode[], ONAA extends MapOptionNodeTo<ONA, "attr">, WTA extends MapOptionNodeTo<ONA, "wt">>= {
+// Example usage:
+const exampleMixed: L = {
+    list: [
+        { one: true, two: "si" },
+        { one: false, two: "no" }
+    ]
+};
+
+type ExtensionOptionProps<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean> = 
+  Omit<OptionProps<ON, ONA, WT>, "setHtmlEditorVisibleTrue" | "showFormModal"> 
+  & AvailableKey<ON, ONA, {inputsProps: InputsPropsOptionNodeAttributes<ON, Exclude<ONA, undefined>>}>
+
+type ExtensionOptionPropsArray<ONA extends OptionNode[], ONAA extends (Partial<ONA[number]> | undefined)[], WTA extends boolean[], R=ExtensionOptionProps<ONA[number], ONAA[number], WTA[number]>[]> = 
+  ONA extends [infer ON, ...infer ONAR] ? ONAA extends [infer ONA, ...infer ONAAR] ? WTA extends [infer WT, ...infer WTR] ? WT extends boolean ? ON extends OptionNode ? ONA extends (Partial<ON> | undefined) ?  ONAR extends OptionNode[] ? ONAAR extends (Partial<ONAR[number]> | undefined)[] ? WTR extends boolean[] ? [ExtensionOptionProps<ON, ONA, WT>, ...ExtensionOptionPropsArray<ONAR, ONAAR, WTR>] : never : never : never : never : never : never : R : R : R
+
+type MapOptionNodeTo<ONA extends OptionNode[], TO extends "attr" | "wt", D extends Partial<ONA[number]> | undefined | boolean= TO extends "attr" ? Partial<ONA[number]> | undefined : boolean> = ONA extends [infer ON, ...infer ONAR] ? [TO extends "attr" ? Omit<D, Exclude<keyof ONAR[number], keyof ON>> | undefined : D , ...(ONAR extends [] ? MapOptionNodeTo<ONAR, TO>: [])] : D[]
+
+type Props<ONA extends OptionNode[]=[], ONAA extends MapOptionNodeTo<ONA, "attr">=MapOptionNodeTo<ONA, "attr", undefined>, WTA extends MapOptionNodeTo<ONA, "wt">=MapOptionNodeTo<ONA, "wt", true>> = {
     spanClassesNames?: string[]
     linkClassName?: string
     getClassesNames: (className?: string) => string
     getContainerRect: GetRect
     getHtmlEditorModalRect: GetRect
     setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
-} & ONA extends OptionNode[] ? {extensionsOptionsProps: ExtensionOptionPropsArray<ONA, ONAA, WTA>} : {}
+} & AvailableKey<ONA, NonEmptyArray<OptionNode>, {extensionOptionsProps: ExtensionOptionPropsArray<ONA, ONAA, WTA>}>
 
-export default function useOptions({spanClassesNames=[], linkClassName=defaultLinkClassName, extensionOptionsProps=[], getClassesNames, getContainerRect, getHtmlEditorModalRect, setHtmlEditorVisibleTrue}: Props) {
+export default function useOptions<ONA extends OptionNode[], ONAA extends MapOptionNodeTo<ONA, "attr">, WTA extends MapOptionNodeTo<ONA, "wt">>({spanClassesNames=[], linkClassName=defaultLinkClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, setHtmlEditorVisibleTrue, extensionOptionsProps}: Props<ONA, ONAA, WTA>) {
     const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: {}, submissionAction: () => {}})
     const {setFormModalVisible, formModal, getFormModalRect, containsFormModalNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
     const setupFormModal: SetupFormModal = (inputsProps, modifyNewNodes, finish) => {
@@ -72,33 +95,33 @@ export default function useOptions({spanClassesNames=[], linkClassName=defaultLi
     const {imageOption} = useImageOption({setupFormModal, setHtmlEditorVisibleTrue})
 
     const options = <>
-           <Option getNewOptionNode={(t) => createText(t)} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={getClassesNames()}>
-            T
-           </Option>
-           {[...defaultSpanClassesNames,, ...spanClassesNames].map((className) => {
-            const classesNames = getClassesNames(className)
-            return  <Option getNewOptionNode={(t) => createSpan({innerHTML: t, className: classesNames})} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={classesNames}>
-                    S
+                    <Option<Text, undefined, true> getNewOptionNode={(t) => createText(t)} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={getClassesNames()}>
+                      T
                     </Option>
-            }
-            )}
-           {linkOption}
-           {imageOption}
-           {extensionOptionsProps.map(({className, inputsProps, ...extensionOptionsPropsRest}) => {
-            const optionPropsRest = {...extensionOptionsPropsRest}
-            if (inputsProps) {
-              const showFormModal: ShowFormModal<, > = (modifyNewLinks, finish) => {
-                setupFormModal<HTMLAnchorElement, AttributesToAsk>(inputsProps, modifyNewLinks, finish)
-              }
-              Object.assign(optionPropsRest, {showFormModal})
-            }
+                    {[...defaultSpanClassesNames, ...spanClassesNames].map((className) => {
+                      const classesNames = getClassesNames(className)
+                      return  <Option<HTMLSpanElement, undefined, true> getNewOptionNode={(t) => createSpan({innerHTML: t, className: classesNames})} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={classesNames}>
+                              S
+                              </Option>
+                      }
+                      )}
+                    {linkOption}
+                    {imageOption}
+                    {extensionOptionsProps.map(({className, inputsProps,  ...extensionOptionsPropsRest}) => {
+                      const optionPropsRest = {...extensionOptionsPropsRest}
+                      if (inputsProps) {
+                        const showFormModal: ShowFormModal<, > = (modifyNewLinks, finish) => {
+                          setupFormModal<HTMLAnchorElement, AttributesToAsk>(inputsProps, modifyNewLinks, finish)
+                        }
+                        Object.assign(optionPropsRest, {showFormModal})
+                      }
 
-            return  <Option  setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={getClassesNames(className)} {...optionPropsRest}>
-                    S
-                    </Option>
-            }
-           )}
-           </>
+                      return  <Option  setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={getClassesNames(className)} {...optionPropsRest}>
+                              S
+                              </Option>
+                      }
+                    )}
+                    </>
 
-           return {options, formModal}
+    return {options, formModal}
 }
