@@ -29,10 +29,15 @@ export type IfAllIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = ne
 }[U] ? ELSE : IF;
 export type IfOneNotIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IfAllIn<U, IN, ELSE, IF>;
 export type IfAllAreNotIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IfOneIn<U, IN, ELSE, IF>;
+export type IfAllPropertiesIn<P extends object, IN extends object, IF, Else = {}> = P extends IN ? IF : Else;
 export type NonEmptyArray<T> = [T, ...T[]];
 export declare const isNonEmpty: <T>(a: T[]) => a is NonEmptyArray<T>;
 export type ChangeKeysNames<O extends object, NewKeysNames extends [keyof O, PropertyKey][]> = {
     [K in keyof O as SeekNewType<K, NewKeysNames> extends infer V ? V extends PropertyKey ? V : K : never]: O[K];
 };
 export type ChangeKeyName<O extends object, NewKeyName extends [keyof O, PropertyKey]> = ChangeKeysNames<O, [NewKeyName]>;
+export type EmptyObject = Record<PropertyKey, never>;
+export type Available<T, U, A extends object> = T extends U ? A : {
+    [K in keyof A]?: never;
+};
 export {};

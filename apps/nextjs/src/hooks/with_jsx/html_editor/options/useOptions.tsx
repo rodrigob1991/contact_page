@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { ReactNode, useEffect, useState } from "react"
 import { GetRect } from "../../../../types/dom"
 import { createSpan, createText } from "../../../../utils/domManipulations"
 import useFormModal, { SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
@@ -8,7 +8,8 @@ import Option, { OptionNode, OptionProps, SetHtmlEditorVisibleTrue, ShowFormModa
 import { InputsPropsOptionNodeAttributes, SetupFormModal } from "./with_form/types"
 import useImageOption from "./with_form/useImageOption"
 import useLinkOption from "./with_form/useLinkOption"
-import { AvailableKey, NonEmptyArray } from "utils/src/types"
+import { Available, NonEmptyArray } from "utils/src/types"
+import { ContainsNode } from "../../../../components/ResizableDraggableDiv"
 
 declare global {
   interface Window {
@@ -17,51 +18,27 @@ declare global {
 }
 
 const defaultSpanClassesNames = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"] as const
-/* type DefaultSpanClassName = (typeof defaultSpanClassesNames)[number]
-type UseDefaultSpanClassesNames = {[K in DefaultSpanClassName]: boolean} */
 const defaultLinkClassName = "linkOption"
-
-// Define the generic type T with a parameter P
-type T<P extends boolean> = {
-    one: P;
-    two: P extends true ? "si" : "no";
-};
-
-// Define a type for a union of T<true> and T<false>
-type TUnion = T<true> | T<false>;
-
-// Define the type L to be an object with a property `list` which is an array of TUnion objects
-type L = {
-    list: TUnion[];
-};
-
-// Example usage:
-const exampleMixed: L = {
-    list: [
-        { one: true, two: "si" },
-        { one: false, two: "no" }
-    ]
-};
 
 type ExtensionOptionProps<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean> = 
   Omit<OptionProps<ON, ONA, WT>, "setHtmlEditorVisibleTrue" | "showFormModal"> 
-  & AvailableKey<ON, ONA, {inputsProps: InputsPropsOptionNodeAttributes<ON, Exclude<ONA, undefined>>}>
+  & Available<ON, ONA, {inputsProps: InputsPropsOptionNodeAttributes<ON, Exclude<ONA, undefined>>}>
 
-type ExtensionOptionPropsArray<ONA extends OptionNode[], ONAA extends (Partial<ONA[number]> | undefined)[], WTA extends boolean[], R=ExtensionOptionProps<ONA[number], ONAA[number], WTA[number]>[]> = 
-  ONA extends [infer ON, ...infer ONAR] ? ONAA extends [infer ONA, ...infer ONAAR] ? WTA extends [infer WT, ...infer WTR] ? WT extends boolean ? ON extends OptionNode ? ONA extends (Partial<ON> | undefined) ?  ONAR extends OptionNode[] ? ONAAR extends (Partial<ONAR[number]> | undefined)[] ? WTR extends boolean[] ? [ExtensionOptionProps<ON, ONA, WT>, ...ExtensionOptionPropsArray<ONAR, ONAAR, WTR>] : never : never : never : never : never : never : R : R : R
+type ExtensionOptionPropsArray<ONS extends OptionNode[], ONAS extends (Partial<ONS[number]> | undefined)[], WTS extends boolean[], R=ExtensionOptionProps<ONS[number], ONAS[number], WTS[number]>[]> = 
+  ONS extends [infer ON, ...infer ONSR] ? ONAS extends [infer ONA, ...infer ONASR] ? WTS extends [infer WT, ...infer WTSR] ? WT extends boolean ? ON extends OptionNode ? ONA extends (Partial<ON> | undefined) ?  ONSR extends OptionNode[] ? ONASR extends (Partial<ONSR[number]> | undefined)[] ? WTSR extends boolean[] ? [ExtensionOptionProps<ON, ONA, WT>, ...ExtensionOptionPropsArray<ONSR, ONASR, WTSR>] : never : never : never : never : never : never : R : R : R
 
-type MapOptionNodeTo<ONA extends OptionNode[], TO extends "attr" | "wt", D extends Partial<ONA[number]> | undefined | boolean= TO extends "attr" ? Partial<ONA[number]> | undefined : boolean> = ONA extends [infer ON, ...infer ONAR] ? [TO extends "attr" ? Omit<D, Exclude<keyof ONAR[number], keyof ON>> | undefined : D , ...(ONAR extends [] ? MapOptionNodeTo<ONAR, TO>: [])] : D[]
+export type MapOptionNodeTo<ONS extends OptionNode[], TO extends "attr" | "wt", D extends Partial<ONS[number]> | undefined | boolean= TO extends "attr" ? Partial<ONS[number]> | undefined : boolean> = ONS extends [infer ON, ...infer ONSR] ? [TO extends "attr" ? Omit<D, Exclude<keyof ONSR[number], keyof ON>> | undefined : D , ...(ONSR extends [] ? MapOptionNodeTo<ONSR, TO>: [])] : D[]
 
-type Props<ONA extends OptionNode[]=[], ONAA extends MapOptionNodeTo<ONA, "attr">=MapOptionNodeTo<ONA, "attr", undefined>, WTA extends MapOptionNodeTo<ONA, "wt">=MapOptionNodeTo<ONA, "wt", true>> = {
+export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, WTS extends MapOptionNodeTo<ONS, "wt">> = {
     spanClassesNames?: string[]
     linkClassName?: string
     getClassesNames: (className?: string) => string
     getContainerRect: GetRect
     getHtmlEditorModalRect: GetRect
     setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
-} & AvailableKey<ONA, NonEmptyArray<OptionNode>, {extensionOptionsProps: ExtensionOptionPropsArray<ONA, ONAA, WTA>}>
+} & Available<ONS, NonEmptyArray<OptionNode>, {extensionOptionsProps: ExtensionOptionPropsArray<ONS, ONAS, WTS>}>
 
-export default function useOptions<ONA extends OptionNode[], ONAA extends MapOptionNodeTo<ONA, "attr">, WTA extends MapOptionNodeTo<ONA, "wt">>({spanClassesNames=[], linkClassName=defaultLinkClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, setHtmlEditorVisibleTrue, extensionOptionsProps}: Props<ONA, ONAA, WTA>) {
+export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, WTS extends MapOptionNodeTo<ONS, "wt">>({spanClassesNames=[], linkClassName=defaultLinkClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, setHtmlEditorVisibleTrue, extensionOptionsProps}: UseOptionsProps<ONS, ONAS, WTS>): {options: ReactNode, formModal: ReactNode, containsFormModalNode: ContainsNode} {
     const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: {}, submissionAction: () => {}})
     const {setFormModalVisible, formModal, getFormModalRect, containsFormModalNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
     const setupFormModal: SetupFormModal = (inputsProps, modifyNewNodes, finish) => {
@@ -104,24 +81,28 @@ export default function useOptions<ONA extends OptionNode[], ONAA extends MapOpt
                               S
                               </Option>
                       }
-                      )}
+                    )}
                     {linkOption}
                     {imageOption}
-                    {extensionOptionsProps.map(({className, inputsProps,  ...extensionOptionsPropsRest}) => {
-                      const optionPropsRest = {...extensionOptionsPropsRest}
+                    
+                    {// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition 
+                    extensionOptionsProps && 
+                    (extensionOptionsProps as ExtensionOptionPropsArray<ONS, ONAS, WTS>).map(({className, inputsProps, children, ...extensionOptionPropsRest}) => {
+                      type ON = ONS[number]
+                      type ONA = ONAS[number]
+                      type WT = WTS[number]
+                      let showFormModal: ShowFormModal<ON, Exclude<ONA, undefined>> | undefined
                       if (inputsProps) {
-                        const showFormModal: ShowFormModal<, > = (modifyNewLinks, finish) => {
-                          setupFormModal<HTMLAnchorElement, AttributesToAsk>(inputsProps, modifyNewLinks, finish)
+                        showFormModal = (modifyNewLinks, finish) => {
+                          setupFormModal<ON, Exclude<ONA, undefined>>(inputsProps, modifyNewLinks, finish)
                         }
-                        Object.assign(optionPropsRest, {showFormModal})
                       }
-
-                      return  <Option  setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={getClassesNames(className)} {...optionPropsRest}>
-                              S
+                      return  <Option<ON, ONA, WT> setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={getClassesNames(className)} showFormModal={showFormModal} {...extensionOptionPropsRest}>
+                              {children}
                               </Option>
                       }
                     )}
                     </>
 
-    return {options, formModal}
+    return {options, formModal, containsFormModalNode}
 }

@@ -1,13 +1,14 @@
-import {Presentation, PresentationHTMLElementIdsKey, ViewMode} from "../../../types/home"
-import styled from "@emotion/styled"
-import React, { use, useEffect, useLayoutEffect, useRef, useState } from "react"
-import {ImageViewSelector, ProcessSelectedImage} from "../../FormComponents"
-import Image from "next/image"
-import SkillsChart, {CreateSkill, DeleteSkill} from "./SkillsChart"
-import {Observe} from "../../../pages/user/edit_home"
-import {maxWidthSmallestLayout, minWidthFullLayout, presentationLayout as layout, SkillsChartSmallestLayout, SkillsChartLayout, SkillBarWidth, skillsChartLayout, skillsChartSmallestLayout} from "../../../layouts"
-import { mainColor } from "../../../theme"
 import { css } from "@emotion/react"
+import styled from "@emotion/styled"
+import Image from "next/image"
+import { useEffect, useRef, useState } from "react"
+import { Available } from "utils/src/types"
+import { presentationLayout as layout, maxWidthSmallestLayout, minWidthFullLayout, skillsChartLayout } from "../../../layouts"
+import { Observe } from "../../../pages/user/edit_home"
+import { mainColor } from "../../../theme"
+import { Presentation, PresentationHTMLElementIdsKey, ViewMode } from "../../../types/home"
+import { ImageViewSelector, ProcessSelectedImage } from "../../FormComponents"
+import SkillsChart, { CreateSkill, DeleteSkill } from "./SkillsChart"
 
 export type GetHtmlElementId = <K extends PresentationHTMLElementIdsKey>(key: K, skillId: (K extends "skills" ? string : undefined)) =>  string
 type EditingProps = {
@@ -19,7 +20,7 @@ type EditingProps = {
 }
 type Props<VM extends ViewMode> = {
     presentation: Presentation
-} & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
+} & Available<VM, "editing", EditingProps>
 
 export default function PresentationView<VM extends ViewMode>({editing, presentation, getHtmlElementId, createSkill, deleteSkill, observe}: Props<VM>) {
       const {name, introduction, skills, image} = presentation

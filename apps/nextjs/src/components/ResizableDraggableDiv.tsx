@@ -42,7 +42,6 @@ export type EventsHandlers = {
     onEndResizingHandler?: () => void
     onStartDraggingHandler?: () => void
     onEndDraggingHandler?: () => void
-    
 }
 
 type Props = {

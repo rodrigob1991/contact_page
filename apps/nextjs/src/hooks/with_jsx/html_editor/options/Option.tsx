@@ -3,7 +3,7 @@ import { MouseEventHandler, ReactNode } from "react"
 import { positionCaretOn } from "../../../../utils/domManipulations"
 import collapsedSelectionHandler from "../selection_handlers/collapsed"
 import rangeSelectionHandler from "../selection_handlers/range"
-import { AvailableKey } from "utils/src/types"
+import { Available } from "utils/src/types"
 
 export type OptionNode = Text | Element
 export type GetNewOptionNode<WT extends boolean, ON extends OptionNode> = WT extends true ? (text: string) => ON : WT extends false ? () => ON : (text?: string) => ON
@@ -22,7 +22,7 @@ export type OptionProps<ON extends OptionNode, ONA extends Partial<ON> | undefin
   insertInNewLine: boolean
   className?: string
   setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
-} & AvailableKey<ON, ONA, {showFormModal: ShowFormModal<ON, Exclude<ONA, undefined>>}>
+} & Available<ON, ONA, {showFormModal: ShowFormModal<ON, Exclude<ONA, undefined>>}>
 export default function Option<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean>({children, withText, getNewOptionNode, collapsedSelectionText=" ...", insertInNewLine, className, setHtmlEditorVisibleTrue, showFormModal}: OptionProps<ON, ONA, WT>) {
   const onClickHandler: MouseEventHandler = (e) => {
     //selectionHandler(optionType, getTargetOptionNode)
