@@ -1,13 +1,13 @@
 import { css, keyframes } from "@emotion/react"
 
-type Props = {
+export type SyntheticCaretProps = {
     visible: boolean
-    top: number
-    left: number
-    height: number
-    width: number
+    top?: number
+    left?: number
+    height?: number
+    width?: number
 }
-export default function SyntheticCaret({visible, top, left, height, width}: Props) {
+export default function SyntheticCaret({visible, top=0, left=0, height=50, width=50}: SyntheticCaretProps) {
     return <div css={staticStyle} style={{display: visible ? "block" : "none", top: top + "px", left: left + "px", height: height + "px", width: width + "px"}}></div>
 }
 const blink = keyframes`

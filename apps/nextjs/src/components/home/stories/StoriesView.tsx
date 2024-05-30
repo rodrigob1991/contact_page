@@ -1,7 +1,7 @@
 import { css } from "@emotion/react"
 import styled from "@emotion/styled"
 import { StoryState } from "@prisma/client"
-import React, { FocusEventHandler, MouseEventHandler, TouchEventHandler, memo, useEffect, useRef, useState } from "react"
+import React, { MouseEventHandler, TouchEventHandler, memo, useEffect, useRef, useState } from "react"
 import useHtmlEditor from "../../../hooks/with_jsx/html_editor/useHtmlEditor"
 import { Observe } from "../../../pages/user/edit_home"
 import { mainColor, secondColor } from "../../../theme"
@@ -168,21 +168,21 @@ export default function StoriesView<M extends ViewMode>({
     }
     const [editingStoryId, setEditingStoryId] = useState<string>()
 
-    const {setHtmlEditorModalVisible, htmlEditorModal, containsHtmlEditorModalNode} = useHtmlEditor({getContainerRect: () => getContainer().getBoundingClientRect()})
+    const {setHtmlEditorModalVisible, htmlEditorModal, containsHtmlEditorModalNode, targetEventHandlers} = useHtmlEditor({getContainerRect: () => getContainer().getBoundingClientRect()})
 
-    const onMouseUpHandler: MouseEventHandler = (e) => {
+   /*  const onMouseUpHandler: MouseEventHandler = (e) => {
       setHtmlEditorModalVisible(true, {top: e.clientY, left: e.clientX})
-    }
+    } */
 
     const getEditableStoriesView = () => storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
                                          const {title,body, state} = story as Story
                                          const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
-                                         const handleOnBlurBody: FocusEventHandler<HTMLDivElement> = (e) => {
+                                         /* const handleOnBlurBody: FocusEventHandler<HTMLDivElement> = (e) => {
                                           const focusedTarget = e.relatedTarget
                                           if(focusedTarget && !containsHtmlEditorModalNode(focusedTarget))
                                             setHtmlEditorModalVisible(false)
-                                         }
+                                         } */
 
                                          return <StoryContainer id={idHtml} key={idHtml}>
                                                 <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r)=> {(observe as Observe)(r, {mutation: "default"})}}
@@ -196,7 +196,7 @@ export default function StoriesView<M extends ViewMode>({
                                                 </StoryTitleContainer>
                                                 <MemoizedStoryBody id={htmlIds.body} contentEditable={!toDelete}
                                                                    ref={r => {if(r) {refToLastStory.current = r; (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
-                                                                   dangerouslySetInnerHTML={{__html: body}} onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody}/>
+                                                                   dangerouslySetInnerHTML={{__html: body}} {...targetEventHandlers} onK /* onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody} *//>
                                                 </StoryContainer>
                                          })
 
