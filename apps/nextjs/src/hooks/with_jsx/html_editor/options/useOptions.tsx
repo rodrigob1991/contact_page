@@ -39,16 +39,22 @@ export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNode
 } & Available<ONS, NonEmptyArray<OptionNode>, {extensionOptionsProps: ExtensionOptionPropsArray<ONS, ONAS, WTS>}>
 
 export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, WTS extends MapOptionNodeTo<ONS, "wt">>({spanClassesNames=[], linkClassName=defaultLinkClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, setHtmlEditorVisibleTrue, extensionOptionsProps}: UseOptionsProps<ONS, ONAS, WTS>): {options: ReactNode, formModal: ReactNode, containsFormModalNode: ContainsNode} {
-    const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: {}, submissionAction: () => {}})
+    const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: [], submissionAction: () => {}})
     const {setFormModalVisible, formModal, getFormModalRect, containsFormModalNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
-    const setupFormModal: SetupFormModal = (inputsProps, modifyNewNodes, finish) => {
-        const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
-            setFormModalVisible(false)
-            modifyNewNodes(values)
-            finish()
-        } 
-        setFormModalPropsRest({inputsProps, submissionAction})
-        setFormModalVisible(true, getFormModalPosition(getFormModalRect().height))
+    const setupFormModal: SetupFormModal = (inputsPropsByAttr, modifyNewNodes, finish) => {
+      const inputsProps = []
+      const attrs = []
+      for (const key in inputsPropsByAttr) {
+        attrs.push(key)
+        inputsProps.push(inputsPropsByAttr[key])
+      }
+      const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
+          setFormModalVisible(false)
+          modifyNewNodes(Object.fromEntries(attrs.map((attr, index) => [attr, values[index]])))
+          finish()
+      } 
+      setFormModalPropsRest({inputsProps, submissionAction})
+      setFormModalVisible(true, getFormModalPosition(getFormModalRect().height))
     }
     const getFormModalPosition = (formModalHeight: number): ModalPosition => {
       const rangeTop = document.getSelection()?.getRangeAt(0).getBoundingClientRect().top

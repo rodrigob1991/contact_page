@@ -3,8 +3,14 @@ import { IoIosMail } from "react-icons/io"
 import { maxWidthSmallestLayout } from "../../../../../layouts"
 import { tooltipStyle } from "../../../../../theme"
 import WithTooltip from "../../../../WithTooltip"
-import useFormModal from "../../../../../hooks/with_jsx/forms/useFormModal"
+import useFormModal, { SubmissionAction } from "../../../../../hooks/with_jsx/forms/useFormModal"
 import { postEmail } from "../../../../../httpClient"
+
+const inputsProps = [
+                    {type: "textInput", props: {required: true, email: true, placeholder: "from"}},
+                    {type: "textInput", props: {placeholder: "subject"}},
+                    {type: "textAreaInput", props: {required: true, placeholder: "message"}}
+                    ] as const
 
 export default function SendEmail() {
     /* const sendEmail = ({from, subject, message}: { from: string, subject: string, message: string }) => {
@@ -51,41 +57,13 @@ export default function SendEmail() {
         })
     } */
 
-    const sendEmail = ({from, subject, message}: {from: string, subject: string, message: string}) => postEmail({sender: {email: from}, receivers: [{email: process.env.NEXT_PUBLIC_MY_EMAIL as string, name: "rodrigo"}], subject, message})
+    const submissionAction: SubmissionAction<typeof inputsProps> = ([from, subject, message]) => postEmail({sender: {email: from}, receivers: [{email: process.env.NEXT_PUBLIC_MY_EMAIL as string, name: "rodrigo"}], subject, message})
 
-    const [showSendMessageModal, sendMessageModal] = useFormModal({
-                                                                    inputsProps: {
-                                                                        from: {
-                                                                            type: "textInput",
-                                                                            props: {
-                                                                                    required: true,
-                                                                                    email: true,
-                                                                                    placeholder: "from"
-                                                                                    }
-                                                                        },
-                                                                        subject: {
-                                                                            type: "textInput",
-                                                                            props: {
-                                                                                    placeholder: "subject",
-                                                                                    style: {fontSize: "2rem"}
-                                                                                    }
-                                                                        },
-                                                                        message: {
-                                                                            type: "textAreaInput",
-                                                                            props: {
-                                                                                    required: true,
-                                                                                    placeholder: "message",
-                                                                                    style: {fontSize: "2rem"}
-                                                                                    }
-                                                                        }
-                                                                    },
-                                                                    submissionAction: sendEmail,
-                                                                    buttonText: "SEND EMAIL"
-                                                                })
+    const {setFormModalVisible, formModal} = useFormModal({inputsProps, submissionAction, buttonText: "SEND EMAIL"})
                                                         
     return <>
-           {sendMessageModal}
-           <WithTooltip renderChildren={(handlers) => <SendEmailImage onClick={(e) => {showSendMessageModal(true)}} {...handlers}/>}
+           {formModal}
+           <WithTooltip renderChildren={(handlers) => <SendEmailImage onClick={(e) => {setFormModalVisible(true)}} {...handlers}/>}
                         tooltipText={"send email"} tooltipDeviation={{top: 0, left: 15}} tooltipStyle={tooltipStyle}/>
            </>
 

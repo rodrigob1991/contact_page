@@ -9,6 +9,7 @@ export type TextInputProps = {
     placeholder?: string
     fromSpan?: boolean
     email?: boolean
+    required?:boolean
     onEnter?: () => void
     onEscape?: () => void
 }
@@ -31,14 +32,13 @@ export const TextInput = forwardRef(({value, setValue, fromSpan=false, email, on
         }
     }
 // TODO:  add placeholder to span variety
-    return ( fromSpan ? <SpanInput ref={ref} {...rest} contentEditable onInput={(e) => {setValue((e.target as HTMLSpanElement).innerText)}} onKeyDown={handleKeyDown}>
+    return (fromSpan ? <SpanInput ref={ref} {...rest} contentEditable onInput={(e) => {setValue((e.target as HTMLSpanElement).innerText)}} onKeyDown={handleKeyDown}>
                         {value}
                         </SpanInput>
                       : <Input ref={ref} value={value} {...rest} type={email ? "email" : "text"} 
                                onInput={(e) => { setValue((e.target as HTMLInputElement).value) }}
-                               onKeyDown={handleKeyDown}
-                        />
-    )
+                               onKeyDown={handleKeyDown}/>
+            )
 })
 TextInput.displayName = "TextInput"
 

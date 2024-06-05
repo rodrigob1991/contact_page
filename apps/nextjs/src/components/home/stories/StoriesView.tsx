@@ -196,7 +196,7 @@ export default function StoriesView<M extends ViewMode>({
                                                 </StoryTitleContainer>
                                                 <MemoizedStoryBody id={htmlIds.body} contentEditable={!toDelete}
                                                                    ref={r => {if(r) {refToLastStory.current = r; (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
-                                                                   dangerouslySetInnerHTML={{__html: body}} {...targetEventHandlers} onK /* onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody} *//>
+                                                                   dangerouslySetInnerHTML={{__html: body}} {...targetEventHandlers} /* onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody} *//>
                                                 </StoryContainer>
                                          })
 

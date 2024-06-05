@@ -14,7 +14,7 @@ const defaultGetColorClassName = (color: string) => "color" + upperCaseFirstChar
 
 type SetVisibleOnSelection = (visible: boolean, mousePosition?: {top: number, left: number}) => void
 
-type TargetEventHandlers = {onMouseUpHandler: MouseEventHandler, onKeyUpHandler: KeyboardEventHandler, onBlurHandler: FocusEventHandler}
+type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onBlur: FocusEventHandler}
 
 type Props<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, WTS extends MapOptionNodeTo<ONS, "wt">> = {
     getContainerRect: GetRect
@@ -117,7 +117,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
               }
               if (selection.isCollapsed) {
                  setSyntheticCaretStates({visible: true, top: rangeRelativeTop, left: rangeRelativeLeft, height: rangeBottom - rangeTop, width: 3})
-               }
+              }
               if (isColorsModalVisible()) {
                 setColorsModalVisible(true, {top: `${top + height + 5}px`, left: `${left}px`})
               }
@@ -127,19 +127,20 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         } else {
         }
     }
+
     const containsHtmlEditorModalAndFormModalNode: ContainsNode = (node) => containsHtmlEditorModalNode(node) || containsColorsModalNode(node) || containsFormModalNode(node)
     
     const targetEventHandlers: TargetEventHandlers = {
-      onMouseUpHandler: (e) => {
+      onMouseUp: (e) => {
         setVisibleOnSelection(true, { top: e.clientY, left: e.clientX })
       },
-      onKeyUpHandler: (e) => {
-        setHtmlEditorModalVisible(true, { top: e.clientY, left: e.clientX })
+      onKeyUp: (e) => {
+        setVisibleOnSelection(true)
       },
-      onBlurHandler: (e) => {
+      onBlur: (e) => {
         const focusedTarget = e.relatedTarget
-        if (focusedTarget && !containsHtmlEditorModalNode(focusedTarget))
-          setHtmlEditorModalVisible(false)
+        if (!containsHtmlEditorModalAndFormModalNode(focusedTarget))
+          setVisibleOnSelection(false)
       },
     }
 
@@ -157,7 +158,8 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
       ...restReturn,
     }
 }
-export const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false, /* onMouseDownHandler: (e: React.MouseEvent) => {e.preventDefault()} */}
+
+export const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  /* onMouseDownHandler: (e: React.MouseEvent) => {e.preventDefault()} */}
 //export const formModalCommonProps = {positionType: "absolute", showLoadingBars: false, ...modalCommonProps} as const
 
 const Container = styled.div`

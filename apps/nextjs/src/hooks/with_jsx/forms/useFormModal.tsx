@@ -26,29 +26,44 @@ type CheckboxTypeProps = Omit<CheckboxProps, "onChange">
 type InputTypesProps = {textInput: TextInputTypeProps, textAreaInput: TextAreaInputTypeProps, numberInput: NumberInputTypeProps, imageSelector: ImageSelectorTypeProps, checkbox: CheckboxTypeProps}
 type InputType = keyof InputTypesProps
 type InputProp<IT extends InputType=InputType> = {[K in IT]: {type: K, props?: InputTypesProps[K]}}[IT]
-export type InputsProps = {[key: string]: InputProp}
+//export type InputsProps = {[key: string]: InputProp}
+export type InputsProps = readonly InputProp[]
 type InputValue<IT extends InputType=InputType> = Exclude<InputTypesProps[IT]["value"], undefined>
 //type InputValue<IT extends InputType=InputType> = {textInput: string, textAreaInput: string, numberInput: number, imageSelector: ImageData, checkbox: boolean}[IT]
-export type InputsValues<IP extends InputsProps> = {
-    [K in keyof IP]: InputValue<IP[K]["type"]>
-}
+// export type InputsValues<IP extends InputsProps> = {
+//     [K in keyof IP]: InputValue<IP[K]["type"]>
+// }
+export type InputsValues<IP extends InputsProps> = IP extends readonly[infer F, ...infer R] ? F extends  InputProp ? [InputValue<F["type"]>, ...(R extends InputsProps ? InputsValues<R> : [])] : [] : []
+
 //export type AssignableInputType<V extends InputValue> = {[K in InputType]: V extends InputValue<K> ? K : never}[InputType]
 export type AssignableInputProp<V> = {[K in InputType]: V extends InputValue<K> ? InputProp<K> : never}[InputType]
 //type SetValues<IP extends InputsProps> = (iv: InputsValues<IP>) => void
 
-const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, InputsValues<IP>, () => void] => {
-    const elementsRef = useRef(<></>)
+const useInputsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, InputsValues<IP> | undefined, () => void] => {
+    //const elementsRef = useRef(<></>)
+    const [inputs, setInputs] = useState(<></>)
     //const valuesRef = useRef({})
-    const [values, setValues] = useState<InputsValues<IP>>(() => (() => {const values: {[k: string]: InputValue | undefined} = {}; Object.entries(inputsProps).forEach(([key, value]) =>  {values[key] = value.props?.value}); return values as InputsValues<IP>})())
+    const [values, setValues] = useState<InputsValues<IP>>()
     const firstInputRef = useRef<HTMLInputElement | null>(null)
     const setFirstInputRef = (input: HTMLInputElement | null) => {if(!firstInputRef.current) firstInputRef.current = input}
 
     useEffect(() => {
         let inputs = <></>
-        for (const key in inputsProps) {
-            const {type, props} = inputsProps[key]
+        const values = []
+        let index = 0
+        for (const {type, props} of inputsProps) {
+            //const {type, props} = inputsProps[key]
             //const propsRest =  props ? (({value, ...propsRest}) =>  propsRest)(props) : undefined
-            const setValue = (value: InputValue<typeof type>) => {setValues((values) => {const nextValues = {...values}; nextValues[key] = value; return nextValues})}
+            const setValue = (value: InputValue<typeof type>) => {
+                setValues((values) => {
+                    let nextValues: InputsValues<IP> | undefined = undefined
+                    if (values) {
+                        nextValues = [...values]
+                        nextValues[index] = value
+                    }
+                    return nextValues
+                })
+            }
             let input
             switch (type) {
                 case "textInput":
@@ -71,11 +86,20 @@ const useElementsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode
                      {inputs}
                      {input}
                      </>
+            values.push(props?.value)
+
+            index++
         }
-        elementsRef.current = inputs
+        setInputs(inputs)
+        setValues(values as InputsValues<IP>)
     }, [inputsProps])
 
-    return [elementsRef.current, values, () => {firstInputRef.current?.focus()}]
+    const focusFirstInput = () => {
+      console.table(firstInputRef.current)
+      firstInputRef.current?.focus()
+    }
+
+    return [inputs, values, focusFirstInput]
 }
 
 const FormContainer = styled.form`
@@ -116,7 +140,7 @@ export default function useFormModal<IP extends InputsProps, N extends ModalName
                                                       name,
                                                       ... modalProps
                                                       }: UseFormModalProps<IP, N, PT>) : UseFormModalReturn<N> {
-    const [inputs, values, focusFirstInput] = useElementsValues(inputsProps)
+    const [inputs, values, focusFirstInput] = useInputsValues(inputsProps)
 
     const [loading, setLoading] = useState(false)
 
@@ -130,20 +154,23 @@ export default function useFormModal<IP extends InputsProps, N extends ModalName
         cleanResultMessage()
     }
 
-    const handleSubmission: FormEventHandler<HTMLFormElement> = (e) => {
-        e.preventDefault()
-        cleanResultMessage()
-        if (showLoadingBars) setLoading(true)
- 
-        Promise.resolve(
-        submissionAction(values))
-        .then((resultMessage) => { 
-            if(resultMessage)
-            setResultMessage(resultMessage)
-        })
-        .finally(() => {setLoading(false)})
-        .catch((e) => {})
-    }
+    const handleSubmission: FormEventHandler<HTMLFormElement> | undefined =
+      values
+        ? (e) => {
+            e.preventDefault()
+            cleanResultMessage()
+            if (showLoadingBars) setLoading(true)
+
+            Promise.resolve(submissionAction(values))
+              .then((resultMessage) => {
+                if (resultMessage) setResultMessage(resultMessage)
+              })
+              .finally(() => {
+                setLoading(false)
+              })
+              .catch((e) => {})
+          }
+        : undefined
 
     const children = <FormContainer onSubmit={handleSubmission}>
                      {inputs}
@@ -159,7 +186,7 @@ export default function useFormModal<IP extends InputsProps, N extends ModalName
     const setFormModalVisible: SetModalVisible = (visible, position) => {
       (setVisible as SetModalVisible)(visible, position)
       if(visible) 
-        setTimeout(() => {focusFirstInput()})
+        setTimeout(() => {focusFirstInput()}, 200)
     }
     
     return {

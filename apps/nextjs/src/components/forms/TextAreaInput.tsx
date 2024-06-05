@@ -4,11 +4,12 @@ import { inputShareStyles } from "./TextInput"
 export type TextAreaInputProps = {
     value?: string
     setValue: (value: string) => void
+    required: boolean
 } 
 
-export const TextAreaInput = ({value, setValue}: TextAreaInputProps) => {
+export const TextAreaInput = ({value, setValue, ...rest}: TextAreaInputProps) => {
     return (
-        <TextArea value={value} onChange={(e) => {setValue(e.target.value)}}/>
+        <TextArea value={value} onChange={(e) => {setValue(e.target.value)}} {...rest}/>
     )
 }
 const TextArea = styled.textarea`
