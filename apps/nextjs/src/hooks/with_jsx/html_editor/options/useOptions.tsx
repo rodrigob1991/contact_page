@@ -1,15 +1,15 @@
 import { ReactNode, useEffect, useState } from "react"
+import { Available, NonEmptyArray } from "utils/src/types"
+import { ContainsNode } from "../../../../components/ResizableDraggableDiv"
 import { GetRect } from "../../../../types/dom"
 import { createSpan, createText } from "../../../../utils/domManipulations"
-import useFormModal, { SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
+import useFormModal, { MutableInputsProps, SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
 import { ModalPosition } from "../../useModal"
 import { modalCommonProps } from "../useHtmlEditor"
 import Option, { OptionNode, OptionProps, SetHtmlEditorVisibleTrue, ShowFormModal } from "./Option"
 import { InputsPropsOptionNodeAttributes, SetupFormModal } from "./with_form/types"
 import useImageOption from "./with_form/useImageOption"
 import useLinkOption from "./with_form/useLinkOption"
-import { Available, NonEmptyArray } from "utils/src/types"
-import { ContainsNode } from "../../../../components/ResizableDraggableDiv"
 
 declare global {
   interface Window {
@@ -39,18 +39,19 @@ export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNode
 } & Available<ONS, NonEmptyArray<OptionNode>, {extensionOptionsProps: ExtensionOptionPropsArray<ONS, ONAS, WTS>}>
 
 export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, WTS extends MapOptionNodeTo<ONS, "wt">>({spanClassesNames=[], linkClassName=defaultLinkClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, setHtmlEditorVisibleTrue, extensionOptionsProps}: UseOptionsProps<ONS, ONAS, WTS>): {options: ReactNode, formModal: ReactNode, containsFormModalNode: ContainsNode} {
-    const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: [], submissionAction: () => {}})
+    const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps<MutableInputsProps>, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: [], submissionAction: () => {}})
     const {setFormModalVisible, formModal, getFormModalRect, containsFormModalNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
     const setupFormModal: SetupFormModal = (inputsPropsByAttr, modifyNewNodes, finish) => {
-      const inputsProps = []
-      const attrs = []
+      type OptionNodeAttrs = Parameters<typeof modifyNewNodes>[0]
+      const inputsProps: MutableInputsProps = []
+      const attrs: (keyof OptionNodeAttrs)[] = []
       for (const key in inputsPropsByAttr) {
         attrs.push(key)
         inputsProps.push(inputsPropsByAttr[key])
       }
       const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
           setFormModalVisible(false)
-          modifyNewNodes(Object.fromEntries(attrs.map((attr, index) => [attr, values[index]])))
+          modifyNewNodes(Object.fromEntries(attrs.map((attr, index) => [attr, values[index]])) as OptionNodeAttrs)
           finish()
       } 
       setFormModalPropsRest({inputsProps, submissionAction})

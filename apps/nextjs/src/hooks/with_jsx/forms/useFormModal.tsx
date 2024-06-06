@@ -27,13 +27,15 @@ type InputTypesProps = {textInput: TextInputTypeProps, textAreaInput: TextAreaIn
 type InputType = keyof InputTypesProps
 type InputProp<IT extends InputType=InputType> = {[K in IT]: {type: K, props?: InputTypesProps[K]}}[IT]
 //export type InputsProps = {[key: string]: InputProp}
-export type InputsProps = readonly InputProp[]
+export type MutableInputsProps = InputProp[]
+export type ReadonlyInputsProps = readonly InputProp[]
+export type InputsProps = MutableInputsProps | ReadonlyInputsProps
 type InputValue<IT extends InputType=InputType> = Exclude<InputTypesProps[IT]["value"], undefined>
 //type InputValue<IT extends InputType=InputType> = {textInput: string, textAreaInput: string, numberInput: number, imageSelector: ImageData, checkbox: boolean}[IT]
 // export type InputsValues<IP extends InputsProps> = {
 //     [K in keyof IP]: InputValue<IP[K]["type"]>
 // }
-export type InputsValues<IP extends InputsProps> = IP extends readonly[infer F, ...infer R] ? F extends  InputProp ? [InputValue<F["type"]>, ...(R extends InputsProps ? InputsValues<R> : [])] : [] : []
+export type InputsValues<IP extends InputsProps> = IP extends [infer F, ...infer R] ? F extends  InputProp ? [InputValue<F["type"]>, ...(R extends InputsProps ? InputsValues<R> : [])] : never : InputValue<IP[number]["type"]>[]
 
 //export type AssignableInputType<V extends InputValue> = {[K in InputType]: V extends InputValue<K> ? K : never}[InputType]
 export type AssignableInputProp<V> = {[K in InputType]: V extends InputValue<K> ? InputProp<K> : never}[InputType]
