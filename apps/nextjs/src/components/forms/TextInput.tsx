@@ -1,6 +1,6 @@
 import { css } from "@emotion/react"
 import styled from "@emotion/styled"
-import { Ref, forwardRef } from "react"
+import { forwardRef } from "react"
 import { mainColor } from "../../theme"
 
 export type TextInputProps = {
@@ -14,7 +14,7 @@ export type TextInputProps = {
     onEscape?: () => void
 }
 
-export const TextInput = forwardRef(({value, setValue, fromSpan=false, email, onEnter, onEscape, ...rest}: TextInputProps, ref : Ref<HTMLInputElement>) => {
+const TextInput = forwardRef<HTMLInputElement, TextInputProps>(({value, setValue, fromSpan=false, email, onEnter, onEscape, ...rest}, ref) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         switch (e.key.toLowerCase()) {
             case "enter" :
@@ -64,3 +64,4 @@ const SpanInput = styled.span`
     overflow: hidden;
     white-space: nowrap;
 `
+export default TextInput

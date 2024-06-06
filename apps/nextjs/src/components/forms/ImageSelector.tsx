@@ -1,5 +1,5 @@
 import { css } from "@emotion/react"
-import { ChangeEventHandler, MouseEventHandler, useEffect, useRef, useState } from "react"
+import { ChangeEventHandler, MouseEventHandler, forwardRef, useEffect, useRef, useState } from "react"
 import { getContainedString } from "utils/src/strings"
 import { Button } from "../Buttons"
 import styled from "@emotion/styled"
@@ -13,7 +13,7 @@ export type ImageSelectorProps = {
     disabled?: boolean
     value?: ImageData
 }
-export default function ImageSelector({processSelectedImage, buttonText="choose image", imageMaxSize=5, disabled = false, value}: ImageSelectorProps) {
+const ImageSelector = forwardRef<HTMLButtonElement, ImageSelectorProps>(({processSelectedImage, buttonText="choose image", imageMaxSize=5, disabled = false, value}, ref) => {
     const [imageData, setImageData] = useState(value)
     useEffect(() => {
         setImageData(value)
@@ -49,13 +49,13 @@ export default function ImageSelector({processSelectedImage, buttonText="choose 
 
     return <Container>
            <input ref={inputFileRef} onChange={handleImageSelection} style={{display: "none"}} type={"file"} accept={"image/*"}/>
-           <Button onClick={handleClickChooseImage} disabled={disabled}>
+           <Button ref={ref} onClick={handleClickChooseImage} disabled={disabled}>
            {buttonText}
            </Button>
            {imageData && <label>{imageData.name + "." + imageData.extension}</label>}
            {imageSizeErrorStr && <label css={imageSizeErrorLabelCss}>{imageSizeErrorStr}</label>}
            </Container>
-}
+})
 const Container = styled.div`
  display: flex;
  flex-direction: row;
@@ -67,3 +67,5 @@ const imageSizeErrorLabelCss = css`
   font-size: 15px;
   color: red;
 `
+
+export default ImageSelector

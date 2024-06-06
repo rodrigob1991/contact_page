@@ -1,18 +1,14 @@
-import { Ref, forwardRef } from "react"
+import { forwardRef } from "react"
 import { Input } from "./TextInput"
 
 export type NumberInputProps = {
     value?: number
     setValue: (value: number) => void
     placeholder?: string
+    required?:boolean
     onEnter?: () => void
 }
-export const NumberInput = forwardRef(({ 
-                                        value,
-                                        setValue,
-                                        onEnter,
-                                        ... rest
-                                     }: NumberInputProps, ref : Ref<HTMLInputElement>) => {
+const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(({ value, setValue, onEnter, ... rest}, ref) => {
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         switch (e.key.toLowerCase()) {
             case "enter" :
@@ -27,4 +23,6 @@ export const NumberInput = forwardRef(({
         <Input type={"number"} ref={ref} value={value} {...rest} onChange={(e) => {setValue(Number(e.target.value))}} onKeyDown={handleKeyDown}/>
     )
 })
-NumberInput.displayName = "NumberInput"
+//NumberInput.displayName = "NumberInput"
+
+export default NumberInput

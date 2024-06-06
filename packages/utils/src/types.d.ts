@@ -40,4 +40,5 @@ export type EmptyObject = Record<PropertyKey, never>;
 export type Available<T, U, A extends object> = T extends U ? A : {
     [K in keyof A]?: never;
 };
+export type ReadOnlyOrMutableArray<T> = (readonly T[]) | T[];
 export {};

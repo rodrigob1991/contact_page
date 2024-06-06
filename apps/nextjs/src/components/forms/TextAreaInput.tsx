@@ -1,17 +1,16 @@
 import styled from "@emotion/styled"
 import { inputShareStyles } from "./TextInput"
+import { forwardRef } from "react"
 
 export type TextAreaInputProps = {
     value?: string
     setValue: (value: string) => void
-    required: boolean
+    required?: boolean
 } 
 
-export const TextAreaInput = ({value, setValue, ...rest}: TextAreaInputProps) => {
-    return (
-        <TextArea value={value} onChange={(e) => {setValue(e.target.value)}} {...rest}/>
-    )
-}
+const TextAreaInput = forwardRef<HTMLTextAreaElement, TextAreaInputProps>(({value, setValue, ...rest} , ref) => {
+    return <TextArea ref={ref} value={value} onChange={(e) => {setValue(e.target.value)}} {...rest}/>
+})
 const TextArea = styled.textarea`
     vertical-align: top;
     text-align: left;
@@ -20,3 +19,5 @@ const TextArea = styled.textarea`
     width: 100%;
     ${inputShareStyles}
 `
+
+export default TextAreaInput

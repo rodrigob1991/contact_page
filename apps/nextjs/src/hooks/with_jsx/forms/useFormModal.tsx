@@ -6,9 +6,9 @@ import { ResultMessage, ResultMessageProps } from "../../../components/Labels"
 import { BlocksLoader } from "../../../components/Loaders"
 import Checkbox, { CheckboxProps } from "../../../components/forms/Checkbox"
 import ImageSelector, { ImageSelectorProps } from "../../../components/forms/ImageSelector"
-import { NumberInput, NumberInputProps } from "../../../components/forms/NumberInput"
-import { TextAreaInput, TextAreaInputProps } from "../../../components/forms/TextAreaInput"
-import { TextInput, TextInputProps } from "../../../components/forms/TextInput"
+import NumberInput, { NumberInputProps } from "../../../components/forms/NumberInput"
+import TextAreaInput, { TextAreaInputProps } from "../../../components/forms/TextAreaInput"
+import TextInput, { TextInputProps } from "../../../components/forms/TextInput"
 import { secondColor } from "../../../theme"
 import useModal, { ModalFullName, ModalName, PositionType, SetModalVisible, SetVisibleKey, UseModalProps, UseModalReturn, modalDefaultName } from "../useModal"
 
@@ -46,8 +46,8 @@ const useInputsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, 
     const [inputs, setInputs] = useState(<></>)
     //const valuesRef = useRef({})
     const [values, setValues] = useState<InputsValues<IP>>()
-    const firstInputRef = useRef<HTMLInputElement | null>(null)
-    const setFirstInputRef = (input: HTMLInputElement | null) => {if(!firstInputRef.current) firstInputRef.current = input}
+    const firstInputRef = useRef<HTMLInputElement & HTMLTextAreaElement & HTMLButtonElement | null>(null)
+    const getInputRef = (index: number) => index === 0 ? firstInputRef : null
 
     useEffect(() => {
         let inputs = <></>
@@ -56,11 +56,12 @@ const useInputsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, 
         for (const {type, props} of inputsProps) {
             //const {type, props} = inputsProps[key]
             //const propsRest =  props ? (({value, ...propsRest}) =>  propsRest)(props) : undefined
+            const ref = getInputRef(index)
             const setValue = (value: InputValue<typeof type>) => {
                 setValues((values) => {
                     let nextValues: InputsValues<IP> | undefined = undefined
                     if (values) {
-                        nextValues = [...values]
+                        nextValues = [...values] as InputsValues<IP>
                         nextValues[index] = value
                     }
                     return nextValues
@@ -69,19 +70,19 @@ const useInputsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, 
             let input
             switch (type) {
                 case "textInput":
-                    input = <TextInput ref={setFirstInputRef} {...props} setValue={setValue}/>
+                    input = <TextInput ref={ref} {...props} setValue={setValue}/>
                     break
                 case "numberInput":
-                    input = <NumberInput ref={setFirstInputRef} {...props} setValue={setValue}/>
+                    input = <NumberInput ref={ref} {...props} setValue={setValue}/>
                     break
                 case "textAreaInput":
-                    input = <TextAreaInput ref={setFirstInputRef} {...props} setValue={setValue}/>
+                    input = <TextAreaInput ref={ref} {...props} setValue={setValue}/>
                     break
                 case "imageSelector":
-                    input = <ImageSelector ref={setFirstInputRef} {...props} processSelectedImage={setValue}/>
+                    input = <ImageSelector ref={ref} {...props} processSelectedImage={setValue}/>
                     break
                 case "checkbox":
-                    input = <Checkbox ref={setFirstInputRef} {...props} onChange={setValue}/>
+                    input = <Checkbox ref={ref} {...props} onChange={setValue}/>
                     break
             }
             inputs = <>
