@@ -98,7 +98,6 @@ const useInputsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, 
     }, [inputsProps])
 
     const focusFirstInput = () => {
-      console.table(firstInputRef.current)
       firstInputRef.current?.focus()
     }
 

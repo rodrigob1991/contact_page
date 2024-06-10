@@ -16,7 +16,7 @@ const inputsProps = {
 
 type Props = {
 }
-const useImageOption: UseOptionWithForm<Props, "image"> = function({setupFormModal, setHtmlEditorVisibleTrue}) {
+const useImageOption: UseOptionWithForm<Props, "image"> = function({setupFormModal, ...rest}) {
     //const [imageFormModalPropsRest, setImageFormModalPropsRest] = useState({inputsProps, submissionAction})
     //const updateImageFormModalProps = {inputsProps: updateImageFormInputsProps, submissionAction: updateImageFormSubmissionAction}
     //const {setImageFormModalVisible, imageFormModal, getImageFormModalRect, containsImageFormModalNode} = useFormModal({name: "image", buttonText: "insert", ...formModalCommonProps, ...imageFormModalPropsRest})
@@ -40,7 +40,7 @@ const useImageOption: UseOptionWithForm<Props, "image"> = function({setupFormMod
     } */
     const getNewImage = () => createImage({onclick: (e) => {window.modifyElement(e.target as HTMLImageElement, inputsProps)}})
   
-    const imageOption = <Option getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} showFormModal={showFormModal} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue}>
+    const imageOption = <Option getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} showFormModal={showFormModal} {...rest}>
                         <FcPicture size={30}/>
                         </Option>
 

@@ -1,6 +1,7 @@
 import { ReactNode } from "react"
 import { Finish, ModifyNewNodes, OptionNode, SetHtmlEditorVisibleTrue } from "../Option"
 import { AssignableInputProp } from "../../../forms/useFormModal"
+import { GetLastSelectionData } from "../../useHtmlEditor"
 
 export type InputsPropsOptionNodeAttributes<ON extends OptionNode, ONA extends Partial<ON>> = {[K in keyof ONA]: AssignableInputProp<ONA[K]>}
 export type SetupFormModal = <ON extends OptionNode, ONA extends Partial<ON>>(inputsProps: InputsPropsOptionNodeAttributes<ON, ONA>, modifyNewNodes: ModifyNewNodes<ON, ONA>, finish: Finish) => void
@@ -9,6 +10,7 @@ export type UseOptionWithFormProps<P> = {
   //setHtmlEditorVisibleTrue: () => void
   setupFormModal: SetupFormModal
   setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
+  getLastSelectionData: GetLastSelectionData
 } & P
 export type UseOptionWithFormReturn<N extends string> = {
   [K in `${N}Option`]: ReactNode

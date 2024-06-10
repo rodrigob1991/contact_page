@@ -1,5 +1,5 @@
 import styled from "@emotion/styled"
-import { FocusEventHandler, KeyboardEventHandler, MouseEventHandler, useState } from "react"
+import { FocusEventHandler, KeyboardEventHandler, MouseEventHandler, useRef, useState } from "react"
 import { upperCaseFirstChar } from "utils/src/strings"
 import { ChangePropertyType } from "utils/src/types"
 import { ContainsNode, EventsHandlers } from "../../../components/ResizableDraggableDiv"
@@ -11,6 +11,9 @@ import SyntheticCaret, { SyntheticCaretProps } from "../../../components/Synthet
 
 const defaultColors = ["red", "blue", "green", "yellow", "black"]
 const defaultGetColorClassName = (color: string) => "color" + upperCaseFirstChar(color) + "Option"
+
+export type SelectionData = {isCollapsed: boolean, anchorNode: Node | undefined, anchorOffset: number, ranges: Range[], rect: DOMRect}
+export type GetLastSelectionData = () => SelectionData | undefined
 
 type SetVisibleOnSelection = (visible: boolean, mousePosition?: {top: number, left: number}) => void
 
@@ -61,13 +64,22 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
 
     const getOptionClassesNames = (className?: string) =>  getColorClassName(selectedColor) + (className ? " " + className : "")
 
-    // const getFormModalPosition = (formModalHeight: number): ModalPosition => {
-    //   const rangeTop = document.getSelection()?.getRangeAt(0).getBoundingClientRect().top
-    //   const {top, left, height} = getHtmlEditorModalRect()
-    //   const {top: containerTop, left: containerLeft} = getContainerRect()
-    //   return {top: `${top - containerTop + (((rangeTop ?? 0) > top) ? -formModalHeight-5 : height + 5)}px`, left: `${left - containerLeft}px`}
-    // }
-    const {options, formModal, containsFormModalNode} = useOptions({ spanClassesNames, linkClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), setHtmlEditorVisibleTrue: () => {setVisibleOnSelection(true)}})
+    const lastSelectionDataRef = useRef<SelectionData>()
+    const getLastSelectionData = () => lastSelectionDataRef.current
+    const setLastSelectionData = () => {
+      let lastSelectionData = undefined
+      const selection = document.getSelection()
+      if (selection) {
+        const ranges = []
+        for (let i=0; i < selection.rangeCount; i ++){
+          ranges.push(selection.getRangeAt(i))
+        }
+        lastSelectionData = {isCollapsed: selection.isCollapsed, anchorNode: selection.anchorNode ?? undefined, anchorOffset: selection.anchorOffset, ranges, rect: ranges[0].getBoundingClientRect()}
+      }
+      lastSelectionDataRef.current = lastSelectionData
+    }
+
+    const {options, formModal, containsFormModalNode} = useOptions({ spanClassesNames, linkClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), setHtmlEditorVisibleTrue: () => {setVisibleOnSelection(true)}, getLastSelectionData})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState<SyntheticCaretProps>({visible: false})
     
@@ -98,11 +110,11 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         if (visible) {
           // the setTimeout is because when click over an existing range the top of the new range rectangle remain like the older one
           setTimeout(() => { 
-            const selection = document.getSelection()
-            if (selection) {
+            const lastSelectionData = getLastSelectionData()
+            if (lastSelectionData) {
               const {height} = getHtmlEditorModalRect()
               const {top: containerTop, left: containerLeft} = getContainerRect()
-              const range = selection.getRangeAt(0)
+              const range = lastSelectionData.ranges[0]
               const {top: rangeTop, left: rangeLeft, height: rangeHeight, width: rangeWidth, bottom: rangeBottom} = range.getBoundingClientRect()
               const rangeRelativeTop = rangeTop - containerTop
               const rangeRelativeLeft = rangeLeft - containerLeft
@@ -115,7 +127,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
                 top = rangeRelativeTop - height - 5
                 left = rangeLeft
               }
-              if (selection.isCollapsed) {
+              if (lastSelectionData.isCollapsed) {
                  setSyntheticCaretStates({visible: true, top: rangeRelativeTop, left: rangeRelativeLeft, height: rangeBottom - rangeTop, width: 3})
               }
               if (isColorsModalVisible()) {
@@ -132,9 +144,11 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
     
     const targetEventHandlers: TargetEventHandlers = {
       onMouseUp: (e) => {
+        setLastSelectionData()
         setVisibleOnSelection(true, { top: e.clientY, left: e.clientX })
       },
       onKeyUp: (e) => {
+        setLastSelectionData()
         setVisibleOnSelection(true)
       },
       onBlur: (e) => {

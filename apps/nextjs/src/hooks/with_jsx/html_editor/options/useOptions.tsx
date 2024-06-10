@@ -5,7 +5,7 @@ import { GetRect } from "../../../../types/dom"
 import { createSpan, createText } from "../../../../utils/domManipulations"
 import useFormModal, { MutableInputsProps, SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
 import { ModalPosition } from "../../useModal"
-import { modalCommonProps } from "../useHtmlEditor"
+import { GetLastSelectionData, modalCommonProps } from "../useHtmlEditor"
 import Option, { OptionNode, OptionProps, SetHtmlEditorVisibleTrue, ShowFormModal } from "./Option"
 import { InputsPropsOptionNodeAttributes, SetupFormModal } from "./with_form/types"
 import useImageOption from "./with_form/useImageOption"
@@ -36,9 +36,10 @@ export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNode
     getContainerRect: GetRect
     getHtmlEditorModalRect: GetRect
     setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
+    getLastSelectionData: GetLastSelectionData
 } & Available<ONS, NonEmptyArray<OptionNode>, {extensionOptionsProps: ExtensionOptionPropsArray<ONS, ONAS, WTS>}>
 
-export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, WTS extends MapOptionNodeTo<ONS, "wt">>({spanClassesNames=[], linkClassName=defaultLinkClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, setHtmlEditorVisibleTrue, extensionOptionsProps}: UseOptionsProps<ONS, ONAS, WTS>): {options: ReactNode, formModal: ReactNode, containsFormModalNode: ContainsNode} {
+export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, WTS extends MapOptionNodeTo<ONS, "wt">>({spanClassesNames=[], linkClassName=defaultLinkClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, extensionOptionsProps, ...rest}: UseOptionsProps<ONS, ONAS, WTS>): {options: ReactNode, formModal: ReactNode, containsFormModalNode: ContainsNode} {
     const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps<MutableInputsProps>, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: [], submissionAction: () => {}})
     const {setFormModalVisible, formModal, getFormModalRect, containsFormModalNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
     const setupFormModal: SetupFormModal = (inputsPropsByAttr, modifyNewNodes, finish) => {
@@ -55,13 +56,15 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
           finish()
       } 
       setFormModalPropsRest({inputsProps, submissionAction})
-      setFormModalVisible(true, getFormModalPosition(getFormModalRect().height))
+      setTimeout(() => {setFormModalVisible(true, getFormModalPosition())}, 200)
     }
-    const getFormModalPosition = (formModalHeight: number): ModalPosition => {
-      const rangeTop = document.getSelection()?.getRangeAt(0).getBoundingClientRect().top
-      const {top, left, height} = getHtmlEditorModalRect()
+    const getFormModalPosition = (): ModalPosition => {
+      const rangeTop = rest.getLastSelectionData()?.rect.top ?? 0
+      const {top: editorTop, left: editorLeft, height: heightTop} = getHtmlEditorModalRect()
       const {top: containerTop, left: containerLeft} = getContainerRect()
-      return {top: `${top - containerTop + (((rangeTop ?? 0) > top) ? -formModalHeight-5 : height + 5)}px`, left: `${left - containerLeft}px`}
+      const isEditorAboveRange = editorTop < rangeTop
+
+      return {top: `${editorTop - containerTop + (isEditorAboveRange ? -getFormModalRect().height-5 : heightTop + 5)}px`, left: `${editorLeft - containerLeft}px`}
     }
     useEffect(() => {
       window.modifyElement = (element, inputsProps) => {
@@ -75,16 +78,16 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       }
     }, [])
 
-    const {linkOption} = useLinkOption({className: getClassesNames(linkClassName), setupFormModal, setHtmlEditorVisibleTrue})
-    const {imageOption} = useImageOption({setupFormModal, setHtmlEditorVisibleTrue})
+    const {linkOption} = useLinkOption({className: getClassesNames(linkClassName), setupFormModal, ...rest})
+    const {imageOption} = useImageOption({setupFormModal, ...rest})
 
     const options = <>
-                    <Option<Text, undefined, true> getNewOptionNode={(t) => createText(t)} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={getClassesNames()}>
+                    <Option<Text, undefined, true> getNewOptionNode={(t) => createText(t)} withText insertInNewLine={false} className={getClassesNames()} {...rest}>
                       T
                     </Option>
                     {[...defaultSpanClassesNames, ...spanClassesNames].map((className) => {
                       const classesNames = getClassesNames(className)
-                      return  <Option<HTMLSpanElement, undefined, true> getNewOptionNode={(t) => createSpan({innerHTML: t, className: classesNames})} withText insertInNewLine={false} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={classesNames}>
+                      return  <Option<HTMLSpanElement, undefined, true> getNewOptionNode={(t) => createSpan({innerHTML: t, className: classesNames})} withText insertInNewLine={false} className={classesNames} {...rest}>
                               S
                               </Option>
                       }
@@ -104,7 +107,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
                           setupFormModal<ON, Exclude<ONA, undefined>>(inputsProps, modifyNewLinks, finish)
                         }
                       }
-                      return  <Option<ON, ONA, WT> setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue} className={getClassesNames(className)} showFormModal={showFormModal} {...extensionOptionPropsRest}>
+                      return  <Option<ON, ONA, WT> className={getClassesNames(className)} showFormModal={showFormModal} {...extensionOptionPropsRest} {...rest}>
                               {children}
                               </Option>
                       }

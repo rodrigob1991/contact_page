@@ -4,6 +4,7 @@ import { positionCaretOn } from "../../../../utils/domManipulations"
 import collapsedSelectionHandler from "../selection_handlers/collapsed"
 import rangeSelectionHandler from "../selection_handlers/range"
 import { Available } from "utils/src/types"
+import { GetLastSelectionData } from "../useHtmlEditor"
 
 export type OptionNode = Text | Element
 export type GetNewOptionNode<WT extends boolean, ON extends OptionNode> = WT extends true ? (text: string) => ON : WT extends false ? () => ON : (text?: string) => ON
@@ -22,12 +23,13 @@ export type OptionProps<ON extends OptionNode, ONA extends Partial<ON> | undefin
   insertInNewLine: boolean
   className?: string
   setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
+  getLastSelectionData: GetLastSelectionData
 } & Available<ON, ONA, {showFormModal: ShowFormModal<ON, Exclude<ONA, undefined>>}>
-export default function Option<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean>({children, withText, getNewOptionNode, collapsedSelectionText=" ...", insertInNewLine, className, setHtmlEditorVisibleTrue, showFormModal}: OptionProps<ON, ONA, WT>) {
+export default function Option<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean>({children, withText, getNewOptionNode, collapsedSelectionText=" ...", insertInNewLine, className, setHtmlEditorVisibleTrue, getLastSelectionData, showFormModal}: OptionProps<ON, ONA, WT>) {
   const onClickHandler: MouseEventHandler = (e) => {
     //selectionHandler(optionType, getTargetOptionNode)
-    const selection = document.getSelection()
-    if (selection) {
+    const lastSelectionData = getLastSelectionData()
+    if (lastSelectionData) {
         const newNodes: OptionNode[] = []
         const getNewOptionNodeWrapper = (withText ? (text: string) => {
           const newNode = (getNewOptionNode as GetNewOptionNode<true, ON>)(text)
@@ -39,14 +41,12 @@ export default function Option<ON extends OptionNode, ONA extends Partial<ON> | 
           return newNode
         }) as GetNewOptionNode<WT, ON>
 
-        const {isCollapsed, rangeCount, anchorNode, anchorOffset} = selection
+        const {isCollapsed, anchorNode, anchorOffset, ranges} = lastSelectionData
         if (isCollapsed) {
           const optionNode = withText ? (getNewOptionNodeWrapper as GetNewOptionNode<true, ON>)(collapsedSelectionText) : (getNewOptionNodeWrapper as GetNewOptionNode<false, ON>)()
           collapsedSelectionHandler(optionNode, insertInNewLine, anchorNode as ChildNode, anchorOffset)
         } else {
-          for (let i = 0; i < rangeCount; i++) {
-            rangeSelectionHandler(withText, getNewOptionNodeWrapper, insertInNewLine, selection.getRangeAt(i))
-          }
+          ranges.forEach(r => {rangeSelectionHandler(withText, getNewOptionNodeWrapper, insertInNewLine, r)})
         }
         const finish = () => {
           if (withText) {

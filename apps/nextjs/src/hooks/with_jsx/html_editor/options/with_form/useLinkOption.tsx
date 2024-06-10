@@ -10,14 +10,14 @@ type AttributesToAsk = {href: string}
 type Props = {
   className: string
 }
-const useLinkOption: UseOptionWithForm<Props, "link"> = function({className, setupFormModal, setHtmlEditorVisibleTrue}) {
+const useLinkOption: UseOptionWithForm<Props, "link"> = function({className, setupFormModal, ...rest}) {
   const showFormModal: ShowFormModal<HTMLAnchorElement, AttributesToAsk> = (modifyNewLinks, finish) => {
     setupFormModal<HTMLAnchorElement, AttributesToAsk>(inputsProps, modifyNewLinks, finish)
   }
 
   const getNewAnchor = (t: string) => createAnchor({innerHTML: t, className, onclick: (e) => {window.modifyElement<HTMLAnchorElement, {href: string}>(e.target as HTMLAnchorElement, inputsProps)}})
 
-  const linkOption = <Option className={className} getNewOptionNode={getNewAnchor} collapsedSelectionText={"new link"} withText insertInNewLine={false} showFormModal={showFormModal} setHtmlEditorVisibleTrue={setHtmlEditorVisibleTrue}>
+  const linkOption = <Option className={className} getNewOptionNode={getNewAnchor} collapsedSelectionText={"new link"} withText insertInNewLine={false} showFormModal={showFormModal} {...rest}>
                      Link
                      </Option>
 

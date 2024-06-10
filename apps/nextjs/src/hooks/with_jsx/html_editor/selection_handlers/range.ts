@@ -1,16 +1,16 @@
 import { isEmpty } from "utils/src/strings"
 import { createDiv, createText, getTexts, hasSiblingOrParentSibling, isAnchor, isDiv, isSpan, isText, lookUpDivParent, removeNodesFromOneSide } from "../../../../utils/domManipulations"
-import { GetNewOptionNode } from "../options/Option"
+import { GetNewOptionNode, OptionNode } from "../options/Option"
 
-export default function rangeSelectionHandler<WT extends boolean>(withText: WT, getNewOptionNode: GetNewOptionNode<WT>, insertInNewLine: boolean, range: Range) {
+export default function rangeSelectionHandler<WT extends boolean, ON extends OptionNode>(withText: WT, getNewOptionNode: GetNewOptionNode<WT, ON>, insertInNewLine: boolean, range: Range) {
     const copySelectedFragment = range.cloneContents()
 
     if (!withText && !insertInNewLine) {
-        copySelectedFragment.replaceChildren((getNewOptionNode as GetNewOptionNode<false>)())
+        copySelectedFragment.replaceChildren((getNewOptionNode as GetNewOptionNode<false, ON>)())
     }
     else if (!withText && insertInNewLine) {
         const newLineDiv = createDiv()
-        newLineDiv.appendChild((getNewOptionNode as GetNewOptionNode<false>)())
+        newLineDiv.appendChild((getNewOptionNode as GetNewOptionNode<false, ON>)())
         copySelectedFragment.replaceChildren(newLineDiv)
     }
     else if (withText && insertInNewLine) {
