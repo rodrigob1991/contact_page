@@ -5,7 +5,7 @@ import { Button } from "../../../components/Buttons"
 import { ResultMessage, ResultMessageProps } from "../../../components/Labels"
 import { BlocksLoader } from "../../../components/Loaders"
 import Checkbox, { CheckboxProps } from "../../../components/forms/Checkbox"
-import ImageSelector, { ImageSelectorProps } from "../../../components/forms/ImageSelector"
+import ImageSelector, { ImageSelectorProps, ImageData } from "../../../components/forms/ImageSelector"
 import NumberInput, { NumberInputProps } from "../../../components/forms/NumberInput"
 import TextAreaInput, { TextAreaInputProps } from "../../../components/forms/TextAreaInput"
 import TextInput, { TextInputProps } from "../../../components/forms/TextInput"
@@ -23,14 +23,14 @@ type ImageSelectorTypeProps = Omit<ImageSelectorProps, "setValue" | "processSele
 //type ImageSelectorType = {type: "imageSelector", props?: ImageSelectorTypeProps}
 type CheckboxTypeProps = Omit<CheckboxProps, "onChange">
 //type CheckboxType = {type: "checkbox", props?: CheckboxTypeProps}
-type InputTypesProps = {textInput: TextInputTypeProps, textAreaInput: TextAreaInputTypeProps, numberInput: NumberInputTypeProps, imageSelector: ImageSelectorTypeProps, checkbox: CheckboxTypeProps}
+export type InputTypesProps = {textInput: TextInputTypeProps, textAreaInput: TextAreaInputTypeProps, numberInput: NumberInputTypeProps, imageSelector: ImageSelectorTypeProps, checkbox: CheckboxTypeProps}
 type InputType = keyof InputTypesProps
-type InputProp<IT extends InputType=InputType> = {[K in IT]: {type: K, props?: InputTypesProps[K]}}[IT]
+export type InputProp<IT extends InputType=InputType> = {[K in IT]: {type: K, props?: InputTypesProps[K]}}[IT]
 //export type InputsProps = {[key: string]: InputProp}
 export type MutableInputsProps = InputProp[]
 export type ReadonlyInputsProps = readonly InputProp[]
 export type InputsProps = MutableInputsProps | ReadonlyInputsProps
-type InputValue<IT extends InputType=InputType> = Exclude<InputTypesProps[IT]["value"], undefined>
+type InputValue<IT extends InputType=InputType> = InputTypesProps[IT]["value"]
 //type InputValue<IT extends InputType=InputType> = {textInput: string, textAreaInput: string, numberInput: number, imageSelector: ImageData, checkbox: boolean}[IT]
 // export type InputsValues<IP extends InputsProps> = {
 //     [K in keyof IP]: InputValue<IP[K]["type"]>
@@ -41,67 +41,63 @@ export type InputsValues<IP extends InputsProps> = IP extends [infer F, ...infer
 export type AssignableInputProp<V> = {[K in InputType]: V extends InputValue<K> ? InputProp<K> : never}[InputType]
 //type SetValues<IP extends InputsProps> = (iv: InputsValues<IP>) => void
 
-const useInputsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, InputsValues<IP> | undefined, () => void] => {
+const useInputsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, InputsValues<IP>, () => void] => {
     //const elementsRef = useRef(<></>)
-    const [inputs, setInputs] = useState(<></>)
+    //const [inputs, setInputs] = useState(<></>)
     //const valuesRef = useRef({})
-    const [values, setValues] = useState<InputsValues<IP>>()
+    const [values, setValues] = useState<InputValue[]>([])
     const firstInputRef = useRef<HTMLInputElement & HTMLTextAreaElement & HTMLButtonElement | null>(null)
     const getInputRef = (index: number) => index === 0 ? firstInputRef : null
 
     useEffect(() => {
-        let inputs = <></>
-        const values = []
-        let index = 0
-        for (const {type, props} of inputsProps) {
-            //const {type, props} = inputsProps[key]
-            //const propsRest =  props ? (({value, ...propsRest}) =>  propsRest)(props) : undefined
-            const ref = getInputRef(index)
-            const setValue = (value: InputValue<typeof type>) => {
-                setValues((values) => {
-                    let nextValues: InputsValues<IP> | undefined = undefined
-                    if (values) {
-                        nextValues = [...values] as InputsValues<IP>
-                        nextValues[index] = value
-                    }
-                    return nextValues
-                })
-            }
-            let input
-            switch (type) {
-                case "textInput":
-                    input = <TextInput ref={ref} {...props} setValue={setValue}/>
-                    break
-                case "numberInput":
-                    input = <NumberInput ref={ref} {...props} setValue={setValue}/>
-                    break
-                case "textAreaInput":
-                    input = <TextAreaInput ref={ref} {...props} setValue={setValue}/>
-                    break
-                case "imageSelector":
-                    input = <ImageSelector ref={ref} {...props} processSelectedImage={setValue}/>
-                    break
-                case "checkbox":
-                    input = <Checkbox ref={ref} {...props} onChange={setValue}/>
-                    break
-            }
-            inputs = <>
-                     {inputs}
-                     {input}
-                     </>
-            values.push(props?.value)
-
-            index++
-        }
-        setInputs(inputs)
-        setValues(values as InputsValues<IP>)
+        const initValues: InputValue[] = []
+        inputsProps.forEach(({props}) => {initValues.push(props?.value)})
+        setValues(initValues)
     }, [inputsProps])
+
+    let inputs = <></>
+    let index = -1
+    for (const {type, props} of inputsProps) {
+        index++
+        const propsRest =  props ? (({value, ...propsRest}) =>  propsRest)(props) : undefined
+        const ref = getInputRef(index)
+                
+        const setValue = (value: InputValue) => {
+            setValues((values) => {
+                const nextValues = [...values]
+                nextValues[index] = value
+                return nextValues
+            })
+        }
+        let input
+        switch (type) {
+            case "textInput":
+                input = <TextInput ref={ref} {...propsRest} value={values[index] as string | undefined} setValue={setValue}/>
+                break
+            case "numberInput":
+                input = <NumberInput ref={ref} {...propsRest} value={values[index] as number | undefined} setValue={setValue}/>
+                break
+            case "textAreaInput":
+                input = <TextAreaInput ref={ref} {...propsRest} value={values[index] as string | undefined} setValue={setValue}/>
+                break
+            case "imageSelector":
+                input = <ImageSelector ref={ref} {...propsRest} value={values[index] as ImageData | undefined} processSelectedImage={setValue}/>
+                break
+            case "checkbox":
+                input = <Checkbox ref={ref} {...propsRest} value={values[index] as boolean | undefined} onChange={setValue}/>
+                break
+        }
+        inputs = <>
+                {inputs}
+                {input}
+                </>
+    }
 
     const focusFirstInput = () => {
       firstInputRef.current?.focus()
     }
 
-    return [inputs, values, focusFirstInput]
+    return [inputs, values as InputsValues<IP>, focusFirstInput]
 }
 
 const FormContainer = styled.form`
@@ -156,23 +152,20 @@ export default function useFormModal<IP extends InputsProps, N extends ModalName
         cleanResultMessage()
     }
 
-    const handleSubmission: FormEventHandler<HTMLFormElement> | undefined =
-      values
-        ? (e) => {
-            e.preventDefault()
-            cleanResultMessage()
-            if (showLoadingBars) setLoading(true)
+    const handleSubmission: FormEventHandler<HTMLFormElement> | undefined = (e) => {
+      e.preventDefault()
+      cleanResultMessage()
+      if (showLoadingBars) setLoading(true)
 
-            Promise.resolve(submissionAction(values))
-              .then((resultMessage) => {
-                if (resultMessage) setResultMessage(resultMessage)
-              })
-              .finally(() => {
-                setLoading(false)
-              })
-              .catch((e) => {})
-          }
-        : undefined
+      Promise.resolve(submissionAction(values))
+        .then((resultMessage) => {
+          if (resultMessage) setResultMessage(resultMessage)
+        })
+        .finally(() => {
+          setLoading(false)
+        })
+        .catch((e) => {})
+    }
 
     const children = <FormContainer onSubmit={handleSubmission}>
                      {inputs}

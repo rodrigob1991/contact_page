@@ -10,6 +10,16 @@ const inputsProps = {
   height: {type: "numberInput"},
   width: {type: "numberInput"},
 } as const
+type InputsProps = typeof inputsProps
+type InputsPropsKey = keyof InputsProps
+
+const getModifyInputsProps = (attr: AttributesToAsk) => {
+  const modifyInputsProps = structuredClone(inputsProps) as ModifyInputsProps
+  for (const key in modifyInputsProps) {
+    modifyInputsProps[key as InputsPropsKey].props.value = attr[key as InputsPropsKey] 
+  }
+  return modifyInputsProps
+}
 //type AttributesToAsk = {imageData: ImageData, height: number, width: number}
 /* const submissionAction: SubmissionAction<typeof inputsProps> = () => {
 } */
@@ -39,6 +49,12 @@ const useImageOption: UseOptionWithForm<Props, "image"> = function({setupFormMod
       setRemoveImage(() => fn)
     } */
     const getNewImage = () => createImage({onclick: (e) => {window.modifyElement(e.target as HTMLImageElement, inputsProps)}})
+
+    const onclick = (e: MouseEvent) => {
+      const anchor = e.target as HTMLImageElement
+      window.modifyElement<HTMLImageElement, AttributesToAsk>(anchor, getModifyInputsProps({href: anchor.href}))
+    }
+    const getNewAnchor = (t: string) => createAnchor({innerHTML: t, className, onclick})
   
     const imageOption = <Option getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} showFormModal={showFormModal} {...rest}>
                         <FcPicture size={30}/>

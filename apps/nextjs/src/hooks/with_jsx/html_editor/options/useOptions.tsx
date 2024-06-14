@@ -11,6 +11,7 @@ import { InputsPropsOptionNodeAttributes, SetupFormModal } from "./with_form/typ
 import useImageOption from "./with_form/useImageOption"
 import useLinkOption from "./with_form/useLinkOption"
 
+//export type GetInputPropValue<E extends HTMLElement, EA extends Partial<E>, IP extends InputsPropsOptionNodeAttributes<E, EA>> = <K extends keyof IP, P = IP[K]["props"]>(key: K) => ["value"]
 declare global {
   interface Window {
       modifyElement: <E extends HTMLElement, EA extends Partial<E>>(element: E, inputsProps: InputsPropsOptionNodeAttributes<E, EA>) => void
@@ -66,15 +67,21 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
 
       return {top: `${editorTop - containerTop + (isEditorAboveRange ? -getFormModalRect().height-5 : heightTop + 5)}px`, left: `${editorLeft - containerLeft}px`}
     }
+    
     useEffect(() => {
       window.modifyElement = (element, inputsProps) => {
+        const modifyInputsProps = {...inputsProps}
+        /* for (const key in inputsProps) {
+          if (!("props" in modifyInputsProps[key])) {
+            modifyInputsProps[key]["props"] = {}
+          }
+          modifyInputsProps[key].props["value"] = getInputPropValue[key]
+        } */
         const modifyNewNodes = (attr: Partial<typeof element>) => {
           Object.assign(element, attr)
         }
         const finish = () => {}
-        setupFormModal(inputsProps, modifyNewNodes, finish)
-        // const { top, left } = element.getBoundingClientRect()
-        // setFormModalVisible(true, {top:`${top}px`, left:`${left}px`})
+        setupFormModal(modifyInputsProps, modifyNewNodes, finish)
       }
     }, [])
 

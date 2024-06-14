@@ -3,8 +3,13 @@ import { Finish, ModifyNewNodes, OptionNode, SetHtmlEditorVisibleTrue } from "..
 import { AssignableInputProp } from "../../../forms/useFormModal"
 import { GetLastSelectionData } from "../../useHtmlEditor"
 
-export type InputsPropsOptionNodeAttributes<ON extends OptionNode, ONA extends Partial<ON>> = {[K in keyof ONA]: AssignableInputProp<ONA[K]>}
-export type SetupFormModal = <ON extends OptionNode, ONA extends Partial<ON>>(inputsProps: InputsPropsOptionNodeAttributes<ON, ONA>, modifyNewNodes: ModifyNewNodes<ON, ONA>, finish: Finish) => void
+export type InputsPropsOption<ON extends OptionNode, A extends Record<string, ON[keyof ON]>> = {[K in keyof A]: AssignableInputProp<A[K]>}
+export type ModifyInputsProps<ON extends OptionNode, IPO extends InputsPropsOption<O>> = {
+  [K1 in keyof InputsProps]: {
+    [K2 in keyof InputsProps[K1]]: K2 extends "props" ? InputsProps[K1][K2] & {value: InputTypesProps[InputsProps[K1]["type"]]["value"]} : InputsProps[K1][K2]
+  }
+}
+export type SetupFormModal = <ON extends OptionNode, ONA extends Partial<ON>>(inputsProps: InputsPropsOption<ON, ONA>, modifyNewNodes: ModifyNewNodes<ON, ONA>, finish: Finish) => void
 export type UseOptionWithFormProps<P> = {
   //getFormModalPosition: (height: number) => ModalPosition
   //setHtmlEditorVisibleTrue: () => void
