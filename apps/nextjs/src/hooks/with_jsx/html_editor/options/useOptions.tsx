@@ -7,14 +7,14 @@ import useFormModal, { MutableInputsProps, SubmissionAction, UseFormModalProps }
 import { ModalPosition } from "../../useModal"
 import { GetLastSelectionData, modalCommonProps } from "../useHtmlEditor"
 import Option, { OptionNode, OptionProps, SetHtmlEditorVisibleTrue, ShowFormModal } from "./Option"
-import { InputsPropsOptionNodeAttributes, SetupFormModal } from "./with_form/types"
+import { InputsPropsOptionNodeValues, SetupFormModal } from "./with_form/types"
 import useImageOption from "./with_form/useImageOption"
 import useLinkOption from "./with_form/useLinkOption"
 
 //export type GetInputPropValue<E extends HTMLElement, EA extends Partial<E>, IP extends InputsPropsOptionNodeAttributes<E, EA>> = <K extends keyof IP, P = IP[K]["props"]>(key: K) => ["value"]
 declare global {
   interface Window {
-      modifyElement: <E extends HTMLElement, EA extends Partial<E>>(element: E, inputsProps: InputsPropsOptionNodeAttributes<E, EA>) => void
+      modifyElement: <E extends HTMLElement, IPONV extends InputsPropsOptionNodeValues<E>>(element: E, inputsProps: InputsPropsOptionNodeAttributes<E, EA>) => void
   }
 }
 
@@ -70,18 +70,11 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
     
     useEffect(() => {
       window.modifyElement = (element, inputsProps) => {
-        const modifyInputsProps = {...inputsProps}
-        /* for (const key in inputsProps) {
-          if (!("props" in modifyInputsProps[key])) {
-            modifyInputsProps[key]["props"] = {}
-          }
-          modifyInputsProps[key].props["value"] = getInputPropValue[key]
-        } */
         const modifyNewNodes = (attr: Partial<typeof element>) => {
           Object.assign(element, attr)
         }
         const finish = () => {}
-        setupFormModal(modifyInputsProps, modifyNewNodes, finish)
+        setupFormModal(inputsProps, modifyNewNodes, finish)
       }
     }, [])
 
