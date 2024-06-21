@@ -24,21 +24,21 @@ type ImageSelectorTypeProps = Omit<ImageSelectorProps, "setValue" | "processSele
 type CheckboxTypeProps = Omit<CheckboxProps, "onChange">
 //type CheckboxType = {type: "checkbox", props?: CheckboxTypeProps}
 export type InputTypesProps = {textInput: TextInputTypeProps, textAreaInput: TextAreaInputTypeProps, numberInput: NumberInputTypeProps, imageSelector: ImageSelectorTypeProps, checkbox: CheckboxTypeProps}
-type InputType = keyof InputTypesProps
-export type InputProp<IT extends InputType=InputType> = {[K in IT]: {type: K, props?: InputTypesProps[K]}}[IT]
+export type InputType = keyof InputTypesProps
+export type InputProps<IT extends InputType=InputType> = {[K in IT]: {type: K, props?: InputTypesProps[K]}}[IT]
 //export type InputsProps = {[key: string]: InputProp}
-export type MutableInputsProps = InputProp[]
-export type ReadonlyInputsProps = readonly InputProp[]
+export type MutableInputsProps = InputProps[]
+export type ReadonlyInputsProps = readonly InputProps[]
 export type InputsProps = MutableInputsProps | ReadonlyInputsProps
 type InputValue<IT extends InputType=InputType> = InputTypesProps[IT]["value"]
 //type InputValue<IT extends InputType=InputType> = {textInput: string, textAreaInput: string, numberInput: number, imageSelector: ImageData, checkbox: boolean}[IT]
 // export type InputsValues<IP extends InputsProps> = {
 //     [K in keyof IP]: InputValue<IP[K]["type"]>
 // }
-export type InputsValues<IP extends InputsProps> = IP extends [infer F, ...infer R] ? F extends  InputProp ? [InputValue<F["type"]>, ...(R extends InputsProps ? InputsValues<R> : [])] : never : InputValue<IP[number]["type"]>[]
+export type InputsValues<IP extends InputsProps> = IP extends [infer F, ...infer R] ? F extends  InputProps ? [InputValue<F["type"]>, ...(R extends InputsProps ? InputsValues<R> : [])] : never : InputValue<IP[number]["type"]>[]
 
 //export type AssignableInputType<V extends InputValue> = {[K in InputType]: V extends InputValue<K> ? K : never}[InputType]
-export type AssignableInputProp<V> = {[K in InputType]: V extends InputValue<K> ? InputProp<K> : never}[InputType]
+export type AssignableInputProp<V> = {[K in InputType]: V extends InputValue<K> ? InputProps<K> : never}[InputType]
 //type SetValues<IP extends InputsProps> = (iv: InputsValues<IP>) => void
 
 const useInputsValues = <IP extends InputsProps>(inputsProps: IP) : [ReactNode, InputsValues<IP>, () => void] => {

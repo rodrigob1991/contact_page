@@ -10,11 +10,12 @@ const inputsProps = {
   height: {type: "numberInput"},
   width: {type: "numberInput"},
 } as const
-type InputsProps = typeof inputsProps
-type AttributesToAsk = {src: string, height: number, width: number}
 
-const getModifyInputsProps = (attr: AttributesToAsk) => {
-  const modifyInputsProps = structuredClone(inputsProps) as ModifyInputsPropsOptionNode<HTMLImageElement, InputsProps>
+type InputsPropsValues = {imageData: ImageData, height: number, width: number}
+type ImageElementValues = {src: string, height: number, width: number}
+
+const getModifyInputsProps = (attr: ImageElementValues) => {
+  const modifyInputsProps = structuredClone(inputsProps) as ModifyInputsPropsOptionNode<HTMLImageElement, InputsPropsValues>
   modifyInputsProps.imageData.props.value = {dataUrl: attr.src, name: "", extension: ""}
   modifyInputsProps.height.props.value = attr.height
   modifyInputsProps.width.props.value = attr.width
@@ -25,14 +26,14 @@ const getModifyInputsProps = (attr: AttributesToAsk) => {
 type Props = {
 }
 const useImageOption: UseOptionWithForm<Props, "image"> = function({setupFormModal, ...rest}) {
-    const showFormModal: ShowFormModal<HTMLImageElement, {src: string, height: number, width: number}> = (modifyNewImage, finish) => {
-      setupFormModal<HTMLImageElement, {imageData: ImageData, height: number, width: number}>(inputsProps, ({imageData, ...rest}) => {modifyNewImage({src: imageData.dataUrl, ...rest})}, finish)
+    const showFormModal: ShowFormModal<HTMLImageElement, ImageElementValues> = (modifyNewImage, finish) => {
+      setupFormModal<HTMLImageElement, InputsPropsValues>(inputsProps, ({imageData, ...rest}) => {modifyNewImage({src: imageData.dataUrl, ...rest})}, finish)
     }
 
     const onclick = (e: MouseEvent) => {
       const image = e.target as HTMLImageElement
       const {src, height, width} = image
-      window.modifyElement<HTMLImageElement, AttributesToAsk>(image, getModifyInputsProps({src, height, width}))
+      window.modifyElement<HTMLImageElement, InputsPropsValues>(image, getModifyInputsProps({src, height, width}))
     }
     const getNewImage = () => createImage({onclick})
   

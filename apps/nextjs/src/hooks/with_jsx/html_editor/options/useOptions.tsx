@@ -3,27 +3,28 @@ import { Available, NonEmptyArray } from "utils/src/types"
 import { ContainsNode } from "../../../../components/ResizableDraggableDiv"
 import { GetRect } from "../../../../types/dom"
 import { createSpan, createText } from "../../../../utils/domManipulations"
-import useFormModal, { MutableInputsProps, SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
+import useFormModal, { InputsValues, MutableInputsProps, SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
 import { ModalPosition } from "../../useModal"
 import { GetLastSelectionData, modalCommonProps } from "../useHtmlEditor"
 import Option, { OptionNode, OptionProps, SetHtmlEditorVisibleTrue, ShowFormModal } from "./Option"
-import { InputsPropsOptionNodeValues, SetupFormModal } from "./with_form/types"
+import { InputsPropsOptionNode, InputsPropsOptionNodeValues, ModifyInputsPropsOptionNode, SetupFormModal } from "./with_form/types"
 import useImageOption from "./with_form/useImageOption"
 import useLinkOption from "./with_form/useLinkOption"
 
 //export type GetInputPropValue<E extends HTMLElement, EA extends Partial<E>, IP extends InputsPropsOptionNodeAttributes<E, EA>> = <K extends keyof IP, P = IP[K]["props"]>(key: K) => ["value"]
 declare global {
   interface Window {
-      modifyElement: <E extends HTMLElement, IPONV extends InputsPropsOptionNodeValues<E>>(element: E, inputsProps: InputsPropsOptionNodeAttributes<E, EA>) => void
+      modifyElement: <E extends HTMLElement, IPONV extends InputsPropsOptionNodeValues<E>>(element: E, inputsProps: ModifyInputsPropsOptionNode<E, IPONV>) => void
   }
 }
 
+export const optionAttributeTypePrefix = "optionType"
 const defaultSpanClassesNames = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"] as const
 const defaultLinkClassName = "linkOption"
 
 type ExtensionOptionProps<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean> = 
   Omit<OptionProps<ON, ONA, WT>, "setHtmlEditorVisibleTrue" | "showFormModal"> 
-  & Available<ON, ONA, {inputsProps: InputsPropsOptionNodeAttributes<ON, Exclude<ONA, undefined>>}>
+  & Available<ON, ONA, {inputsProps: InputsPropsOptionNode<ON, Exclude<ONA, undefined>>}>
 
 type ExtensionOptionPropsArray<ONS extends OptionNode[], ONAS extends (Partial<ONS[number]> | undefined)[], WTS extends boolean[], R=ExtensionOptionProps<ONS[number], ONAS[number], WTS[number]>[]> = 
   ONS extends [infer ON, ...infer ONSR] ? ONAS extends [infer ONA, ...infer ONASR] ? WTS extends [infer WT, ...infer WTSR] ? WT extends boolean ? ON extends OptionNode ? ONA extends (Partial<ON> | undefined) ?  ONSR extends OptionNode[] ? ONASR extends (Partial<ONSR[number]> | undefined)[] ? WTSR extends boolean[] ? [ExtensionOptionProps<ON, ONA, WT>, ...ExtensionOptionPropsArray<ONSR, ONASR, WTSR>] : never : never : never : never : never : never : R : R : R
@@ -68,7 +69,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       return {top: `${editorTop - containerTop + (isEditorAboveRange ? -getFormModalRect().height-5 : heightTop + 5)}px`, left: `${editorLeft - containerLeft}px`}
     }
     
-    useEffect(() => {
+   /*  useEffect(() => {
       window.modifyElement = (element, inputsProps) => {
         const modifyNewNodes = (attr: Partial<typeof element>) => {
           Object.assign(element, attr)
@@ -76,7 +77,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
         const finish = () => {}
         setupFormModal(inputsProps, modifyNewNodes, finish)
       }
-    }, [])
+    }, []) */
 
     const {linkOption} = useLinkOption({className: getClassesNames(linkClassName), setupFormModal, ...rest})
     const {imageOption} = useImageOption({setupFormModal, ...rest})
@@ -87,7 +88,12 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
                     </Option>
                     {[...defaultSpanClassesNames, ...spanClassesNames].map((className) => {
                       const classesNames = getClassesNames(className)
-                      return  <Option<HTMLSpanElement, undefined, true> getNewOptionNode={(t) => createSpan({innerHTML: t, className: classesNames})} withText insertInNewLine={false} className={classesNames} {...rest}>
+                      const getNewSpan = (t: string) => {
+                        const span = createSpan({innerHTML: t, className: classesNames})
+                        span.dataset[optionAttributeTypePrefix] = "span"
+                        return span
+                      }
+                      return  <Option<HTMLSpanElement, undefined, true> getNewOptionNode={getNewSpan} withText insertInNewLine={false} className={classesNames} {...rest}>
                               S
                               </Option>
                       }
@@ -114,5 +120,24 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
                     )}
                     </>
 
-    return {options, formModal, containsFormModalNode}
+    const modifyOptionElement = (optionElement: HTMLElement) => {
+      const targetType =  optionElement.dataset["optionAttributeTypePrefix"]
+
+      let matched = false
+      let index = 0
+      while(!matched && index < optionsData.length) {
+        const {type, getModifyInputsProps, mapInputsValuesToAttrs} = optionsData[index]
+        if (targetType === type) {
+          const inputsProps = getModifyInputsProps(optionElement)
+          const modifyNewNodes = (inputsValues: InputsValues<typeof inputsProps>) => {
+            Object.assign(optionElement,  mapInputsValuesToAttrs(inputsValues))
+          }
+          setupFormModal(inputsProps, modifyNewNodes)
+          matched = true
+        }
+        index ++ 
+      }
+    }
+
+    return {options, formModal, containsFormModalNode, modifyOptionElement}
 }

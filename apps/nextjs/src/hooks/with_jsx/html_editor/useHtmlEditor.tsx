@@ -17,7 +17,7 @@ export type GetLastSelectionData = () => SelectionData | undefined
 
 type SetVisibleOnSelection = (visible: boolean, mousePosition?: {top: number, left: number}) => void
 
-type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onBlur: FocusEventHandler}
+type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onBlur: FocusEventHandler, onClick: MouseEventHandler}
 
 type Props<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, WTS extends MapOptionNodeTo<ONS, "wt">> = {
     getContainerRect: GetRect
@@ -79,7 +79,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
       lastSelectionDataRef.current = lastSelectionData
     }
 
-    const {options, formModal, containsFormModalNode} = useOptions({ spanClassesNames, linkClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), setHtmlEditorVisibleTrue: () => {setVisibleOnSelection(true)}, getLastSelectionData})
+    const {options, formModal, containsFormModalNode, modifyOptionElement} = useOptions({ spanClassesNames, linkClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), setHtmlEditorVisibleTrue: () => {setVisibleOnSelection(true)}, getLastSelectionData})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState<SyntheticCaretProps>({visible: false})
     
@@ -156,6 +156,10 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         if (!containsHtmlEditorModalAndFormModalNode(focusedTarget))
           setVisibleOnSelection(false)
       },
+      onClick: (e) => {
+        const target = e.target
+        modifyOptionElement(target)
+      }
     }
 
     return {
