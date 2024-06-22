@@ -24,7 +24,7 @@ type Props = {
 }
 const useLinkOption: UseOptionWithForm<HTMLAnchorElement, InputsProps, "link", Props> = function({className, setupFormModal, ...rest}) {
   const showFormModal: ShowFormModal<HTMLAnchorElement, {href: string}> = (modifyNewLinks, finish) => {
-    setupFormModal<InputsProps>(inputsProps, (inputsValues) => {modifyNewLinks(mapInputsValuesToAttrs(inputsValues))}, finish)
+    setupFormModal<InputsProps>(inputsProps, (inputsValues) => {modifyNewLinks(mapLinkInputsValuesToAttrs(inputsValues))}, finish)
   }
 /* 
   const onclick = (e: MouseEvent) => {

@@ -19,6 +19,7 @@ declare global {
 }
 
 export const optionAttributeTypePrefix = "optionType"
+
 const defaultSpanClassesNames = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"] as const
 const defaultLinkClassName = "linkOption"
 
@@ -44,18 +45,18 @@ export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNode
 export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, WTS extends MapOptionNodeTo<ONS, "wt">>({spanClassesNames=[], linkClassName=defaultLinkClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, extensionOptionsProps, ...rest}: UseOptionsProps<ONS, ONAS, WTS>): {options: ReactNode, formModal: ReactNode, containsFormModalNode: ContainsNode} {
     const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps<MutableInputsProps>, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: [], submissionAction: () => {}})
     const {setFormModalVisible, formModal, getFormModalRect, containsFormModalNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
-    const setupFormModal: SetupFormModal = (inputsPropsByAttr, modifyNewNodes, finish) => {
-      type OptionNodeAttrs = Parameters<typeof modifyNewNodes>[0]
+    const setupFormModal: SetupFormModal = (inputsProps, modifyNewNodes, finish) => {
+      /* type OptionNodeAttrs = Parameters<typeof modifyNewNodes>[0]
       const inputsProps: MutableInputsProps = []
       const attrs: (keyof OptionNodeAttrs)[] = []
       for (const key in inputsPropsByAttr) {
         attrs.push(key)
         inputsProps.push(inputsPropsByAttr[key])
-      }
+      } */
       const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
-          setFormModalVisible(false)
-          modifyNewNodes(Object.fromEntries(attrs.map((attr, index) => [attr, values[index]])) as OptionNodeAttrs)
-          finish()
+        setFormModalVisible(false)
+        modifyNewNodes(values)
+        finish()
       } 
       setFormModalPropsRest({inputsProps, submissionAction})
       setTimeout(() => {setFormModalVisible(true, getFormModalPosition())}, 200)
@@ -121,7 +122,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
                     </>
 
     const modifyOptionElement = (optionElement: HTMLElement) => {
-      const targetType =  optionElement.dataset["optionAttributeTypePrefix"]
+      const targetType =  optionElement.dataset[optionAttributeTypePrefix]
 
       let matched = false
       let index = 0
