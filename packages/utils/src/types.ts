@@ -35,6 +35,9 @@ export type AnyPropertiesCombinationRecursive<O extends object> = {
     [K in keyof O]: { [key in K]: O[K] extends object ? AnyPropertiesCombinationRecursive<O[K]> : O[K]}
 }[keyof O]
 
+// if the first element of each tuple of I extends T then the second element of the tuple will be part of the union result, never otherwise
+export type IfExtends<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown],  ...infer RI extends [unknown, unknown][]] ?  (FI[0] extends T ? FI[1] : never) | IfExtends<T, RI> : never
+
 // if one element from "U" is in "IN" then the result is "IF", otherwise is "ELSE"
 export type IfOneIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IF extends { [K in U]: K extends IN ? IF : never }[U] ? IF : ELSE
 

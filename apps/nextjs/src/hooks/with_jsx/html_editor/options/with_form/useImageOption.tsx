@@ -1,36 +1,38 @@
 import { FcPicture } from "react-icons/fc"
 import { createImage } from "../../../../../utils/domManipulations"
-import { InputsValues } from "../../../forms/useFormModal"
+import { InputsValues} from "../../../forms/useFormModal"
 import { } from "../../useHtmlEditor"
 import Option, { ShowFormModal } from "../Option"
 import { optionAttributeTypePrefix } from "../useOptions"
 import { ModifyInputsProps, UseOptionWithForm } from "./types"
 
-const imageOptionType = "image"
+const type = "image"
 
 const inputsProps = [
   {type: "imageSelector"},
   {type: "numberInput"},
   {type: "numberInput"}
-]  as const
+] as const
+
 type InputsProps = typeof inputsProps
+type ModifiableAttributes = {src: string, height: number, width: number}
 
-const getImageModifyInputsProps = (image: HTMLImageElement) => {
-  const modifyInputsProps = structuredClone(inputsProps) as ModifyInputsProps<InputsProps>
-  modifyInputsProps[0].props.value = {dataUrl: image.src, name: "", extension: ""}
-  modifyInputsProps[1].props.value = image.height
-  modifyInputsProps[2].props.value = image.width
+const getModifyInputsProps = (image: HTMLImageElement) => {
+  const modifyInputsProps = structuredClone(inputsProps) as unknown as ModifyInputsProps<InputsProps>
+  modifyInputsProps[0]["props"] = {value: {dataUrl: image.src, name: "", extension: ""}}
+  modifyInputsProps[1]["props"] = {value: image.height}
+  modifyInputsProps[2]["props"] = {value: image.width}
 
-  return modifyInputsProps
+  return modifyInputsProps 
 }
 
-const mapImageInputsValuesToAttrs = ([{dataUrl}, height, width]: InputsValues<InputsProps>) => ({src: dataUrl, height, width})
+const mapInputsValuesToAttrs = ([imageData, height=0, width=0]: InputsValues<InputsProps>) => ({src: imageData?.dataUrl ?? "", height, width})
 
 type Props = {
 }
-const useImageOption: UseOptionWithForm<HTMLImageElement, InputsProps, "image", Props> = function({setupFormModal, ...rest}) {
-    const showFormModal: ShowFormModal<HTMLImageElement, {src: string, height: number, width: number}> = (modifyNewImage, finish) => {
-      setupFormModal<InputsProps>(inputsProps, (inputsValues) => {modifyNewImage(mapImageInputsValuesToAttrs(inputsValues))}, finish)
+const useImageOption: UseOptionWithForm<HTMLImageElement, ModifiableAttributes, InputsProps, Props> = function({setupFormModal, ...rest}) {
+    const showFormModal: ShowFormModal<HTMLImageElement, ModifiableAttributes> = (modifyNewImage, finish) => {
+      setupFormModal<InputsProps>(inputsProps, (inputsValues) => {modifyNewImage(mapInputsValuesToAttrs(inputsValues))}, finish)
     }
 
    /*  const onclick = (e: MouseEvent) => {
@@ -40,15 +42,15 @@ const useImageOption: UseOptionWithForm<HTMLImageElement, InputsProps, "image", 
     } */
     const getNewImage = () => {
       const image = createImage()
-      image.dataset[optionAttributeTypePrefix] = imageOptionType
+      image.dataset[optionAttributeTypePrefix] = type
       return image
     }
   
-    const imageOption = <Option getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} showFormModal={showFormModal} {...rest}>
-                        <FcPicture size={30}/>
-                        </Option>
+    const option = <Option getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} showFormModal={showFormModal} {...rest}>
+                   <FcPicture size={30}/>
+                   </Option>
 
-    return {imageOptionType, getImageModifyInputsProps, mapImageInputsValuesToAttrs, imageOption}
+    return {type, getModifyInputsProps, mapInputsValuesToAttrs, option}
 }
 
 export default useImageOption

@@ -30,12 +30,13 @@ export type InputProps<IT extends InputType=InputType> = {[K in IT]: {type: K, p
 export type MutableInputsProps = InputProps[]
 export type ReadonlyInputsProps = readonly InputProps[]
 export type InputsProps = MutableInputsProps | ReadonlyInputsProps
-type InputValue<IT extends InputType=InputType> = InputTypesProps[IT]["value"]
+type InputValue<IT extends InputType=InputType, R extends boolean=false> = Exclude<InputTypesProps[IT]["value"], R extends true ? undefined : never>
 //type InputValue<IT extends InputType=InputType> = {textInput: string, textAreaInput: string, numberInput: number, imageSelector: ImageData, checkbox: boolean}[IT]
 // export type InputsValues<IP extends InputsProps> = {
 //     [K in keyof IP]: InputValue<IP[K]["type"]>
 // }
-export type InputsValues<IP extends InputsProps> = IP extends [infer F, ...infer R] ? F extends  InputProps ? [InputValue<F["type"]>, ...(R extends InputsProps ? InputsValues<R> : [])] : never : InputValue<IP[number]["type"]>[]
+type IfRequired<IP extends  InputProps, IPP=Required<IP>["props"] > = "required" extends keyof IPP ? Required<IPP>["required"] extends boolean ? Required<IPP>["required"] : false : false
+export type InputsValues<IP extends InputsProps=InputsProps> = IP extends readonly[infer F, ...infer R] ? F extends  InputProps ? [InputValue<F["type"], IfRequired<F>>, ...(R extends InputsProps ? InputsValues<R> : [])] : never : InputValue<IP[number]["type"], IfRequired<IP[number]>>[]
 
 //export type AssignableInputType<V extends InputValue> = {[K in InputType]: V extends InputValue<K> ? K : never}[InputType]
 export type AssignableInputProp<V> = {[K in InputType]: V extends InputValue<K> ? InputProps<K> : never}[InputType]
