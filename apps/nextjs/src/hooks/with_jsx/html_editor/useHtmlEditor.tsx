@@ -17,7 +17,7 @@ export type GetLastSelectionData = () => SelectionData | undefined
 
 type SetVisibleOnSelection = (visible: boolean, mousePosition?: {top: number, left: number}) => void
 
-type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onBlur: FocusEventHandler, onClick: MouseEventHandler}
+type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onBlur: FocusEventHandler, onDoubleClick: MouseEventHandler}
 
 type Props<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">> = {
     getContainerRect: GetRect
@@ -79,7 +79,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
       lastSelectionDataRef.current = lastSelectionData
     }
 
-    const {options, formModal, containsFormModalNode, modifyTargetOption} = useOptions({ spanClassesNames, linkClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), setHtmlEditorVisibleTrue: () => {setVisibleOnSelection(true)}, getLastSelectionData})
+    const {options, formModal, setFormModalVisibleFalse, containsFormModalNode, modifyTargetOption} = useOptions({ spanClassesNames, linkClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), setHtmlEditorVisibleTrue: () => {setVisibleOnSelection(true)}, getLastSelectionData})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState<SyntheticCaretProps>({visible: false})
     
@@ -105,8 +105,9 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
     
     const setVisibleOnSelection: SetVisibleOnSelection = (visible, mousePosition) => {
         setColorsModalVisible(false)
-        setHtmlEditorModalVisible(false)
+        setFormModalVisibleFalse()
         setSyntheticCaretStates({visible: false})
+        setHtmlEditorModalVisible(false)
         if (visible) {
           // the setTimeout is because when click over an existing range the top of the new range rectangle remain like the older one
           setTimeout(() => { 
@@ -156,8 +157,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         if (!containsHtmlEditorModalAndFormModalNode(focusedTarget))
           setVisibleOnSelection(false)
       },
-      onClick: (e) => {
-        e.
+      onDoubleClick: (e) => {
         const target = e.target
         modifyTargetOption(target)
       }

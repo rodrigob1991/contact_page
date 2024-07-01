@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react"
+import { ReactNode, useRef, useState } from "react"
 import { Available, IfExtends, NonEmptyArray } from "utils/src/types"
 import { ContainsNode } from "../../../../components/ResizableDraggableDiv"
 import { GetRect } from "../../../../types/dom"
@@ -40,7 +40,9 @@ type ExtensionOptionPropsArray<ONS extends OptionNode[], ONAS extends MapOptionN
 
 type ModifiableExtensionOptionsData<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>> = ONS extends [infer ON extends OptionNode, ...infer ONSR extends OptionNode[]] ? ONAS extends [infer ONA extends Partial<ON>, ...infer ONASR extends MapOptionNodeTo<ONSR, "attr">] ? IPS extends [infer IP extends InputsPropsIfOptionNodeAttrs<ON,ONA>, ...infer IPSR extends MapOptionNodeAttrToInputsProps<ONSR, ONASR>] ? ON extends ONA ? IP extends InputsProps ? ModifiableOptionData<ON, ONA, IP> | ModifiableExtensionOptionsData<ONSR, ONASR, IPSR> : never : never : never : never : never
 
+type OutlineTargetOption = (target: EventTarget) => void
 type ModifyTargetOption = (target: EventTarget) => void
+type ReverseOutlineTargetOption = () => void
 
 export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>,  WTS extends MapOptionNodeTo<ONS, "wt">> = {
     spanClassesNames?: string[]
@@ -52,7 +54,7 @@ export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNode
     getLastSelectionData: GetLastSelectionData
 } & Available<ONS, NonEmptyArray<OptionNode>, {extensionOptionsProps: ExtensionOptionPropsArray<ONS, ONAS, IPS, WTS>}>
 
-export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">>({spanClassesNames=[], linkClassName=defaultLinkClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, extensionOptionsProps, ...rest}: UseOptionsProps<ONS, ONAS, IPS, WTS>): {options: ReactNode, formModal: ReactNode, containsFormModalNode: ContainsNode, modifyTargetOption: ModifyTargetOption} {
+export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">>({spanClassesNames=[], linkClassName=defaultLinkClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, extensionOptionsProps, ...rest}: UseOptionsProps<ONS, ONAS, IPS, WTS>): {options: ReactNode, formModal: ReactNode, setFormModalVisibleFalse: () => void, containsFormModalNode: ContainsNode, outlineTargetOption: OutlineTargetOption, reverseOutlineTargetOption: ReverseOutlineTargetOption, modifyTargetOption: ModifyTargetOption} {
     const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: [], submissionAction: () => {}})
     const {setFormModalVisible, formModal, getFormModalRect, containsFormModalNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
     const setupFormModal: SetupFormModal = (inputsProps, modifyNewNodes, finish) => {
@@ -131,6 +133,19 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
                       }
                     )}
                     </>
+    const refToReverseOutlineTargetOption = useRef<ReverseOutlineTargetOption>()
+    const reverseOutlineTargetOption = () => {
+      const reverseOutlineTargetOption = refToReverseOutlineTargetOption.current
+      reverseOutlineTargetOption && reverseOutlineTargetOption()
+    }
+    const outlineTargetOption: OutlineTargetOption = (target) => {
+      if (target instanceof HTMLElement) {
+        target.style.outlineStyle = "solid"
+        refToReverseOutlineTargetOption.current = () => {
+          target.style.outlineStyle = "none"
+        }
+      }
+    }
 
     const modifyTargetOption: ModifyTargetOption = (target) => {
       if (target instanceof HTMLElement) {
@@ -150,5 +165,5 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       }
     }
 
-    return {options, formModal, containsFormModalNode, modifyTargetOption}
+    return {options, formModal, setFormModalVisibleFalse: () => {setFormModalVisible(false)}, containsFormModalNode, outlineTargetOption, reverseOutlineTargetOption, modifyTargetOption}
 }
