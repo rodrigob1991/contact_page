@@ -1,10 +1,9 @@
 import { FcPicture } from "react-icons/fc"
 import { createImage } from "../../../../../utils/domManipulations"
-import { InputsValues} from "../../../forms/useFormModal"
+import { InputsValues } from "../../../forms/useFormModal"
 import { } from "../../useHtmlEditor"
 import Option, { ShowFormModal } from "../Option"
-import { optionAttributeTypePrefix } from "../useOptions"
-import { ModifyInputsProps, UseOptionWithForm } from "./types"
+import { ModifiableOptionData, ModifyInputsProps, UseOptionWithForm } from "./types"
 
 const type = "image"
 
@@ -16,6 +15,7 @@ const inputsProps = [
 
 type InputsProps = typeof inputsProps
 type ModifiableAttributes = {src: string, height: number, width: number}
+export type ModifiableImageData = ModifiableOptionData<HTMLImageElement, ModifiableAttributes, InputsProps>
 
 const getModifyInputsProps = (image: HTMLImageElement) => {
   const modifyInputsProps = structuredClone(inputsProps) as unknown as ModifyInputsProps<InputsProps>
@@ -40,13 +40,9 @@ const useImageOption: UseOptionWithForm<HTMLImageElement, ModifiableAttributes, 
       const {src, height, width} = image
       window.modifyElement<HTMLImageElement, InputsPropsValues>(image, getModifyInputsProps({src, height, width}))
     } */
-    const getNewImage = () => {
-      const image = createImage()
-      image.dataset[optionAttributeTypePrefix] = type
-      return image
-    }
+    const getNewImage = () => createImage()
   
-    const option = <Option getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} showFormModal={showFormModal} {...rest}>
+    const option = <Option  type={type} getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} showFormModal={showFormModal} {...rest}>
                    <FcPicture size={30}/>
                    </Option>
 

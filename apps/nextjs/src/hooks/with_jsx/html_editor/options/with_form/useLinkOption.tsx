@@ -1,16 +1,17 @@
 import { createAnchor } from "../../../../../utils/domManipulations"
-import {InputsValues } from "../../../forms/useFormModal"
+import { InputsValues } from "../../../forms/useFormModal"
 import Option, { ShowFormModal } from "../Option"
-import { optionAttributeTypePrefix } from "../useOptions"
-import { ModifyInputsProps, UseOptionWithForm } from "./types"
+import { ModifiableOptionData, ModifyInputsProps, UseOptionWithForm } from "./types"
 
 const type = "link"
 
 const inputsProps = [
   {type: "textInput" as const, props: {placeholder: "url"}}
 ] as const
+
 type InputsProps = typeof inputsProps
 type ModifiableAttributes = {href: string}
+export type ModifiableLinkData = ModifiableOptionData<HTMLAnchorElement, ModifiableAttributes, InputsProps>
 
 const getModifyInputsProps = (link: HTMLAnchorElement) => {
   const modifyInputsProps = structuredClone(inputsProps) as unknown as ModifyInputsProps<InputsProps>
@@ -33,13 +34,9 @@ const useLinkOption: UseOptionWithForm<HTMLAnchorElement, ModifiableAttributes, 
     const {href} = anchor
     window.modifyElement<HTMLAnchorElement, AnchorElementValues>(anchor, getModifyInputsProps({href}))
   } */
-  const getNewLink = (t: string) => {
-    const link = createAnchor({ innerHTML: t, className})
-    link.dataset[optionAttributeTypePrefix] = type
-    return link
-  }
+  const getNewLink = (t: string) => createAnchor({ innerHTML: t, className})
 
-  const option = <Option className={className} getNewOptionNode={getNewLink} collapsedSelectionText={"new link"} withText insertInNewLine={false} showFormModal={showFormModal} {...rest}>
+  const option = <Option type={type} className={className} getNewOptionNode={getNewLink} collapsedSelectionText={"new link"} withText insertInNewLine={false} showFormModal={showFormModal} {...rest}>
                   Link
                  </Option>
 

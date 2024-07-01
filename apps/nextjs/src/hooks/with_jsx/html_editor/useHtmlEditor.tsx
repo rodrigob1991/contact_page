@@ -6,7 +6,7 @@ import { ContainsNode, EventsHandlers } from "../../../components/ResizableDragg
 import { GetRect } from "../../../types/dom"
 import useModal, { UseModalReturn } from "../useModal"
 import { OptionNode } from "./options/Option"
-import useOptions, { MapOptionNodeTo, UseOptionsProps } from "./options/useOptions"
+import useOptions, { MapOptionNodeAttrToInputsProps, MapOptionNodeTo, UseOptionsProps } from "./options/useOptions"
 import SyntheticCaret, { SyntheticCaretProps } from "../../../components/SyntheticCaret"
 
 const defaultColors = ["red", "blue", "green", "yellow", "black"]
@@ -19,15 +19,15 @@ type SetVisibleOnSelection = (visible: boolean, mousePosition?: {top: number, le
 
 type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onBlur: FocusEventHandler, onClick: MouseEventHandler}
 
-type Props<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, WTS extends MapOptionNodeTo<ONS, "wt">> = {
+type Props<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">> = {
     getContainerRect: GetRect
     colors?: string[]
     getColorClassName?: (color: string) => string
-} & EventsHandlers & Omit<UseOptionsProps<ONS, ONAS, WTS>, "getClassesNames" | "getHtmlEditorModalRect" | "setHtmlEditorVisibleTrue">
+} & EventsHandlers & Omit<UseOptionsProps<ONS, ONAS, IPS, WTS>, "getClassesNames" | "getHtmlEditorModalRect" | "setHtmlEditorVisibleTrue">
 
 type Return = ChangePropertyType<UseModalReturn<"htmlEditor">, ["setHtmlEditorModalVisible", SetVisibleOnSelection]> & {targetEventHandlers: TargetEventHandlers}
 
-export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr", undefined>, WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt", true>>({getContainerRect, colors=defaultColors, getColorClassName=defaultGetColorClassName, spanClassesNames, linkClassName, extensionOptionsProps}: Props<ONS, ONAS, WTS>) : Return {
+export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({getContainerRect, colors=defaultColors, getColorClassName=defaultGetColorClassName, spanClassesNames, linkClassName, extensionOptionsProps}: Props<ONS, ONAS, IPS, WTS>) : Return {
     /* const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
         const id = elementId
@@ -79,7 +79,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
       lastSelectionDataRef.current = lastSelectionData
     }
 
-    const {options, formModal, containsFormModalNode, modifyOptionElement} = useOptions({ spanClassesNames, linkClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), setHtmlEditorVisibleTrue: () => {setVisibleOnSelection(true)}, getLastSelectionData})
+    const {options, formModal, containsFormModalNode, modifyTargetOption} = useOptions({ spanClassesNames, linkClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), setHtmlEditorVisibleTrue: () => {setVisibleOnSelection(true)}, getLastSelectionData})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState<SyntheticCaretProps>({visible: false})
     
@@ -157,8 +157,9 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
           setVisibleOnSelection(false)
       },
       onClick: (e) => {
+        e.
         const target = e.target
-        modifyOptionElement(target)
+        modifyTargetOption(target)
       }
     }
 

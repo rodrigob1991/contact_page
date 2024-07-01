@@ -21,6 +21,7 @@ export type AnyPropertiesCombinationRecursive<O extends object> = {
         [key in K]: O[K] extends object ? AnyPropertiesCombinationRecursive<O[K]> : O[K];
     };
 }[keyof O];
+export type IfExtends<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown], ...infer RI extends [unknown, unknown][]] ? (FI[0] extends T ? FI[1] : never) | IfExtends<T, RI> : never;
 export type IfOneIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IF extends {
     [K in U]: K extends IN ? IF : never;
 }[U] ? IF : ELSE;

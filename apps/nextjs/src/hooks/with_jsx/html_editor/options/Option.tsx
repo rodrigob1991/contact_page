@@ -5,6 +5,7 @@ import collapsedSelectionHandler from "../selection_handlers/collapsed"
 import rangeSelectionHandler from "../selection_handlers/range"
 import { Available } from "utils/src/types"
 import { GetLastSelectionData } from "../useHtmlEditor"
+import { optionAttributeTypePrefix } from "./useOptions"
 
 export type OptionNode = Text | Element
 export type GetNewOptionNode<WT extends boolean, ON extends OptionNode> = WT extends true ? (text: string) => ON : WT extends false ? () => ON : (text?: string) => ON
@@ -17,6 +18,7 @@ export type ShowFormModal<ON extends OptionNode, ONA extends Partial<ON>> = (mod
 
 export type OptionProps<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean> = {
   children: ReactNode
+  type: string
   withText: WT
   getNewOptionNode: GetNewOptionNode<WT, ON>
   collapsedSelectionText?: CollapsedSelectionText<WT>
@@ -25,19 +27,25 @@ export type OptionProps<ON extends OptionNode, ONA extends Partial<ON> | undefin
   setHtmlEditorVisibleTrue: SetHtmlEditorVisibleTrue
   getLastSelectionData: GetLastSelectionData
 } & Available<ON, ONA, {showFormModal: ShowFormModal<ON, Exclude<ONA, undefined>>}>
-export default function Option<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean>({children, withText, getNewOptionNode, collapsedSelectionText=" ...", insertInNewLine, className, setHtmlEditorVisibleTrue, getLastSelectionData, showFormModal}: OptionProps<ON, ONA, WT>) {
+export default function Option<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean>({children, type, withText, getNewOptionNode, collapsedSelectionText=" ...", insertInNewLine, className, setHtmlEditorVisibleTrue, getLastSelectionData, showFormModal}: OptionProps<ON, ONA, WT>) {
   const onClickHandler: MouseEventHandler = (e) => {
     //selectionHandler(optionType, getTargetOptionNode)
     const lastSelectionData = getLastSelectionData()
     if (lastSelectionData) {
-        const newNodes: OptionNode[] = []
+        const newNodes: ON[] = []
+        const onNewOptionNode = (newNode: ON) => {
+          if (newNode instanceof HTMLElement) {
+            newNode.dataset[optionAttributeTypePrefix] = type
+          }
+          newNodes.push(newNode)
+        }
         const getNewOptionNodeWrapper = (withText ? (text: string) => {
           const newNode = (getNewOptionNode as GetNewOptionNode<true, ON>)(text)
-          newNodes.push(newNode)
+          onNewOptionNode(newNode)
           return newNode
         } : () => {
           const newNode = (getNewOptionNode as GetNewOptionNode<false, ON>)()  
-          newNodes.push(newNode)
+          onNewOptionNode(newNode)
           return newNode
         }) as GetNewOptionNode<WT, ON>
 
