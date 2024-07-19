@@ -3,7 +3,7 @@ import { InputsValues } from "../../../forms/useFormModal"
 import Option, { ShowFormModal } from "../Option"
 import { ModifiableOptionData, ModifyInputsProps, UseOptionWithForm } from "./types"
 
-const type = "link"
+const type = "anchor"
 
 const inputsProps = [
   {type: "textInput" as const, props: {placeholder: "url"}}
@@ -11,11 +11,11 @@ const inputsProps = [
 
 type InputsProps = typeof inputsProps
 type ModifiableAttributes = {href: string}
-export type ModifiableLinkData = ModifiableOptionData<HTMLAnchorElement, ModifiableAttributes, InputsProps>
+export type ModifiableAnchorData = ModifiableOptionData<HTMLAnchorElement, ModifiableAttributes, InputsProps>
 
-const getModifyInputsProps = (link: HTMLAnchorElement) => {
+const getModifyInputsProps = (anchor: HTMLAnchorElement) => {
   const modifyInputsProps = structuredClone(inputsProps) as unknown as ModifyInputsProps<InputsProps>
-  modifyInputsProps[0]["props"] = {...inputsProps[0].props, value: link.href}
+  modifyInputsProps[0]["props"] = {...inputsProps[0].props, value: anchor.href}
   return modifyInputsProps 
 }
 
@@ -24,9 +24,9 @@ const mapInputsValuesToAttrs = ([href=""]: InputsValues<InputsProps>) => ({href}
 type Props = {
   className: string
 }
-const useLinkOption: UseOptionWithForm<HTMLAnchorElement, ModifiableAttributes, InputsProps, Props> = function({className, setupFormModal, ...rest}) {
-  const showFormModal: ShowFormModal<HTMLAnchorElement, ModifiableAttributes> = (modifyNewLinks, finish) => {
-    setupFormModal<InputsProps>(inputsProps, (inputsValues) => {modifyNewLinks(mapInputsValuesToAttrs(inputsValues))}, finish)
+const useAnchorOption: UseOptionWithForm<HTMLAnchorElement, ModifiableAttributes, InputsProps, Props> = function({className, setupFormModal, ...rest}) {
+  const showFormModal: ShowFormModal<HTMLAnchorElement, ModifiableAttributes> = (updateDOM) => {
+    setupFormModal<InputsProps>(inputsProps, (inputsValues) => {updateDOM(mapInputsValuesToAttrs(inputsValues))})
   }
 /* 
   const onclick = (e: MouseEvent) => {
@@ -34,13 +34,13 @@ const useLinkOption: UseOptionWithForm<HTMLAnchorElement, ModifiableAttributes, 
     const {href} = anchor
     window.modifyElement<HTMLAnchorElement, AnchorElementValues>(anchor, getModifyInputsProps({href}))
   } */
-  const getNewLink = (t: string) => createAnchor({ innerHTML: t, className})
+  const getNewAnchor = (t: string) => createAnchor({innerHTML: t, className})
 
-  const option = <Option type={type} className={className} getNewOptionNode={getNewLink} collapsedSelectionText={"new link"} withText insertInNewLine={false} showFormModal={showFormModal} {...rest}>
-                  Link
+  const option = <Option type={type} className={className} getNewOptionNode={getNewAnchor} withText insertInNewLine={false} showFormModal={showFormModal} {...rest}>
+                  Anchor
                  </Option>
 
   return {type, getModifyInputsProps, mapInputsValuesToAttrs, option}
 }
 
-export default useLinkOption
+export default useAnchorOption
