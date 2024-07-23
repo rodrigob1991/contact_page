@@ -8,11 +8,12 @@ import useModal, { UseModalReturn } from "../useModal"
 import { OptionNode } from "./options/Option"
 import useOptions, { MapOptionNodeAttrToInputsProps, MapOptionNodeTo, UseOptionsProps } from "./options/useOptions"
 import SyntheticCaret, { SyntheticCaretProps } from "../../../components/SyntheticCaret"
+import { createSpan } from "../../../utils/domManipulations"
 
 const defaultColors = ["red", "blue", "green", "yellow", "black"]
 const defaultGetColorClassName = (color: string) => "color" + upperCaseFirstChar(color) + "Option"
 
-export type OutlineElements = (...elements: HTMLElement[]) => void
+export type OutlineNodes = (...nodes: Node[]) => void
 export type ReverseOutlineElements = () => void
 
 export type SelectionData = {isCollapsed: boolean, anchorNode: Node | undefined, anchorOffset: number, ranges: Range[], rect: DOMRect}
@@ -30,7 +31,7 @@ type Props<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, 
 
 type Return = ChangePropertyType<UseModalReturn<"htmlEditor">, ["setHtmlEditorModalVisible", SetVisibleOnSelection]> & {targetEventHandlers: TargetEventHandlers}
 
-export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({getContainerRect, colors=defaultColors, getColorClassName=defaultGetColorClassName, spanClassesNames, linkClassName, extensionOptionsProps}: Props<ONS, ONAS, IPS, WTS>) : Return {
+export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({getContainerRect, colors=defaultColors, getColorClassName=defaultGetColorClassName, spanClassesNames, anchorClassName, extensionOptionsProps}: Props<ONS, ONAS, IPS, WTS>) : Return {
     /* const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
         const id = elementId
@@ -67,23 +68,36 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
 
     const getOptionClassesNames = (className?: string) =>  getColorClassName(selectedColor) + (className ? " " + className : "")
 
-    const refToOutlineTargetOptions = useRef<HTMLElement[]>([])
-    const reverseOutlineTargetOptions = () => {
-      refToOutlineTargetOptions.current.forEach((target) => {
-        target.style.outlineStyle = "none"
-      })
-      refToOutlineTargetOptions.current = []
+    const refToOutlineNodes = useRef<Node[]>([])
+    const setOutlineNodes = (nodes: Node[]) => {
+      refToOutlineNodes.current = nodes
     }
-    const outlineTargetOptions: OutlineTargetOptions = (...targets) => {
-      reverseOutlineTargetOptions()
-      for (const target of targets) {
-        if (target instanceof HTMLElement) {
-          target.style.outlineStyle = "solid"
-          refToOutlineTargetOptions.current.push(target)
+    const getOutlineNodes = () => refToOutlineNodes.current
+    const reverseOutlineNodes = () => {
+      getOutlineNodes().forEach((node) => {
+        if (node instanceof HTMLElement) {
+          node.style.outlineStyle = "none"
+        }else {
+          node.parentElement?.replaceWith(node)
         }
-      }
+      })
+      setOutlineNodes([])
     }
-
+    const outlineNodes: OutlineNodes = (...nodes) => {
+      reverseOutlineNodes()
+      nodes.forEach(node => {
+        let outlinedElement
+        if (node instanceof HTMLElement) {
+          outlinedElement = node
+        }else {
+          outlinedElement = createSpan()
+          outlinedElement.appendChild(node)
+          node.parentElement?.replaceChild(outlinedElement, node)
+        }  
+        outlinedElement.style.outlineStyle = "solid"
+      })
+      setOutlineNodes(nodes)
+    }
 
     const lastSelectionDataRef = useRef<SelectionData>()
     const getLastSelectionData = () => lastSelectionDataRef.current
@@ -100,11 +114,16 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         }
         lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, rect: ranges[0].getBoundingClientRect()}
       }
-      anchorNode &&  anchorNode.parentElement ? outlineTargetOptions(anchorNode.parentElement) : reverseOutlineTargetOptions()
+      anchorNode &&  anchorNode.parentElement ? outlineNodes(anchorNode.parentElement) : reverseOutlineNodes()
       lastSelectionDataRef.current = lastSelectionData
     }
 
-    const {options, formModal, setFormModalVisibleFalse, containsFormModalNode, outlineTargetOptions, reverseOutlineTargetOptions, modifyTargetOption} = useOptions({ spanClassesNames, linkClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), onFinishEnd, getLastSelectionData})
+    const atAfterUpdateDOMEnd = () => {
+      // for now just visible on selection available
+      setVisibleOnSelection()
+    }
+
+    const {options, formModal, setFormModalVisibleFalse, containsFormModalNode, modifyOptionElement} = useOptions({spanClassesNames, anchorClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), outlineNodes, atAfterUpdateDOMEnd, getLastSelectionData})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState<SyntheticCaretProps>({visible: false})
     
@@ -161,7 +180,6 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
             setHtmlEditorModalVisible(true, {top: `${top}px`, left: `${left}px`})
           }
         })
-      } 
     }
 
     const containsHtmlEditorModalAndFormModalNode: ContainsNode = (node) => containsHtmlEditorModalNode(node) || containsColorsModalNode(node) || containsFormModalNode(node)
@@ -169,25 +187,22 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
     const targetEventHandlers: TargetEventHandlers = {
       onMouseUp: (e) => {
         setLastSelectionData()
-        setVisibleOnSelection(true, { top: e.clientY, left: e.clientX })
+        setVisibleOnSelection({top: e.clientY, left: e.clientX})
       },
       onKeyUp: (e) => {
         setLastSelectionData()
-        setVisibleOnSelection(true)
+        setVisibleOnSelection()
       },
       onBlur: (e) => {
         const focusedTarget = e.relatedTarget
-        console.table(focusedTarget)
         if (!containsHtmlEditorModalAndFormModalNode(focusedTarget))
-          //setLastSelectionData()
-          setVisibleOnSelection(false)
+          setHtmlEditorModalVisible(false)
       },
       onClick: (e) => {
-        const target = e.target
       },
       onDoubleClick: (e) => {
         const target = e.target
-        modifyTargetOption(target)
+        modifyOptionElement(target)
       }
     }
 

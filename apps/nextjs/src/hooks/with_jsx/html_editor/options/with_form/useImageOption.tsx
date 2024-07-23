@@ -30,19 +30,22 @@ const mapInputsValuesToAttrs = ([imageData, height=0, width=0]: InputsValues<Inp
 
 type Props = {
 }
-const useImageOption: UseOptionWithForm<HTMLImageElement, ModifiableAttributes, InputsProps, Props> = function({setupFormModal, ...rest}) {
-    const showFormModal: ShowFormModal<HTMLImageElement, ModifiableAttributes> = (modifyNewImage, finish) => {
-      setupFormModal<InputsProps>(inputsProps, (inputsValues) => {modifyNewImage(mapInputsValuesToAttrs(inputsValues))}, finish)
+const useImageOption: UseOptionWithForm<HTMLImageElement, ModifiableAttributes, InputsProps, Props> = function({setupFormModal, ...optionPropsRest}) {
+    const showFormModal: ShowFormModal<HTMLImageElement, ModifiableAttributes> = (updateDOM) => {
+      setupFormModal<InputsProps>(inputsProps, (inputsValues) => {updateDOM(mapInputsValuesToAttrs(inputsValues))})
     }
 
-   /*  const onclick = (e: MouseEvent) => {
-      const image = e.target as HTMLImageElement
-      const {src, height, width} = image
-      window.modifyElement<HTMLImageElement, InputsPropsValues>(image, getModifyInputsProps({src, height, width}))
-    } */
-    const getNewImage = () => createImage()
+    const optionProps = {
+      type,
+      getNewOptionNode: () => createImage(),
+      withText: false,
+      insertInNewLine: false,
+      showFormModal,
+      insertNodesBeforeShowFormModal: false,
+      ...optionPropsRest
+    }
   
-    const option = <Option  type={type} getNewOptionNode={getNewImage} withText={false} insertInNewLine={false} showFormModal={showFormModal} {...rest}>
+    const option = <Option {...optionProps}>
                    <FcPicture size={30}/>
                    </Option>
 

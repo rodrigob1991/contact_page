@@ -1,6 +1,6 @@
 import { ReactNode } from "react"
 import { InputProps, InputType, InputTypesProps, InputsProps, InputsValues, MutableInputsProps } from "../../../forms/useFormModal"
-import { GetLastSelectionData } from "../../useHtmlEditor"
+import { GetLastSelectionData, OutlineNodes } from "../../useHtmlEditor"
 import { AtAfterUpdateDOMEnd, OptionNode, OptionProps } from "../Option"
 
 type ModifyInputProps<IP extends InputProps> = IP extends {type: infer T extends InputType} ? IP & {props: {value: InputTypesProps[T]["value"]}} : never
@@ -12,8 +12,9 @@ export type UpdateDOM<IP extends InputsProps> = (inputsValues: InputsValues<IP>)
 export type SetupFormModal = <IP extends InputsProps>(inputsProps: IP, updateDOM: UpdateDOM<IP>) => void
 export type UseOptionWithFormProps<ON extends OptionNode, ONA extends Partial<ON>, P> = {
   setupFormModal: SetupFormModal
-  atAfterUpdateDOMEnd: AtAfterUpdateDOMEnd
   getLastSelectionData: GetLastSelectionData
+  outlineNodes: OutlineNodes
+  atAfterUpdateDOMEnd: AtAfterUpdateDOMEnd
 } & P
 
 export type ModifiableOptionData<ON extends OptionNode, ONA extends Partial<ON>, IP extends InputsProps> = {

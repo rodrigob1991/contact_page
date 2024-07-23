@@ -24,19 +24,23 @@ const mapInputsValuesToAttrs = ([href=""]: InputsValues<InputsProps>) => ({href}
 type Props = {
   className: string
 }
-const useAnchorOption: UseOptionWithForm<HTMLAnchorElement, ModifiableAttributes, InputsProps, Props> = function({className, setupFormModal, ...rest}) {
+const useAnchorOption: UseOptionWithForm<HTMLAnchorElement, ModifiableAttributes, InputsProps, Props> = function({className, setupFormModal, ...optionPropsRest}) {
   const showFormModal: ShowFormModal<HTMLAnchorElement, ModifiableAttributes> = (updateDOM) => {
     setupFormModal<InputsProps>(inputsProps, (inputsValues) => {updateDOM(mapInputsValuesToAttrs(inputsValues))})
   }
-/* 
-  const onclick = (e: MouseEvent) => {
-    const anchor = e.target as HTMLAnchorElement
-    const {href} = anchor
-    window.modifyElement<HTMLAnchorElement, AnchorElementValues>(anchor, getModifyInputsProps({href}))
-  } */
-  const getNewAnchor = (t: string) => createAnchor({innerHTML: t, className})
 
-  const option = <Option type={type} className={className} getNewOptionNode={getNewAnchor} withText insertInNewLine={false} showFormModal={showFormModal} {...rest}>
+  const optionProps = {
+    type,
+    className,
+    getNewOptionNode: (t: string) => createAnchor({innerHTML: t, className}),
+    withText: true,
+    insertInNewLine: false,
+    showFormModal,
+    insertNodesBeforeShowFormModal: true,
+    ...optionPropsRest
+  }
+
+  const option = <Option {...optionProps}>
                   Anchor
                  </Option>
 
