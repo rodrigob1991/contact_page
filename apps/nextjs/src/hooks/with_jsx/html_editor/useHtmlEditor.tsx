@@ -1,14 +1,15 @@
 import styled from "@emotion/styled"
-import { FocusEventHandler, KeyboardEventHandler, MouseEventHandler, useRef, useState } from "react"
+import { FocusEventHandler, KeyboardEventHandler, MouseEventHandler, useEffect, useRef, useState } from "react"
 import { upperCaseFirstChar } from "utils/src/strings"
 import { ChangePropertyType } from "utils/src/types"
-import { ContainsNode, EventsHandlers } from "../../../components/ResizableDraggableDiv"
+import { ContainsNode } from "../../../components/ResizableDraggableDiv"
+import SyntheticCaret, { SyntheticCaretProps } from "../../../components/SyntheticCaret"
 import { GetRect } from "../../../types/dom"
+import { createSpan } from "../../../utils/domManipulations"
 import useModal, { UseModalReturn } from "../useModal"
 import { OptionNode } from "./options/Option"
 import useOptions, { MapOptionNodeAttrToInputsProps, MapOptionNodeTo, UseOptionsProps } from "./options/useOptions"
-import SyntheticCaret, { SyntheticCaretProps } from "../../../components/SyntheticCaret"
-import { createSpan } from "../../../utils/domManipulations"
+import useMousePosition from "../useMousePosition"
 
 const defaultColors = ["red", "blue", "green", "yellow", "black"]
 const defaultGetColorClassName = (color: string) => "color" + upperCaseFirstChar(color) + "Option"
@@ -16,22 +17,25 @@ const defaultGetColorClassName = (color: string) => "color" + upperCaseFirstChar
 export type OutlineNodes = (...nodes: Node[]) => void
 export type ReverseOutlineElements = () => void
 
-export type SelectionData = {isCollapsed: boolean, anchorNode: Node | undefined, anchorOffset: number, ranges: Range[], rect: DOMRect}
+export type SelectionData = {isCollapsed: boolean, anchorNode: Node | undefined, anchorOffset: number, ranges: Range[], getRect: GetRect}
 export type GetLastSelectionData = () => SelectionData | undefined
 
-type SetVisibleOnSelection = (mousePosition?: {top: number, left: number}) => void
+type SetVisibleOnSelection = (mousePosition?: {x: number, y: number}) => void
 
-type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onBlur: FocusEventHandler, onClick: MouseEventHandler, onDoubleClick: MouseEventHandler}
+type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onFocus: FocusEventHandler, onBlur: FocusEventHandler, onClick: MouseEventHandler, onDoubleClick: MouseEventHandler}
+
+type InsideTarget = (n: Node) => boolean
 
 type Props<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">> = {
     getContainerRect: GetRect
+    isInsideTarget: InsideTarget
     colors?: string[]
     getColorClassName?: (color: string) => string
-} & EventsHandlers & Omit<UseOptionsProps<ONS, ONAS, IPS, WTS>, "getClassesNames" | "getHtmlEditorModalRect" | "setHtmlEditorVisibleTrue">
+} & {options?: Omit<UseOptionsProps<ONS, ONAS, IPS, WTS>, "getContainerRect" | "getClassesNames" | "getHtmlEditorModalRect" | "getLastSelectionData" | "outlineNodes" | "atAfterUpdateDOMEnd">}
 
 type Return = ChangePropertyType<UseModalReturn<"htmlEditor">, ["setHtmlEditorModalVisible", SetVisibleOnSelection]> & {targetEventHandlers: TargetEventHandlers}
 
-export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({getContainerRect, colors=defaultColors, getColorClassName=defaultGetColorClassName, spanClassesNames, anchorClassName, extensionOptionsProps}: Props<ONS, ONAS, IPS, WTS>) : Return {
+export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({getContainerRect, isInsideTarget, colors=defaultColors, getColorClassName=defaultGetColorClassName, options: optionsSpecificProps}: Props<ONS, ONAS, IPS, WTS>) : Return {
     /* const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
         const id = elementId
@@ -66,7 +70,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
       }
     }
 
-    const getOptionClassesNames = (className?: string) =>  getColorClassName(selectedColor) + (className ? " " + className : "")
+    const getOptionClassesNames = (className: string="") =>  getColorClassName(selectedColor) + " " + className
 
     const refToOutlineNodes = useRef<Node[]>([])
     const setOutlineNodes = (nodes: Node[]) => {
@@ -103,27 +107,28 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
     const getLastSelectionData = () => lastSelectionDataRef.current
     const setLastSelectionData = () => {
       let lastSelectionData = undefined
-      let anchorNode = undefined
       const selection = document.getSelection()
       if (selection) {
-        const {isCollapsed, anchorOffset} = selection
-        anchorNode = selection.anchorNode ?? undefined
-        const ranges = []
-        for (let i=0; i < selection.rangeCount; i ++){
-          ranges.push(selection.getRangeAt(i))
+        const anchorNode = selection.anchorNode
+        if (anchorNode && isInsideTarget(anchorNode)) {
+          const {isCollapsed, anchorOffset} = selection
+          const ranges: Range[] = []
+          for (let i=0; i < selection.rangeCount; i ++){
+            ranges.push(selection.getRangeAt(i))
+          }
+          lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, getRect: ()=> ranges[0].getBoundingClientRect()}
+          anchorNode.parentElement && outlineNodes(anchorNode.parentElement)
         }
-        lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, rect: ranges[0].getBoundingClientRect()}
       }
-      anchorNode &&  anchorNode.parentElement ? outlineNodes(anchorNode.parentElement) : reverseOutlineNodes()
       lastSelectionDataRef.current = lastSelectionData
     }
 
     const atAfterUpdateDOMEnd = () => {
       // for now just visible on selection available
-      setVisibleOnSelection()
+      //setVisibleOnSelection()
     }
 
-    const {options, formModal, setFormModalVisibleFalse, containsFormModalNode, modifyOptionElement} = useOptions({spanClassesNames, anchorClassName, extensionOptionsProps, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), outlineNodes, atAfterUpdateDOMEnd, getLastSelectionData})
+    const {options, formModal, setFormModalVisibleFalse, containsFormModalNode, modifyOptionElement} = useOptions({getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), outlineNodes, atAfterUpdateDOMEnd, getLastSelectionData, ...optionsSpecificProps})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState<SyntheticCaretProps>({visible: false})
     
@@ -152,44 +157,56 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         setFormModalVisibleFalse()
         //setHtmlEditorModalVisible(false)
         setSyntheticCaretStates({visible: false})
-        // the setTimeout is because when click over an existing range the top of the new range rectangle remain like the older one
-        setTimeout(() => { 
-          const lastSelectionData = getLastSelectionData()
-          if (lastSelectionData) {
-            const {height} = getHtmlEditorModalRect()
-            const {top: containerTop, left: containerLeft} = getContainerRect()
-            const range = lastSelectionData.ranges[0]
-            const {top: rangeTop, left: rangeLeft, height: rangeHeight, width: rangeWidth, bottom: rangeBottom} = range.getBoundingClientRect()
-            const rangeRelativeTop = rangeTop - containerTop
-            const rangeRelativeLeft = rangeLeft - containerLeft
-            let top 
-            let left
-            if (mousePosition) {
-              top = rangeRelativeTop + (mousePosition.top > rangeTop + rangeHeight / 2 ? rangeHeight + 5 : -(height + 5))
-              left = mousePosition.left - containerLeft
-            } else {
-              top = rangeRelativeTop - height - 5
-              left = rangeLeft
-            }
-            if (lastSelectionData.isCollapsed) {
-              //setSyntheticCaretStates({visible: true, top: rangeRelativeTop, left: rangeRelativeLeft, height: rangeBottom - rangeTop, width: 3})
-            }
-            if (isColorsModalVisible()) {
-              setColorsModalVisible(true, {top: `${top + height + 5}px`, left: `${left}px`})
-            }
-            setHtmlEditorModalVisible(true, {top: `${top}px`, left: `${left}px`})
-          }
-        })
+        const lastSelectionData = getLastSelectionData()
+        if (lastSelectionData) {
+        // the setTimeout is because when click over an existing range the top of the new range rectangle remain like the older one    
+          setTimeout(() => { 
+              const {height} = getHtmlEditorModalRect()
+              const {top: containerTop, left: containerLeft} = getContainerRect()
+              const range = lastSelectionData.ranges[0]
+              const {top: rangeTop, left: rangeLeft, height: rangeHeight, width: rangeWidth, bottom: rangeBottom} = range.getBoundingClientRect()
+              const rangeRelativeTop = rangeTop - containerTop
+              const rangeRelativeLeft = rangeLeft - containerLeft
+              let top 
+              let left
+              if (mousePosition) {
+                top = rangeRelativeTop + (mousePosition.y > rangeTop + rangeHeight / 2 ? rangeHeight + 5 : -(height + 5))
+                left = mousePosition.x - containerLeft
+              } else {
+                top = rangeRelativeTop - height - 5
+                left = rangeLeft
+              }
+              if (lastSelectionData.isCollapsed) {
+                //setSyntheticCaretStates({visible: true, top: rangeRelativeTop, left: rangeRelativeLeft, height: rangeBottom - rangeTop, width: 3})
+              }
+              if (isColorsModalVisible()) {
+                setColorsModalVisible(true, {top: `${top + height + 5}px`, left: `${left}px`})
+              }
+              setHtmlEditorModalVisible(true, {top: `${top}px`, left: `${left}px`})
+          })
+        }else {setHtmlEditorModalVisible(false)}
     }
 
     const containsHtmlEditorModalAndFormModalNode: ContainsNode = (node) => containsHtmlEditorModalNode(node) || containsColorsModalNode(node) || containsFormModalNode(node)
     
+    const mousePosition = useMousePosition()
+    useEffect(() => {
+      document.addEventListener("selectionchange", (e) => {
+        setLastSelectionData()
+        setVisibleOnSelection(mousePosition)
+      })
+    }, [])
+
     const targetEventHandlers: TargetEventHandlers = {
-      onMouseUp: (e) => {
+    /*   onMouseUp: (e) => {
         setLastSelectionData()
         setVisibleOnSelection({top: e.clientY, left: e.clientX})
       },
       onKeyUp: (e) => {
+        setLastSelectionData()
+        setVisibleOnSelection()
+      }, 
+      onFocus: (e) => {
         setLastSelectionData()
         setVisibleOnSelection()
       },
@@ -199,7 +216,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
           setHtmlEditorModalVisible(false)
       },
       onClick: (e) => {
-      },
+      }, */
       onDoubleClick: (e) => {
         const target = e.target
         modifyOptionElement(target)

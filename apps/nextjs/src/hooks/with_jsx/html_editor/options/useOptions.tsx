@@ -43,6 +43,7 @@ type ModifiableExtensionOptionsData<ONS extends OptionNode[], ONAS extends MapOp
 type ModifyOptionElement = (optionElement: HTMLElement) => void
 
 export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>,  WTS extends MapOptionNodeTo<ONS, "wt">> = {
+    defaultTextClassName?: string
     spanClassesNames?: string[]
     anchorClassName?: string
     getClassesNames: (className?: string) => string
@@ -51,9 +52,9 @@ export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNode
     getLastSelectionData: GetLastSelectionData
     outlineNodes: OutlineNodes
     atAfterUpdateDOMEnd: AtAfterUpdateDOMEnd
-} & Available<ONS, NonEmptyArray<OptionNode>, {extensionOptionsProps: ExtensionOptionPropsArray<ONS, ONAS, IPS, WTS>}>
+} & Available<ONS, NonEmptyArray<OptionNode>, {extensionsProps: ExtensionOptionPropsArray<ONS, ONAS, IPS, WTS>}>
 
-export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">>({spanClassesNames=[], anchorClassName=defaultAnchorClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, atAfterUpdateDOMEnd: atAfterUpdateDOMEndProp, extensionOptionsProps, ...optionPropsRest}: UseOptionsProps<ONS, ONAS, IPS, WTS>): {options: ReactNode, formModal: ReactNode, setFormModalVisibleFalse: () => void, containsFormModalNode: ContainsNode, modifyOptionElement: ModifyOptionElement} {
+export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">>({defaultTextClassName, spanClassesNames=[], anchorClassName=defaultAnchorClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, atAfterUpdateDOMEnd: atAfterUpdateDOMEndProp, extensionsProps, ...optionPropsRest}: UseOptionsProps<ONS, ONAS, IPS, WTS>): {options: ReactNode, formModal: ReactNode, setFormModalVisibleFalse: () => void, containsFormModalNode: ContainsNode, modifyOptionElement: ModifyOptionElement} {
     const atAfterUpdateDOMEnd = () => {
       atAfterUpdateDOMEndProp()
     }
@@ -69,7 +70,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       setTimeout(() => {setFormModalVisible(true, getFormModalPosition())}, 200)
     }
     const getFormModalPosition = (): ModalPosition => {
-      const rangeTop = rest.getLastSelectionData()?.rect.top ?? 0
+      const rangeTop = optionPropsRest.getLastSelectionData()?.getRect().top ?? 0
       const {top: editorTop, left: editorLeft, height: heightTop} = getHtmlEditorModalRect()
       const {top: containerTop, left: containerLeft} = getContainerRect()
       const isEditorAboveRange = editorTop < rangeTop
@@ -81,7 +82,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
 
     const defaultTextOptionProps = {
       type: "defaultText",
-      className: getClassesNames(),
+      className: defaultTextClassName,
       getNewOptionNode: (t: string) => createText(t),
       withText: true,
       insertInNewLine: false,
@@ -116,8 +117,8 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
     const {type: imageType, option: imageOption, ...imageModifiableData} = useImageOption({setupFormModal, atAfterUpdateDOMEnd, ...optionPropsRest})
     modifiableOptionsDataByType.set(imageType, imageModifiableData)
 
-    const extensionOptions = extensionOptionsProps ? 
-    (extensionOptionsProps as ExtensionOptionPropsArray<ONS, ONAS, IPS, WTS>).map(({type, className, inputsProps, getModifyInputsProps, mapInputsValuesToAttrs, children, ...extensionOptionPropsRest}) => {
+    const extensionOptions = extensionsProps ? 
+    (extensionsProps as ExtensionOptionPropsArray<ONS, ONAS, IPS, WTS>).map(({type, className, inputsProps, getModifyInputsProps, mapInputsValuesToAttrs, children, ...extensionOptionPropsRest}) => {
       type ON = ONS[number]
       type ONA = ONAS[number]
       type WT = WTS[number]

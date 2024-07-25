@@ -139,7 +139,12 @@ export default function StoriesView<M extends ViewMode>({
         },
         [stories])
 
-    const refToLastStory = useRef<HTMLDivElement>()
+    const storiesBodiesDivRef = useRef<HTMLDivElement[]>([])
+    const setStoryBodyDiv = (div: HTMLDivElement, index: number) => {
+      storiesBodiesDivRef.current[index] = div
+    }
+    const getStoriesBodiesDiv = () => storiesBodiesDivRef.current
+
     const handleAddNewStory: MouseEventHandler<SVGAElement> = (e) => {
         const [idHtml, newStory] = (createNewStory as GetNewStory)()
         setStoriesViewStates((svs) => {
@@ -147,7 +152,7 @@ export default function StoriesView<M extends ViewMode>({
             }
         )
         setTimeout(() => {
-            refToLastStory.current?.focus()
+          getStoriesBodiesDiv()[getStoriesBodiesDiv().length -1].focus()
         }, 500)
     }
     const handleDeleteStory = (idHtml: string, index: number, isNew: boolean) => {
@@ -168,21 +173,13 @@ export default function StoriesView<M extends ViewMode>({
     }
     const [editingStoryId, setEditingStoryId] = useState<string>()
 
-    const {setHtmlEditorModalVisible, htmlEditorModal, containsHtmlEditorModalNode, targetEventHandlers} = useHtmlEditor({getContainerRect: () => getContainer().getBoundingClientRect()})
-
-   /*  const onMouseUpHandler: MouseEventHandler = (e) => {
-      setHtmlEditorModalVisible(true, {top: e.clientY, left: e.clientX})
-    } */
+    const isInsideStoryBodyDiv = (node: Node) => !getStoriesBodiesDiv().every(d => !d.contains(node))
+    
+    const {setHtmlEditorModalVisible, htmlEditorModal, containsHtmlEditorModalNode, targetEventHandlers} = useHtmlEditor({getContainerRect: () => getContainer().getBoundingClientRect(), options: {defaultTextClassName: storyBodyStyle.name}, isInsideTarget: isInsideStoryBodyDiv})
 
     const getEditableStoriesView = () => storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
                                          const {title,body, state} = story as Story
                                          const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
-
-                                         /* const handleOnBlurBody: FocusEventHandler<HTMLDivElement> = (e) => {
-                                          const focusedTarget = e.relatedTarget
-                                          if(focusedTarget && !containsHtmlEditorModalNode(focusedTarget))
-                                            setHtmlEditorModalVisible(false)
-                                         } */
 
                                          return <StoryContainer id={idHtml} key={idHtml}>
                                                 <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r)=> {(observe as Observe)(r, {mutation: "default"})}}
@@ -194,8 +191,8 @@ export default function StoriesView<M extends ViewMode>({
                                                 <DeleteOrRecoverButton color={"#778899"} initShowDelete={!toDelete} size={20} handleDelete={() => {handleDeleteStory(idHtml, index, !("id" in story))}}
                                                                        handleRecover={() => {handleRecoverStory(idHtml, index)}}/>
                                                 </StoryTitleContainer>
-                                                <MemoizedStoryBody id={htmlIds.body} contentEditable={!toDelete}
-                                                                   ref={r => {if(r) {refToLastStory.current = r; (observe as Observe)(r, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
+                                                <div css={storyBodyStyle} id={htmlIds.body} contentEditable={!toDelete}
+                                                                   ref={div => {if(div) {setStoryBodyDiv(div, index); (observe as Observe)(div, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
                                                                    dangerouslySetInnerHTML={{__html: body}} {...targetEventHandlers} /* onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody} *//>
                                                 </StoryContainer>
                                          })
