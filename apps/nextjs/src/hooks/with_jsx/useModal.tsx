@@ -7,7 +7,7 @@ import { TfiTarget } from "react-icons/tfi"
 import { PartialPositionCSS, PositionCSSKey, PositionCSSValue } from "utils/src/css/position"
 import { PartialSizeCSS } from "utils/src/css/size"
 import { getNumber, upperCaseFirstChar } from "utils/src/strings"
-import { ContainerDivApi, ContainsNode, EventsHandlers, GetStyle, ResizableDraggableDiv, setPreventFlag } from "../../components/ResizableDraggableDiv"
+import { ContainerDivApi, DoesContainsNode, EventsHandlers, GetStyle, ResizableDraggableDiv, setPreventFlag } from "../../components/ResizableDraggableDiv"
 import { modalLayout } from "../../layouts"
 import { mainColor, secondColor, thirdColor } from "../../theme"
 import { GetRect } from "../../types/dom"
@@ -51,16 +51,18 @@ export type UseModalProps<N extends ModalName, PT extends PositionType> = {
   onHideHandler?: () => void
 } & UseModalHookedProps<PT> & EventsHandlers
 export type SetVisibleKey<N extends ModalName> = `set${Capitalize<ModalFullName<N>>}Visible`
-export type isVisibleKey<N extends ModalName> = `is${Capitalize<ModalFullName<N>>}Visible`
+export type IsVisibleKey<N extends ModalName> = `is${Capitalize<ModalFullName<N>>}Visible`
 export type ModalKey<N extends ModalName> = ModalFullName<N>
-export type ContainsNodeKey<N extends ModalName> = `contains${Capitalize<ModalFullName<N>>}Node`
+export type DoesContainsNodeKey<N extends ModalName> = `does${Capitalize<ModalFullName<N>>}ContainsNode`
 export type GetRectKey<N extends ModalName> = `get${Capitalize<ModalFullName<N>>}Rect`
-export type UseModalReturn<N extends ModalName> = 
-{[K in SetVisibleKey<N>]: SetModalVisible} & 
-{[K in isVisibleKey<N>]: () => boolean} & 
-{[K in ModalKey<N>]: ReactNode} &
-{[K in ContainsNodeKey<N>]: ContainsNode} & 
-{[K in GetRectKey<N>]: GetRect}
+
+export type SetVisibleReturn<N extends ModalName> = {[K in SetVisibleKey<N>]: SetModalVisible} 
+export type IsVisibleReturn<N extends ModalName> = {[K in IsVisibleKey<N>]: () => boolean} 
+export type ModalReturn<N extends ModalName> = {[K in ModalKey<N>]: ReactNode} 
+export type DoesContainsNodeReturn<N extends ModalName> = {[K in DoesContainsNodeKey<N>]: DoesContainsNode} 
+export type GetRectReturn<N extends ModalName> = {[K in GetRectKey<N>]: GetRect} 
+
+export type UseModalReturn<N extends ModalName> = SetVisibleReturn<N> & IsVisibleReturn<N> & ModalReturn<N> & DoesContainsNodeReturn<N> & GetRectReturn<N>
 
 const fullSize = {height: "100%", width: "100%"} as const
 const centerPosition = {top: "50%", left: "50%"} as const
@@ -135,7 +137,7 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
 
     const containerDivApiRef = useRef<ContainerDivApi>(null)
     const getContainerDivApi = () => containerDivApiRef.current as ContainerDivApi
-    const containsNode: ContainsNode = (node) => getContainerDivApi().containsNode(node)
+    const doesContainsNode: DoesContainsNode = getContainerDivApi().doesContainsNode
     const getRect: GetRect = () => getContainerDivApi().getRect()
     const [positionTypeCss, setPositionTypeCss] = useState<"absolute" | "fixed">(defaultPositionTypeCss)
 
@@ -384,16 +386,16 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
     const capitalizedFullName = upperCaseFirstChar(fullName)
                  
     const setVisibleKey: SetVisibleKey<N> = `set${capitalizedFullName}Visible`
-    const isVisibleKey: isVisibleKey<N> = `is${capitalizedFullName}Visible`
+    const isVisibleKey: IsVisibleKey<N> = `is${capitalizedFullName}Visible`
     const modalKey: ModalKey<N> = fullName
-    const containsNodeKey: ContainsNodeKey<N> = `contains${capitalizedFullName}Node`
+    const doesContainsNodeKey: DoesContainsNodeKey<N> = `does${capitalizedFullName}ContainsNode`
     const getRectKey: GetRectKey<N> = `get${capitalizedFullName}Rect`
     
     return {
       [setVisibleKey]: setModalVisible,
       [isVisibleKey]: () => visible,
       [modalKey]: modal,
-      [containsNodeKey]: containsNode,
+      [doesContainsNodeKey]: doesContainsNode,
       [getRectKey]: getRect,
     } as UseModalReturn<N>         
 }

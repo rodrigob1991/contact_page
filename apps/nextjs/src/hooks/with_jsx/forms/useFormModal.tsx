@@ -118,8 +118,8 @@ export type SubmissionAction<IP extends InputsProps> = (values: InputsValues<IP>
 
 const formModalDefaultNamePrefix = "form"
 type FormModalDefaultNamePrefix = typeof formModalDefaultNamePrefix
-export type FormModalNamePrefix<N extends ModalName> = N extends undefined | "" ? FormModalDefaultNamePrefix : `${N}${Capitalize<FormModalDefaultNamePrefix>}`
-export type FormModalFullName<N extends ModalName> = ModalFullName<FormModalNamePrefix<N>>
+export type FormModalNamePrefix<N extends ModalName=undefined> = N extends undefined | "" ? FormModalDefaultNamePrefix : `${N}${Capitalize<FormModalDefaultNamePrefix>}`
+export type FormModalFullName<N extends ModalName=undefined> = ModalFullName<FormModalNamePrefix<N>>
 
 export type UseFormModalProps<IP extends InputsProps=InputsProps, N extends ModalName=undefined, PT extends PositionType="absolute"> = {
     inputsProps: IP

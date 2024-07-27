@@ -26,12 +26,12 @@ export const dragPrevented = (e: MouseEvent | React.MouseEvent) => {
 export type GetStyle = (resizing: boolean, dragging: boolean) => Interpolation<Theme>
 export type SetSizeCSS = (size: PartialSizeCSS) => void
 export type SetPositionCSS = (position: PartialPositionCSS) => void
-export type ContainsNode = (node: Node | undefined | null) => boolean
+export type DoesContainsNode = (node: Node | undefined | null) => boolean
 export type ContainerDivApi = {
     observeIntersection: (observer: IntersectionObserver) => void
     getComputedStyle: () => CSSStyleDeclaration
     getRect: GetRect
-    containsNode: ContainsNode
+    doesContainsNode: DoesContainsNode
     focus: () => void
 }
 export type EventsHandlers = {
@@ -69,7 +69,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
           getRect() {
             return getContainer().getBoundingClientRect()
           },
-          containsNode(node) {
+          doesContainsNode(node) {
            return  exist(node) && getContainer().contains(node)
           },
           focus() {

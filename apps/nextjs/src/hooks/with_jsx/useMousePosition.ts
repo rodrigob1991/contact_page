@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react"
 
-export default function useMousePosition() {
+export default function useMousePosition(when: "move" | "down" | "up"="move") {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
     
     useEffect(() => {
+      const type = `mouse${when}` as const
       const updateMousePosition = (e: MouseEvent) => {
         setMousePosition({x: e.clientX, y: e.clientY})
       }
-      window.addEventListener('mousemove', updateMousePosition)
+      window.addEventListener(type, updateMousePosition)
       return () => {
-        window.removeEventListener('mousemove', updateMousePosition)
+        window.removeEventListener(type, updateMousePosition)
       }
     }, [])
     

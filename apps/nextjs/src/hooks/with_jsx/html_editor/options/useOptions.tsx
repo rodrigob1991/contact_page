@@ -1,10 +1,9 @@
 import { ReactNode, useState } from "react"
 import { Available, IfExtends, NonEmptyArray } from "utils/src/types"
-import { ContainsNode } from "../../../../components/ResizableDraggableDiv"
 import { GetRect } from "../../../../types/dom"
 import { createSpan, createText } from "../../../../utils/domManipulations"
-import useFormModal, { InputsProps, InputsValues, SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
-import { ModalPosition } from "../../useModal"
+import useFormModal, { FormModalNamePrefix, InputsProps, InputsValues, SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
+import { DoesContainsNodeReturn, ModalPosition, ModalReturn } from "../../useModal"
 import { GetLastSelectionData, OutlineNodes, modalCommonProps } from "../useHtmlEditor"
 import Option, { AtAfterUpdateDOMEnd, OptionNode, OptionProps, ShowFormModal } from "./Option"
 import { ModifiableOptionData, SetupFormModal } from "./with_form/types"
@@ -54,13 +53,20 @@ export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNode
     atAfterUpdateDOMEnd: AtAfterUpdateDOMEnd
 } & Available<ONS, NonEmptyArray<OptionNode>, {extensionsProps: ExtensionOptionPropsArray<ONS, ONAS, IPS, WTS>}>
 
-export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">>({defaultTextClassName, spanClassesNames=[], anchorClassName=defaultAnchorClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, atAfterUpdateDOMEnd: atAfterUpdateDOMEndProp, extensionsProps, ...optionPropsRest}: UseOptionsProps<ONS, ONAS, IPS, WTS>): {options: ReactNode, formModal: ReactNode, setFormModalVisibleFalse: () => void, containsFormModalNode: ContainsNode, modifyOptionElement: ModifyOptionElement} {
+type Return = {
+    options: ReactNode
+    setFormModalVisibleFalse: () => void
+    modifyOptionElement: ModifyOptionElement
+}   & DoesContainsNodeReturn<FormModalNamePrefix>
+    & ModalReturn<FormModalNamePrefix>
+
+export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">>({defaultTextClassName, spanClassesNames=[], anchorClassName=defaultAnchorClassName, getClassesNames, getContainerRect, getHtmlEditorModalRect, atAfterUpdateDOMEnd: atAfterUpdateDOMEndProp, extensionsProps, ...optionPropsRest}: UseOptionsProps<ONS, ONAS, IPS, WTS>): Return {
     const atAfterUpdateDOMEnd = () => {
       atAfterUpdateDOMEndProp()
     }
 
     const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: [], submissionAction: () => {}})
-    const {setFormModalVisible, formModal, getFormModalRect, containsFormModalNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
+    const {setFormModalVisible, formModal, getFormModalRect, doesFormModalContainsNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
     const setupFormModal: SetupFormModal = (inputsProps, updateDOM) => {
       const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
         updateDOM(values)
@@ -169,5 +175,5 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
         }
     }
 
-    return {options, formModal, setFormModalVisibleFalse: () => {setFormModalVisible(false)}, containsFormModalNode, modifyOptionElement}
+    return {options, formModal, setFormModalVisibleFalse: () => {setFormModalVisible(false)}, doesFormModalContainsNode, modifyOptionElement}
 }

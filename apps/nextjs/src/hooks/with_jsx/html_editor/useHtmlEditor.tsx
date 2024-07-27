@@ -2,14 +2,14 @@ import styled from "@emotion/styled"
 import { FocusEventHandler, KeyboardEventHandler, MouseEventHandler, useEffect, useRef, useState } from "react"
 import { upperCaseFirstChar } from "utils/src/strings"
 import { ChangePropertyType } from "utils/src/types"
-import { ContainsNode } from "../../../components/ResizableDraggableDiv"
+import { DoesContainsNode } from "../../../components/ResizableDraggableDiv"
 import SyntheticCaret, { SyntheticCaretProps } from "../../../components/SyntheticCaret"
 import { GetRect } from "../../../types/dom"
 import { createSpan } from "../../../utils/domManipulations"
 import useModal, { UseModalReturn } from "../useModal"
+import useMousePosition from "../useMousePosition"
 import { OptionNode } from "./options/Option"
 import useOptions, { MapOptionNodeAttrToInputsProps, MapOptionNodeTo, UseOptionsProps } from "./options/useOptions"
-import useMousePosition from "../useMousePosition"
 
 const defaultColors = ["red", "blue", "green", "yellow", "black"]
 const defaultGetColorClassName = (color: string) => "color" + upperCaseFirstChar(color) + "Option"
@@ -24,18 +24,18 @@ type SetVisibleOnSelection = (mousePosition?: {x: number, y: number}) => void
 
 type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onFocus: FocusEventHandler, onBlur: FocusEventHandler, onClick: MouseEventHandler, onDoubleClick: MouseEventHandler}
 
-type InsideTarget = (n: Node) => boolean
+type DoesTargetContainNode = (n: Node) => boolean
 
 type Props<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">> = {
     getContainerRect: GetRect
-    isInsideTarget: InsideTarget
+    doesTargetContainNode: DoesTargetContainNode
     colors?: string[]
     getColorClassName?: (color: string) => string
 } & {options?: Omit<UseOptionsProps<ONS, ONAS, IPS, WTS>, "getContainerRect" | "getClassesNames" | "getHtmlEditorModalRect" | "getLastSelectionData" | "outlineNodes" | "atAfterUpdateDOMEnd">}
 
 type Return = ChangePropertyType<UseModalReturn<"htmlEditor">, ["setHtmlEditorModalVisible", SetVisibleOnSelection]> & {targetEventHandlers: TargetEventHandlers}
 
-export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({getContainerRect, isInsideTarget, colors=defaultColors, getColorClassName=defaultGetColorClassName, options: optionsSpecificProps}: Props<ONS, ONAS, IPS, WTS>) : Return {
+export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({getContainerRect, doesTargetContainNode, colors=defaultColors, getColorClassName=defaultGetColorClassName, options: optionsSpecificProps}: Props<ONS, ONAS, IPS, WTS>) : Return {
     /* const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
         const id = elementId
@@ -55,7 +55,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
                                 <ColorView backgroundColor={color} onClick={(e) => {setSelectedColor(color); setColorsModalVisible(false)}}/>
                                 )}
                                 </ColorsModalChildrenContainer>
-    const {setColorsModalVisible, isColorsModalVisible, colorsModal, getColorsModalRect, containsColorsModalNode} = useModal({name: "colors", children: colorsModalChildren, ...modalCommonProps, onMouseDownHandler: (e) => {e.preventDefault()}})
+    const {setColorsModalVisible, isColorsModalVisible, colorsModal, getColorsModalRect, doesColorsModalContainsNode} = useModal({name: "colors", children: colorsModalChildren, ...modalCommonProps, onMouseDownHandler: (e) => {e.preventDefault()}})
     const onClickSelectedColorHandler: MouseEventHandler = (e) => {
       if (!isColorsModalVisible()) {
         const { top, left } = e.currentTarget.getBoundingClientRect()
@@ -110,7 +110,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
       const selection = document.getSelection()
       if (selection) {
         const anchorNode = selection.anchorNode
-        if (anchorNode && isInsideTarget(anchorNode)) {
+        if (anchorNode && doesTargetContainNode(anchorNode)) {
           const {isCollapsed, anchorOffset} = selection
           const ranges: Range[] = []
           for (let i=0; i < selection.rangeCount; i ++){
@@ -128,7 +128,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
       //setVisibleOnSelection()
     }
 
-    const {options, formModal, setFormModalVisibleFalse, containsFormModalNode, modifyOptionElement} = useOptions({getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), outlineNodes, atAfterUpdateDOMEnd, getLastSelectionData, ...optionsSpecificProps})
+    const {options, formModal, setFormModalVisibleFalse, doesFormModalContainsNode, modifyOptionElement} = useOptions({getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), outlineNodes, atAfterUpdateDOMEnd, getLastSelectionData, ...optionsSpecificProps})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState<SyntheticCaretProps>({visible: false})
     
@@ -150,7 +150,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
                      </Row>
                      </Container>
 
-    const {setHtmlEditorModalVisible, getHtmlEditorModalRect, containsHtmlEditorModalNode, htmlEditorModal, ...restReturn} = useModal({name: "htmlEditor", children, positionType: "absolute", onMouseDownHandler: (e) => {e.preventDefault()}, ...modalCommonProps})
+    const {setHtmlEditorModalVisible, getHtmlEditorModalRect, doesHtmlEditorModalContainsNode, htmlEditorModal, ...restReturn} = useModal({name: "htmlEditor", children, positionType: "absolute", onMouseDownHandler: (e) => {e.preventDefault()}, ...modalCommonProps})
     
     const setVisibleOnSelection: SetVisibleOnSelection = (mousePosition) => {
         setColorsModalVisible(false)
@@ -187,15 +187,19 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         }else {setHtmlEditorModalVisible(false)}
     }
 
-    const containsHtmlEditorModalAndFormModalNode: ContainsNode = (node) => containsHtmlEditorModalNode(node) || containsColorsModalNode(node) || containsFormModalNode(node)
+    const doesHtmlEditorModalAndFormModalContainsNode: DoesContainsNode = (node) => doesHtmlEditorModalContainsNode(node) || doesColorsModalContainsNode(node) || doesFormModalContainsNode(node)
     
     const mousePosition = useMousePosition()
     useEffect(() => {
-      document.addEventListener("selectionchange", (e) => {
+      const selectionChangeHandler = () => {
         setLastSelectionData()
         setVisibleOnSelection(mousePosition)
-      })
-    }, [])
+      }
+      document.addEventListener("selectionchange", selectionChangeHandler)
+      return () => {
+        document.removeEventListener("selectionchange", selectionChangeHandler)
+      }
+    }, [mousePosition])
 
     const targetEventHandlers: TargetEventHandlers = {
     /*   onMouseUp: (e) => {
@@ -232,7 +236,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
                        </>,
       setHtmlEditorModalVisible: setVisibleOnSelection,
       getHtmlEditorModalRect,
-      containsHtmlEditorModalNode: containsHtmlEditorModalAndFormModalNode,
+      doesHtmlEditorModalContainsNode: doesHtmlEditorModalAndFormModalContainsNode,
       targetEventHandlers,
       ...restReturn,
     }
