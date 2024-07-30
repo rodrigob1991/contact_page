@@ -106,6 +106,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
     const lastSelectionDataRef = useRef<SelectionData>()
     const getLastSelectionData = () => lastSelectionDataRef.current
     const setLastSelectionData = () => {
+      let ifSetLastSelectionData = true
       let lastSelectionData = undefined
       const selection = document.getSelection()
       if (selection) {
@@ -118,10 +119,30 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
           }
           lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, getRect: ()=> ranges[0].getBoundingClientRect()}
           anchorNode.parentElement && outlineNodes(anchorNode.parentElement)
+        } else if (doesHtmlEditorModalAndFormModalContainsNode(anchorNode)) {
+            ifSetLastSelectionData = false
         }
       }
-      lastSelectionDataRef.current = lastSelectionData
+      if (ifSetLastSelectionData){
+        lastSelectionDataRef.current = lastSelectionData
+      }
+
+      return ifSetLastSelectionData
     }
+
+    const mousePosition = useMousePosition()
+    useEffect(() => {
+      const selectionChangeHandler = () => {
+        if (setLastSelectionData()) {
+          setVisibleOnSelection(mousePosition)
+        }
+      }
+      document.addEventListener("selectionchange", selectionChangeHandler)
+      return () => {
+        document.removeEventListener("selectionchange", selectionChangeHandler)
+      }
+    }, [mousePosition])
+
 
     const atAfterUpdateDOMEnd = () => {
       // for now just visible on selection available
@@ -189,18 +210,6 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
 
     const doesHtmlEditorModalAndFormModalContainsNode: DoesContainsNode = (node) => doesHtmlEditorModalContainsNode(node) || doesColorsModalContainsNode(node) || doesFormModalContainsNode(node)
     
-    const mousePosition = useMousePosition()
-    useEffect(() => {
-      const selectionChangeHandler = () => {
-        setLastSelectionData()
-        setVisibleOnSelection(mousePosition)
-      }
-      document.addEventListener("selectionchange", selectionChangeHandler)
-      return () => {
-        document.removeEventListener("selectionchange", selectionChangeHandler)
-      }
-    }, [mousePosition])
-
     const targetEventHandlers: TargetEventHandlers = {
     /*   onMouseUp: (e) => {
         setLastSelectionData()
