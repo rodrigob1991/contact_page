@@ -113,7 +113,7 @@ const TextArea = styled.textarea<{ height?: number, width?: number }>`
     height: 100%;
     width: 100%;
 `
-type OptionSelectorProps<E extends string> = {
+/* type OptionSelectorProps<E extends string> = {
     id?: string
     processRefToValueHtmlElement?: (e: HTMLElement) => void
     options: E[]
@@ -186,7 +186,7 @@ const DropDownMenu = styled.div<{ show: boolean }>`
     `display: none;
     transform: translateY(-10px);`}
   transition: display 150ms ease-in-out, transform 150ms ease-in-out;
-`
+` */
 
 export type ProcessSelectedImage = (name: string, extension: string, dataUrl: string) => void
 type ImageSelectorProps = {

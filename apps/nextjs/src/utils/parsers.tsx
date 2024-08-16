@@ -3,7 +3,6 @@ import React from "react"
 import Image from "next/image"
 
 export const getStoryBodyJsx = (storyBodyHtml: string) => {
-    console.log("PARSING")
     let jsx = <></>
 
     const tagBeginRgx = /[<]/

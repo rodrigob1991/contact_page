@@ -19,7 +19,7 @@ export const Button = styled.button`
 export const PlusButton = ({className,...rest}: IconBaseProps) => {
     return <FaPlus className={"button " + (className ?? "")} {...rest}/>
 }
-export const DeleteButton = ({className, ...rest}: IconBaseProps) => {
+export const RemoveButton = ({className, ...rest}: IconBaseProps) => {
     return <BsFillTrashFill className={"button " + (className ?? "")} {...rest}/>
 }
 export const RecoverButton = ({className, ...rest}: IconBaseProps) => {
@@ -29,20 +29,26 @@ export const OpenOrCloseStoryButton = ({className, isOpen, ...rest}: {isOpen: bo
     return isOpen ? <BsChevronDoubleUp className={"button " + (className ?? "")} {...rest}/>
                   : <BsChevronDoubleDown className={"button " + (className ?? "")} {...rest}/>
 }
-export const DeleteOrRecoverButton = ({initShowDelete, handleDelete, handleRecover,...rest}:{ initShowDelete?: boolean, handleDelete: () => void ,handleRecover: () => void } & IconBaseProps) => {
-    const [showDelete, setShowDelete] = useState<boolean>(initShowDelete ?? true)
 
-    const handleOnClickRecover: MouseEventHandler<SVGElement> = (e) => {
-        setShowDelete(true)
-        handleRecover()
+type RemoveOrRecoverButtonProps = { 
+    initShowRemove?: boolean
+    removeHandler: () => void 
+    recoverHandler: () => void 
+} & IconBaseProps
+export const RemoveOrRecoverButton = ({initShowRemove, removeHandler, recoverHandler,...rest}: RemoveOrRecoverButtonProps) => {
+    const [showRemove, setShowRemove] = useState<boolean>(initShowRemove ?? true)
+
+    const onClickRecoverHandler: MouseEventHandler<SVGElement> = (e) => {
+        setShowRemove(true)
+        recoverHandler()
     }
-    const handleOnClickDelete: MouseEventHandler<SVGElement> = (e) => {
-        setShowDelete(false)
-        handleDelete()
+    const OnClickRemoveHandler: MouseEventHandler<SVGElement> = (e) => {
+        setShowRemove(false)
+        removeHandler()
     }
 
-    return showDelete ? <DeleteButton {...rest} onClick={handleOnClickDelete}/>
-                      : <RecoverButton {...rest} onClick={handleOnClickRecover}/>
+    return showRemove ? <RemoveButton {...rest} onClick={OnClickRemoveHandler}/>
+                      : <RecoverButton {...rest} onClick={onClickRecoverHandler}/>
     
 }
 export const SeeOrUnseeButton = ({className, see,...rest}: { see: boolean } & IconBaseProps) => {

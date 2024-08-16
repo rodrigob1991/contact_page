@@ -119,11 +119,11 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
           }
           lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, getRect: ()=> ranges[0].getBoundingClientRect()}
           anchorNode.parentElement && outlineNodes(anchorNode.parentElement)
-        } else if (doesHtmlEditorModalAndFormModalContainsNode(anchorNode)) {
+        } else if (doesModalsContainsNode(anchorNode)) {
             ifSetLastSelectionData = false
         }
       }
-      if (ifSetLastSelectionData){
+      if (ifSetLastSelectionData) {
         lastSelectionDataRef.current = lastSelectionData
       }
 
@@ -184,20 +184,21 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
           setTimeout(() => { 
               const {height} = getHtmlEditorModalRect()
               const {top: containerTop, left: containerLeft} = getContainerRect()
-              const range = lastSelectionData.ranges[0]
-              const {top: rangeTop, left: rangeLeft, height: rangeHeight, width: rangeWidth, bottom: rangeBottom} = range.getBoundingClientRect()
+              const {isCollapsed, getRect} = lastSelectionData
+              const {top: rangeTop, left: rangeLeft, height: rangeHeight, width: rangeWidth, bottom: rangeBottom} = getRect()
+
               const rangeRelativeTop = rangeTop - containerTop
               const rangeRelativeLeft = rangeLeft - containerLeft
               let top 
               let left
               if (mousePosition) {
                 top = rangeRelativeTop + (mousePosition.y > rangeTop + rangeHeight / 2 ? rangeHeight + 5 : -(height + 5))
-                left = mousePosition.x - containerLeft
+                left = isCollapsed ? rangeLeft : mousePosition.x - containerLeft
               } else {
                 top = rangeRelativeTop - height - 5
                 left = rangeLeft
               }
-              if (lastSelectionData.isCollapsed) {
+              if (isCollapsed) {
                 //setSyntheticCaretStates({visible: true, top: rangeRelativeTop, left: rangeRelativeLeft, height: rangeBottom - rangeTop, width: 3})
               }
               if (isColorsModalVisible()) {
@@ -208,7 +209,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         }else {setHtmlEditorModalVisible(false)}
     }
 
-    const doesHtmlEditorModalAndFormModalContainsNode: DoesContainsNode = (node) => doesHtmlEditorModalContainsNode(node) || doesColorsModalContainsNode(node) || doesFormModalContainsNode(node)
+    const doesModalsContainsNode: DoesContainsNode = (node) => doesHtmlEditorModalContainsNode(node) || doesColorsModalContainsNode(node) || doesFormModalContainsNode(node)
     
     const targetEventHandlers: TargetEventHandlers = {
     /*   onMouseUp: (e) => {
@@ -245,7 +246,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
                        </>,
       setHtmlEditorModalVisible: setVisibleOnSelection,
       getHtmlEditorModalRect,
-      doesHtmlEditorModalContainsNode: doesHtmlEditorModalAndFormModalContainsNode,
+      doesHtmlEditorModalContainsNode: doesModalsContainsNode,
       targetEventHandlers,
       ...restReturn,
     }

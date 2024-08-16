@@ -137,7 +137,7 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
 
     const containerDivApiRef = useRef<ContainerDivApi>(null)
     const getContainerDivApi = () => containerDivApiRef.current as ContainerDivApi
-    const doesContainsNode: DoesContainsNode = getContainerDivApi().doesContainsNode
+    const doesContainsNode: DoesContainsNode = (node) => getContainerDivApi().doesContainsNode(node)
     const getRect: GetRect = () => getContainerDivApi().getRect()
     const [positionTypeCss, setPositionTypeCss] = useState<"absolute" | "fixed">(defaultPositionTypeCss)
 
@@ -148,7 +148,7 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
     const switchPositionTypeCss = (toType: "absolute" | "fixed", positionCss: PartialPositionCSS={}) => {
       setPositionTypeCss(toType)
       const {top: containerAncestorTop, left: containerAncestorLeft} = (toType === "absolute" ? getContainerAncestor() : getScrollableAncestor()).getBoundingClientRect()
-      const {top: containerTop, left: containerLeft} = getContainerDivApi().getRect()
+      const {top: containerTop, left: containerLeft} = getRect()
       const top = positionCss.top ?? `${containerTop - containerAncestorTop}px`
       const left = positionCss.left ?? `${containerLeft - containerAncestorLeft}px`
       const bottom = positionCss.bottom 
@@ -207,7 +207,7 @@ export default function useModal<N extends ModalName=undefined, PT extends Posit
         }
 
         const initialScrollEventHandler = (e: Event) => {
-          const { top, bottom, left, right } = getContainerDivApi().getRect()
+          const { top, bottom, left, right } = getRect()
           let scrollAxis = getScrollAxis()
 
           const backToAbsolutePosition = (axis: "x" | "y", c: -1 | 1) => {

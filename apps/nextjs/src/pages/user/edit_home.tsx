@@ -126,7 +126,20 @@ export default function EditHome(props?: HomeProps) {
     const mutateSavedStory = <K extends keyof NewStory>(storyId: string, key: K, value: Story[K]) => {
         const storyToUpdateIndex = getSavedStories().findIndex((s) => s.id === storyId)
         getSavedStories()[storyToUpdateIndex][key] = value
-    }
+    } 
+    /* const [savedStories, setSavedStories] = useState<Story[]>(props?.stories || [])
+    const getSavedStories = () => savedStories
+    const mutateSavedStory = <K extends keyof NewStory>(storyId: string, key: K, value: Story[K]) => {
+        setSavedStories(savedStories => {
+            const nextSavedStories = [... savedStories]
+            const i = savedStories.findIndex((s) => s.id === storyId)
+            const s = {...savedStories[i]}
+            s[key] = value
+            nextSavedStories[i] = s
+            console.log(s)
+            return nextSavedStories
+        })
+    } */
 
     const newStories = useRef<(NewStory | null)[]>([])
     const getNewStories = () => newStories.current
@@ -140,7 +153,7 @@ export default function EditHome(props?: HomeProps) {
     const createNewStory = (): [string, NewStory] => {
         const index = getNewStories().length
         const newStory = {state: StoryState.UNPUBLISHED, title: "new story" + (index + 1), body: "<div> body </div>"}
-        const id = newEntityIdPrefix +  index
+        const id = newEntityIdPrefix + index
         getNewStories().push(newStory)
         return [id, newStory]
     }

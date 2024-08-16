@@ -7,10 +7,10 @@ import { MouseEventHandler } from "react"
 type Props = {
     position: "middle" | "right"
     tooltipText: string
-    handleOnClick: MouseEventHandler<SVGAElement>
+    onClickHandler: MouseEventHandler<SVGAElement>
 }
 
-export default function AddButton({position, tooltipText, handleOnClick}: Props){
+export default function AddButton({position, tooltipText, onClickHandler}: Props){
     const getStyle = () => {
         let style
         switch (position) {
@@ -24,7 +24,7 @@ export default function AddButton({position, tooltipText, handleOnClick}: Props)
         return style
     }
 
-    return <WithTooltip renderChildren={(handlers) => <PlusButton css={getStyle()} size={50} color={mainColor} onClick={handleOnClick} {...handlers}/>} 
+    return <WithTooltip renderChildren={(handlers) => <PlusButton css={getStyle()} size={50} color={mainColor} onClick={onClickHandler} {...handlers}/>} 
                         tooltipText={tooltipText} tooltipOnMouse={false} tooltipDeviation={{top: 55, left: 0}} tooltipStyle={tooltipStyle}/>
 }
 

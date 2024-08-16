@@ -17,7 +17,7 @@ export async function getStaticProps() {
     }
 
     // json parser is use to don`t serialize undefined values, Next.js throw an error otherwise.
-    return {props: JSON.parse(JSON.stringify(props))}
+    return {props: JSON.parse(JSON.stringify(props)) as HomeProps}
 }
 
 export default function Home({presentation= {name:"", introduction: "", skills: [], image: undefined}, stories}: HomeProps) {
@@ -33,9 +33,7 @@ export default function Home({presentation= {name:"", introduction: "", skills: 
             </Head>
                 <Header/>
                 <PresentationView presentation={presentation}/>
-                <StoriesView stories={stories.map(s => {
-                    return {...(({body, ...rest}) => rest)(s), body: getStoryBodyJsx(s.body)}
-                })}/>
+                <StoriesView stories={stories.map(s => (({body, ...rest}) => ({...rest, body: getStoryBodyJsx(body)}))(s))}/>
         </>
     )
 }

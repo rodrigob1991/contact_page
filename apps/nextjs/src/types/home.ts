@@ -1,5 +1,5 @@
 import {Prisma} from '@prisma/client'
-import {ChangePropertiesType} from "utils/src/types"
+import {ChangePropertiesType, IfExtends} from "utils/src/types"
 import {PropsStorageClient} from "../classes/PropsStorageClient"
 
 export type DbOperation = "create" | "update"
@@ -37,7 +37,6 @@ export type UpdateHomePropsArgs =
 const storyDbArgs = Prisma.validator<Prisma.StoryArgs>()(PropsStorageClient.selectStory)
 type StoryDbArgs = Prisma.StoryGetPayload<typeof storyDbArgs>
 export type Story = StoryDbArgs
-export type StoryWithJsxBody = ChangePropertiesType<Story,[["body", JSX.Element]]>
 export type NewStory = Omit<Story, keyof Pick<Story, "id">>
 export type StoryWithJSXBody = ChangePropertiesType<Story, [["body", JSX.Element]]>
 export type NewStoryPropertiesType = NewStory[keyof NewStory]
@@ -59,5 +58,8 @@ export type PresentationHTMLElementIdsKey = keyof PresentationWithoutImage
 export type PresentationHTMLElementIds = {[K in keyof PresentationWithoutImage as `${K}`] : string}
 
 export type ViewMode =  "editing" | "reading"
+export type PropsByViewMode<VM extends ViewMode, RP, EP> = {
+    viewMode: VM
+} & IfExtends<VM, [["reading", RP], ["editing", EP]]>
 
 export type CreateOrUpdate<C, O> = O extends C ? "create" : "update"
