@@ -1,6 +1,5 @@
-import {getIndexOnOccurrence, isEmpty} from "utils/src/strings"
-import React from "react"
 import Image from "next/image"
+import { getIndexOnOccurrence, isEmpty } from "utils/src/strings"
 
 export const getStoryBodyJsx = (storyBodyHtml: string) => {
     let jsx = <></>

@@ -1,11 +1,12 @@
 import styled from "@emotion/styled"
 import { StoryState } from "@prisma/client"
-import { ForwardedRef, forwardRef, memo, useImperativeHandle, useRef } from "react"
+import { ForwardedRef, forwardRef, memo, useImperativeHandle} from "react"
 import { Observe } from "../../../pages/user/edit_home"
 import { secondColor } from "../../../theme"
 import { NewStory, PropsByViewMode, Story, StoryHTMLElementIds, StoryWithJSXBody, ViewMode } from "../../../types/home"
 import { RemoveOrRecoverButton } from "../../Buttons"
 import OptionSelector from "../../forms/OptionSelector"
+import useRef from "../../../hooks/references/useRef"
 
 const storyStates = Object.values(StoryState)
 const indexByStoryState = Object.fromEntries(storyStates.map((st, index) => [st, index]))
@@ -33,23 +34,19 @@ type EditingProps = {
 
 type Props<VM extends ViewMode> = PropsByViewMode<VM, ReadingProps, EditingProps>
 
-type RefHandler = {
-    focus: () => void
-    doesBodyContainsNode: Node["contains"]
+export type StoryViewHandler = {
+    focusBody: () => void
+    doesBodyContains: Node["contains"]
 }
 
-function StoryWithRef<VM extends ViewMode>({ viewMode, ...restProps }: Props<VM>, ref: ForwardedRef<RefHandler>) {
-  const bodyDivRef = useRef<HTMLDivElement>()
-  const setBodyDiv = (div: HTMLDivElement | null) => {
-    bodyDivRef.current = div ?? undefined
-  }
-  const getBodyDiv = () => bodyDivRef.current
+function StoryWithRef<VM extends ViewMode>({ viewMode, ...restProps }: Props<VM>, ref: ForwardedRef<StoryViewHandler>) {
+  const [getBodyDiv, setBodyDiv] = useRef<HTMLDivElement>()
   useImperativeHandle(ref, () => 
       ({
-        focus: () => {
+        focusBody: () => {
           getBodyDiv()?.focus()
         },
-        doesBodyContainsNode: (node) => {
+        doesBodyContains: (node) => {
           const bodyDiv = getBodyDiv()
           return bodyDiv ? bodyDiv.contains(node) : false
         }
@@ -74,18 +71,18 @@ function StoryWithRef<VM extends ViewMode>({ viewMode, ...restProps }: Props<VM>
       const htmlIds = getHtmlElementIds(htmlId)
 
       return <Container id={htmlId} key={htmlId}>
-            <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r) => {observe(r, {mutation: "default"})}}
-                            color={"#778899"} fontSize={"1.5rem"} options={Object.values(StoryState)} initSelectedOptionIndex={indexByStoryState[state]}/>
-            <TitleContainer>
-            <Title id={htmlIds.title} ref={h4 => {if (h4) observe(h4, {mutation: "default"})}} toRemove={toRemove} contentEditable={!toRemove}>
-            {title}
-            </Title>
-            <RemoveOrRecoverButton color={"#778899"} initShowRemove={!toRemove} size={20} removeHandler={removeStoryHandler}
+             <OptionSelector id={htmlIds.state} processRefToValueHtmlElement={(r) => {observe(r, {mutation: "default"})}}
+                             color={"#778899"} fontSize={"1.5rem"} options={Object.values(StoryState)} initSelectedOptionIndex={indexByStoryState[state]}/>
+             <TitleContainer>
+             <Title id={htmlIds.title} ref={h4 => {if (h4) observe(h4, {mutation: "default"})}} toRemove={toRemove} contentEditable={!toRemove}>
+             {title}
+             </Title>
+             <RemoveOrRecoverButton color={"#778899"} initShowRemove={!toRemove} size={20} removeHandler={removeStoryHandler}
                                     recoverHandler={recoverStoryHandler}/>
-            </TitleContainer>
-            <Body id={htmlIds.body} contentEditable={!toRemove} ref={div => {setBodyDiv(div); if (div) observe(div, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}
-                  dangerouslySetInnerHTML={{__html: body}} /* {...targetEventHandlers} onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody} *//>
-            </Container>
+             </TitleContainer>
+             <Body id={htmlIds.body} contentEditable={!toRemove} ref={div => {setBodyDiv(div); if (div) observe(div, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}
+                   dangerouslySetInnerHTML={{__html: body}} /* {...targetEventHandlers} onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody} *//>
+             </Container>
   }
 }
 

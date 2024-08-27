@@ -1,7 +1,7 @@
 import { css } from "@emotion/react"
 import styled from "@emotion/styled"
 import { StoryState } from "@prisma/client"
-import React, { MouseEventHandler, TouchEventHandler, memo, useEffect, useRef, useState } from "react"
+import React, { MouseEventHandler, TouchEventHandler, memo, useEffect, useState } from "react"
 import useHtmlEditor from "../../../hooks/with_jsx/html_editor/useHtmlEditor"
 import { Observe } from "../../../pages/user/edit_home"
 import { mainColor, secondColor } from "../../../theme"
@@ -9,11 +9,14 @@ import { NewStory, PropsByViewMode, Story, StoryHTMLElementIds, StoryWithJSXBody
 import { DeleteOrRecoverButton, OpenOrCloseStoryButton } from "../../Buttons"
 import { OptionSelector } from "../../FormComponents"
 import AddButton from "../edit/AddButton"
-import { EditingStory, ReadingStory } from "./StoryView"
+import { EditingStory, ReadingStory, StoryRefHandler, StoryViewHandler } from "./StoryView"
+import Index from "./Index"
+import useRef from "../../../hooks/references/useRef"
+import useArrayRef from "../../../hooks/references/useArrayRef"
 
 const storiesAnchorsContainerWidth = 150
 
-export type StoryViewStates = {htmlId: string, story: Story | StoryWithJSXBody | NewStory, toRemove: boolean}
+export type StoryStates = {htmlId: string, story: Story | StoryWithJSXBody | NewStory, toRemove: boolean}
 
 type ReadingProps = {
     savedStories: (Story | StoryWithJSXBody)[]
@@ -33,11 +36,10 @@ type EditingProps = {
 type Props<VM extends ViewMode> = PropsByViewMode<VM, ReadingProps, EditingProps>
 
 export default function StoriesView<VM extends ViewMode>({viewMode, savedStories, ...restProps}: Props<VM>) {
-    const containerDivRef = useRef<HTMLDivElement>()
-    const getContainerDiv = () => containerDivRef.current
+    const [getContainerDiv, setContainerDiv] = useRef<HTMLDivElement>()
 
     // htmlId is use to identify the html element. Can be story id or index of new stories array
-    const [storiesViewStates, setStoriesViewStates] = useState<StoryViewStates[]>(savedStories.map((s) => {
+    const [storiesStates, setStoriesStates] = useState<StoryStates[]>(savedStories.map((s) => {
         return {htmlId: s.id, story: s, toRemove: false}
     }))
 
@@ -48,51 +50,7 @@ export default function StoriesView<VM extends ViewMode>({viewMode, savedStories
     }
     const getOpenOrCloseStoryButton = (isOpen: boolean, onClick?: (e: React.MouseEvent) => void) => <OpenOrCloseStoryButton size={25} color={secondColor} isOpen={isOpen} onClick={onClick}/>
  */
-    const [showStoriesAnchors, setShowStoriesAnchors] = useState(true)
-    const [transparentStoriesAnchors, setTransparentStoriesAnchors] = useState(true)
-
-    const onClickStoriesAnchorsHandler: MouseEventHandler<HTMLDivElement> = (e) => {
-      e.stopPropagation()
-      setShowStoriesAnchors((showStoriesAnchors) => {
-        let nextShowStoriesAnchors
-        let nextTransparentStoriesAnchors
-        if (showStoriesAnchors) {
-            if (transparentStoriesAnchors){
-                nextShowStoriesAnchors = true
-                nextTransparentStoriesAnchors = false
-            } else{
-                nextShowStoriesAnchors = false
-                nextTransparentStoriesAnchors = true
-            }
-        } else {
-            nextShowStoriesAnchors = true
-            nextTransparentStoriesAnchors = false
-        }
-        setTransparentStoriesAnchors(nextTransparentStoriesAnchors)
-        
-        return nextShowStoriesAnchors
-    })
-    }
-    const onTouchStoriesAnchorsHandler: TouchEventHandler<HTMLDivElement> = (e) => {
-    }
-    const onMouseLeaveStoriesAnchorsHandler: MouseEventHandler<HTMLDivElement> = (e) => {
-      setTransparentStoriesAnchors(true)
-    }
-    const onMouseOverStoriesAnchorsHandler: MouseEventHandler<HTMLDivElement> = (e) => {
-        setTransparentStoriesAnchors(!showStoriesAnchors)
-      }
-    const onClickStoryAnchorHandler: MouseEventHandler<HTMLAnchorElement> = (e) => {
-        e.stopPropagation()
-    }
-    const storiesAnchorsRef = useRef<HTMLDivElement>()
-    useEffect(()=> {
-        document.addEventListener("touchstart", (e) => {
-         const storiesAnchors = storiesAnchorsRef.current as HTMLDivElement
-         if(!(storiesAnchors.contains(e.target as Node))){
-            setTransparentStoriesAnchors(true)
-         }
-        })
-    },[])
+    
 /* 
     const getStoriesView = () => storiesViewStates.map(({idHtml, story: {title, body}, isOpen}, index) => {
                                  return <StoryContainer id={idHtml} key={idHtml}>
@@ -131,44 +89,60 @@ export default function StoriesView<VM extends ViewMode>({viewMode, savedStories
             }
         },
         [stories]) */
+        
 
-    const storiesBodiesDivRef = useRef<HTMLDivElement[]>([])
-    const setStoryBodyDiv = (div: HTMLDivElement, index: number) => {
-      storiesBodiesDivRef.current[index] = div
+    /* const storiesRefHandlers = useRef<StoryRefHandler[]>([])
+    const setStoryRefHandler = (srh: StoryRefHandler, index: number) => {
+      storiesRefHandlers.current[index] = srh
     }
-    const getStoriesBodiesDiv = () => storiesBodiesDivRef.current
+    const getStoriesRefHandlers = () => storiesRefHandlers.current */
+    let jsx
+    if (viewMode === "reading") {
+        const {} = restProps as ReadingProps
+        jsx = <Container ref={setContainerDiv}>
+              <LeftContainer>
+              <Index storiesStates={storiesStates}/>
+              </LeftContainer>
+              <StoriesContainer>
+              {}
+              </StoriesContainer>
+              </Container>
+    }
 
-    const handleAddNewStory: MouseEventHandler<SVGAElement> = (e) => {
-        const [idHtml, newStory] = (createNewStory as GetNewStory)()
-        setStoriesViewStates((svs) => {
-                return [...svs, {idHtml: idHtml, story: newStory, isOpen: true, toDelete: false}]
-            }
-        )
+    const [getStoriesViewsHandlers, setStoryViewHandler] = useArrayRef<StoryViewHandler[]>()
+
+    const addNewStoryHandler: MouseEventHandler<SVGAElement> = (e) => {
+        const [htmlId, story] = createNewStory()
+        setStoriesStates((svs) => [...svs, {htmlId, story, toRemove: false}])
         setTimeout(() => {
-          getStoriesBodiesDiv()[getStoriesBodiesDiv().length -1].focus()
+            getStoriesViewsHandlers().at(-1).focusBody()
         }, 300)
     }
-    const handleDeleteStory = (idHtml: string, index: number, isNew: boolean) => {
-        (deleteStory as DeleteStory)(idHtml)
-        const updatedStoriesViewStates = [...storiesViewStates]
-        if (isNew) {
-            updatedStoriesViewStates.splice(index, 1)
-        } else {
-            updatedStoriesViewStates[index].toDelete = true
-        }
-        setStoriesViewStates(updatedStoriesViewStates)
+    const removeStoryHandler = (htmlId: string, index: number, isNew: boolean) => {
+        removeStory(htmlId)
+        setStoriesStates( st => {
+            const nextStoriesStates = [...st]
+            if (isNew) {
+                nextStoriesStates.splice(index, 1)
+            } else {
+                nextStoriesStates[index].toRemove = true
+            }
+            return nextStoriesStates
+        })
     }
-    const handleRecoverStory = (idHtml: string, index: number) => {
-        (recoverStory as RecoverStory)(idHtml)
-        const updatedStoriesViewStates = [...storiesViewStates]
-        updatedStoriesViewStates[index].toDelete = false
-        setStoriesViewStates(updatedStoriesViewStates)
+    const recoverStoryHandler = (htmlId: string, index: number) => {
+        recoverStory(htmlId)
+        setStoriesStates( st => {
+            const nextStoriesStates = [...st]
+            nextStoriesStates[index].toRemove = false
+            return nextStoriesStates
+        })
     }
 
-    const doesStoriesBodiesContainNode = (node: Node) => !getStoriesBodiesDiv().every(d => !d.contains(node))
-    const {htmlEditorModal, targetEventHandlers} = useHtmlEditor({getContainerRect: () => getContainer().getBoundingClientRect(), options: {defaultTextClassName: storyBodyStyle.name}, doesTargetContainNode: doesStoriesBodiesContainNode})
+    const doesStoriesBodiesContains = (node: Node) => !getStoriesViewsHandlers().every(d => !d.doesBodyContains(node))
+    const {htmlEditorModal, targetEventHandlers} = useHtmlEditor({getContainerRect: () => getContainerDiv()?.getBoundingClientRect(), options: {defaultTextClassName: storyBodyStyle.name}, doesTargetContains: doesStoriesBodiesContains})
 
-    const getEditableStoriesView = () => storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
+    /* const getEditableStoriesView = () => storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
                                          const {title,body, state} = story as Story
                                          const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
 
@@ -184,33 +158,22 @@ export default function StoriesView<VM extends ViewMode>({viewMode, savedStories
                                                 </StoryTitleContainer>
                                                 <div css={storyBodyStyle} id={htmlIds.body} contentEditable={!toDelete}
                                                                    ref={div => {if(div) {setStoryBodyDiv(div, index); (observe as Observe)(div, {mutation: {characterData: true, subtree: true, childList: true, attributeFilter: ["href", "src"]}})}}}
-                                                                   dangerouslySetInnerHTML={{__html: body}} {...targetEventHandlers} /* onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody} *//>
+                                                                   dangerouslySetInnerHTML={{__html: body}} {...targetEventHandlers} /* onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody} />
                                                 </StoryContainer>
-                                         })
+                                         }) 
+    */
 
-    return <Container ref={containerRef}>
+    /* return <Container ref={setContainerDiv}>
            {editing && htmlEditorModal}
            <LeftContainer>
            {editing && <AddButton position="right" tooltipText="add story" onClickHandler={onClickAddButtonHandler}/>}
-           <StoriesAnchorsContainer ref={storiesAnchorsRef} transparent={transparentStoriesAnchors} onClick={handleOnClickStoriesAnchors} onTouchStart={handleOnTouchStoriesAnchors} onMouseOver={handleOnMouseOverStoriesAnchors} onMouseLeave={handleOnMouseLeaveStoriesAnchors}>
-           <StoriesAnchorsTitle>stories index</StoriesAnchorsTitle>
-           {showStoriesAnchors &&
-           <StoriesAnchorsInnerContainer>
-           {storiesViewStates.map(({idHtml, story: {title}}) =>
-           <StoryAnchorContainer>
-           <StoryAnchor href={"#" + idHtml} onClick={handleOnClickStoryAnchor}>
-           {title}
-           </StoryAnchor>
-           </StoryAnchorContainer>
-           )}
-           </StoriesAnchorsInnerContainer>
-           }
-           </StoriesAnchorsContainer>
+           <Index storiesStates={storiesStates}/>
            </LeftContainer>
            <StoriesContainer>
            {editing ? getEditableStoriesView() : getStoriesView()}
            </StoriesContainer>
-           </Container>
+           </Container> */
+        return jsx
 }
 
 const Container = styled.div`
@@ -224,46 +187,7 @@ const LeftContainer = styled.div`
   height: 0px;
   top: 0px;
 `
-const StoriesAnchorsContainer = styled.div<{transparent: boolean}>` 
-  opacity: ${({transparent}) => transparent ? 0.5 : 1};
-  cursor: pointer;
-`
-const StoriesAnchorsInnerContainer = styled.ul`
-  z-index: 2;
-  margin: 0px;
-  border-style: solid;
-  border-color: ${mainColor};
-  padding: 0px;
-  background-color: ${secondColor};
-`
-const StoriesAnchorsTitle = styled.h3`
-  color: white;
-  font-size: 2.2rem;
-  font-weight: bold;
-  text-align: center;
-  background-color: ${mainColor};
-  padding: 5px;
-  margin: 0px;
-`
-const StoryAnchorContainer = styled.li`
-  list-style-type: none;
-  border-bottom-style: solid;
-  border-bottom-color: ${mainColor};
-  padding: 5px;
-  text-align: center;
-  :last-of-type {
-    border-bottom-style: none;
-  }
-`
-const StoryAnchor = styled.a`
-  font-size: 2rem;
-  font-weight: bold;
-  text-align: center;
-  color: white;
-  :hover {
-        color: ${mainColor};
-    }
-`
+
 const StoriesContainer = styled.ul`
   display: flex;
   flex-direction: column;

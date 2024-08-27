@@ -4,7 +4,7 @@ import PresentationView from "../components/home/presentation/PresentationView"
 import StoriesView from "../components/home/stories/StoriesView"
 import Header from "../components/home/header/Header"
 import Head from "next/head"
-import {getStoryBodyJsx} from "../utils/parsers"
+import {getStoryBodyJsx} from "../utils/react/parsers"
 
 export const HomeRoute = "/"
 
