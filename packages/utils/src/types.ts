@@ -81,8 +81,7 @@ export type ArrayIndex<A extends unknown[], I extends number[]=number[]> =
             ? I[number]
             : ArrayIndex<A, [...I, I["length"]]>
 
-type MatchType<M, T extends [unknown, unknown][]> = T extends [infer T0, ...infer TR] ? 
-export type ChangeArrayTypes<A extends unknown[], T extends [unknown, unknown][]> = A extends [infer E0, ...infer ER] ? 
+type ChangeType<E, T extends [unknown, unknown][]> = T extends [infer T0 extends [unknown, unknown], ...infer TR extends [unknown, unknown][]] ? T0[0] extends E ? Exclude<E, T0[0]> | T0[1] : ChangeType<E, TR> : E
+export type ChangeArrayTypes<A extends unknown[], T extends [unknown, unknown][]> = A extends [infer E0, ...infer ER extends unknown[]] ? [ChangeType<E0, T>, ...ChangeArrayTypes<ER, T>] : ChangeType<A[number], T>[]
 
 //--------------------------
-

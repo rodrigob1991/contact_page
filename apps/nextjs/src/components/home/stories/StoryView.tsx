@@ -1,20 +1,20 @@
 import styled from "@emotion/styled"
 import { StoryState } from "@prisma/client"
-import { ForwardedRef, forwardRef, memo, useImperativeHandle} from "react"
+import { ForwardedRef, ReactElement, RefAttributes, forwardRef, useImperativeHandle } from "react"
+import useRef from "../../../hooks/references/useRef"
 import { Observe } from "../../../pages/user/edit_home"
 import { secondColor } from "../../../theme"
 import { NewStory, PropsByViewMode, Story, StoryHTMLElementIds, StoryWithJSXBody, ViewMode } from "../../../types/home"
 import { RemoveOrRecoverButton } from "../../Buttons"
 import OptionSelector from "../../forms/OptionSelector"
-import useRef from "../../../hooks/references/useRef"
 
 const storyStates = Object.values(StoryState)
 const indexByStoryState = Object.fromEntries(storyStates.map((st, index) => [st, index]))
 
 type CommonProps = { htmlId: string }
 
-type EditingStory = Story | NewStory
-type ReadingStory = EditingStory | StoryWithJSXBody
+export type EditingStory = Story | NewStory
+export type ReadingStory = EditingStory | StoryWithJSXBody
 
 type ReadingProps = {
     story: ReadingStory
@@ -39,7 +39,7 @@ export type StoryViewHandler = {
     doesBodyContains: Node["contains"]
 }
 
-function StoryWithRef<VM extends ViewMode>({ viewMode, ...restProps }: Props<VM>, ref: ForwardedRef<StoryViewHandler>) {
+const StoryView = forwardRef(<VM extends ViewMode>({ viewMode, ...restProps }: Props<VM>, ref: ForwardedRef<StoryViewHandler>) => {
   const [getBodyDiv, setBodyDiv] = useRef<HTMLDivElement>()
   useImperativeHandle(ref, () => 
       ({
@@ -84,9 +84,9 @@ function StoryWithRef<VM extends ViewMode>({ viewMode, ...restProps }: Props<VM>
                    dangerouslySetInnerHTML={{__html: body}} /* {...targetEventHandlers} onMouseUp={onMouseUpHandler} onBlur={handleOnBlurBody} *//>
              </Container>
   }
-}
+})
 
-export default memo(forwardRef(StoryWithRef))
+export default StoryView as <VM extends ViewMode>(props: Props<VM> & RefAttributes<StoryViewHandler>) => ReactElement
 
 const Container = styled.li`
   display: flex;

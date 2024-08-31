@@ -7,21 +7,20 @@ import { useAsk } from "../../../hooks/with_jsx/useAsk"
 import { useTooltip } from "../../../hooks/with_jsx/useTooltip"
 import { SkillBarWidth, skillsChartLayout as layout, minWidthFullLayout, presentationLayout } from "../../../layouts"
 import { Observe } from "../../../pages/user/edit_home"
-import { mainColor, thirdColor, tooltipStyle } from "../../../theme"
+import { tooltipStyle } from "../../../theme"
 import { NewSkill, Skill, ViewMode } from "../../../types/home"
-import { PlusButton } from "../../Buttons"
 import { ImageViewSelector, TextInput } from "../../FormComponents"
 import AddButton from "../edit/AddButton"
 
 type SkillViewState = {idHtml: string, skill: Skill | NewSkill}
 
 export type CreateSkill = () => [string, NewSkill]
-export type DeleteSkill = (skillId: string) => void
+export type RemoveSkill = (skillId: string) => void
 export type GetHtmlElementId = (skillId: string) => string
 export type EditingProps = {
     editing: true
     createSkill: CreateSkill
-    deleteSkill : DeleteSkill
+    removeSkill : RemoveSkill
     getHtmlElementId: GetHtmlElementId
     observe: Observe
 }
@@ -30,7 +29,7 @@ type Props<VM extends ViewMode> = {
     width: number
 } & (VM extends "editing" ? EditingProps : {[K in keyof EditingProps]? : never})
 
-export default function SkillsChart<VM extends ViewMode>({skills, width, editing, createSkill, deleteSkill, getHtmlElementId, observe}: Props<VM>) {
+export default function SkillsChart<VM extends ViewMode>({skills, width, editing, createSkill, removeSkill, getHtmlElementId, observe}: Props<VM>) {
     const [skillsViewStates, setSkillsViewStates] = useState<SkillViewState[]>(orderByComparePreviousByNumber(skills, "position").map((s) => {
         return {idHtml: s.id, skill: s}
     }))
@@ -88,7 +87,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
         setSkillsViewStates([...skillsViewStates, {idHtml: idHtml, skill: newSkill}])
     }
     const handleOnTwoClickSkill = (index: number) => {
-        (deleteSkill as DeleteSkill)(skillsViewStates[index].idHtml)
+        (removeSkill as RemoveSkill)(skillsViewStates[index].idHtml)
         setSkillsViewStates(
             (current) => {
                 const next = [...current]
@@ -203,7 +202,7 @@ export default function SkillsChart<VM extends ViewMode>({skills, width, editing
                                                   onClick={(e) => { handleOnClickSkill(e, index) }}/>
                                         </SkillViewContainer>
                                         )}
-                                        <AddButton position="middle" tooltipText="add skill" handleOnClick={handleCreateSkill}/>
+                                        <AddButton position="middle" tooltipText="add skill" onClickHandler={handleCreateSkill}/>
                                         </>
 
      

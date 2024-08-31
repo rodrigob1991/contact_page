@@ -1,18 +1,13 @@
-import { css } from "@emotion/react"
 import styled from "@emotion/styled"
-import { StoryState } from "@prisma/client"
-import React, { MouseEventHandler, TouchEventHandler, memo, useEffect, useState } from "react"
+import { MouseEventHandler, useState } from "react"
+import useArrayRef from "../../../hooks/references/useArrayRef"
+import useRef from "../../../hooks/references/useRef"
 import useHtmlEditor from "../../../hooks/with_jsx/html_editor/useHtmlEditor"
 import { Observe } from "../../../pages/user/edit_home"
-import { mainColor, secondColor } from "../../../theme"
 import { NewStory, PropsByViewMode, Story, StoryHTMLElementIds, StoryWithJSXBody, ViewMode } from "../../../types/home"
-import { DeleteOrRecoverButton, OpenOrCloseStoryButton } from "../../Buttons"
-import { OptionSelector } from "../../FormComponents"
 import AddButton from "../edit/AddButton"
-import { EditingStory, ReadingStory, StoryRefHandler, StoryViewHandler } from "./StoryView"
 import Index from "./Index"
-import useRef from "../../../hooks/references/useRef"
-import useArrayRef from "../../../hooks/references/useArrayRef"
+import StoryView, { EditingStory, StoryViewHandler } from "./StoryView"
 
 const storiesAnchorsContainerWidth = 150
 
@@ -27,20 +22,20 @@ type RemoveStory = (id: string) => void
 type RecoverStory = (id: string) => void
 type EditingProps = {
     savedStories: Story[]
+    getHtmlElementIds: GetHtmlElementIds
     observe: Observe
     createNewStory: CreateNewStory
-    getHtmlElementIds: GetHtmlElementIds
     removeStory: RemoveStory
     recoverStory: RecoverStory
 }
 type Props<VM extends ViewMode> = PropsByViewMode<VM, ReadingProps, EditingProps>
 
-export default function StoriesView<VM extends ViewMode>({viewMode, savedStories, ...restProps}: Props<VM>) {
+export default function StoriesView<VM extends ViewMode>({viewMode, ...restProps}: Props<VM>) {
     const [getContainerDiv, setContainerDiv] = useRef<HTMLDivElement>()
 
     // htmlId is use to identify the html element. Can be story id or index of new stories array
-    const [storiesStates, setStoriesStates] = useState<StoryStates[]>(savedStories.map((s) => {
-        return {htmlId: s.id, story: s, toRemove: false}
+    const [storiesStates, setStoriesStates] = useState<StoryStates[]>(restProps.savedStories.map((s) => {
+        return {htmlId: s.id, story: {...s}, toRemove: false}
     }))
 
    /*  const openOrCloseStory = (index: number) => {
@@ -96,52 +91,67 @@ export default function StoriesView<VM extends ViewMode>({viewMode, savedStories
       storiesRefHandlers.current[index] = srh
     }
     const getStoriesRefHandlers = () => storiesRefHandlers.current */
-    let jsx
+    const [getStoriesViewsHandlers, setStoryViewHandler] = useArrayRef<(StoryViewHandler | undefined)[]>()
+
+    let element
     if (viewMode === "reading") {
-        const {} = restProps as ReadingProps
-        jsx = <Container ref={setContainerDiv}>
-              <LeftContainer>
-              <Index storiesStates={storiesStates}/>
-              </LeftContainer>
-              <StoriesContainer>
-              {}
-              </StoriesContainer>
-              </Container>
-    }
+        element = <Container ref={setContainerDiv}>
+                  <LeftContainer>
+                  <Index storiesStates={storiesStates}/>
+                  </LeftContainer>
+                  <StoriesContainer>
+                  {storiesStates.map(({htmlId, story}, index) => <StoryView viewMode="reading" htmlId={htmlId} story={story} ref={(svh) => {setStoryViewHandler(svh, index)}}/>)}
+                  </StoriesContainer>
+                  </Container>
+    } else {
+        const {getHtmlElementIds, observe, createNewStory, removeStory, recoverStory} = restProps as EditingProps
 
-    const [getStoriesViewsHandlers, setStoryViewHandler] = useArrayRef<StoryViewHandler[]>()
+        const onClickAddButtonHandler: MouseEventHandler<SVGAElement> = (e) => {
+            const [htmlId, story] = createNewStory()
+            setStoriesStates((svs) => [...svs, {htmlId, story: {...story}, toRemove: false}])
+            setTimeout(() => {
+                getStoriesViewsHandlers().at(-1)?.focusBody()
+            }, 300)
+        }
 
-    const addNewStoryHandler: MouseEventHandler<SVGAElement> = (e) => {
-        const [htmlId, story] = createNewStory()
-        setStoriesStates((svs) => [...svs, {htmlId, story, toRemove: false}])
-        setTimeout(() => {
-            getStoriesViewsHandlers().at(-1).focusBody()
-        }, 300)
-    }
-    const removeStoryHandler = (htmlId: string, index: number, isNew: boolean) => {
-        removeStory(htmlId)
-        setStoriesStates( st => {
-            const nextStoriesStates = [...st]
-            if (isNew) {
-                nextStoriesStates.splice(index, 1)
-            } else {
-                nextStoriesStates[index].toRemove = true
-            }
-            return nextStoriesStates
-        })
-    }
-    const recoverStoryHandler = (htmlId: string, index: number) => {
-        recoverStory(htmlId)
-        setStoriesStates( st => {
-            const nextStoriesStates = [...st]
-            nextStoriesStates[index].toRemove = false
-            return nextStoriesStates
-        })
-    }
+        const doesStoriesBodiesContains = (node: Node) => !getStoriesViewsHandlers().every(svh => !svh || !svh.doesBodyContains(node))
+        const {htmlEditorModal, targetEventHandlers} = useHtmlEditor({getContainerRect: () => getContainerDiv()?.getBoundingClientRect(), options: {defaultTextClassName: "fixe me"}, doesTargetContains: doesStoriesBodiesContains})
 
-    const doesStoriesBodiesContains = (node: Node) => !getStoriesViewsHandlers().every(d => !d.doesBodyContains(node))
-    const {htmlEditorModal, targetEventHandlers} = useHtmlEditor({getContainerRect: () => getContainerDiv()?.getBoundingClientRect(), options: {defaultTextClassName: storyBodyStyle.name}, doesTargetContains: doesStoriesBodiesContains})
+        element = <Container ref={setContainerDiv}>
+                  {htmlEditorModal}
+                  <LeftContainer>
+                  <AddButton position="right" tooltipText="add story" onClickHandler={onClickAddButtonHandler}/>
+                  <Index storiesStates={storiesStates}/>
+                  </LeftContainer>
+                  <StoriesContainer>
+                  {storiesStates.map(({htmlId, story, toRemove}, index) => {
+                     const removeStoryHandler = () => {
+                        const isNew = !("id" in story)
+                        removeStory(htmlId)
+                        setStoriesStates( st => {
+                            const nextStoriesStates = [...st]
+                            if (isNew) {
+                                nextStoriesStates.splice(index, 1)
+                            } else {
+                                nextStoriesStates[index].toRemove = true
+                            }
+                            return nextStoriesStates
+                        })
+                     }
+                     const recoverStoryHandler = () => {
+                        recoverStory(htmlId)
+                        setStoriesStates( st => {
+                            const nextStoriesStates = [...st]
+                            nextStoriesStates[index].toRemove = false
+                            return nextStoriesStates
+                        })
+                     }
 
+                     return <StoryView viewMode="editing" htmlId={htmlId} getHtmlElementIds={getHtmlElementIds} observe={observe} removeStoryHandler={removeStoryHandler} recoverStoryHandler={recoverStoryHandler} story={story as EditingStory} toRemove={toRemove} ref={(svh) => {setStoryViewHandler(svh, index)}}/>}
+                    )}
+                  </StoriesContainer>
+                  </Container> 
+    }
     /* const getEditableStoriesView = () => storiesViewStates.map(({idHtml, story, isOpen, toDelete}, index) => {
                                          const {title,body, state} = story as Story
                                          const htmlIds = (getHtmlElementIds as GetHtmlElementIds)(idHtml)
@@ -173,7 +183,7 @@ export default function StoriesView<VM extends ViewMode>({viewMode, savedStories
            {editing ? getEditableStoriesView() : getStoriesView()}
            </StoriesContainer>
            </Container> */
-        return jsx
+        return element
 }
 
 const Container = styled.div`

@@ -4,7 +4,7 @@ import PresentationView from "../components/home/presentation/PresentationView"
 import StoriesView from "../components/home/stories/StoriesView"
 import Header from "../components/home/header/Header"
 import Head from "next/head"
-import {getStoryBodyJsx} from "../utils/react/parsers"
+import { getStoryBodyJsx } from "../utils/jsx/parsers"
 
 export const HomeRoute = "/"
 
@@ -33,7 +33,7 @@ export default function Home({presentation= {name:"", introduction: "", skills: 
             </Head>
                 <Header/>
                 <PresentationView presentation={presentation}/>
-                <StoriesView stories={stories.map(s => (({body, ...rest}) => ({...rest, body: getStoryBodyJsx(body)}))(s))}/>
+                <StoriesView viewMode="reading" savedStories={stories.map(s => (({body, ...rest}) => ({...rest, body: getStoryBodyJsx(body)}))(s))}/>
         </>
     )
 }

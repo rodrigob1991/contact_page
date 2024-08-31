@@ -8,21 +8,21 @@ import { Observe } from "../../../pages/user/edit_home"
 import { mainColor } from "../../../theme"
 import { Presentation, PresentationHTMLElementIdsKey, ViewMode } from "../../../types/home"
 import { ImageViewSelector, ProcessSelectedImage } from "../../FormComponents"
-import SkillsChart, { CreateSkill, DeleteSkill } from "./SkillsChart"
+import SkillsChart, { CreateSkill, RemoveSkill } from "./SkillsChart"
 
 export type GetHtmlElementId = <K extends PresentationHTMLElementIdsKey>(key: K, skillId: (K extends "skills" ? string : undefined)) =>  string
 type EditingProps = {
     editing: true
     getHtmlElementId: GetHtmlElementId
     createSkill: CreateSkill
-    deleteSkill : DeleteSkill
+    removeSkill: RemoveSkill
     observe: Observe
 }
 type Props<VM extends ViewMode> = {
     presentation: Presentation
 } & Available<VM, "editing", EditingProps>
 
-export default function PresentationView<VM extends ViewMode>({editing, presentation, getHtmlElementId, createSkill, deleteSkill, observe}: Props<VM>) {
+export default function PresentationView<VM extends ViewMode>({editing, presentation, getHtmlElementId, createSkill, removeSkill, observe}: Props<VM>) {
       const {name, introduction, skills, image} = presentation
       const skillsNumber = skills.length
 
@@ -91,11 +91,11 @@ export default function PresentationView<VM extends ViewMode>({editing, presenta
     let introductionHtmlId
     let getSkillHtmlId
     let skillsChart
-    if (editing && getHtmlElementId && createSkill && deleteSkill && observe) {
+    if (editing) {
         nameHtmlId = getHtmlElementId("name", undefined)
         introductionHtmlId = getHtmlElementId("introduction", undefined)
         getSkillHtmlId = (skillId: string) => getHtmlElementId("skills", skillId)
-        skillsChart = <SkillsChart editing skills={skills} width={skillsChartWidth} createSkill={createSkill} deleteSkill={deleteSkill}
+        skillsChart = <SkillsChart editing skills={skills} width={skillsChartWidth} createSkill={createSkill} removeSkill={removeSkill}
                          getHtmlElementId={getSkillHtmlId} observe={observe}/>
     } else {
         skillsChart = <SkillsChart skills={skills} width={skillsChartWidth}/>

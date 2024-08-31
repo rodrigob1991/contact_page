@@ -83,22 +83,22 @@ export default function EditHome(props?: HomeProps) {
         const id = newEntityIdPrefix + (getNewSkills().push(newSkill) - 1)
         return [id, newSkill]
     }
-    const refToDeleteSkillsIds = useRef<string[]>([])
-    const getDeleteSkillsIds = () => refToDeleteSkillsIds.current
-    const setDeleteSkillsIds = (ids: string[]) => {
-        refToDeleteSkillsIds.current = ids
+    const refToRemoveSkillsIds = useRef<string[]>([])
+    const getRemoveSkillsIds = () => refToRemoveSkillsIds.current
+    const setRemoveSkillsIds = (ids: string[]) => {
+        refToRemoveSkillsIds.current = ids
     }
-    const addDeleteSkillsId = (id: string) => {
-        getDeleteSkillsIds().push(id)
+    const addRemoveSkillsId = (id: string) => {
+        getRemoveSkillsIds().push(id)
     }
-    const deleteSkill = (id: string) => {
+    const removeSkill = (id: string) => {
         if (isNewEntity(id)) {
             getNewSkills().splice(getIndexFromNewEntityId(id), 1, null)
         } else {
-            addDeleteSkillsId(id)
+            addRemoveSkillsId(id)
         }
     }
-    const getUpdateSkills = () => getPresentation().skills.filter((s) => !(getDeleteSkillsIds().some((id) => id === s.id)))
+    const getUpdateSkills = () => getPresentation().skills.filter((s) => !(getRemoveSkillsIds().some((id) => id === s.id)))
 
     const presentationHtmlElementIdPrefix = "presentation"
     const getPresentationHtmlElementId: GetPresentationHtmlElementId = (key, skillId) => {
@@ -161,33 +161,33 @@ export default function EditHome(props?: HomeProps) {
         const index = getIndexFromNewEntityId(id);
         (getNewStories()[index] as NewStory)[key] = value
     }
-    const deleteNewStory = (id: string) => {
+    const removeNewStory = (id: string) => {
         getNewStories().splice(getIndexFromNewEntityId(id), 1, null)
     }
 
-    const refToDeleteStoriesIds = useRef<string[]>([])
-    const getDeleteStoriesIds = () => refToDeleteStoriesIds.current
-    const setDeleteStoriesIds = (ids: string[]) => {
-        refToDeleteStoriesIds.current = ids
+    const refToRemoveStoriesIds = useRef<string[]>([])
+    const getRemoveStoriesIds = () => refToRemoveStoriesIds.current
+    const setRemoveStoriesIds = (ids: string[]) => {
+        refToRemoveStoriesIds.current = ids
     }
-    const addDeleteStoryId = (id: string) => {
-        getDeleteStoriesIds().push(id)
+    const addRemoveStoryId = (id: string) => {
+        getRemoveStoriesIds().push(id)
     }
-    const deleteDeleteStoryId = (id: string) => {
-        getDeleteStoriesIds().splice(getDeleteStoriesIds().findIndex((id) => id === id), 1)
+    const removeRemoveStoryId = (id: string) => {
+        getRemoveStoriesIds().splice(getRemoveStoriesIds().indexOf(id), 1)
     }
-    const deleteStory = (id: string) => {
+    const removeStory = (id: string) => {
         if (isNewEntity(id)) {
-            deleteNewStory(id)
+            removeNewStory(id)
         } else {
-            addDeleteStoryId(id)
+            addRemoveStoryId(id)
         }
     }
     const recoverStory = (id: string) => {
-        deleteDeleteStoryId(id)
+        removeRemoveStoryId(id)
     }
     const getUpdateStories = () =>
-        getSavedStories().filter((s) => !(getDeleteStoriesIds().some((id) => id === s.id)))
+        getSavedStories().filter((s) => !(getRemoveStoriesIds().some((id) => id === s.id)))
 
     const storyHtmlElementIdPrefix = "story"
     const getStoryHtmlElementIds = (storyId: string) => {
@@ -301,11 +301,11 @@ export default function EditHome(props?: HomeProps) {
                                 }) :
                                 patchHomeProps({
                                     presentation: { ...getPresentation(),
-                                                  skills: {new: getNotNullsNewSkills(), update: getUpdateSkills(), delete: getDeleteSkillsIds()}
+                                                  skills: {new: getNotNullsNewSkills(), update: getUpdateSkills(), delete: getRemoveSkillsIds()}
                                     },
                                     stories: {
                                         update: getUpdateStories(),
-                                        delete: getDeleteStoriesIds(),
+                                        delete: getRemoveStoriesIds(),
                                         new: getNotNullsNewStories()
                                 }
         }).then(({succeed, homeProps: {presentation, stories} = {}, errorMessage}) => {
@@ -314,10 +314,10 @@ export default function EditHome(props?: HomeProps) {
                 resultMessage = "home props successfully stored"
                 setPresentation(presentation || emptyPresentation)
                 setNewSkills([])
-                setDeleteSkillsIds([])
+                setRemoveSkillsIds([])
                 setSavedStories(stories || [])
                 setNewStories([])
-                setDeleteStoriesIds([])
+                setRemoveStoriesIds([])
             } else {
                 resultMessage = errorMessage || "home props could not be stored"
             }
@@ -348,9 +348,9 @@ export default function EditHome(props?: HomeProps) {
     return <div ref={refToMutationObserverTarget}>
            <SpinLoader show={loading}/>
            <PresentationView editing observe={observe} getHtmlElementId={getPresentationHtmlElementId} presentation={getPresentation()}
-                             createSkill={createNewSkill} deleteSkill={deleteSkill}/>
-           <StoriesView editing observe={observe} stories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
-                        createNewStory={createNewStory} deleteStory={deleteStory} recoverStory={recoverStory}/>
+                             createSkill={createNewSkill} removeSkill={removeSkill}/>
+           <StoriesView viewMode="editing" observe={observe} savedStories={getSavedStories()} getHtmlElementIds={getStoryHtmlElementIds}
+                        createNewStory={createNewStory} removeStory={removeStory} recoverStory={recoverStory}/>
            <Footer>
            <ButtonsContainer>
            <Button disabled={loading} onClick={storeHomeProps}> STORE </Button>

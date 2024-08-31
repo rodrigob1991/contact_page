@@ -24,18 +24,16 @@ type SetVisibleOnSelection = (mousePosition?: {x: number, y: number}) => void
 
 type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onFocus: FocusEventHandler, onBlur: FocusEventHandler, onClick: MouseEventHandler, onDoubleClick: MouseEventHandler}
 
-type DoesTargetContainNode = (n: Node) => boolean
-
 type Props<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">> = {
     getContainerRect: GetRect
-    doesTargetContainNode: DoesTargetContainNode
+    doesTargetContains: Node["contains"]
     colors?: string[]
     getColorClassName?: (color: string) => string
 } & {options?: Omit<UseOptionsProps<ONS, ONAS, IPS, WTS>, "getContainerRect" | "getClassesNames" | "getHtmlEditorModalRect" | "getLastSelectionData" | "outlineNodes" | "atAfterUpdateDOMEnd">}
 
 type Return = ChangePropertyType<UseModalReturn<"htmlEditor">, ["setHtmlEditorModalVisible", SetVisibleOnSelection]> & {targetEventHandlers: TargetEventHandlers}
 
-export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({getContainerRect, doesTargetContainNode, colors=defaultColors, getColorClassName=defaultGetColorClassName, options: optionsSpecificProps}: Props<ONS, ONAS, IPS, WTS>) : Return {
+export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({getContainerRect, doesTargetContains, colors=defaultColors, getColorClassName=defaultGetColorClassName, options: optionsSpecificProps}: Props<ONS, ONAS, IPS, WTS>) : Return {
     /* const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
         const id = elementId
@@ -111,7 +109,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
       const selection = document.getSelection()
       if (selection) {
         const anchorNode = selection.anchorNode
-        if (anchorNode && doesTargetContainNode(anchorNode)) {
+        if (anchorNode && doesTargetContains(anchorNode)) {
           const {isCollapsed, anchorOffset} = selection
           const ranges: Range[] = []
           for (let i=0; i < selection.rangeCount; i ++){
