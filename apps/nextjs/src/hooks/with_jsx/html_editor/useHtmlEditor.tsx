@@ -1,39 +1,44 @@
 import styled from "@emotion/styled"
-import { FocusEventHandler, KeyboardEventHandler, MouseEventHandler, useEffect, useRef, useState } from "react"
-import { upperCaseFirstChar } from "utils/src/strings"
-import { ChangePropertyType } from "utils/src/types"
+import { FocusEventHandler, KeyboardEventHandler, MouseEventHandler, ReactElement, useEffect, useRef, useState } from "react"
+import { isEmpty, upperCaseFirstChar } from "utils/src/strings"
 import { DoesContainsNode } from "../../../components/ResizableDraggableDiv"
 import SyntheticCaret, { SyntheticCaretProps } from "../../../components/SyntheticCaret"
 import { GetRect } from "../../../types/dom"
-import { createSpan } from "../../../utils/domManipulations"
-import useModal, { UseModalReturn } from "../useModal"
+import { createSpan, getRelativeMousePosition, getRelativeRect } from "../../../utils/domManipulations"
+import useModal, { ModalPosition, ModalPositionType } from "../useModal"
 import useMousePosition from "../useMousePosition"
 import { OptionNode } from "./options/Option"
 import useOptions, { MapOptionNodeAttrToInputsProps, MapOptionNodeTo, UseOptionsProps } from "./options/useOptions"
+import { IfOneOfFirstExtendsThenSecond } from "utils/src/types"
 
 const defaultColors = ["red", "blue", "green", "yellow", "black"]
 const defaultGetColorClassName = (color: string) => "color" + upperCaseFirstChar(color) + "Option"
 
-export type OutlineNodes = (...nodes: Node[]) => void
-export type ReverseOutlineElements = () => void
+export type HtmlEditorPositionType = ModalPositionType | "selection"
+type Position<PT extends HtmlEditorPositionType> = IfOneOfFirstExtendsThenSecond<PT, [["selection", ModalPosition], [ModalPositionType, undefined]]>
 
-export type SelectionData = {isCollapsed: boolean, anchorNode: Node | undefined, anchorOffset: number, ranges: Range[], getRect: GetRect}
-export type GetLastSelectionData = () => SelectionData | undefined
-
-type SetVisibleOnSelection = (mousePosition?: {x: number, y: number}) => void
-
-type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onFocus: FocusEventHandler, onBlur: FocusEventHandler, onClick: MouseEventHandler, onDoubleClick: MouseEventHandler}
-
-type Props<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">> = {
+type Props<PT extends HtmlEditorPositionType, ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">> = {
+    positionType: PT
+    position?: Position<PT>
     getContainerRect: GetRect
     doesTargetContains: Node["contains"]
     colors?: string[]
     getColorClassName?: (color: string) => string
 } & {options?: Omit<UseOptionsProps<ONS, ONAS, IPS, WTS>, "getContainerRect" | "getClassesNames" | "getHtmlEditorModalRect" | "getLastSelectionData" | "outlineNodes" | "atAfterUpdateDOMEnd">}
 
-type Return = ChangePropertyType<UseModalReturn<"htmlEditor">, ["setHtmlEditorModalVisible", SetVisibleOnSelection]> & {targetEventHandlers: TargetEventHandlers}
+type MousePosition = {x: number, y: number}
+type SetVisibleOnSelection = (mousePosition?: MousePosition) => void
+export type SelectionData = {isCollapsed: boolean, anchorNode: Node | undefined, anchorOffset: number, ranges?: Range[], getRect: GetRect}
+export type GetLastSelectionData = () => SelectionData | undefined
+export type SetLastSelectionData = (selectionData: SelectionData | undefined) => void
+export type OutlineNodes = (...nodes: Node[]) => void
+export type ReverseOutlineElements = () => void
 
-export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({getContainerRect, doesTargetContains, colors=defaultColors, getColorClassName=defaultGetColorClassName, options: optionsSpecificProps}: Props<ONS, ONAS, IPS, WTS>) : Return {
+type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onFocus: FocusEventHandler, onBlur: FocusEventHandler, onClick: MouseEventHandler, onDoubleClick: MouseEventHandler}
+//type Return = ChangePropertyType<UseModalReturn<"htmlEditor">, ["setHtmlEditorModalVisible", SetVisibleOnSelection]> & {targetEventHandlers: TargetEventHandlers}
+type Return = {htmlEditorModal: ReactElement} & {targetEventHandlers: TargetEventHandlers}
+
+export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({positionType, position, getContainerRect, doesTargetContains, colors=defaultColors, getColorClassName=defaultGetColorClassName, options: optionsSpecificProps}: Props<PT, ONS, ONAS, IPS, WTS>) : Return {
     /* const [elementId, setElementId] = useState<string>()
     const consumeElementId = () => {
         const id = elementId
@@ -91,7 +96,7 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         let outlinedElement
         if (node instanceof HTMLElement) {
           outlinedElement = node
-        }else {
+        } else {
           outlinedElement = createSpan()
           outlinedElement.appendChild(node)
           node.parentElement?.replaceChild(outlinedElement, node)
@@ -102,9 +107,10 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
     }
 
     const lastSelectionDataRef = useRef<SelectionData>()
-    const getLastSelectionData = () => lastSelectionDataRef.current
-    const setLastSelectionData = () => {
-      let ifSetLastSelectionData = true
+    const getLastSelectionData: GetLastSelectionData = () => lastSelectionDataRef.current
+    const setLastSelectionData: SetLastSelectionData = (lastSelectionData) => {lastSelectionDataRef.current = lastSelectionData}
+    /* const setLastSelectionData: SetLastSelectionData = (mousePosition) => {
+      let lastSelectionDataChanged = true
       let lastSelectionData = undefined
       const selection = document.getSelection()
       if (selection) {
@@ -112,42 +118,100 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         if (anchorNode && doesTargetContains(anchorNode)) {
           const {isCollapsed, anchorOffset} = selection
           const ranges: Range[] = []
-          for (let i=0; i < selection.rangeCount; i ++){
+          for (let i=0; i < selection.rangeCount; i ++) {
             ranges.push(selection.getRangeAt(i))
           }
-          lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, getRect: ()=> ranges[0].getBoundingClientRect()}
-          anchorNode.parentElement && outlineNodes(anchorNode.parentElement)
+          lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, getRect: () => getRelativeRect(ranges[0].getBoundingClientRect(), getContainerRect())}
+          //anchorNode.parentElement && outlineNodes(anchorNode.parentElement)
         } else if (doesModalsContainsNode(anchorNode)) {
-            ifSetLastSelectionData = false
+          lastSelectionDataChanged = false
         }
       }
-      if (ifSetLastSelectionData) {
+      if (lastSelectionDataChanged) {
         lastSelectionDataRef.current = lastSelectionData
       }
 
-      return ifSetLastSelectionData
-    }
+      return lastSelectionDataChanged
+    } */
 
     const mousePosition = useMousePosition()
+
     useEffect(() => {
+      const relativeMousePosition = getRelativeMousePosition(mousePosition, getContainerRect())
+
       const selectionChangeHandler = () => {
-        if (setLastSelectionData()) {
-          setVisibleOnSelection(mousePosition)
+        let lastSelectionDataChanged = true
+        let lastSelectionData = undefined
+        const selection = document.getSelection()
+        if (selection) {
+          const anchorNode = selection.anchorNode
+          if (anchorNode && doesTargetContains(anchorNode)) {
+            const {isCollapsed, anchorOffset} = selection
+            const ranges: Range[] = []
+            for (let i=0; i < selection.rangeCount; i ++) {
+              ranges.push(selection.getRangeAt(i))
+            }
+            lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, getRect: () => getRelativeRect(ranges[0].getBoundingClientRect(), getContainerRect())}
+            //anchorNode.parentElement && outlineNodes(anchorNode.parentElement)
+          } else if (doesModalsContainsNode(anchorNode)) {
+            lastSelectionDataChanged = false
+          }
+        }
+        if (lastSelectionDataChanged) {
+          setLastSelectionData(lastSelectionData)
+          if (positionType === "selection")
+            setVisibleOnSelection(relativeMousePosition)
         }
       }
       document.addEventListener("selectionchange", selectionChangeHandler)
+
+      const enterClickHandler = ({type, target}: MouseEvent) => {
+        let enter = false
+        if (target instanceof HTMLElement && doesTargetContains(target)) {
+          // this could be wrong
+          const selectableTarget = !isEmpty(target.innerText)
+          enter = type === "click" ?  !selectableTarget: selectableTarget
+        }
+
+        return enter
+      }
+
+      const onClickHandler = (event: MouseEvent) => {
+        if (enterClickHandler(event)) {
+         /*  const atEnd = selectOptionElement(target)
+          if (atEnd) {
+            setLastSelectionData({isCollapsed: true, anchorNode: target, anchorOffset: 0, getRect: () => getRelativeRect(target.getBoundingClientRect(), getContainerRect())})
+            if (positionType === "selection")
+              setVisibleOnSelection(relativeMousePosition)
+            atEnd()
+          } */
+        }
+      }
+      document.addEventListener("click", onClickHandler)
+
+      const onDoubleClickHandler = (event: MouseEvent) => {
+        if (enterClickHandler(event)) {
+        /*   const atEnd = selectOptionElement(target)
+          if (atEnd) {
+            atEnd()
+          } */
+        }
+      }
+      document.addEventListener("dblclick", onDoubleClickHandler)
+
       return () => {
         document.removeEventListener("selectionchange", selectionChangeHandler)
+        document.removeEventListener("click", onClickHandler)
+        document.removeEventListener("dblclick", onDoubleClickHandler)
       }
     }, [mousePosition])
-
 
     const atAfterUpdateDOMEnd = () => {
       // for now just visible on selection available
       //setVisibleOnSelection()
     }
 
-    const {options, formModal, setFormModalVisibleFalse, doesFormModalContainsNode, modifyOptionElement} = useOptions({getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorModalRect: () => getHtmlEditorModalRect(), outlineNodes, atAfterUpdateDOMEnd, getLastSelectionData, ...optionsSpecificProps})
+    const {options, formModal, setFormModalVisibleFalse, doesFormModalContainsNode, selectOptionElement} = useOptions({positionType, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorRect: () => getModalRect(), outlineNodes, atAfterUpdateDOMEnd, getLastSelectionData, ...optionsSpecificProps})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState<SyntheticCaretProps>({visible: false})
     
@@ -169,7 +233,8 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
                      </Row>
                      </Container>
 
-    const {setHtmlEditorModalVisible, getHtmlEditorModalRect, doesHtmlEditorModalContainsNode, htmlEditorModal, ...restReturn} = useModal({name: "htmlEditor", children, positionType: "absolute", onMouseDownHandler: (e) => {e.preventDefault()}, ...modalCommonProps})
+    const {setModalVisible, getModalRect, doesModalContainsNode, modal, ...restReturn} = useModal({ children, positionType: positionType === "selection" ? "absolute" : positionType, position, onMouseDownHandler: (e) => {e.preventDefault()}, ...modalCommonProps})
+    const getModalRelativeRect = () => getRelativeRect(getModalRect(), getContainerRect())
     
     const setVisibleOnSelection: SetVisibleOnSelection = (mousePosition) => {
         setColorsModalVisible(false)
@@ -180,34 +245,38 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
         if (lastSelectionData) {
         // the setTimeout is because when click over an existing range the top of the new range rectangle remain like the older one    
           setTimeout(() => { 
-              const {height} = getHtmlEditorModalRect()
-              const {top: containerTop, left: containerLeft} = getContainerRect()
+              //const {height} = getModalRect()
+              const {height, width} = getModalRelativeRect()
+              const {width: containerWidth} = getContainerRect()
               const {isCollapsed, getRect} = lastSelectionData
-              const {top: rangeTop, left: rangeLeft, height: rangeHeight, width: rangeWidth, bottom: rangeBottom} = getRect()
+              const {top: selectionTop, left: selectionLeft, height: selectionHeight, width: selectionWidth, bottom: selectionBottom} = getRect()
 
-              const rangeRelativeTop = rangeTop - containerTop
-              const rangeRelativeLeft = rangeLeft - containerLeft
+              // const rangeRelativeTop = rangeTop - containerTop
+              // const rangeRelativeLeft = rangeLeft - containerLeft
               let top 
               let left
               if (mousePosition) {
-                top = rangeRelativeTop + (mousePosition.y > rangeTop + rangeHeight / 2 ? rangeHeight + 5 : -(height + 5))
-                left = isCollapsed ? rangeLeft : mousePosition.x - containerLeft
+                top = selectionTop + (mousePosition.y > selectionTop + selectionHeight / 2 ? selectionHeight + 5 : -(height + 5))
+                left = isCollapsed ? selectionLeft : mousePosition.x 
               } else {
-                top = rangeRelativeTop - height - 5
-                left = rangeLeft
+                top = selectionTop - height - 5
+                left = selectionLeft
               }
+              const leftOffset = left - (containerWidth - width)
+              left -= leftOffset > 0 ? leftOffset : 0
+
               if (isCollapsed) {
                 //setSyntheticCaretStates({visible: true, top: rangeRelativeTop, left: rangeRelativeLeft, height: rangeBottom - rangeTop, width: 3})
               }
               if (isColorsModalVisible()) {
                 setColorsModalVisible(true, {top: `${top + height + 5}px`, left: `${left}px`})
               }
-              setHtmlEditorModalVisible(true, {top: `${top}px`, left: `${left}px`})
+              setModalVisible(true, {top: `${top}px`, left: `${left}px`})
           })
-        }else {setHtmlEditorModalVisible(false)}
+        } else { setModalVisible(false) }
     }
 
-    const doesModalsContainsNode: DoesContainsNode = (node) => doesHtmlEditorModalContainsNode(node) || doesColorsModalContainsNode(node) || doesFormModalContainsNode(node)
+    const doesModalsContainsNode: DoesContainsNode = (node) => doesModalContainsNode(node) || doesColorsModalContainsNode(node) || doesFormModalContainsNode(node)
     
     const targetEventHandlers: TargetEventHandlers = {
     /*   onMouseUp: (e) => {
@@ -237,16 +306,12 @@ export default function useHtmlEditor<ONS extends OptionNode[]=[], ONAS extends 
 
     return {
       htmlEditorModal: <>
-                       {htmlEditorModal}
+                       {modal}
                        {colorsModal}
                        {formModal}
                        <SyntheticCaret {...syntheticCaretStates}/>
                        </>,
-      setHtmlEditorModalVisible: setVisibleOnSelection,
-      getHtmlEditorModalRect,
-      doesHtmlEditorModalContainsNode: doesModalsContainsNode,
-      targetEventHandlers,
-      ...restReturn,
+      targetEventHandlers
     }
 }
 

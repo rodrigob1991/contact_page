@@ -115,7 +115,7 @@ export default function StoriesView<VM extends ViewMode>({viewMode, ...restProps
         }
 
         const doesStoriesBodiesContains = (node: Node) => !getStoriesViewsHandlers().every(svh => !svh || !svh.doesBodyContains(node))
-        const {htmlEditorModal, targetEventHandlers} = useHtmlEditor({getContainerRect: () => getContainerDiv()?.getBoundingClientRect(), options: {defaultTextClassName: "fixe me"}, doesTargetContains: doesStoriesBodiesContains})
+        const {htmlEditorModal, targetEventHandlers} = useHtmlEditor({positionType: "selection", getContainerRect: () => getContainerDiv()?.getBoundingClientRect(), options: {defaultTextClassName: "fixe me"}, doesTargetContains: doesStoriesBodiesContains})
 
         element = <Container ref={setContainerDiv}>
                   {htmlEditorModal}

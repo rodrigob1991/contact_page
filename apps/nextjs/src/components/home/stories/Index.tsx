@@ -57,7 +57,7 @@ export default function Index({storiesStates}: Props) {
     }, [])
 
     return <Container ref={setContainerDiv} transparent={transparent} onClick={onClickHandler} onTouchStart={onTouchStartHandler} onMouseOver={onMouseOverHandler} onMouseLeave={onMouseLeaveHandler}>
-           <Title>stories index</Title>
+           <Title>index</Title>
            {showAnchors &&
            <AnchorsContainer>
            {storiesStates.map(({htmlId, story: {title}}) =>

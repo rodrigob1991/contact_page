@@ -3,7 +3,7 @@ import { InputsValues } from "../../../forms/useFormModal"
 import Option, { ShowFormModal } from "../Option"
 import { ModifiableOptionData, ModifyInputsProps, UseOptionWithForm } from "./types"
 
-const type = "anchor"
+const type = "a" 
 
 const inputsProps = [
   {type: "textInput" as const, props: {placeholder: "url"}}

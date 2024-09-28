@@ -23,15 +23,16 @@ export type AnyPropertiesCombinationRecursive<O extends object> = {
         [key in K]: O[K] extends object ? AnyPropertiesCombinationRecursive<O[K]> : O[K];
     };
 }[keyof O];
-export type IfExtends<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown], ...infer RI extends [unknown, unknown][]] ? (FI[0] extends T ? FI[1] : never) | IfExtends<T, RI> : never;
-export type IfOneIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IF extends {
-    [K in U]: K extends IN ? IF : never;
-}[U] ? IF : ELSE;
-export type IfAllIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = false extends {
-    [K in U]: K extends IN ? true : false;
-}[U] ? ELSE : IF;
-export type IfOneNotIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IfAllIn<U, IN, ELSE, IF>;
-export type IfAllAreNotIn<U extends PropertyKey, IN extends PropertyKey, IF, ELSE = never> = IfOneIn<U, IN, ELSE, IF>;
+export type IfFirstExtendsThenSecond<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown], ...infer RI extends [unknown, unknown][]] ? (FI[0] extends T ? FI[1] : never) | IfFirstExtendsThenSecond<T, RI> : never;
+export type IfOneOfFirstExtendsThenSecond<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown], ...infer RI extends [unknown, unknown][]] ? IfOneExtends<FI[0], T, FI[1]> | IfOneOfFirstExtendsThenSecond<T, RI> : never;
+export type IfOneExtends<U, IN, IF, ELSE = never> = IF extends {
+    [K in U as ""]: K extends IN ? IF : never;
+}[""] ? IF : ELSE;
+export type IfExtends<U, IN, IF, ELSE = never> = false extends {
+    [K in U as ""]: K extends IN ? true : false;
+}[""] ? ELSE : IF;
+export type IfOneNotExtends<U, IN, IF, ELSE = never> = IfExtends<U, IN, ELSE, IF>;
+export type IfNotExtends<U, IN, IF, ELSE = never> = IfOneExtends<U, IN, ELSE, IF>;
 export type IfAllPropertiesIn<P extends object, IN extends object, IF, Else = {}> = P extends IN ? IF : Else;
 export type NonEmptyArray<T> = [T, ...T[]];
 export declare const isNonEmpty: <T>(a: T[]) => a is NonEmptyArray<T>;

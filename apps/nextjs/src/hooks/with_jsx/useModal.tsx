@@ -19,9 +19,9 @@ type PositionValue = "start" | "middle" |  "end" | PositionCSSValue
 export type ModalPosition = {
   [K in PositionKey] : PositionValue
 }
-export type PositionType = "absolute" | "fixed" | "hooked"
-type Ancestor<PT extends PositionType> = PT extends "hooked" ? HTMLElement : undefined
-export type UseModalHookedProps<PT extends PositionType="hooked"> = {
+export type ModalPositionType = "absolute" | "fixed" | "hooked"
+type Ancestor<PT extends ModalPositionType> = PT extends "hooked" ? HTMLElement : undefined
+export type UseModalHookedProps<PT extends ModalPositionType="hooked"> = {
   scrollableAncestor?: Ancestor<PT>
   containerAncestor?: Ancestor<PT>
 }
@@ -31,7 +31,7 @@ export const modalDefaultName = "modal"
 export type ModalDefaultName = typeof modalDefaultName
 export type ModalFullName<N extends ModalName> =  N extends undefined | "" ? ModalDefaultName : `${N}${Capitalize<ModalDefaultName>}`
 
-export type UseModalProps<N extends ModalName, PT extends PositionType> = {
+export type UseModalProps<N extends ModalName, PT extends ModalPositionType> = {
   name?: N
   positionType?: PT
   position?: ModalPosition
@@ -74,7 +74,7 @@ const executeEffectValues = {1: 2, 2: 1} as const
 
 const defaultPositionTypeCss = "absolute"
 
-export default function useModal<N extends ModalName=undefined, PT extends PositionType="absolute">({
+export default function useModal<N extends ModalName=undefined, PT extends ModalPositionType="absolute">({
                                name,
                                positionType,
                                position={top: "middle", left: "middle"},

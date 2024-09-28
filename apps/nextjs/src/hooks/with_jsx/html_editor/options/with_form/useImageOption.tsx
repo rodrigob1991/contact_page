@@ -5,7 +5,7 @@ import { } from "../../useHtmlEditor"
 import Option, { ShowFormModal } from "../Option"
 import { ModifiableOptionData, ModifyInputsProps, UseOptionWithForm } from "./types"
 
-const type = "image"
+const type = "img"
 
 const inputsProps = [
   {type: "imageSelector"},
