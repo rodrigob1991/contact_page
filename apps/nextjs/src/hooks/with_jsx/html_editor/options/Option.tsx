@@ -4,8 +4,8 @@ import { positionCaretOn } from "../../../../utils/domManipulations"
 import collapsedSelectionHandler from "../selection_handlers/collapsed"
 import rangeSelectionHandler from "../selection_handlers/range"
 import { Available } from "utils/src/types"
-import { GetLastSelectionData, OutlineNodes } from "../useHtmlEditor"
-import { optionAttributeTypePrefix } from "./useOptions"
+import { GetLastSelectionData } from "../useHtmlEditor"
+import { optionAttributeTypePrefix, Highlight } from "./useOptions"
 
 export type OptionNode = Text | Element
 export type GetNewOptionNode<WT extends boolean, ON extends OptionNode> = WT extends true ? (text: string) => ON : WT extends false ? () => ON : (text?: string) => ON
@@ -28,10 +28,10 @@ export type OptionProps<ON extends OptionNode, ONA extends Partial<ON> | undefin
   className?: string
   //onClickOptionEnd: OnClickOptionEnd
   getLastSelectionData: GetLastSelectionData
-  outlineNodes: OutlineNodes
+  highlight: Highlight
   atAfterUpdateDOMEnd: AtAfterUpdateDOMEnd
 } & Available<ON, ONA, {showFormModal: ShowFormModal<ON, Exclude<ONA, undefined>>, insertNodesBeforeShowFormModal: boolean}>
-export default function Option<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean>({children, type, withText, getNewOptionNode, collapsedSelectionText="new" + type, insertInNewLine, className, getLastSelectionData, outlineNodes, atAfterUpdateDOMEnd, showFormModal, insertNodesBeforeShowFormModal}: OptionProps<ON, ONA, WT>) {
+export default function Option<ON extends OptionNode, ONA extends Partial<ON> | undefined, WT extends boolean>({children, type, withText, getNewOptionNode, collapsedSelectionText="new" + type, insertInNewLine, className, getLastSelectionData, highlight, atAfterUpdateDOMEnd, showFormModal, insertNodesBeforeShowFormModal}: OptionProps<ON, ONA, WT>) {
   const onClickHandler: MouseEventHandler = (e) => {
     //selectionHandler(optionType, getTargetOptionNode)
     const lastSelectionData = getLastSelectionData()
@@ -80,7 +80,7 @@ export default function Option<ON extends OptionNode, ONA extends Partial<ON> | 
           let updateDOM: UpdateDOM<ON, ONANU>
           if (insertNodesBeforeShowFormModal) {
             insertNodes()
-            outlineNodes(...newNodes)
+            highlight(...newNodes)
             updateDOM = (attr) => {
               updateNodes(attr)
               afterUpdateDOM()

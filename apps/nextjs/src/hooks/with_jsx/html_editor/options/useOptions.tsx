@@ -1,10 +1,10 @@
-import { ReactNode, useState } from "react"
+import { ReactNode, useRef, useState } from "react"
 import { Available, IfFirstExtendsThenSecond, NonEmptyArray } from "utils/src/types"
 import { GetRect } from "../../../../types/dom"
 import { createSpan, createText } from "../../../../utils/domManipulations"
 import useFormModal, { FormModalNamePrefix, InputsProps, InputsValues, SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
 import { DoesContainsNodeReturn, ModalPosition, ModalReturn } from "../../useModal"
-import { GetLastSelectionData, HtmlEditorPositionType, OutlineNodes, modalCommonProps } from "../useHtmlEditor"
+import { GetLastSelectionData, HtmlEditorPositionType, modalCommonProps } from "../useHtmlEditor"
 import Option, { AtAfterUpdateDOMEnd, OptionNode, OptionProps, ShowFormModal } from "./Option"
 import { ModifiableOptionData, SetupFormModal } from "./with_form/types"
 import useAnchorOption, { ModifiableAnchorData } from "./with_form/useAnchorOption"
@@ -42,7 +42,6 @@ export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNode
     getHtmlEditorRect: GetRect
     getContainerRect: GetRect
     getLastSelectionData: GetLastSelectionData
-    outlineNodes: OutlineNodes
     defaultTextClassName?: string
     spanClassesNames?: string[]
     anchorClassName?: string
@@ -51,6 +50,7 @@ export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNode
 } & Available<ONS, NonEmptyArray<OptionNode>, {extensionsProps: ExtensionOptionPropsArray<ONS, ONAS, IPS, WTS>}>
 
 type ModifiableExtensionOptionsData<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>> = ONS extends [infer ON extends OptionNode, ...infer ONSR extends OptionNode[]] ? ONAS extends [infer ONA extends Partial<ON>, ...infer ONASR extends MapOptionNodeTo<ONSR, "attr">] ? IPS extends [infer IP extends InputsPropsIfOptionNodeAttrs<ON,ONA>, ...infer IPSR extends MapOptionNodeAttrToInputsProps<ONSR, ONASR>] ? ON extends ONA ? IP extends InputsProps ? ModifiableOptionData<ON, ONA, IP> | ModifiableExtensionOptionsData<ONSR, ONASR, IPSR> : never : never : never : never : never
+export type Highlight = (...nodes: Node[]) => void
 
 type SelectOptionElement = (optionElement: HTMLElement) => void
 type Return = {
@@ -60,7 +60,7 @@ type Return = {
 }   & DoesContainsNodeReturn<FormModalNamePrefix>
     & ModalReturn<FormModalNamePrefix>
 
-export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">>({htmlEditorPositionType, getHtmlEditorRect, getContainerRect, defaultTextClassName, spanClassesNames=[], anchorClassName=defaultAnchorClassName, getClassesNames, atAfterUpdateDOMEnd: atAfterUpdateDOMEndProp, extensionsProps, ...optionPropsRest}: UseOptionsProps<ONS, ONAS, IPS, WTS>): Return {
+export default function useOptions<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>, WTS extends MapOptionNodeTo<ONS, "wt">>({positionType, getHtmlEditorRect, getContainerRect, getLastSelectionData, defaultTextClassName, spanClassesNames=[], anchorClassName=defaultAnchorClassName, getClassesNames, atAfterUpdateDOMEnd: atAfterUpdateDOMEndProp, extensionsProps, ...optionPropsRest}: UseOptionsProps<ONS, ONAS, IPS, WTS>): Return {
     const atAfterUpdateDOMEnd = () => {
       atAfterUpdateDOMEndProp()
     }
@@ -74,15 +74,66 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       } 
       setFormModalPropsRest({inputsProps, submissionAction})
       const getPosition = (): ModalPosition => {
-        const rangeTop = optionPropsRest.getLastSelectionData()?.getRect().top ?? 0
-        const {top: editorTop, left: editorLeft, height: heightTop} = getHtmlEditorRect()
-        const {top: containerTop, left: containerLeft} = getContainerRect()
-        const isEditorAboveRange = editorTop < rangeTop
-  
-        return {top: `${editorTop - containerTop + (isEditorAboveRange ? -getFormModalRect().height-5 : heightTop + 5)}px`, left: `${editorLeft - containerLeft}px`}
+        const {top: containerTop, left: containerLeft, right: containerRight, width: containerWidth} = getContainerRect()
+        const {top: editorTop, left: editorLeft, right: editorRight, height: editorHeight, width: editorWidth} = getHtmlEditorRect()
+        const {height, width} = getFormModalRect()
+        const {top: selectionTop, left: selectionLeft, height: selectionHeight, width: selectionWidth, bottom: selectionBottom, isMouseAboveMiddle} = getLastSelectionData().getRect()
+
+        let left
+        let top
+        // aside editor
+        if (when === "insert" || positionType === "selection") {
+          if (editorLeft - width >= containerLeft) {
+            left = editorLeft - width
+          } else if (editorRight + width <= containerRight) {
+            left = editorRight
+          } else {
+            left = editorLeft
+            const leftOffset = left - (containerWidth - width)
+            left -= leftOffset > 0 ? leftOffset : 0 
+          }
+          top = editorTop - (isMouseAboveMiddle ?  width - editorWidth : 0)
+        } else {
+
+        }
+
+        return {top: `${top}px`, left: `${left}px`}
       }
       setTimeout(() => {setFormModalVisible(true, getPosition())}, 200)
     }
+
+    const refToHighlights = useRef<Node[]>([])
+    const setHighlights = (nodes: Node[]) => {
+      refToHighlights.current = nodes
+    }
+    const getHighlights = () => refToHighlights.current
+    const removeHighlights = () => {
+      getHighlights().forEach((node) => {
+        if (node instanceof HTMLElement) {
+          node.style.outlineStyle = "none"
+        } else {
+          node.parentElement?.replaceWith(node)
+        }
+      })
+      setHighlights([])
+    }
+    const highlight: Highlight = (...nodes) => {
+      removeHighlights()
+      nodes.forEach(node => {
+        let outlinedElement
+        if (node instanceof HTMLElement) {
+          outlinedElement = node
+        } else {
+          outlinedElement = createSpan()
+          outlinedElement.appendChild(node)
+          node.parentElement?.replaceChild(outlinedElement, node)
+        }  
+        outlinedElement.style.outlineStyle = "solid"
+      })
+      setHighlights(nodes)
+    }
+
+    const commonOptionProps = {getLastSelectionData, highlight, ...optionPropsRest}
     
     const modifiableOptionsDataByType: Map<string, ModifiableAnchorData |  ModifiableImageData | ModifiableExtensionOptionsData<ONS, ONAS, IPS>> = new Map()
 
@@ -93,7 +144,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       withText: true,
       insertInNewLine: false,
       atAfterUpdateDOMEnd,
-      ...optionPropsRest
+      ...commonOptionProps
     } as const
     const defaultTextOption = <Option<Text, undefined, true> {...defaultTextOptionProps}>
                                 T
@@ -108,7 +159,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
         withText: true,
         insertInNewLine: false,
         atAfterUpdateDOMEnd,
-        ...optionPropsRest
+        ...commonOptionProps
       } as const
 
       return  <Option<HTMLSpanElement, undefined, true> {...spanOptionProps}>
@@ -117,10 +168,10 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       }
     )
 
-    const {type: anchorType, option: anchorOption, ...anchorModifiableData} = useAnchorOption({className: getClassesNames(anchorClassName), setupFormModal, atAfterUpdateDOMEnd, ...optionPropsRest})
+    const {type: anchorType, option: anchorOption, ...anchorModifiableData} = useAnchorOption({className: getClassesNames(anchorClassName), setupFormModal, atAfterUpdateDOMEnd, ...commonOptionProps})
     modifiableOptionsDataByType.set(anchorType, anchorModifiableData)
 
-    const {type: imageType, option: imageOption, ...imageModifiableData} = useImageOption({setupFormModal, atAfterUpdateDOMEnd, ...optionPropsRest})
+    const {type: imageType, option: imageOption, ...imageModifiableData} = useImageOption({setupFormModal, atAfterUpdateDOMEnd, ...commonOptionProps})
     modifiableOptionsDataByType.set(imageType, imageModifiableData)
 
     const extensionOptions = extensionsProps ? 
@@ -141,7 +192,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
         className: getClassesNames(className),
         showFormModal,
         atAfterUpdateDOMEnd,
-        ...optionPropsRest,
+        ...commonOptionProps,
         ...extensionOptionPropsRest
       }
 
@@ -160,6 +211,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
                     </>
 
     const selectOptionElement: SelectOptionElement = (element) => {
+        highlight(element)
         const type = element.dataset[optionAttributeTypePrefix] ?? element.tagName
         const modifiableOptionData = modifiableOptionsDataByType.get(type)
         if (modifiableOptionData) {

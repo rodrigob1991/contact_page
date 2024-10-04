@@ -1,7 +1,8 @@
 import { ReactNode } from "react"
 import { InputProps, InputType, InputTypesProps, InputsProps, InputsValues, MutableInputsProps } from "../../../forms/useFormModal"
-import { GetLastSelectionData, OutlineNodes } from "../../useHtmlEditor"
+import { GetLastSelectionData } from "../../useHtmlEditor"
 import { AtAfterUpdateDOMEnd, OptionNode, OptionProps } from "../Option"
+import { Highlight } from "../useOptions"
 
 type ModifyInputProps<IP extends InputProps> = IP extends {type: infer T extends InputType} ? IP & {props: {value: InputTypesProps[T]["value"]}} : never
 export type ModifyInputsProps<IP extends InputsProps> = IP extends readonly[infer FIP, ...infer RIP] ? FIP extends  InputProps ? IP extends MutableInputsProps ? [ModifyInputProps<FIP>, ...(RIP extends InputsProps ? ModifyInputsProps<RIP> : [])] : readonly[ModifyInputProps<FIP>, ...(RIP extends InputsProps ? ModifyInputsProps<RIP> : [])] : never : IP extends MutableInputsProps ? ModifyInputProps<IP[number]>[] : readonly ModifyInputProps<IP[number]>[] 
@@ -13,7 +14,7 @@ export type SetupFormModal = <IP extends InputsProps>(inputsProps: IP, updateDOM
 export type UseOptionWithFormProps<ON extends OptionNode, ONA extends Partial<ON>, P> = {
   setupFormModal: SetupFormModal
   getLastSelectionData: GetLastSelectionData
-  outlineNodes: OutlineNodes
+  highlight: Highlight
   atAfterUpdateDOMEnd: AtAfterUpdateDOMEnd
 } & P
 
