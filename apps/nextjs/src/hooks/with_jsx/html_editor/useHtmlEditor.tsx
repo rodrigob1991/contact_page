@@ -7,7 +7,7 @@ import SyntheticCaret, { SyntheticCaretProps } from "../../../components/Synthet
 import { GetRect } from "../../../types/dom"
 import { getRelativeMousePosition, getRelativeRect } from "../../../utils/domManipulations"
 import useModal, { ModalPosition, ModalPositionType } from "../useModal"
-import useMousePosition from "../useMousePosition"
+import useMousePosition, { MousePosition } from "../useMousePosition"
 import { OptionNode } from "./options/Option"
 import useOptions, { MapOptionNodeAttrToInputsProps, MapOptionNodeTo, UseOptionsProps } from "./options/useOptions"
 
@@ -26,9 +26,8 @@ type Props<PT extends HtmlEditorPositionType, ONS extends OptionNode[], ONAS ext
     getColorClassName?: (color: string) => string
 } & {options?: Omit<UseOptionsProps<ONS, ONAS, IPS, WTS>, "getContainerRect" | "getClassesNames" | "getHtmlEditorModalRect" | "getLastSelectionData" | "atAfterUpdateDOMEnd">}
 
-type MousePosition = {x: number, y: number}
-type SetVisibleOnSelection = (mousePosition?: MousePosition) => void
-export type SelectionData = {isCollapsed: boolean, anchorNode: Node | undefined, anchorOffset: number, ranges?: Range[], getRect: () => DOMRect & {isMouseAboveMiddle: boolean}}
+type SetVisibleOnSelection = () => void
+export type SelectionData = {isCollapsed: boolean, anchorNode: Node | undefined, anchorOffset: number, ranges?: Range[], mousePosition: MousePosition, getRect: () => DOMRect & {isMouseAboveMiddle: boolean}}
 export type GetLastSelectionData = () => SelectionData | undefined
 export type SetLastSelectionData = (selectionData: SelectionData | undefined) => void
 
@@ -105,7 +104,9 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
 
     useEffect(() => {
       const relativeMousePosition = getRelativeMousePosition(mousePosition, getContainerRect())
-      const getRectProp = (target: Range | HTMLElement) => ({
+
+      const getLastSelectionDataProps = (target: Range | HTMLElement) => ({
+        mousePosition: relativeMousePosition,
         getRect: () => {
           const relativeRect = getRelativeRect(target.getBoundingClientRect(), getContainerRect())
           return {...relativeRect, isMouseAboveMiddle: relativeMousePosition.y > relativeRect.top + relativeRect.height / 2}
@@ -124,7 +125,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
             for (let i=0; i < selection.rangeCount; i ++) {
               ranges.push(selection.getRangeAt(i))
             }
-            lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, ...getRectProp(ranges[0])}
+            lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, ...getLastSelectionDataProps(ranges[0])}
           } else if (doesModalsContainsNode(anchorNode)) {
             lastSelectionDataChanged = false
           }
@@ -132,7 +133,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
         if (lastSelectionDataChanged) {
           setLastSelectionData(lastSelectionData)
           if (positionType === "selection")
-            setVisibleOnSelection(relativeMousePosition)
+            setVisibleOnSelection()
         }
       }
       document.addEventListener("selectionchange", selectionChangeHandler)
@@ -150,9 +151,9 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
 
       const onClickHandler = ({type, target}: MouseEvent) => {
         if (enterClickHandler(type, target)) {
-            setLastSelectionData({isCollapsed: true, anchorNode: target, anchorOffset: 0, ...getRectProp(target)})
+            setLastSelectionData({isCollapsed: true, anchorNode: target, anchorOffset: 0, ...getLastSelectionDataProps(target)})
             if (positionType === "selection")
-              setVisibleOnSelection(relativeMousePosition)
+              setVisibleOnSelection()
             selectOptionElement(target)
         }
       }
@@ -201,7 +202,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
     const {setModalVisible, getModalRect, doesModalContainsNode, modal, ...restReturn} = useModal({ children, positionType: positionType === "selection" ? "absolute" : positionType, position, onMouseDownHandler: (e) => {e.preventDefault()}, ...modalCommonProps})
     const getModalRelativeRect = () => getRelativeRect(getModalRect(), getContainerRect())
     
-    const setVisibleOnSelection: SetVisibleOnSelection = (mousePosition) => {
+    const setVisibleOnSelection: SetVisibleOnSelection = () => {
         setColorsModalVisible(false)
         setFormModalVisibleFalse()
         //setHtmlEditorModalVisible(false)
@@ -210,14 +211,11 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
         if (lastSelectionData) {
         // the setTimeout is because when click over an existing range the top of the new range rectangle remain like the older one    
           setTimeout(() => { 
-              //const {height} = getModalRect()
-              const {height, width} = getModalRelativeRect()
               const {width: containerWidth} = getContainerRect()
-              const {isCollapsed, getRect} = lastSelectionData
-              const {top: selectionTop, left: selectionLeft, height: selectionHeight, width: selectionWidth, bottom: selectionBottom, isMouseAboveMiddle} = getRect()
+              const {height, width} = getModalRelativeRect()
+              const {isCollapsed, mousePosition, getRect: getSelectionRect} = lastSelectionData
+              const {top: selectionTop, left: selectionLeft, height: selectionHeight, width: selectionWidth, bottom: selectionBottom, isMouseAboveMiddle} = getSelectionRect()
 
-              // const rangeRelativeTop = rangeTop - containerTop
-              // const rangeRelativeLeft = rangeLeft - containerLeft
               let top 
               let left
               if (mousePosition) {

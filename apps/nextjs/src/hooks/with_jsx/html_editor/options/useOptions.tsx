@@ -67,39 +67,49 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
 
     const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: [], submissionAction: () => {}})
     const {setFormModalVisible, formModal, getFormModalRect, doesFormModalContainsNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
-    const setupFormModal: SetupFormModal = (inputsProps, updateDOM, when) => {
-      const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
-        updateDOM(values)
-        setFormModalVisible(false)
-      } 
-      setFormModalPropsRest({inputsProps, submissionAction})
-      const getPosition = (): ModalPosition => {
-        const {top: containerTop, left: containerLeft, right: containerRight, width: containerWidth} = getContainerRect()
-        const {top: editorTop, left: editorLeft, right: editorRight, height: editorHeight, width: editorWidth} = getHtmlEditorRect()
-        const {height, width} = getFormModalRect()
-        const {top: selectionTop, left: selectionLeft, height: selectionHeight, width: selectionWidth, bottom: selectionBottom, isMouseAboveMiddle} = getLastSelectionData().getRect()
+    const setupFormModal: SetupFormModal = (inputsProps, updateDOM, when="insert") => {
+      const lastSelectionData = getLastSelectionData()
+      // should always be true when setupFormModal invoked
+      if (lastSelectionData) {
+        const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
+          updateDOM(values)
+          setFormModalVisible(false)
+        } 
+        setFormModalPropsRest({inputsProps, submissionAction})
 
-        let left
-        let top
-        // aside editor
-        if (when === "insert" || positionType === "selection") {
-          if (editorLeft - width >= containerLeft) {
-            left = editorLeft - width
-          } else if (editorRight + width <= containerRight) {
-            left = editorRight
+        const getPosition = (): ModalPosition => {
+          const {top: containerTop, left: containerLeft, right: containerRight, width: containerWidth} = getContainerRect()
+          const {top: editorTop, left: editorLeft, right: editorRight, height: editorHeight, width: editorWidth} = getHtmlEditorRect()
+          const {height, width} = getFormModalRect()
+          const {mousePosition, getRect: getSelectionRect} = lastSelectionData
+          const {top: selectionTop, left: selectionLeft, height: selectionHeight, width: selectionWidth, bottom: selectionBottom, isMouseAboveMiddle} = getSelectionRect()
+
+          let left
+          let top
+          // aside editor
+          if (when === "insert" || positionType === "selection") {
+            if (editorLeft - width >= containerLeft) {
+              left = editorLeft - width
+            } else if (editorRight + width <= containerRight) {
+              left = editorRight
+            } else {
+              left = editorLeft
+              const leftOffset = left - (containerWidth - width)
+              left -= leftOffset > 0 ? leftOffset : 0 
+            }
+            top = editorTop - (isMouseAboveMiddle ?  width - editorWidth : 0)
           } else {
-            left = editorLeft
+            top = selectionTop + (isMouseAboveMiddle ? selectionHeight + 5 : -(height + 5))
+            left = mousePosition.x 
             const leftOffset = left - (containerWidth - width)
-            left -= leftOffset > 0 ? leftOffset : 0 
+            left -= leftOffset > 0 ? leftOffset : 0
           }
-          top = editorTop - (isMouseAboveMiddle ?  width - editorWidth : 0)
-        } else {
 
+          return {top: `${top}px`, left: `${left}px`}
         }
 
-        return {top: `${top}px`, left: `${left}px`}
+        setTimeout(() => {setFormModalVisible(true, getPosition())}, 200)
       }
-      setTimeout(() => {setFormModalVisible(true, getPosition())}, 200)
     }
 
     const refToHighlights = useRef<Node[]>([])
@@ -220,7 +230,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
           const updateDOM = (inputsValues: InputsValues<typeof inputsProps>) => {
             Object.assign(element,  mapInputsValuesToAttrs(inputsValues))
           }
-          setupFormModal(inputsProps, updateDOM)
+          setupFormModal(inputsProps, updateDOM, "select")
         }
     }
 
