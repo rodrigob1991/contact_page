@@ -10,7 +10,7 @@ export type GetModifyInputsProps<ON extends OptionNode, IP extends InputsProps> 
 export type MapInputsValuesToAttrs<ON extends OptionNode, ONA extends Partial<ON>, IP extends InputsProps> = (inputValues: InputsValues<IP>) => ONA
 
 export type UpdateDOM<IP extends InputsProps> = (inputsValues: InputsValues<IP>) => void
-export type SetupFormModal = <IP extends InputsProps>(inputsProps: IP, updateDOM: UpdateDOM<IP>, when: "insert" | "select") => void
+export type SetupFormModal = <IP extends InputsProps>(inputsProps: IP, updateDOM: UpdateDOM<IP>, when?: "insert" | "select") => void
 export type UseOptionWithFormProps<ON extends OptionNode, ONA extends Partial<ON>, P> = {
   setupFormModal: SetupFormModal
   getLastSelectionData: GetLastSelectionData

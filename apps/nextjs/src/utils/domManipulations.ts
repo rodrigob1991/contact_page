@@ -185,14 +185,14 @@ export const normalizeNode = (node: Node) => {
 }
 export const getRelativeRect = (rect: DOMRect, relativeToRect: DOMRect): DOMRect => 
  ({
-   get x(){ return rect.x - relativeToRect.x },
-   get y(){ return rect.y - relativeToRect.y },
-   get bottom(){ return rect.bottom - relativeToRect.bottom },
-   get top(){ return rect.top - relativeToRect.top },
-   get left(){ return rect.left - relativeToRect.left },
-   get right(){ return rect.right - relativeToRect.right },
-   get height(){ return rect.height },
-   get width(){ return rect.width },
+   get x(){return rect.x - relativeToRect.x},
+   get y(){return rect.y - relativeToRect.y},
+   get bottom(){return this.top + rect.height},
+   get top(){return rect.top - relativeToRect.top },
+   get left(){return rect.left - relativeToRect.left},
+   get right(){return this.left + rect.width},
+   get height(){return rect.height},
+   get width(){return rect.width},
    toJSON(){ rect.toJSON() }
  })
  export const getRelativeMousePosition = (mousePosition: {x: number, y: number}, relativeToRect: DOMRect) => 

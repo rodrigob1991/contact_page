@@ -88,16 +88,17 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
           let top
           // aside editor
           if (when === "insert" || positionType === "selection") {
-            if (editorLeft - width >= containerLeft) {
-              left = editorLeft - width
-            } else if (editorRight + width <= containerRight) {
-              left = editorRight
+            if (editorLeft - width >= 0) {
+              left = editorLeft - width - 5
+            } else if (editorRight + width <= containerWidth) {
+              console.log("editor right:" + editorRight)
+              left = editorRight + 5
             } else {
               left = editorLeft
               const leftOffset = left - (containerWidth - width)
               left -= leftOffset > 0 ? leftOffset : 0 
             }
-            top = editorTop - (isMouseAboveMiddle ?  width - editorWidth : 0)
+            top = editorTop - (isMouseAboveMiddle ?  height - editorHeight : 0)
           } else {
             top = selectionTop + (isMouseAboveMiddle ? selectionHeight + 5 : -(height + 5))
             left = mousePosition.x 
@@ -145,7 +146,12 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
 
     const commonOptionProps = {getLastSelectionData, highlight, ...optionPropsRest}
     
-    const modifiableOptionsDataByType: Map<string, ModifiableAnchorData |  ModifiableImageData | ModifiableExtensionOptionsData<ONS, ONAS, IPS>> = new Map()
+    type ModifiableOptionData = ModifiableAnchorData |  ModifiableImageData | ModifiableExtensionOptionsData<ONS, ONAS, IPS>
+    const modifiableOptionsDataByType: Map<string, ModifiableOptionData> = new Map()
+    const setModifiableOptionData = (type: string, modifiableOptionData: ModifiableOptionData) => {
+      modifiableOptionsDataByType.set(type.toLowerCase(), modifiableOptionData)
+    }
+    const getModifiableOptionData = (type: string) => modifiableOptionsDataByType.get(type.toLowerCase())
 
     const defaultTextOptionProps = {
       type: "defaultText",
@@ -179,10 +185,10 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
     )
 
     const {type: anchorType, option: anchorOption, ...anchorModifiableData} = useAnchorOption({className: getClassesNames(anchorClassName), setupFormModal, atAfterUpdateDOMEnd, ...commonOptionProps})
-    modifiableOptionsDataByType.set(anchorType, anchorModifiableData)
+    setModifiableOptionData(anchorType, anchorModifiableData)
 
     const {type: imageType, option: imageOption, ...imageModifiableData} = useImageOption({setupFormModal, atAfterUpdateDOMEnd, ...commonOptionProps})
-    modifiableOptionsDataByType.set(imageType, imageModifiableData)
+    setModifiableOptionData(imageType, imageModifiableData)
 
     const extensionOptions = extensionsProps ? 
     (extensionsProps as ExtensionOptionPropsArray<ONS, ONAS, IPS, WTS>).map(({type, className, inputsProps, getModifyInputsProps, mapInputsValuesToAttrs, children, ...extensionOptionPropsRest}) => {
@@ -194,7 +200,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
         showFormModal = (updateDOM) => {
           setupFormModal<InputsProps>(inputsProps, (inputsValues) => {updateDOM(mapInputsValuesToAttrs(inputsValues))})
         }
-        modifiableOptionsDataByType.set(type, {getModifyInputsProps, mapInputsValuesToAttrs})
+        setModifiableOptionData(type, {getModifyInputsProps, mapInputsValuesToAttrs})
       }
 
       const optionProps = {
@@ -223,7 +229,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
     const selectOptionElement: SelectOptionElement = (element) => {
         highlight(element)
         const type = element.dataset[optionAttributeTypePrefix] ?? element.tagName
-        const modifiableOptionData = modifiableOptionsDataByType.get(type)
+        const modifiableOptionData = getModifiableOptionData(type)
         if (modifiableOptionData) {
           const {getModifyInputsProps, mapInputsValuesToAttrs} = modifiableOptionData
           const inputsProps = getModifyInputsProps(element)

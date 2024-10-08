@@ -109,36 +109,49 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
         mousePosition: relativeMousePosition,
         getRect: () => {
           const relativeRect = getRelativeRect(target.getBoundingClientRect(), getContainerRect())
-          return {...relativeRect, isMouseAboveMiddle: relativeMousePosition.y > relativeRect.top + relativeRect.height / 2}
+          return {...relativeRect, isMouseAboveMiddle: relativeMousePosition.y <= relativeRect.top + relativeRect.height / 2}
         }
       })
 
-      const selectionChangeHandler = () => {
-        let lastSelectionDataChanged = true
-        let lastSelectionData: SelectionData | undefined = undefined
-        const selection = document.getSelection()
-        if (selection) {
-          const anchorNode = selection.anchorNode
-          if (anchorNode && doesTargetContains(anchorNode)) {
-            const {isCollapsed, anchorOffset} = selection
-            const ranges: Range[] = []
-            for (let i=0; i < selection.rangeCount; i ++) {
-              ranges.push(selection.getRangeAt(i))
+      const selectionChangeHandler = ({target}: Event) => {
+          let lastSelectionDataChanged = true
+          let lastSelectionData: SelectionData | undefined = undefined
+          if (target) {
+            if (target instanceof HTMLInputElement) {
+              if (doesModalsContainsNode(target)) {
+                lastSelectionDataChanged = false
+              } else if (doesTargetContains(target)) {
+                // for now lastSelectionData remain undefined
+              }
+            } 
+            else { // target = document
+              const selection = document.getSelection()
+              if (selection) {
+                const anchorNode = selection.anchorNode
+                if (anchorNode) { 
+                  if (doesTargetContains(anchorNode)) {
+                    const {isCollapsed, anchorOffset} = selection
+                    const ranges: Range[] = []
+                    for (let i=0; i < selection.rangeCount; i ++) {
+                      ranges.push(selection.getRangeAt(i))
+                    }
+                    lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, ...getLastSelectionDataProps(ranges[0])}
+                  } else if (doesModalsContainsNode(anchorNode)) {
+                    lastSelectionDataChanged = false
+                  }
+                }
+              }
             }
-            lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, ...getLastSelectionDataProps(ranges[0])}
-          } else if (doesModalsContainsNode(anchorNode)) {
-            lastSelectionDataChanged = false
           }
-        }
-        if (lastSelectionDataChanged) {
-          setLastSelectionData(lastSelectionData)
-          if (positionType === "selection")
-            setVisibleOnSelection()
-        }
+          if (lastSelectionDataChanged) {
+            setLastSelectionData(lastSelectionData)
+            if (positionType === "selection")
+              setVisibleOnSelection()
+          }
       }
       document.addEventListener("selectionchange", selectionChangeHandler)
 
-      const enterClickHandler = (type: string, target: EventTarget | null): target is HTMLElement => {
+      const enterOnClickHandler = (type: string, target: EventTarget | null): target is HTMLElement => {
         let enter = false
         if (target instanceof HTMLElement && doesTargetContains(target)) {
           // this could be wrong
@@ -150,7 +163,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
       }
 
       const onClickHandler = ({type, target}: MouseEvent) => {
-        if (enterClickHandler(type, target)) {
+        if (enterOnClickHandler(type, target)) {
             setLastSelectionData({isCollapsed: true, anchorNode: target, anchorOffset: 0, ...getLastSelectionDataProps(target)})
             if (positionType === "selection")
               setVisibleOnSelection()
@@ -160,7 +173,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
       document.addEventListener("click", onClickHandler)
 
       const onDoubleClickHandler = ({type, target}: MouseEvent) => {
-        if (enterClickHandler(type, target))
+        if (enterOnClickHandler(type, target))
            selectOptionElement(target)
       }
       document.addEventListener("dblclick", onDoubleClickHandler)
@@ -177,7 +190,9 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
       //setVisibleOnSelection()
     }
 
-    const {options, formModal, setFormModalVisibleFalse, doesFormModalContainsNode, selectOptionElement} = useOptions({positionType, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorRect: () => getModalRect(), atAfterUpdateDOMEnd, getLastSelectionData, ...optionsSpecificProps})
+    const getModalRelativeRect = () => getRelativeRect(getModalRect(), getContainerRect())
+
+    const {options, formModal, setFormModalVisibleFalse, doesFormModalContainsNode, selectOptionElement} = useOptions({positionType, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorRect: getModalRelativeRect, atAfterUpdateDOMEnd, getLastSelectionData, ...optionsSpecificProps})
 
     const [syntheticCaretStates, setSyntheticCaretStates] = useState<SyntheticCaretProps>({visible: false})
     
@@ -198,9 +213,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
                      {options}
                      </Row>
                      </Container>
-
     const {setModalVisible, getModalRect, doesModalContainsNode, modal, ...restReturn} = useModal({ children, positionType: positionType === "selection" ? "absolute" : positionType, position, onMouseDownHandler: (e) => {e.preventDefault()}, ...modalCommonProps})
-    const getModalRelativeRect = () => getRelativeRect(getModalRect(), getContainerRect())
     
     const setVisibleOnSelection: SetVisibleOnSelection = () => {
         setColorsModalVisible(false)
@@ -219,7 +232,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
               let top 
               let left
               if (mousePosition) {
-                top = selectionTop + (isMouseAboveMiddle ? selectionHeight + 5 : -(height + 5))
+                top = selectionTop + (isMouseAboveMiddle ? -(height + 5) : selectionHeight + 5)
                 left = mousePosition.x 
               } else {
                 top = selectionTop - height - 5

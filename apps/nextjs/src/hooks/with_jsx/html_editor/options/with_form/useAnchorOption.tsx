@@ -36,7 +36,7 @@ const useAnchorOption: UseOptionWithForm<HTMLAnchorElement, ModifiableAttributes
     withText: true,
     insertInNewLine: false,
     showFormModal,
-    insertNodesBeforeShowFormModal: true,
+    insertNodesBeforeShowFormModal: false,
     ...optionPropsRest
   }
 
