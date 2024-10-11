@@ -1,5 +1,5 @@
 import {Prisma} from '@prisma/client'
-import {ChangePropertiesType, IfExtends} from "utils/src/types"
+import {ChangePropertiesType, IfFirstExtendsThenSecond} from "utils/src/types"
 import {PropsStorageClient} from "../classes/PropsStorageClient"
 
 export type DbOperation = "create" | "update"
@@ -60,6 +60,6 @@ export type PresentationHTMLElementIds = {[K in keyof PresentationWithoutImage a
 export type ViewMode =  "editing" | "reading"
 export type PropsByViewMode<VM extends ViewMode, RP, EP> = {
     viewMode: VM
-} & IfExtends<VM, [["reading", RP], ["editing", EP]]>
+} & IfFirstExtendsThenSecond<VM, [["reading", RP], ["editing", EP]]>
 
 export type CreateOrUpdate<C, O> = O extends C ? "create" : "update"

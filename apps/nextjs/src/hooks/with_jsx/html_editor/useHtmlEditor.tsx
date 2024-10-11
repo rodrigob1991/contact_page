@@ -27,7 +27,9 @@ type Props<PT extends HtmlEditorPositionType, ONS extends OptionNode[], ONAS ext
 } & {options?: Omit<UseOptionsProps<ONS, ONAS, IPS, WTS>, "getContainerRect" | "getClassesNames" | "getHtmlEditorModalRect" | "getLastSelectionData" | "atAfterUpdateDOMEnd">}
 
 type SetVisibleOnSelection = () => void
-export type SelectionData = {isCollapsed: boolean, anchorNode: Node | undefined, anchorOffset: number, ranges?: Range[], mousePosition: MousePosition, getRect: () => DOMRect & {isMouseAboveMiddle: boolean}}
+export type SelectionType = "collapsed" | "range" | "element"
+export type SelectionDataRanges<T extends SelectionType> = 
+export type SelectionData<T extends SelectionType> = {type: T, anchorNode: Node | undefined, anchorOffset: number, ranges?: SelectionDataRanges<T>, mousePosition: MousePosition, getRect: () => DOMRect & {isMouseAboveMiddle: boolean}}
 export type GetLastSelectionData = () => SelectionData | undefined
 export type SetLastSelectionData = (selectionData: SelectionData | undefined) => void
 
@@ -102,6 +104,31 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
 
     const mousePosition = useMousePosition()
 
+    const lastClickedTargetRef = useRef<HTMLElement>()
+    const setLastClickedTarget = (t: HTMLElement | undefined) => {lastClickedTargetRef.current = t}
+    const lastClickedPositionRef = useRef<MousePosition>()
+    const setLastClickedPosition = (mp: MousePosition | undefined) => {lastClickedPositionRef.current = mp}
+    const getLastClickedPosition = (target: HTMLElement, mp: MousePosition) => {
+      let nextLastClickedPosition
+
+      const lastClickedTarget = lastClickedTargetRef.current
+      const lastClickedPosition = lastClickedPositionRef.current
+      if (lastClickedTarget && lastClickedPosition) {
+        if (lastClickedTarget === target) {
+          const {x, y} = mp
+          const {x: lastX, y: lastY} = lastClickedPosition
+          const diffX = lastX - x
+          const diffY = lastY - y
+          if (!(diffX < 10 && diffX > -10 && diffY < 10 && diffY > -10)) {
+            nextLastClickedPosition = mp
+          }
+        }
+      } else {
+        nextLastClickedPosition = mp
+      }
+      return nextLastClickedPosition
+    }
+
     useEffect(() => {
       const relativeMousePosition = getRelativeMousePosition(mousePosition, getContainerRect())
 
@@ -126,6 +153,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
             } 
             else { // target = document
               const selection = document.getSelection()
+              console.log(selection)
               if (selection) {
                 const anchorNode = selection.anchorNode
                 if (anchorNode) { 
@@ -144,6 +172,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
             }
           }
           if (lastSelectionDataChanged) {
+            console.log("SETED LAST SELECTION")
             setLastSelectionData(lastSelectionData)
             if (positionType === "selection")
               setVisibleOnSelection()
@@ -151,7 +180,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
       }
       document.addEventListener("selectionchange", selectionChangeHandler)
 
-      const enterOnClickHandler = (type: string, target: EventTarget | null): target is HTMLElement => {
+     /*  const enterOnClickHandler = (type: string, target: EventTarget | null): target is HTMLElement => {
         let enter = false
         if (target instanceof HTMLElement && doesTargetContains(target)) {
           // this could be wrong
@@ -160,28 +189,46 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
         }
 
         return enter
-      }
+      } */
 
-      const onClickHandler = ({type, target}: MouseEvent) => {
-        if (enterOnClickHandler(type, target)) {
-            setLastSelectionData({isCollapsed: true, anchorNode: target, anchorOffset: 0, ...getLastSelectionDataProps(target)})
-            if (positionType === "selection")
-              setVisibleOnSelection()
-            selectOptionElement(target)
+      const onClickHandler = (e: MouseEvent) => {
+        let lastClickedTarget = undefined
+        let lastClickedPosition = undefined
+
+        const target = e.target
+        if (target instanceof HTMLElement && doesTargetContains(target)) {
+          if (e.detail === 1) {
+            lastClickedTarget = target
+            lastClickedPosition = getLastClickedPosition(target, {x: e.clientX, y: e.clientY})
+            const nearLastClick = !lastClickedPosition
+          // this could be wrong
+            const selectableTarget = !isEmpty(target.innerText)
+            if (selectableTarget) {
+              if (nearLastClick)
+                selectOptionElement(target)
+            } else {
+              setLastSelectionData({isCollapsed: true, anchorNode: target, anchorOffset: 0, ...getLastSelectionDataProps(target)})
+              if (positionType === "selection")
+                setVisibleOnSelection()
+              selectOptionElement(target)
+            }
+          } 
         }
+        setLastClickedTarget(lastClickedTarget)
+        setLastClickedPosition(lastClickedPosition)
       }
       document.addEventListener("click", onClickHandler)
 
-      const onDoubleClickHandler = ({type, target}: MouseEvent) => {
+      /* const onDoubleClickHandler = ({type, target}: MouseEvent) => {
         if (enterOnClickHandler(type, target))
            selectOptionElement(target)
       }
-      document.addEventListener("dblclick", onDoubleClickHandler)
+      document.addEventListener("dblclick", onDoubleClickHandler) */
 
       return () => {
         document.removeEventListener("selectionchange", selectionChangeHandler)
         document.removeEventListener("click", onClickHandler)
-        document.removeEventListener("dblclick", onDoubleClickHandler)
+        ///document.removeEventListener("dblclick", onDoubleClickHandler)
       }
     }, [mousePosition])
 
@@ -233,7 +280,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
               let left
               if (mousePosition) {
                 top = selectionTop + (isMouseAboveMiddle ? -(height + 5) : selectionHeight + 5)
-                left = mousePosition.x 
+                left = isCollapsed ? selectionLeft : mousePosition.x 
               } else {
                 top = selectionTop - height - 5
                 left = selectionLeft

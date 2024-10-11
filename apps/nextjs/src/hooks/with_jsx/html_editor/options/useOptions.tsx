@@ -136,8 +136,12 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
           outlinedElement = node
         } else {
           outlinedElement = createSpan()
-          outlinedElement.appendChild(node)
-          node.parentElement?.replaceChild(outlinedElement, node)
+          if (node instanceof Range) {
+            node.surroundContents(outlinedElement)
+          } else {
+            outlinedElement.appendChild(node)
+            node.parentElement?.replaceChild(outlinedElement, node)
+          }
         }  
         outlinedElement.style.outlineStyle = "solid"
       })

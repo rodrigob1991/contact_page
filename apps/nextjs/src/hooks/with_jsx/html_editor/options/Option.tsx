@@ -86,14 +86,14 @@ export default function Option<ON extends OptionNode, ONA extends Partial<ON> | 
               afterUpdateDOM()
             } 
           } else {
-            //highlightTargetSelection()
+            highlight(...ranges)
             updateDOM = (attr) => {
               insertNodes()
               updateNodes(attr)
               afterUpdateDOM()
             }
           }
-          showFormModal(updateDOM)
+          //showFormModal(updateDOM)
         } else {
           insertNodes()
           afterUpdateDOM()

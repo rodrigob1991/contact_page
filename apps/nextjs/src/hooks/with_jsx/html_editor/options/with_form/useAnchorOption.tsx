@@ -41,7 +41,7 @@ const useAnchorOption: UseOptionWithForm<HTMLAnchorElement, ModifiableAttributes
   }
 
   const option = <Option {...optionProps}>
-                  Anchor
+                 {"<a/>"}
                  </Option>
 
   return {type, getModifyInputsProps, mapInputsValuesToAttrs, option}
