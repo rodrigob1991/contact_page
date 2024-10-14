@@ -1,7 +1,7 @@
-import { ReactNode, useRef, useState } from "react"
+import { ReactNode, useState } from "react"
 import { Available, IfFirstExtendsThenSecond, NonEmptyArray } from "utils/src/types"
 import { GetRect } from "../../../../types/dom"
-import { createSpan, createText } from "../../../../utils/domManipulations"
+import { createSpan, createText, getRelativeRect } from "../../../../utils/domManipulations"
 import useFormModal, { FormModalNamePrefix, InputsProps, InputsValues, SubmissionAction, UseFormModalProps } from "../../forms/useFormModal"
 import { DoesContainsNodeReturn, ModalPosition, ModalReturn } from "../../useModal"
 import { GetLastSelectionData, HtmlEditorPositionType, modalCommonProps } from "../useHtmlEditor"
@@ -59,6 +59,7 @@ type Return = {
     options: ReactNode
     setFormModalVisibleFalse: () => void
     selectOptionElement: SelectOptionElement
+    highlightsRects: DOMRect[]
 }   & DoesContainsNodeReturn<FormModalNamePrefix>
     & ModalReturn<FormModalNamePrefix>
 
@@ -115,7 +116,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       }
     }
 
-    const highlightTargetsRef = useRef<HighlightTargets>([])
+    /* const highlightTargetsRef = useRef<HighlightTargets>([])
     const setHighlightTargets = (targets: HighlightTargets) => {
       highlightTargetsRef.current = targets
     }
@@ -152,7 +153,26 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
         outlinedElement.style.outlineStyle = "solid"
       })
       setHighlightTargets(targets)
-    }
+    } */
+      const [highlightsRects, setHighlightsRects] = useState<DOMRect[]>([])
+      const highlight: Highlight = (...targets) => {
+        const rects: DOMRect[] = []
+        targets.forEach(target => {
+          if (target instanceof HTMLElement) {
+            rects.push(...target.getClientRects())
+          } else {
+            let range
+            if (target instanceof Range) {
+              range = target
+            } else {
+              range = document.createRange()
+              range.selectNodeContents(target)
+            }
+            rects.push(...range.getClientRects())
+          }  
+        })
+        setHighlightsRects(rects.map(r => getRelativeRect(r, getContainerRect())))
+      }
 
     const commonOptionProps = {getLastSelectionData, highlight, ...optionPropsRest}
     
@@ -250,5 +270,5 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
         }
     }
 
-    return {options, formModal, setFormModalVisibleFalse: () => {setFormModalVisible(false)}, doesFormModalContainsNode, selectOptionElement}
+    return {options, formModal, setFormModalVisibleFalse: () => {setFormModalVisible(false)}, doesFormModalContainsNode, selectOptionElement, highlightsRects}
 }

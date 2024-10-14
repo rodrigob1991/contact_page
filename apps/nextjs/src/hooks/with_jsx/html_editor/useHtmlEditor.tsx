@@ -10,6 +10,7 @@ import useModal, { ModalPosition, ModalPositionType } from "../useModal"
 import useMousePosition, { MousePosition } from "../useMousePosition"
 import { OptionNode } from "./options/Option"
 import useOptions, { MapOptionNodeAttrToInputsProps, MapOptionNodeTo, UseOptionsProps } from "./options/useOptions"
+import Highlights from "../../../components/Highlights"
 
 const defaultColors = ["red", "blue", "green", "yellow", "black"]
 const defaultGetColorClassName = (color: string) => "color" + upperCaseFirstChar(color) + "Option"
@@ -153,8 +154,6 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
             } 
             else { // target = document
               const selection = document.getSelection()
-              console.log(target)
-              console.log(selection)
               if (selection) {
                 const {anchorNode} = selection
                 if (anchorNode) {
@@ -173,7 +172,6 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
             }
           }
           if (lastSelectionDataChanged) {
-            console.log("SETED LAST SELECTION")
             setLastSelectionData(lastSelectionData)
             if (positionType === "selection")
               setVisibleOnSelection()
@@ -240,10 +238,8 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
 
     const getModalRelativeRect = () => getRelativeRect(getModalRect(), getContainerRect())
 
-    const {options, formModal, setFormModalVisibleFalse, doesFormModalContainsNode, selectOptionElement} = useOptions({positionType, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorRect: getModalRelativeRect, atAfterUpdateDOMEnd, getLastSelectionData, ...optionsSpecificProps})
+    const {options, formModal, setFormModalVisibleFalse, doesFormModalContainsNode, selectOptionElement, highlightsRects} = useOptions({positionType, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorRect: getModalRelativeRect, atAfterUpdateDOMEnd, getLastSelectionData, ...optionsSpecificProps})
 
-    const [syntheticCaretStates, setSyntheticCaretStates] = useState<SyntheticCaretProps>({visible: false})
-    
     // const sibling = <>
     //                 {colorsModal}
     //                 {/* {elementIdFormModal} */}
@@ -267,7 +263,6 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
         setColorsModalVisible(false)
         setFormModalVisibleFalse()
         //setHtmlEditorModalVisible(false)
-        setSyntheticCaretStates({visible: false})
         const lastSelectionData = getLastSelectionData()
         if (lastSelectionData) {
         // the setTimeout is because when click over an existing range the top of the new range rectangle remain like the older one    
@@ -330,7 +325,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
                        {modal}
                        {colorsModal}
                        {formModal}
-                       <SyntheticCaret {...syntheticCaretStates}/>
+                       <Highlights rects={highlightsRects}/>
                        </>,
       targetEventHandlers
     }
