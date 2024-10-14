@@ -5,7 +5,7 @@ import { IfOneOfFirstExtendsThenSecond } from "utils/src/types"
 import { DoesContainsNode } from "../../../components/ResizableDraggableDiv"
 import SyntheticCaret, { SyntheticCaretProps } from "../../../components/SyntheticCaret"
 import { GetRect } from "../../../types/dom"
-import { getRelativeMousePosition, getRelativeRect } from "../../../utils/domManipulations"
+import { getRelativeMousePosition, getRelativeRect, isHtmlElement, isInput, isText } from "../../../utils/domManipulations"
 import useModal, { ModalPosition, ModalPositionType } from "../useModal"
 import useMousePosition, { MousePosition } from "../useMousePosition"
 import { OptionNode } from "./options/Option"
@@ -27,9 +27,11 @@ type Props<PT extends HtmlEditorPositionType, ONS extends OptionNode[], ONAS ext
 } & {options?: Omit<UseOptionsProps<ONS, ONAS, IPS, WTS>, "getContainerRect" | "getClassesNames" | "getHtmlEditorModalRect" | "getLastSelectionData" | "atAfterUpdateDOMEnd">}
 
 type SetVisibleOnSelection = () => void
-export type SelectionType = "collapsed" | "range" | "element"
-export type SelectionDataRanges<T extends SelectionType> = 
-export type SelectionData<T extends SelectionType> = {type: T, anchorNode: Node | undefined, anchorOffset: number, ranges?: SelectionDataRanges<T>, mousePosition: MousePosition, getRect: () => DOMRect & {isMouseAboveMiddle: boolean}}
+export type SelectionDataCollapsedType = {type: "collapsed", range: Range}
+export type SelectionDataRangeType = {type: "range", ranges: Range[]}
+export type SelectionDataElementType = {type: "element", element: HTMLElement}
+export type SelectionType = (SelectionDataCollapsedType | SelectionDataRangeType | SelectionDataElementType)["type"]
+export type SelectionData<T extends SelectionType=SelectionType> = {mousePosition: MousePosition, getRect: () => DOMRect & {isMouseAboveMiddle: boolean}} & IfOneOfFirstExtendsThenSecond<T, [["collapsed", SelectionDataCollapsedType], ["range", SelectionDataRangeType], ["element", SelectionDataElementType]]>
 export type GetLastSelectionData = () => SelectionData | undefined
 export type SetLastSelectionData = (selectionData: SelectionData | undefined) => void
 
@@ -113,8 +115,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
 
       const lastClickedTarget = lastClickedTargetRef.current
       const lastClickedPosition = lastClickedPositionRef.current
-      if (lastClickedTarget && lastClickedPosition) {
-        if (lastClickedTarget === target) {
+      if (lastClickedTarget && lastClickedPosition && lastClickedTarget === target) {
           const {x, y} = mp
           const {x: lastX, y: lastY} = lastClickedPosition
           const diffX = lastX - x
@@ -122,7 +123,6 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
           if (!(diffX < 10 && diffX > -10 && diffY < 10 && diffY > -10)) {
             nextLastClickedPosition = mp
           }
-        }
       } else {
         nextLastClickedPosition = mp
       }
@@ -144,7 +144,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
           let lastSelectionDataChanged = true
           let lastSelectionData: SelectionData | undefined = undefined
           if (target) {
-            if (target instanceof HTMLInputElement) {
+            if (isInput(target)) {
               if (doesModalsContainsNode(target)) {
                 lastSelectionDataChanged = false
               } else if (doesTargetContains(target)) {
@@ -153,20 +153,21 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
             } 
             else { // target = document
               const selection = document.getSelection()
+              console.log(target)
               console.log(selection)
               if (selection) {
-                const anchorNode = selection.anchorNode
-                if (anchorNode) { 
-                  if (doesTargetContains(anchorNode)) {
-                    const {isCollapsed, anchorOffset} = selection
+                const {anchorNode} = selection
+                if (anchorNode) {
+                  if (!isText(anchorNode) || doesModalsContainsNode(anchorNode)) {
+                    lastSelectionDataChanged = false
+                  } else if (doesTargetContains(anchorNode)) {
+                    const {isCollapsed, rangeCount} = selection
                     const ranges: Range[] = []
-                    for (let i=0; i < selection.rangeCount; i ++) {
+                    for (let i=0; i < rangeCount; i ++) {
                       ranges.push(selection.getRangeAt(i))
                     }
-                    lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, ...getLastSelectionDataProps(ranges[0])}
-                  } else if (doesModalsContainsNode(anchorNode)) {
-                    lastSelectionDataChanged = false
-                  }
+                    lastSelectionData = {...(isCollapsed ? {type: "collapsed", range: ranges[0]} : {type: "range", ranges}), ...getLastSelectionDataProps(ranges[0])}
+                  } 
                 }
               }
             }
@@ -195,8 +196,8 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
         let lastClickedTarget = undefined
         let lastClickedPosition = undefined
 
-        const target = e.target
-        if (target instanceof HTMLElement && doesTargetContains(target)) {
+        const {target} = e
+        if (target && isHtmlElement(target) && doesTargetContains(target)) {
           if (e.detail === 1) {
             lastClickedTarget = target
             lastClickedPosition = getLastClickedPosition(target, {x: e.clientX, y: e.clientY})
@@ -207,7 +208,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
               if (nearLastClick)
                 selectOptionElement(target)
             } else {
-              setLastSelectionData({isCollapsed: true, anchorNode: target, anchorOffset: 0, ...getLastSelectionDataProps(target)})
+              setLastSelectionData({type: "element", element: target, ...getLastSelectionDataProps(target)})
               if (positionType === "selection")
                 setVisibleOnSelection()
               selectOptionElement(target)
@@ -273,14 +274,14 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
           setTimeout(() => { 
               const {width: containerWidth} = getContainerRect()
               const {height, width} = getModalRelativeRect()
-              const {isCollapsed, mousePosition, getRect: getSelectionRect} = lastSelectionData
+              const {type, mousePosition, getRect: getSelectionRect} = lastSelectionData
               const {top: selectionTop, left: selectionLeft, height: selectionHeight, width: selectionWidth, bottom: selectionBottom, isMouseAboveMiddle} = getSelectionRect()
 
               let top 
               let left
               if (mousePosition) {
                 top = selectionTop + (isMouseAboveMiddle ? -(height + 5) : selectionHeight + 5)
-                left = isCollapsed ? selectionLeft : mousePosition.x 
+                left = type === "collapsed" ? selectionLeft : mousePosition.x 
               } else {
                 top = selectionTop - height - 5
                 left = selectionLeft
@@ -288,9 +289,6 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
               const leftOffset = left - (containerWidth - width)
               left -= leftOffset > 0 ? leftOffset : 0
 
-              if (isCollapsed) {
-                //setSyntheticCaretStates({visible: true, top: rangeRelativeTop, left: rangeRelativeLeft, height: rangeBottom - rangeTop, width: 3})
-              }
               if (isColorsModalVisible()) {
                 setColorsModalVisible(true, {top: `${top + height + 5}px`, left: `${left}px`})
               }

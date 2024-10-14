@@ -53,7 +53,7 @@ export default function Option<ON extends OptionNode, ONA extends Partial<ON> | 
           return newNode
         }) as GetNewOptionNode<WT, ON>
 
-        const {isCollapsed, anchorNode, anchorOffset, ranges} = lastSelectionData
+       /*  const {isCollapsed, anchorNode, anchorOffset, ranges} = lastSelectionData
         const insertNodes = () => {
           if (isCollapsed) {
             const optionNode = withText ? (getNewOptionNodeWrapper as GetNewOptionNode<true, ON>)(collapsedSelectionText) : (getNewOptionNodeWrapper as GetNewOptionNode<false, ON>)()
@@ -61,6 +61,29 @@ export default function Option<ON extends OptionNode, ONA extends Partial<ON> | 
           } else {
             ranges.forEach(r => {rangeSelectionHandler(withText, getNewOptionNodeWrapper, insertInNewLine, r)})
           }
+        } */
+        let selectionTargets: (Range | HTMLElement)[]
+        let insertNodes: () => void
+        if (lastSelectionData.type === "range") {
+          const {ranges} = lastSelectionData
+          selectionTargets = ranges
+          insertNodes = () => {ranges.forEach(r => {rangeSelectionHandler(withText, getNewOptionNodeWrapper, insertInNewLine, r)})}
+        } else {
+          let anchorNode, anchorOffset
+          if (lastSelectionData.type === "collapsed") {
+            const {range} = lastSelectionData
+            selectionTargets = [range]
+            const {startContainer, startOffset} = range
+            anchorNode = startContainer
+            anchorOffset = startOffset
+          } else {
+            const {element} = lastSelectionData
+            selectionTargets = [element]
+            anchorNode = element
+            anchorOffset = 0
+          }
+          const optionNode = withText ? (getNewOptionNodeWrapper as GetNewOptionNode<true, ON>)(collapsedSelectionText) : (getNewOptionNodeWrapper as GetNewOptionNode<false, ON>)()
+          insertNodes = () => {collapsedSelectionHandler(optionNode, insertInNewLine, anchorNode, anchorOffset)}
         }
 
         const afterUpdateDOM = () => {
@@ -86,20 +109,18 @@ export default function Option<ON extends OptionNode, ONA extends Partial<ON> | 
               afterUpdateDOM()
             } 
           } else {
-            highlight(...ranges)
+            highlight(...selectionTargets)
             updateDOM = (attr) => {
               insertNodes()
               updateNodes(attr)
               afterUpdateDOM()
             }
           }
-          //showFormModal(updateDOM)
+          showFormModal(updateDOM)
         } else {
           insertNodes()
           afterUpdateDOM()
         }
-
-        //onClickOptionEnd()
     }
   }
 

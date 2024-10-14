@@ -50,7 +50,9 @@ export type UseOptionsProps<ONS extends OptionNode[], ONAS extends MapOptionNode
 } & Available<ONS, NonEmptyArray<OptionNode>, {extensionsProps: ExtensionOptionPropsArray<ONS, ONAS, IPS, WTS>}>
 
 type ModifiableExtensionOptionsData<ONS extends OptionNode[], ONAS extends MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>> = ONS extends [infer ON extends OptionNode, ...infer ONSR extends OptionNode[]] ? ONAS extends [infer ONA extends Partial<ON>, ...infer ONASR extends MapOptionNodeTo<ONSR, "attr">] ? IPS extends [infer IP extends InputsPropsIfOptionNodeAttrs<ON,ONA>, ...infer IPSR extends MapOptionNodeAttrToInputsProps<ONSR, ONASR>] ? ON extends ONA ? IP extends InputsProps ? ModifiableOptionData<ON, ONA, IP> | ModifiableExtensionOptionsData<ONSR, ONASR, IPSR> : never : never : never : never : never
-export type Highlight = (...nodes: Node[]) => void
+export type HighlightTarget = Range | OptionNode
+export type HighlightTargets = HighlightTarget[]
+export type Highlight = (...targets: HighlightTargets) => void
 
 type SelectOptionElement = (optionElement: HTMLElement) => void
 type Return = {
@@ -113,39 +115,43 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       }
     }
 
-    const refToHighlights = useRef<Node[]>([])
-    const setHighlights = (nodes: Node[]) => {
-      refToHighlights.current = nodes
+    const highlightTargetsRef = useRef<HighlightTargets>([])
+    const setHighlightTargets = (targets: HighlightTargets) => {
+      highlightTargetsRef.current = targets
     }
-    const getHighlights = () => refToHighlights.current
+    const getHighlightTargets = () => highlightTargetsRef.current
     const removeHighlights = () => {
-      getHighlights().forEach((node) => {
-        if (node instanceof HTMLElement) {
-          node.style.outlineStyle = "none"
+      getHighlightTargets().forEach((target) => {
+        if (target instanceof HTMLElement) {
+          target.style.outlineStyle = "none"
+        } else if (target instanceof Range) {
+          const content = target.extractContents()
+          content.replaceChildren(...content.firstChild?.childNodes)
+          target.insertNode(content)
         } else {
-          node.parentElement?.replaceWith(node)
+          target.parentElement?.replaceWith(target)
         }
       })
-      setHighlights([])
+      setHighlightTargets([])
     }
-    const highlight: Highlight = (...nodes) => {
+    const highlight: Highlight = (...targets) => {
       removeHighlights()
-      nodes.forEach(node => {
+      targets.forEach(target => {
         let outlinedElement
-        if (node instanceof HTMLElement) {
-          outlinedElement = node
+        if (target instanceof HTMLElement) {
+          outlinedElement = target
         } else {
           outlinedElement = createSpan()
-          if (node instanceof Range) {
-            node.surroundContents(outlinedElement)
+          if (target instanceof Range) {
+            target.surroundContents(outlinedElement)
           } else {
-            outlinedElement.appendChild(node)
-            node.parentElement?.replaceChild(outlinedElement, node)
+            outlinedElement.appendChild(target)
+            target.parentElement?.replaceChild(outlinedElement, target)
           }
         }  
         outlinedElement.style.outlineStyle = "solid"
       })
-      setHighlights(nodes)
+      setHighlightTargets(targets)
     }
 
     const commonOptionProps = {getLastSelectionData, highlight, ...optionPropsRest}

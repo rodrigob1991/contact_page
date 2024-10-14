@@ -2,24 +2,14 @@ import {ExtractWritableProps} from "utils/src/types"
 
 type TillParent = (parent: ParentNode) => boolean
 
-export const isText = (node: Node) => {
-    return node instanceof Text
-}
-export const isHtmlElement = (node: Node) => {
-    return node instanceof HTMLElement
-}
-export const isDiv = (node: Node) => {
-    return node instanceof HTMLDivElement
-}
-export const isSpan = (node: Node) => {
-    return node instanceof HTMLSpanElement
-}
-export const isAnchor = (node: Node) => {
-    return node instanceof HTMLAnchorElement
-}
-export const isImage = (node: Node) => {
-    return node instanceof HTMLImageElement
-}
+export const isText = (target: Node): target is Text => target instanceof Text
+export const isHtmlElement = (target: Node | EventTarget): target is HTMLElement => target instanceof HTMLElement
+export const isDiv = (target: Node | EventTarget): target is HTMLDivElement => target instanceof HTMLDivElement
+export const isSpan = (target: Node | EventTarget): target is HTMLSpanElement => target instanceof HTMLSpanElement
+export const isAnchor = (target: Node | EventTarget): target is HTMLAnchorElement => target instanceof HTMLAnchorElement
+export const isImage = (target: Node | EventTarget): target is HTMLImageElement => target instanceof HTMLImageElement
+export const isInput = (target: Node | EventTarget): target is HTMLInputElement => target instanceof HTMLInputElement
+
 export const positionCaretOn = (node: Node) => {
     const selection = document.getSelection()
     if (selection) {
