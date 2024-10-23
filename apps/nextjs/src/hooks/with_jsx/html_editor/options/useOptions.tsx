@@ -10,20 +10,12 @@ import { ModifiableOptionData, SetupFormModal } from "./with_form/types"
 import useAnchorOption, { ModifiableAnchorData } from "./with_form/useAnchorOption"
 import useImageOption, { ModifiableImageData } from "./with_form/useImageOption"
 
-//export type GetInputPropValue<E extends HTMLElement, EA extends Partial<E>, IP extends InputsPropsOptionNodeAttributes<E, EA>> = <K extends keyof IP, P = IP[K]["props"]>(key: K) => ["value"]
-/* declare global {
-  interface Window {
-      modifyElement: <E extends HTMLElement, IPONV extends InputsPropsOptionNodeValues<E>>(element: E, inputsProps: ModifyInputsPropsOptionNode<E, IPONV>) => void
-  }
-} */
-
 export const optionAttributeTypePrefix = "optionType"
-
-// const defaultTextType = "defaultText"
-// const spanType = "span"
 
 const defaultSpanClassesNames = ["blackTextOption", "blackUnderlineTextOption", "redTextOption", "blackTitleTextOption"] as const
 const defaultAnchorClassName = "linkOption"
+
+const defaultFormModalDynamicProps = {buttonText: "", inputsProps: [], submissionAction: () => {}}
 
 type InputsPropsIfOptionNodeAttrs<ON extends OptionNode, ONA extends Partial<ON> | undefined> = IfFirstExtendsThenSecond<ONA, [[ON, InputsProps], [undefined, undefined]]>
 
@@ -54,7 +46,7 @@ export type HighlightTarget = Range | OptionNode
 export type HighlightTargets = HighlightTarget[]
 export type Highlight = (...targets: HighlightTargets) => void
 
-type SelectOptionElement = (optionElement: HTMLElement) => void
+type SelectOptionElement = (optionElement?: HTMLElement) => void
 type Return = {
     options: ReactNode
     setFormModalVisibleFalse: () => void
@@ -68,17 +60,21 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       atAfterUpdateDOMEndProp()
     }
 
-    const [formModalPropsRest, setFormModalPropsRest] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>({buttonText: "", inputsProps: [], submissionAction: () => {}})
-    const {setFormModalVisible, formModal, getFormModalRect, doesFormModalContainsNode} = useFormModal({showLoadingBars: false, ...formModalPropsRest, ...modalCommonProps})
+    const [formModalDynamicProps, setFormModalDynamicProps] = useState<Pick<UseFormModalProps, "inputsProps" | "submissionAction" | "buttonText">>(defaultFormModalDynamicProps)
+    const {setFormModalVisible, formModal, getFormModalRect, doesFormModalContainsNode} = useFormModal({showLoadingBars: false, ...formModalDynamicProps, ...modalCommonProps})
+    const setFormModalInvisible = () => {
+      setFormModalVisible(false)
+      setFormModalDynamicProps(defaultFormModalDynamicProps)
+    }
     const setupFormModal: SetupFormModal = (inputsProps, updateDOM, when="insert") => {
       const lastSelectionData = getLastSelectionData()
       // should always be true when setupFormModal invoked
       if (lastSelectionData) {
         const submissionAction: SubmissionAction<typeof inputsProps> = (values) => {
           updateDOM(values)
-          setFormModalVisible(false)
+          setFormModalInvisible()
         } 
-        setFormModalPropsRest({inputsProps, submissionAction})
+        setFormModalDynamicProps({inputsProps, submissionAction})
 
         const getPosition = (): ModalPosition => {
           const {top: containerTop, left: containerLeft, right: containerRight, width: containerWidth} = getContainerRect()
@@ -94,7 +90,6 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
             if (editorLeft - width >= 0) {
               left = editorLeft - width - 5
             } else if (editorRight + width <= containerWidth) {
-              console.log("editor right:" + editorRight)
               left = editorRight + 5
             } else {
               left = editorLeft
@@ -257,6 +252,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
                     </>
 
     const selectOptionElement: SelectOptionElement = (element) => {
+      if (element) {
         highlight(element)
         const type = element.dataset[optionAttributeTypePrefix] ?? element.tagName
         const modifiableOptionData = getModifiableOptionData(type)
@@ -268,6 +264,10 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
           }
           setupFormModal(inputsProps, updateDOM, "select")
         }
+      } else {
+        highlight()
+        setFormModalInvisible()
+      }
     }
 
     return {options, formModal, setFormModalVisibleFalse: () => {setFormModalVisible(false)}, doesFormModalContainsNode, selectOptionElement, highlightsRects}

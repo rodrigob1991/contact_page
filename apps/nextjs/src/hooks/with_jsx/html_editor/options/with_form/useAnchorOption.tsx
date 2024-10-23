@@ -34,9 +34,9 @@ const useAnchorOption: UseOptionWithForm<HTMLAnchorElement, ModifiableAttributes
     className,
     getNewOptionNode: (t: string) => createAnchor({innerHTML: t, className}),
     withText: true,
-    insertInNewLine: false,
+    insertInNewLine: true,
     showFormModal,
-    insertNodesBeforeShowFormModal: false,
+    insertNodesBeforeShowFormModal: true,
     ...optionPropsRest
   }
 

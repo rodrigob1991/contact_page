@@ -6,13 +6,15 @@ import { BsFillEnvelopeFill, BsFillEnvelopeOpenFill, BsFillEnvelopeXFill } from 
 import { FiArrowRight } from "react-icons/fi"
 import { isEmpty } from "utils/src/strings"
 import { TextInput } from "../../../components/FormComponents"
-import { PositionCSS, SizeCSS, setPreventFlag } from "../../../components/ResizableDraggableDiv"
+import { setPreventFlag } from "../../../components/ResizableDraggableDiv"
 import { messengerLayout as layout, maxWidthSmallestLayout, messengerSmallestLayout as smallestLayout } from "../../../layouts"
 import { mainColor, secondColor, thirdColor } from "../../../theme"
 import useModal from "../useModal"
 import { ConnectionState } from "./useChat"
 import { InboundMessageData, MessagesData, OutboundMessageData, UserAckState } from "../../chat/useMessages"
 import { GetUserColor, LOCAL_USER_ID, SelectOrUnselectUser, Users } from "../../chat/useUsers"
+import { PositionCSS } from "utils/src/css/position"
+import { SizeCSS } from "utils/src/css/size"
 
 export type SetOutboundMessageData =  (body: string) => boolean
 export type ContainerProps = { show: boolean, left: number, top: number, viewPortPercentage?: number}
@@ -28,15 +30,15 @@ type Props<UT extends UserType> = {
     position?: PositionCSS
     size?: SizeCSS
     hidable?: boolean
-    handleOnHide?: () => void
+    onHideHandler?: () => void
 }
 
 const fullSize = {height: "100%", width: "100%"}
 const centerPosition = {top: "50%", left: "50%"}
 
-export default function useView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setOutboundMessageData, position=centerPosition, size=fullSize, hidable, handleOnHide}: Props<UT>): [(visible: boolean) => void, JSX.Element] {
+export default function useView<UT extends UserType>({userType, connectionState, messages, users, selectOrUnselectUser, getUserColor, setOutboundMessageData, position=centerPosition, size=fullSize, hidable, onHideHandler}: Props<UT>) {
     const isHost = userType === "host"
-    const [handleClickUser, getOutboundMessageView] = (isHost ? getHostSpecifics(selectOrUnselectUser) : getGuessSpecifics(selectOrUnselectUser)) as GetUserSpecificsReturn<UT>
+    const [clickUserHandler, getOutboundMessageView] = (isHost ? getHostSpecifics(selectOrUnselectUser) : getGuessSpecifics(selectOrUnselectUser)) as GetUserSpecificsReturn<UT>
 
     //const [visible, setVisible] = useState(!allowHide)
    // const [size, setSize] = useState(sizeProp)
@@ -48,7 +50,7 @@ export default function useView<UT extends UserType>({userType, connectionState,
         messagesEndRef.current?.scrollIntoView({behavior: "smooth"})
     }, [messages])
 
-    const handleInputMessage = () => {
+    const inputMessageHandler = () => {
       if (!isEmpty(messageBody)) {
           if (setOutboundMessageData(messageBody)) {
               setMessageBody("")
@@ -91,7 +93,7 @@ export default function useView<UT extends UserType>({userType, connectionState,
     const topRightChildren = <ConnectionStateView connectionState={connectionState}/> 
     const children = <BottomContainer>
                      <UsersContainer>
-                     {users.map(({id, name, isConnected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ handleClickUser ? (e) => { handleClickUser(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={isConnected}>{name}</UserView>)}
+                     {users.map(({id, name, isConnected, selected}, index) => <UserView key={id} color={getUserColor(id)} onClick={ clickUserHandler ? (e) => { clickUserHandler(e, index)} : undefined} isHost={isHost} isSelected={isHost && selected} isConnected={isConnected}>{name}</UserView>)}
                      </UsersContainer>
                      <BottomRightContainer>
                      <MessagesContainer>
@@ -99,22 +101,22 @@ export default function useView<UT extends UserType>({userType, connectionState,
                      <div ref={messagesEndRef}/>
                      </MessagesContainer>
                      <InputMessageContainer>
-                     <TextInput css={css`border-color: ${mainColor};`} fromSpan value={messageBody} setValue={setMessageBody} onEnter={handleInputMessage} placeholder={"type message..."} onMouseDown={e => {setPreventFlag(e, true, true)}}/>
-                     <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={handleInputMessage}/>
+                     <TextInput css={css`border-color: ${mainColor};`} fromSpan value={messageBody} setValue={setMessageBody} onEnter={inputMessageHandler} placeholder={"type message..."} onMouseDown={e => {setPreventFlag(e, true, true)}}/>
+                     <FiArrowRight color={"white"} size={"35px"} cursor={"pointer"} onClick={inputMessageHandler}/>
                      </InputMessageContainer>
                      </BottomRightContainer>
                      </BottomContainer>
 
-    return useModal({topRightChildren, children, handleOnHide})
+    return useModal({name: "chat", topRightChildren, children, onHideHandler})
 }
 
-type HandleClickUser<UT extends UserType> = UT extends "host" ? (e: React.MouseEvent<HTMLSpanElement>, index: number) => void : undefined
+type ClickUserHandler<UT extends UserType> = UT extends "host" ? (e: React.MouseEvent<HTMLSpanElement>, index: number) => void : undefined
 type GetOutboundMessageView = (omd: OutboundMessageData, getUserColor: (u: number) => string) => JSX.Element
-type GetUserSpecificsReturn<UT extends UserType> = [HandleClickUser<UT>, GetOutboundMessageView]
+type GetUserSpecificsReturn<UT extends UserType> = [ClickUserHandler<UT>, GetOutboundMessageView]
 type GetUserSpecifics<UT extends UserType> = (selectOrUnselectUser: SelectOrUnselectUser) => GetUserSpecificsReturn<UT>
 
 const getHostSpecifics: GetUserSpecifics<"host"> = (selectOrUnselectUser) => {
-    const handleClickGuess: HandleClickUser<"host"> = (e, index) => {
+    const clickGuessHandler: ClickUserHandler<"host"> = (e, index) => {
         selectOrUnselectUser(index)
     }
     const getOutboundMessageView : GetOutboundMessageView = ({number, body, toUsersIds, serverAck}, getUserColor) => {
@@ -130,7 +132,7 @@ const getHostSpecifics: GetUserSpecifics<"host"> = (selectOrUnselectUser) => {
                </MessageView>
     }
 
-    return [handleClickGuess, getOutboundMessageView]
+    return [clickGuessHandler, getOutboundMessageView]
 }
 const getGuessSpecifics: GetUserSpecifics<"guess"> = () => {
     const iconAckStyle = css`min-width: 15px; min-height: 15px; margin-top: 5px; margin-right: 2px; color:${secondColor};`

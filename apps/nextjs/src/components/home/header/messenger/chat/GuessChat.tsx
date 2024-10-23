@@ -1,12 +1,12 @@
 import styled from "@emotion/styled"
 import { MouseEventHandler, useState } from "react"
-import useChat, { HandleUserMessage, HandleUsersConnection, HandleUsersDisconnection } from "../../../../../hooks/with_jsx/chat/useChat"
+import useChat, { UserMessageHandler, UsersConnectionHandler, UsersDisconnectionHandler } from "../../../../../hooks/with_jsx/chat/useChat"
 import { ViewThumbnail as ChatViewThumbnail } from "../../../../../hooks/with_jsx/chat/useView"
-import { HandleConnected, HandleConnecting, HandleDisconnected } from "../../../../../hooks/chat/useWebSocket"
 import { messengerLayout as layout, maxWidthSmallestLayout, messengerSmallestLayout as smallestLayout } from "../../../../../layouts"
 import { tooltipStyle } from "../../../../../theme"
 import WithTooltip from "../../../../WithTooltip"
 import LiveIcon from "/public/live.svg"
+import { ConnectingHandler, ConnectedHandler, DisconnectedHandler } from "../../../../../hooks/chat/useWebSocket"
 
 type Props = {}
 
@@ -20,22 +20,22 @@ export default function GuessChat({}: Props) {
     const [iconColor, setIconColor] = useState(disconnectedStates.iconColor)
     const [tooltipText, setTooltipText] = useState(disconnectedStates.tooltipText)
 
-    const handleConnecting: HandleConnecting = () => {
+    const connectingHandler: ConnectingHandler = () => {
         setIconColor(connectingStates.iconColor)
         setTooltipText(connectingStates.tooltipText)
     }
-    const handleConnected: HandleConnected = () => {
-        setChatVisible(true)
+    const connectedHandler: ConnectedHandler = () => {
+        setChatModalVisible(true)
         setChatViewThumbnailVisible(false)
         setIconColor(connectedStates.iconColor)
         setTooltipText(connectedStates.tooltipText)
     }
-    const handleDisconnected: HandleDisconnected = () => {
+    const disconnectedHandler: DisconnectedHandler = () => {
         setIconColor(disconnectedStates.iconColor)
         setTooltipText(disconnectedStates.tooltipText)
     }
 
-    const handleOnClickLiveIcon: MouseEventHandler<HTMLDivElement> = (e) => {
+    const onClickLiveIconHandler: MouseEventHandler<HTMLDivElement> = (e) => {
         setConnect(!connect)
     }
     /* const handleMouseMoveOnLiveIcon: MouseEventHandler<HTMLDivElement> = (e) => {
@@ -44,31 +44,31 @@ export default function GuessChat({}: Props) {
     const handleTouchStartOnLiveIcon: TouchEventHandler<HTMLDivElement> = (e) => {
         setConnect(!connect)
     } */
-    const handleOnClickIconChatView: MouseEventHandler<HTMLDivElement> = (e) => {
-        setChatVisible(true)
+    const onClickIconChatViewHandler: MouseEventHandler<HTMLDivElement> = (e) => {
+        setChatModalVisible(true)
         setChatViewThumbnailVisible(false)
     }
-    const handleOnHide = () => {
-        setChatVisible(false)
+    const onHideHandler = () => {
+        setChatModalVisible(false)
         setChatViewThumbnailVisible(true)
     }
 
-    const handleHostConnection: HandleUsersConnection = (hostName) => {
+    const hostConnectionHandler: UsersConnectionHandler = (hostName) => {
     }
-    const handleHostDisconnection: HandleUsersDisconnection = (hostName) => {
+    const hostDisconnectionHandler: UsersDisconnectionHandler = (hostName) => {
     }
-    const handleHostMessage: HandleUserMessage = (hostName, messageBody) => {
+    const hostMessageHandler: UserMessageHandler = (hostName, messageBody) => {
     }
 
-    const [connectionState, setChatVisible, chatView] = useChat({userType: "guess", handleUsersConnection: handleHostConnection, handleUsersDisconnection: handleHostDisconnection, handleUserMessage: handleHostMessage,
-                                                                handleConnecting, handleConnected, handleDisconnected, connect, viewProps: {position: {top: "50%", left: "50%"}, size: {height: "30%", width: "30%"}, allowHide: true, handleOnHide}})
+    const {connectionState, setChatModalVisible, chatModal} = useChat({userType: "guess", usersConnectionHandler: hostConnectionHandler, usersDisconnectionHandler: hostDisconnectionHandler, userMessageHandler: hostMessageHandler,
+                                                                connectingHandler, connectedHandler, disconnectedHandler, connect, viewProps: {position: {top: "50%", left: "50%"}, size: {height: "30%", width: "30%"}, allowHide: true, onHideHandler}})
     return <Container>
            <WithTooltip renderChildren={(handlers) => <LiveIconStyled fill={iconColor} {...handlers}/>}
                         tooltipText={tooltipText}
                         tooltipDeviation={{top: 0, left: 15}}
                         tooltipStyle={tooltipStyle}/>
-           <ChatViewThumbnail visible={chatViewThumbnailVisible} onClick={handleOnClickIconChatView}/>
-           {chatView}
+           <ChatViewThumbnail visible={chatViewThumbnailVisible} onClick={onClickIconChatViewHandler}/>
+           {chatModal}
            </Container>
 }
 

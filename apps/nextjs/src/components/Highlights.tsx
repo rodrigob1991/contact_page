@@ -1,13 +1,48 @@
-import { css, keyframes } from "@emotion/react"
+import { keyframes } from "@emotion/react"
 import styled from "@emotion/styled"
  
 type Props = {
   rects: DOMRect[]
 }
 export default function Highlights({rects}: Props) {
-    return <>
-          {rects.map(({top,left, height, width}, index) => <Unit top={top} left={left} height={height} width={width} onTop={index === 0} onBottom={index === rects.length - 1}/>)}
-          </>
+  let units = <></>
+  const count = rects.length
+  if (count > 0) {
+    let {top: lastTop, left: lastLeft, right: maxRight, height: maxHeight} = rects[0]
+    //let sumWidth = 0
+  
+    rects.forEach(({top, left, right, height, width}, index) => {
+     /*  const repeatedTop = lastTop === top
+      const last = index === count - 1
+      if (repeatedTop) {
+        //sumWidth += width
+        if (right > maxRight)
+          maxRight = right
+        if (height > maxHeight)
+          maxHeight = height
+      } else {
+        units = <>
+                <Unit top={lastTop} left={lastLeft} height={maxHeight} width={maxRight - lastLeft} onTop={true} onBottom={true}/>
+                {units}
+                </>
+        maxRight = right
+        maxHeight = height
+        lastTop = top
+        lastLeft = left
+      }
+      if (last) {
+        units = <>
+                <Unit top={lastTop} left={lastLeft} height={height} width={maxRight - lastLeft} onTop={true} onBottom={true}/>
+                {units}
+                </>
+      } */
+     return units = <>
+                    <Unit top={top} left={left} height={height} width={width} onTop={true} onBottom={true}/>
+                    {units}
+                    </>
+    })
+  }
+  return units
 }
 const blink = keyframes`
   25% {
@@ -33,4 +68,5 @@ const Unit = styled.div<{top: number, left: number, height: number, width: numbe
     ${onBottom ? "" : "border-bottom-style: none;"}
   `}
   animation: ${blink} 1s linear infinite;
+  pointer-events: none;  
 `

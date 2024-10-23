@@ -2,15 +2,14 @@ import styled from "@emotion/styled"
 import { FocusEventHandler, KeyboardEventHandler, MouseEventHandler, ReactElement, useEffect, useRef, useState } from "react"
 import { isEmpty, upperCaseFirstChar } from "utils/src/strings"
 import { IfOneOfFirstExtendsThenSecond } from "utils/src/types"
+import Highlights from "../../../components/Highlights"
 import { DoesContainsNode } from "../../../components/ResizableDraggableDiv"
-import SyntheticCaret, { SyntheticCaretProps } from "../../../components/SyntheticCaret"
 import { GetRect } from "../../../types/dom"
 import { getRelativeMousePosition, getRelativeRect, isHtmlElement, isInput, isText } from "../../../utils/domManipulations"
 import useModal, { ModalPosition, ModalPositionType } from "../useModal"
 import useMousePosition, { MousePosition } from "../useMousePosition"
 import { OptionNode } from "./options/Option"
 import useOptions, { MapOptionNodeAttrToInputsProps, MapOptionNodeTo, UseOptionsProps } from "./options/useOptions"
-import Highlights from "../../../components/Highlights"
 
 const defaultColors = ["red", "blue", "green", "yellow", "black"]
 const defaultGetColorClassName = (color: string) => "color" + upperCaseFirstChar(color) + "Option"
@@ -38,7 +37,7 @@ export type SetLastSelectionData = (selectionData: SelectionData | undefined) =>
 
 type TargetEventHandlers = {onMouseUp: MouseEventHandler, onKeyUp: KeyboardEventHandler, onFocus: FocusEventHandler, onBlur: FocusEventHandler, onClick: MouseEventHandler, onDoubleClick: MouseEventHandler}
 //type Return = ChangePropertyType<UseModalReturn<"htmlEditor">, ["setHtmlEditorModalVisible", SetVisibleOnSelection]> & {targetEventHandlers: TargetEventHandlers}
-type Return = {htmlEditorModal: ReactElement} & {targetEventHandlers: TargetEventHandlers}
+type Return = {htmlEditorModal: ReactElement}
 
 export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS extends OptionNode[]=[], ONAS extends MapOptionNodeTo<ONS, "attr">=MapOptionNodeTo<ONS, "attr">, IPS extends MapOptionNodeAttrToInputsProps<ONS, ONAS>=MapOptionNodeAttrToInputsProps<ONS, ONAS> , WTS extends MapOptionNodeTo<ONS, "wt">=MapOptionNodeTo<ONS, "wt">>({positionType, position, getContainerRect, doesTargetContains, colors=defaultColors, getColorClassName=defaultGetColorClassName, options: optionsSpecificProps}: Props<PT, ONS, ONAS, IPS, WTS>) : Return {
     /* const [elementId, setElementId] = useState<string>()
@@ -60,7 +59,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
                                 <ColorView backgroundColor={color} onClick={(e) => {setSelectedColor(color); setColorsModalVisible(false)}}/>
                                 )}
                                 </ColorsModalChildrenContainer>
-    const {setColorsModalVisible, isColorsModalVisible, colorsModal, getColorsModalRect, doesColorsModalContainsNode} = useModal({name: "colors", children: colorsModalChildren, ...modalCommonProps, onMouseDownHandler: (e) => {e.preventDefault()}})
+    const {setColorsModalVisible, isColorsModalVisible, colorsModal, getColorsModalRect, doesColorsModalContainsNode} = useModal({name: "colors", children: colorsModalChildren, ...modalCommonProps})
     const onClickSelectedColorHandler: MouseEventHandler = (e) => {
       if (!isColorsModalVisible()) {
         const { top, left } = e.currentTarget.getBoundingClientRect()
@@ -79,55 +78,55 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
 
     const lastSelectionDataRef = useRef<SelectionData>()
     const getLastSelectionData: GetLastSelectionData = () => lastSelectionDataRef.current
-    const setLastSelectionData: SetLastSelectionData = (lastSelectionData) => {lastSelectionDataRef.current = lastSelectionData}
-    /* const setLastSelectionData: SetLastSelectionData = (mousePosition) => {
-      let lastSelectionDataChanged = true
-      let lastSelectionData = undefined
-      const selection = document.getSelection()
-      if (selection) {
-        const anchorNode = selection.anchorNode
-        if (anchorNode && doesTargetContains(anchorNode)) {
-          const {isCollapsed, anchorOffset} = selection
-          const ranges: Range[] = []
-          for (let i=0; i < selection.rangeCount; i ++) {
-            ranges.push(selection.getRangeAt(i))
-          }
-          lastSelectionData = {isCollapsed, anchorNode, anchorOffset, ranges, getRect: () => getRelativeRect(ranges[0].getBoundingClientRect(), getContainerRect())}
-          //anchorNode.parentElement && outlineNodes(anchorNode.parentElement)
-        } else if (doesModalsContainsNode(anchorNode)) {
-          lastSelectionDataChanged = false
+    const setLastSelectionData: SetLastSelectionData = (lastSelectionData) => {
+      lastSelectionDataRef.current = lastSelectionData
+      let element
+      if (lastSelectionData) {
+        if (lastSelectionData.type === "element") {
+          ({element} = lastSelectionData)
         }
-      }
-      if (lastSelectionDataChanged) {
-        lastSelectionDataRef.current = lastSelectionData
-      }
+      } 
+      selectOptionElement(element)
 
-      return lastSelectionDataChanged
-    } */
+      if (positionType === "selection")
+        setVisibleOnSelection()
+    }
 
     const mousePosition = useMousePosition()
 
-    const lastClickedTargetRef = useRef<HTMLElement>()
-    const setLastClickedTarget = (t: HTMLElement | undefined) => {lastClickedTargetRef.current = t}
     const lastClickedPositionRef = useRef<MousePosition>()
-    const setLastClickedPosition = (mp: MousePosition | undefined) => {lastClickedPositionRef.current = mp}
+    const setLastClickedPosition = (mp?: MousePosition) => {lastClickedPositionRef.current = mp}
     const getLastClickedPosition = (target: HTMLElement, mp: MousePosition) => {
+      let nearLastClick = false
       let nextLastClickedPosition
 
-      const lastClickedTarget = lastClickedTargetRef.current
+      const lastSelectionData = getLastSelectionData()
+      let lastClickedTarget = undefined
+      if (lastSelectionData) {
+        switch (lastSelectionData.type) {
+          case "element":
+            lastClickedTarget = lastSelectionData.element
+            break;
+          case "collapsed":
+            lastClickedTarget = lastSelectionData.range.startContainer.parentElement
+        }
+      }
       const lastClickedPosition = lastClickedPositionRef.current
       if (lastClickedTarget && lastClickedPosition && lastClickedTarget === target) {
           const {x, y} = mp
           const {x: lastX, y: lastY} = lastClickedPosition
           const diffX = lastX - x
           const diffY = lastY - y
-          if (!(diffX < 10 && diffX > -10 && diffY < 10 && diffY > -10)) {
+          if (diffX < 10 && diffX > -10 && diffY < 10 && diffY > -10) {
+            nearLastClick = true
+          } else {
             nextLastClickedPosition = mp
           }
       } else {
         nextLastClickedPosition = mp
       }
-      return nextLastClickedPosition
+
+      return {nearLastClick, lastClickedPosition: nextLastClickedPosition}
     }
 
     useEffect(() => {
@@ -146,7 +145,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
           let lastSelectionData: SelectionData | undefined = undefined
           if (target) {
             if (isInput(target)) {
-              if (doesModalsContainsNode(target)) {
+              if (doesModalsContains(target)) {
                 lastSelectionDataChanged = false
               } else if (doesTargetContains(target)) {
                 // for now lastSelectionData remain undefined
@@ -157,7 +156,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
               if (selection) {
                 const {anchorNode} = selection
                 if (anchorNode) {
-                  if (!isText(anchorNode) || doesModalsContainsNode(anchorNode)) {
+                  if (/* !isText(anchorNode) || */ doesModalsContains(anchorNode)) {
                     lastSelectionDataChanged = false
                   } else if (doesTargetContains(anchorNode)) {
                     const {isCollapsed, rangeCount} = selection
@@ -173,8 +172,8 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
           }
           if (lastSelectionDataChanged) {
             setLastSelectionData(lastSelectionData)
-            if (positionType === "selection")
-              setVisibleOnSelection()
+           /*  if (positionType === "selection")
+              setVisibleOnSelection() */
           }
       }
       document.addEventListener("selectionchange", selectionChangeHandler)
@@ -191,43 +190,28 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
       } */
 
       const onClickHandler = (e: MouseEvent) => {
-        let lastClickedTarget = undefined
-        let lastClickedPosition = undefined
-
         const {target} = e
-        if (target && isHtmlElement(target) && doesTargetContains(target)) {
-          if (e.detail === 1) {
-            lastClickedTarget = target
-            lastClickedPosition = getLastClickedPosition(target, {x: e.clientX, y: e.clientY})
-            const nearLastClick = !lastClickedPosition
-          // this could be wrong
-            const selectableTarget = !isEmpty(target.innerText)
-            if (selectableTarget) {
-              if (nearLastClick)
-                selectOptionElement(target)
-            } else {
-              setLastSelectionData({type: "element", element: target, ...getLastSelectionDataProps(target)})
-              if (positionType === "selection")
-                setVisibleOnSelection()
-              selectOptionElement(target)
+        if (target && isHtmlElement(target) && !doesModalsContains(target)) {
+          let lastClickedPosition
+          if (doesTargetContains(target)) {
+            if (e.detail === 1) {
+              let nearLastClick
+              ({nearLastClick, lastClickedPosition} = getLastClickedPosition(target, {x: e.clientX, y: e.clientY}))
+            // this could be wrong
+              const selectableTarget = !isEmpty(target.innerText)
+              if ((selectableTarget && nearLastClick) || !selectableTarget) {
+                setLastSelectionData({type: "element", element: target, ...getLastSelectionDataProps(target)})
+              }
             }
-          } 
+          }
+          setLastClickedPosition(lastClickedPosition)
         }
-        setLastClickedTarget(lastClickedTarget)
-        setLastClickedPosition(lastClickedPosition)
       }
       document.addEventListener("click", onClickHandler)
-
-      /* const onDoubleClickHandler = ({type, target}: MouseEvent) => {
-        if (enterOnClickHandler(type, target))
-           selectOptionElement(target)
-      }
-      document.addEventListener("dblclick", onDoubleClickHandler) */
 
       return () => {
         document.removeEventListener("selectionchange", selectionChangeHandler)
         document.removeEventListener("click", onClickHandler)
-        ///document.removeEventListener("dblclick", onDoubleClickHandler)
       }
     }, [mousePosition])
 
@@ -240,15 +224,6 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
 
     const {options, formModal, setFormModalVisibleFalse, doesFormModalContainsNode, selectOptionElement, highlightsRects} = useOptions({positionType, getClassesNames: getOptionClassesNames, getContainerRect, getHtmlEditorRect: getModalRelativeRect, atAfterUpdateDOMEnd, getLastSelectionData, ...optionsSpecificProps})
 
-    // const sibling = <>
-    //                 {colorsModal}
-    //                 {/* {elementIdFormModal} */}
-    //                 {formModal}
-    //                 </>
-    
-    //const idOffClass = "idOff"
-    //const idOnClass = "idOn"
-
     const children = <Container>
                      <Row>
                      <ColorView backgroundColor={selectedColor} onClick={onClickSelectedColorHandler}/>
@@ -257,7 +232,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
                      {options}
                      </Row>
                      </Container>
-    const {setModalVisible, getModalRect, doesModalContainsNode, modal, ...restReturn} = useModal({ children, positionType: positionType === "selection" ? "absolute" : positionType, position, onMouseDownHandler: (e) => {e.preventDefault()}, ...modalCommonProps})
+    const {setModalVisible, getModalRect, doesModalContainsNode, modal, ...restReturn} = useModal({ children, positionType: positionType === "selection" ? "absolute" : positionType, position, ...modalCommonProps})
     
     const setVisibleOnSelection: SetVisibleOnSelection = () => {
         setColorsModalVisible(false)
@@ -292,47 +267,19 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
         } else { setModalVisible(false) }
     }
 
-    const doesModalsContainsNode: DoesContainsNode = (node) => doesModalContainsNode(node) || doesColorsModalContainsNode(node) || doesFormModalContainsNode(node)
+    const doesModalsContains: DoesContainsNode = (node) => doesModalContainsNode(node) || doesColorsModalContainsNode(node) || doesFormModalContainsNode(node)
     
-    const targetEventHandlers: TargetEventHandlers = {
-    /*   onMouseUp: (e) => {
-        setLastSelectionData()
-        setVisibleOnSelection({top: e.clientY, left: e.clientX})
-      },
-      onKeyUp: (e) => {
-        setLastSelectionData()
-        setVisibleOnSelection()
-      }, 
-      onFocus: (e) => {
-        setLastSelectionData()
-        setVisibleOnSelection()
-      },
-      onBlur: (e) => {
-        const focusedTarget = e.relatedTarget
-        if (!containsHtmlEditorModalAndFormModalNode(focusedTarget))
-          setHtmlEditorModalVisible(false)
-      },
-      onClick: (e) => {
-      }, */
-      onDoubleClick: (e) => {
-        const target = e.target
-        modifyOptionElement(target)
-      }
-    }
-
     return {
       htmlEditorModal: <>
                        {modal}
                        {colorsModal}
                        {formModal}
                        <Highlights rects={highlightsRects}/>
-                       </>,
-      targetEventHandlers
+                       </>
     }
 }
 
-export const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  /* onMouseDownHandler: (e: React.MouseEvent) => {e.preventDefault()} */}
-//export const formModalCommonProps = {positionType: "absolute", showLoadingBars: false, ...modalCommonProps} as const
+export const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  onMouseDownHandler: (e: React.MouseEvent) => {e.preventDefault()}}
 
 const Container = styled.div`
   display: flex;

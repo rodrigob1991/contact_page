@@ -1,65 +1,66 @@
 import { getParsedUsersMessageBody } from "chat-common/src/message/functions"
 import { UserType } from "chat-common/src/model/types"
 import { useState } from "react"
-import { PositionCSS, SizeCSS } from "../../../components/ResizableDraggableDiv"
 import { useMessages } from "../../chat/useMessages"
 import { LOCAL_USER_ID, LOCAL_USER_NAME, User, useUsers } from "../../chat/useUsers"
-import useView, { SetOutboundMessageData as SetOutboundMessageDataFromView } from "./useView"
 import useWebSocket, {
-    HandleConMessage,
-    HandleConnected,
-    HandleConnecting,
-    HandleDisMessage,
-    HandleDisconnected,
-    HandleMesMessage,
-    HandleServerAckMessage,
-    HandleUserAckMessage,
-    HandleUsersMessage
+    ConMessageHandler,
+    ConnectedHandler,
+    ConnectingHandler,
+    DisMessageHandler,
+    DisconnectedHandler,
+    MesMessageHandler,
+    ServerAckMessageHandler,
+    UserAckMessageHandler,
+    UsersMessageHandler
 } from "../../chat/useWebSocket"
+import useView, { SetOutboundMessageData as SetOutboundMessageDataFromView } from "./useView"
+import { PositionCSS } from "utils/src/css/position"
+import { SizeCSS } from "utils/src/css/size"
 
 export enum ConnectionState { CONNECTED, DISCONNECTED, CONNECTING}
-export type HandleUsersConnection = (names: string[]) => void
-export type HandleUsersDisconnection = (names: string[]) => void
-export type HandleUserMessage = (userName: string, messageBody: string) => void
+export type UsersConnectionHandler = (names: string[]) => void
+export type UsersDisconnectionHandler = (names: string[]) => void
+export type UserMessageHandler = (userName: string, messageBody: string) => void
 
 type Props<UT extends UserType> = {
     userType: UT
-    handleUsersConnection: HandleUsersConnection
-    handleUsersDisconnection: HandleUsersDisconnection
-    handleUserMessage: HandleUserMessage
+    usersConnectionHandler: UsersConnectionHandler
+    usersDisconnectionHandler: UsersDisconnectionHandler
+    userMessageHandler: UserMessageHandler
     connect: boolean
-    handleConnecting: HandleConnecting
-    handleConnected: HandleConnected
-    handleDisconnected: HandleDisconnected
-    viewProps: {position?: PositionCSS, size?: SizeCSS, allowHide: boolean, handleOnHide?: () => void}
+    connectingHandler: ConnectingHandler
+    connectedHandler: ConnectedHandler
+    disconnectedHandler: DisconnectedHandler
+    viewProps: {position?: PositionCSS, size?: SizeCSS, allowHide: boolean, onHideHandler?: () => void}
 }
 
 export default function useChat<UT extends UserType>({
                                                           userType,
-                                                          handleUsersConnection,
-                                                          handleUsersDisconnection,
-                                                          handleUserMessage,
+                                                          usersConnectionHandler,
+                                                          usersDisconnectionHandler,
+                                                          userMessageHandler,
                                                           connect,
-                                                          handleConnecting: nextHandleConnecting,
-                                                          handleConnected: nextHandleConnected,
-                                                          handleDisconnected: nextHandleDisconnected, 
+                                                          connectingHandler: nextConnectingHandler,
+                                                          connectedHandler: nextConnectedHandler,
+                                                          disconnectedHandler: nextDisconnectedHandler, 
                                                           viewProps
-                                                      }: Props<UT>): [ConnectionState, (visible: boolean) => void, JSX.Element] {
+                                                      }: Props<UT>) {
     const [connectionState, setConnectionState] = useState(ConnectionState.DISCONNECTED)
 
-    const handleConnecting: HandleConnecting = () => {
+    const connectingHandler: ConnectingHandler = () => {
         setConnectionState(ConnectionState.CONNECTING)
-        nextHandleConnecting()
+        nextConnectingHandler()
     }
-    const handleConnected: HandleConnected = () => {
+    const connectedHandler: ConnectedHandler = () => {
         setConnectionState(ConnectionState.CONNECTED)
         setConnectedUser(LOCAL_USER_ID, LOCAL_USER_NAME, Date.now())
-        nextHandleConnected()
+        nextConnectedHandler()
     }
-    const handleDisconnected: HandleDisconnected = () => {
+    const disconnectedHandler: DisconnectedHandler = () => {
         setConnectionState(ConnectionState.DISCONNECTED)
         setDisconnectedAllUsers()
-        nextHandleDisconnected()
+        nextDisconnectedHandler()
     }
 
     const [users, setUsers, getUserColor, setConnectedUser, setDisconnectedUser, setDisconnectedAllUsers, selectOrUnselectUser] = useUsers(userType)
@@ -67,29 +68,29 @@ export default function useChat<UT extends UserType>({
     const [messagesData, setInboundMessageData, setOutboundMessageData, setMessageAsAcknowledgedByServer, isMessageAckByServer, setMessageAsAcknowledgedByUser, useSendPendingMessages] = useMessages(userType)
     useSendPendingMessages((number, body, usersIds)=> { sendMesMessage(number, body, usersIds) })
 
-    const handleUsersMessage: HandleUsersMessage<UT> = (um) => {
+    const usersMessageHandler: UsersMessageHandler<UT> = (um) => {
         const users = getParsedUsersMessageBody(um.body)
         setUsers(...users)
     }
-    const handleConMessage: HandleConMessage<UT> = ({number: date, userId, body: userName}) => {
+    const conMessageHandler: ConMessageHandler<UT> = ({number: date, userId, body: userName}) => {
         //firstHandleConMessage(cm)
         setConnectedUser(userId, userName, date)
     }
-    const handleDisMessage: HandleDisMessage<UT> = ({number: date, userId, body: userName}) => {
+    const disMessageHandler: DisMessageHandler<UT> = ({number: date, userId, body: userName}) => {
         //firstHandleDisMessage(dm)
         setDisconnectedUser(userId, userName, date)
     }
-    const handleMesMessage: HandleMesMessage<UT> = ({number, body, userId}) => {
+    const mesMessageHandler: MesMessageHandler<UT> = ({number, body, userId}) => {
         // handle this rare situation when the user of the message is not found.
         // maybe include the user name in the mes message and set a new user.
         const userName = users.find(u => u.id === userId)?.name ?? "userNotFound"
-        handleUserMessage(userName, body)
+        userMessageHandler(userName, body)
         setInboundMessageData({flow: "in", fromUserId: userId, fromUserName: userName, number, body})
     }
-    const handleServerAckMessage: HandleServerAckMessage = (n) => {
+    const serverAckMessageHandler: ServerAckMessageHandler = (n) => {
         setMessageAsAcknowledgedByServer(n)
     }
-    const handleUserAckMessage: HandleUserAckMessage = (n, ui) => {
+    const userAckMessageHandler: UserAckMessageHandler = (n, ui) => {
         setMessageAsAcknowledgedByUser(n, ui)
     }
 
@@ -104,23 +105,23 @@ export default function useChat<UT extends UserType>({
 
     const sendMesMessage = useWebSocket({
         userType,
-        handleUsersMessage,
-        handleConMessage,
-        handleDisMessage,
-        handleMesMessage,
-        handleServerAckMessage,
-        handleUserAckMessage,
+        usersMessageHandler,
+        conMessageHandler,
+        disMessageHandler,
+        mesMessageHandler,
+        serverAckMessageHandler,
+        userAckMessageHandler,
         isMessageAckByServer,
         // addPendingUserAckMessage,
         connect,
-        handleConnecting,
-        handleConnected,
-        handleDisconnected
+        connectingHandler,
+        connectedHandler,
+        disconnectedHandler
     })
 
     const [isTargetUser] = userType === "host" ? getHostSpecifics() : getGuessSpecifics()
 
-    return [connectionState, ...useView({userType, connectionState, users, selectOrUnselectUser, getUserColor, messages: messagesData, setOutboundMessageData: setOutboundMessageDataFromView, ...viewProps})]
+    return {connectionState, ...useView({userType, connectionState, users, selectOrUnselectUser, getUserColor, messages: messagesData, setOutboundMessageData: setOutboundMessageDataFromView, ...viewProps})}
 }
 
 type IsTargetUser = (user: User) => boolean

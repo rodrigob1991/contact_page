@@ -1,35 +1,31 @@
 import styled from "@emotion/styled"
-import useChat, {
-    HandleUserMessage,
-    HandleUsersConnection, HandleUsersDisconnection
-} from "../../hooks/with_jsx/chat/useChat"
-import { HandleConnected, HandleConnecting, HandleDisconnected } from "../../hooks/chat/useWebSocket"
+import useChat, { UserMessageHandler, UsersConnectionHandler, UsersDisconnectionHandler } from "../../hooks/with_jsx/chat/useChat"
+import { ConnectingHandler, ConnectedHandler, DisconnectedHandler } from "../../hooks/chat/useWebSocket"
 
 type Props = {}
 
 export default function HostLiveChat({}: Props) {
-    const handleGuessesConnection: HandleUsersConnection = (guessesName) => {
+    const guessesConnectionHandler: UsersConnectionHandler = (guessesName) => {
     }
-    const handleGuessesDisconnection: HandleUsersDisconnection = (guessesName) => {
+    const guessesDisconnectionHandler: UsersDisconnectionHandler = (guessesName) => {
     }
-    const handleGuessMessage: HandleUserMessage = (guessName, messageBody) => {
-    }
-
-    const handleConnecting: HandleConnecting = () => {
-    }
-    const handleConnected: HandleConnected = () => {
-    }
-    const handleDisconnected: HandleDisconnected = () => {
+    const guessMessageHandler: UserMessageHandler = (guessName, messageBody) => {
     }
 
-    const [connectionState, setChatVisible, chatView] = useChat({userType: "host", handleConnecting, handleConnected, handleDisconnected, viewProps: {allowHide: false, }, handleUsersConnection: handleGuessesConnection,
-                                                                 handleUsersDisconnection: handleGuessesDisconnection, handleUserMessage: handleGuessMessage, connect: true})
+    const connectingHandler: ConnectingHandler = () => {
+    }
+    const connectedHandler: ConnectedHandler = () => {
+    }
+    const disconnectedHandler: DisconnectedHandler = () => {
+    }
 
-    return (
-        <Container>
-            {chatView}
-        </Container>
-    )
+    const {connectionState, setChatModalVisible, chatModal} = useChat({userType: "host", connectingHandler, connectedHandler, disconnectedHandler, viewProps: {allowHide: false, }, usersConnectionHandler: guessesConnectionHandler,
+                                                                 usersDisconnectionHandler: guessesDisconnectionHandler, userMessageHandler: guessMessageHandler, connect: true})
+
+    return <Container>
+           {chatModal}
+           </Container>
+    
 }
 const Container = styled.div`
   display: flex;

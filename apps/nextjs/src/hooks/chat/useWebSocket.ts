@@ -28,48 +28,48 @@ import {getMessage, getParts, getPrefix} from "chat-common/src/message/functions
 import {paths} from "chat-common/src/model/constants"
 import {IsMessageAckByServer} from "./useMessages"
 
-export type HandleUsersMessage<UT extends UserType> =  (cm: InboundUsersMessageParts<UT>) => void
-export type HandleConMessage<UT extends UserType> =  (cm: InboundConMessageParts<UT>) => void
-export type HandleDisMessage<UT extends UserType> =  (dm: InboundDisMessageParts<UT>) => void
-export type HandleMesMessage<UT extends UserType> =  (mm: InboundMesMessageParts<UT>) => void
-export type HandleServerAckMessage =  (n: number) => void
-export type HandleUserAckMessage = (n: number, ui: number) => void
+export type UsersMessageHandler<UT extends UserType> =  (cm: InboundUsersMessageParts<UT>) => void
+export type ConMessageHandler<UT extends UserType> =  (cm: InboundConMessageParts<UT>) => void
+export type DisMessageHandler<UT extends UserType> =  (dm: InboundDisMessageParts<UT>) => void
+export type MesMessageHandler<UT extends UserType> =  (mm: InboundMesMessageParts<UT>) => void
+export type ServerAckMessageHandler =  (n: number) => void
+export type UserAckMessageHandler = (n: number, ui: number) => void
 
 export type SendMesMessage = (number: number, body: string, usersIds: number[]) => void
-export type HandleConnecting = () => void
-export type HandleConnected = () => void
-export type HandleDisconnected = () => void
+export type ConnectingHandler = () => void
+export type ConnectedHandler = () => void
+export type DisconnectedHandler = () => void
 
 export type Props<UT extends UserType> = {
     userType: UT
-    handleUsersMessage: HandleUsersMessage<UT>
-    handleConMessage: HandleConMessage<UT>
-    handleDisMessage: HandleDisMessage<UT>
-    handleMesMessage: HandleMesMessage<UT>
-    handleServerAckMessage: HandleServerAckMessage
-    handleUserAckMessage: HandleUserAckMessage
+    usersMessageHandler: UsersMessageHandler<UT>
+    conMessageHandler: ConMessageHandler<UT>
+    disMessageHandler: DisMessageHandler<UT>
+    mesMessageHandler: MesMessageHandler<UT>
+    serverAckMessageHandler: ServerAckMessageHandler
+    userAckMessageHandler: UserAckMessageHandler
     isMessageAckByServer: IsMessageAckByServer
     // addPendingUserAckMessage: AddPendingUserAckMessage
     connect: boolean
-    handleConnecting: HandleConnecting
-    handleConnected: HandleConnected
-    handleDisconnected: HandleDisconnected
+    connectingHandler: ConnectingHandler
+    connectedHandler: ConnectedHandler
+    disconnectedHandler: DisconnectedHandler
 }
 
 export default function useWebSocket<UT extends UserType>({
                                                               userType,
-                                                              handleUsersMessage,
-                                                              handleConMessage,
-                                                              handleDisMessage,
-                                                              handleMesMessage,
-                                                              handleServerAckMessage,
-                                                              handleUserAckMessage,
+                                                              usersMessageHandler,
+                                                              conMessageHandler,
+                                                              disMessageHandler,
+                                                              mesMessageHandler,
+                                                              serverAckMessageHandler,
+                                                              userAckMessageHandler,
                                                               isMessageAckByServer,
                                                               // addPendingUserAckMessage,
                                                               connect,
-                                                              handleConnecting, 
-                                                              handleConnected, 
-                                                              handleDisconnected
+                                                              connectingHandler, 
+                                                              connectedHandler, 
+                                                              disconnectedHandler
                                                           }: Props<UT>) {
     const [path, getOutboundMesMessage, getUsersMessageParts, getConMessageParts, getDisMessageParts, getMesMessageParts, getServerAckMessageParts, getUserAckMessageParts] = (userType === "host" ? getHostSpecifics() : getGuessSpecifics()) as GetUserSpecificsReturn<UT>
 
@@ -81,12 +81,12 @@ export default function useWebSocket<UT extends UserType>({
 
     useEffect(() => {
         if (connect) {
-            handleConnecting()
+            connectingHandler()
             initWS()
         }
         return () => {
             closeWS()
-            handleDisconnected()
+            disconnectedHandler()
         }
     }
     , [connect])
@@ -105,19 +105,19 @@ export default function useWebSocket<UT extends UserType>({
         return ws && ws.readyState === ws.OPEN
     }
 
-    function handleOnOpen(this: WebSocket, e: Event) {
-        handleConnected()
+    function onOpenHandler(this: WebSocket, e: Event) {
+        connectedHandler()
     }
-    function handleOnError(this: WebSocket, e: Event) {
+    function onErrorHandler(this: WebSocket, e: Event) {
     }
-    function handleOnClose(this: WebSocket, e: CloseEvent) {
+    function onCloseHandler(this: WebSocket, e: CloseEvent) {
         if (e.code !== userCloseCode) {
-          handleConnecting()
+          connectingHandler()
           setTimeoutIdForReconnect("close", window.setTimeout(() => {
                    initWS()
         }, 1000))
         } else {
-          handleDisconnected()
+          disconnectedHandler()
         }
     }
     const timeoutIdForReconnect = useRef({init: 0, close: 0})
@@ -126,7 +126,7 @@ export default function useWebSocket<UT extends UserType>({
         timeoutIdForReconnect.current[on] = id
     }
 
-    function handleOnMessage(this: WebSocket, {data: inboundMessage}: MessageEvent<InboundMessageTemplate>) {
+    function onMessageHandler(this: WebSocket, {data: inboundMessage}: MessageEvent<InboundMessageTemplate>) {
         console.log("inbound message: " + inboundMessage)
         const ackMessage = (outboundAckMessage: OutboundAckMessage<UT>["template"]) => {
             this.send(outboundAckMessage)
@@ -137,7 +137,7 @@ export default function useWebSocket<UT extends UserType>({
             case "usrs": {
                 const [parts, outboundAckMessage] = getUsersMessageParts(inboundMessage as InboundUsersMessage<UT>["template"])
                 if (wasMessageNotReceived(parts)) {
-                    handleUsersMessage(parts)
+                    usersMessageHandler(parts)
                     setMessageAsReceived(parts)
                 }
                 ackMessage(outboundAckMessage)
@@ -146,7 +146,7 @@ export default function useWebSocket<UT extends UserType>({
             case "con":
                 const [conParts, outboundConAckMessage] = getConMessageParts(inboundMessage as InboundConMessage<UT>["template"])
                 if (wasMessageNotReceived(conParts)) {
-                    handleConMessage(conParts)
+                    conMessageHandler(conParts)
                     setMessageAsReceived(conParts)
                 }
                 ackMessage(outboundConAckMessage)
@@ -154,7 +154,7 @@ export default function useWebSocket<UT extends UserType>({
             case "dis":
                 const [disParts, outboundDisAckMessage] = getDisMessageParts(inboundMessage as InboundDisMessage<UT>["template"])
                 if (wasMessageNotReceived(disParts)) {
-                    handleDisMessage(disParts)
+                    disMessageHandler(disParts)
                     setMessageAsReceived(disParts)
                 }
                 ackMessage(outboundDisAckMessage)
@@ -162,7 +162,7 @@ export default function useWebSocket<UT extends UserType>({
             case "mes":
                 const [mesParts, outboundMesAckMessage] = getMesMessageParts(inboundMessage as InboundMesMessage<UT>["template"])
                 if (wasMessageNotReceived(mesParts)) {
-                    handleMesMessage(mesParts)
+                    mesMessageHandler(mesParts)
                     setMessageAsReceived(mesParts)
                 }
                 ackMessage(outboundMesAckMessage)
@@ -170,7 +170,7 @@ export default function useWebSocket<UT extends UserType>({
             case "uack":
                 const [uackParts, outboundUAckAckMessage] = getUserAckMessageParts(inboundMessage as InboundUserAckMessage<UT>["template"])
                 if (wasMessageNotReceived(uackParts)) {
-                    handleUserAckMessage(uackParts.number, uackParts.userId)
+                    userAckMessageHandler(uackParts.number, uackParts.userId)
                     setMessageAsReceived(uackParts)
                 }
                 ackMessage(outboundUAckAckMessage)
@@ -178,7 +178,7 @@ export default function useWebSocket<UT extends UserType>({
             case "sack":
                 const sackParts = getServerAckMessageParts(inboundMessage as InboundServerAckMessage<UT>["template"])
                 if (wasMessageNotReceived(sackParts)) {
-                    handleServerAckMessage(sackParts.number)
+                    serverAckMessageHandler(sackParts.number)
                     setMessageAsReceived(sackParts)
                 }
                 break
@@ -191,10 +191,10 @@ export default function useWebSocket<UT extends UserType>({
         const endpoint = process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT
         if (endpoint) {
             const ws = new WebSocket(endpoint + path)
-            ws.onopen = handleOnOpen
-            ws.onclose = handleOnClose
-            ws.onerror = handleOnError
-            ws.onmessage = handleOnMessage
+            ws.onopen = onOpenHandler
+            ws.onclose = onCloseHandler
+            ws.onerror = onErrorHandler
+            ws.onmessage = onMessageHandler
             setWS(ws)
 
           /*  setTimeoutIdForReconnect("init", window.setTimeout(() => {
