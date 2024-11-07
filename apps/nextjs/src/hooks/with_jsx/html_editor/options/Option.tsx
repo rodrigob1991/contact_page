@@ -62,21 +62,21 @@ export default function Option<ON extends OptionNode, ONA extends Partial<ON> | 
           selectionTargets = ranges
           insertNodes = () => {ranges.forEach(range => {rangeSelectionHandler({withText, getNewOptionNode: getNewOptionNodeWrapper, insertInNewLine, range})})}
         } else {
-          let anchorNode, anchorOffset: number
+          let anchor, anchorOffset: number
           if (lastSelectionData.type === "collapsed") {
             const {range} = lastSelectionData
             selectionTargets = [range]
             const {startContainer, startOffset} = range
-            anchorNode = startContainer
+            anchor = startContainer
             anchorOffset = startOffset
           } else {
             const {element} = lastSelectionData
             selectionTargets = [element]
-            anchorNode = element
+            anchor = element
             anchorOffset = 0
           }
           const newNode = withText ? getNewOptionNodeWrapper(collapsedSelectionText) : (getNewOptionNodeWrapper as GetNewOptionNode<false, ON>)()
-          insertNodes = () => {collapsedSelectionHandler({newNode, insertInNewLine, anchorNode, anchorOffset})}
+          insertNodes = () => {collapsedSelectionHandler({newNode, insertInNewLine, anchor, anchorOffset})}
         }
 
         const afterUpdateDOM = () => {

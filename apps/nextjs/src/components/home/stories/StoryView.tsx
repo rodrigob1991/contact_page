@@ -95,6 +95,7 @@ const Container = styled.li`
   width: fit-content;
   gap: 10px;
   list-style-type: none;
+  padding: 50px;
   padding-bottom: 15px;
   border-color: ${secondColor};
   border-width: medium;

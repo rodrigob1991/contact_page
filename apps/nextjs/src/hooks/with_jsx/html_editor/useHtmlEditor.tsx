@@ -79,6 +79,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
     const lastSelectionDataRef = useRef<SelectionData>()
     const getLastSelectionData: GetLastSelectionData = () => lastSelectionDataRef.current
     const setLastSelectionData: SetLastSelectionData = (lastSelectionData) => {
+      lastSelectionData && lastSelectionData.type === "range" && console.log(lastSelectionData.ranges[0].cloneContents().childNodes)
       lastSelectionDataRef.current = lastSelectionData
       let element
       if (lastSelectionData) {
@@ -279,7 +280,7 @@ export default function useHtmlEditor<PT extends HtmlEditorPositionType, ONS ext
     }
 }
 
-export const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false,  onMouseDownHandler: (e: React.MouseEvent) => {e.preventDefault()}}
+export const modalCommonProps = {draggable: false, resizable: false, visibleHideButton: false, visibleCenterPositionButton: false, onMouseDownHandler: (e: React.MouseEvent) => {e.preventDefault()}}
 
 const Container = styled.div`
   display: flex;

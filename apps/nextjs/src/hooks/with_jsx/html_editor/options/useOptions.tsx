@@ -196,7 +196,7 @@ export default function useOptions<ONS extends OptionNode[], ONAS extends MapOpt
       const spanOptionProps = {
         type: "span",
         className: classesNames,
-        getNewOptionNode: (t: string) => createSpan({innerHTML: t, className: classesNames}),
+        getNewOptionNode: (t: string) => createSpan({innerHTML: t, className: classesNames, style: {position: "relative", top: "50px"}}),
         withText: true,
         insertInNewLine: false,
         atAfterUpdateDOMEnd,

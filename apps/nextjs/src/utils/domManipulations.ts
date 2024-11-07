@@ -20,68 +20,21 @@ export const positionCaretOn = (node: Node) => {
 
 export const createText = (text: string) => document.createTextNode(text)
 
-// this type contains the methods that must not be set. I did not found a way to get rid of methods types.
-// compiler cannot differencing between methods and function field
+type CreateElementProps<T extends keyof HTMLElementTagNameMap> = Partial<ExtractWritableProps<HTMLElementTagNameMap[T]>> & {style?: Partial<CSSStyleDeclaration>}
+const createElement = <T extends keyof HTMLElementTagNameMap>(tag: T, props?: CreateElementProps<T>) => {
+    const element = document.createElement(tag)
+    if (props) {
+        const {style, ...writableProps} = props
+        Object.assign(element, writableProps)
+        style && Object.assign(element.style, style)
+    }
+    return element
+}
 
-type StylesProps = Partial<ExtractWritableProps<CSSStyleDeclaration>>
-type DivProps = Partial<ExtractWritableProps<HTMLDivElement>>
-type CreateDivArgs = {props?: DivProps, styles?: StylesProps}
-export const createDiv = (args?: CreateDivArgs) => {
-    const div = document.createElement("div")
-    if (args) {
-        if ("props" in args)
-            Object.assign(div, args.props)
-        if ("styles" in args)
-            Object.assign(div, args.styles)
-    }
-    /* if (props) {
-        Object.assign(div, {props})
-         for (const [k, v] of Object.entries(props)) {
-            // @ts-ignore
-            d[k] = v
-        } 
-    }
-    if (styles) {
-        for (const [k, v] of Object.entries(styles)) {
-            // @ts-ignore
-            d.style[k] = v
-        } 
-    } */
-    return div
-}
-type SpanProps = Partial<ExtractWritableProps<HTMLSpanElement>>
-export const createSpan = (props?: SpanProps) => {
-    const s = document.createElement("span")
-    if (props) {
-        for (const [k, v] of Object.entries(props)) {
-            // @ts-ignore
-            s[k] = v
-        }
-    }
-    return s
-}
-type AnchorProps = Partial<ExtractWritableProps<HTMLAnchorElement>>
-export const createAnchor = (props?: AnchorProps) => {
-    const a = document.createElement("a")
-    if (props) {
-        for (const [k, v] of Object.entries(props)) {
-            // @ts-ignore
-            a[k] = v
-        }
-    }
-    return a
-}
-type ImageProps = Partial<ExtractWritableProps<HTMLImageElement>>
-export const createImage = (props?: ImageProps) => {
-    const img = document.createElement("img")
-    if (props) {
-        for (const [k, v] of Object.entries(props)) {
-            // @ts-ignore
-            img[k] = v
-        }
-    }
-    return img
-}
+export const createDiv = (props?: CreateElementProps<"div">) => createElement("div", props)
+export const createSpan = (props?: CreateElementProps<"span">) => createElement("span", props)
+export const createAnchor = (props?: CreateElementProps<"a">) => createElement("a", props)
+export const createImage = (props?: CreateElementProps<"img">) => createElement("img", props)
 
 export const removeNodesFromOneSide = (fromNode: ChildNode, side: "right" | "left", includeFromNode: boolean, removingTill: TillParent) => {
     let parent = fromNode.parentNode

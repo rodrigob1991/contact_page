@@ -318,12 +318,10 @@ export const ViewThumbnail = ({visible, ...rest}: ThumbnailViewProps) => {
          </ViewThumbnailContainer>
 }
 const ViewThumbnailContainer = styled.div<{visible: boolean}>`
-  ${({visible}) => css`
-  display: ${visible ? "block" : "none"};
-  `}
+  display: ${({visible}) => visible ? "block" : "none"};
+  position: absolute;
   top: ${layout.chatViewThumbnailTop}px;
   left: ${layout.chatViewThumbnailLeft}px;
-  position: absolute;
   background-color: ${secondColor};
   width: ${layout.chatViewThumbnailWidth}px;
   height: ${layout.chatViewThumbnailHeight}px;

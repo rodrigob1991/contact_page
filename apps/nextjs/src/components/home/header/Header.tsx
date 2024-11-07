@@ -25,6 +25,7 @@ export default function Header({}: Props) {
     )
 }
 const Container = styled.div`
+  position: relative;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -33,9 +34,10 @@ const Container = styled.div`
   width: 100%;
   min-height: 90px; 
   max-height: 90px;
+  border-bottom-style: solid;
   border-color: ${mainColor};
   padding: 20px;
-  background-image: linear-gradient( ${mainColor}, ${secondColor});
+  background-color: ${secondColor};
   z-index: 7;
   @media (max-width: 768px) {
     height: 60px;

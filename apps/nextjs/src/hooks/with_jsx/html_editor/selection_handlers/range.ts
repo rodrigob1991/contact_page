@@ -10,6 +10,25 @@ type Args<WT extends boolean, ON extends OptionNode> = {
 }
 
 export default function rangeSelectionHandler<WT extends boolean, ON extends OptionNode>({withText, getNewOptionNode, insertInNewLine, range}: Args<WT, ON>) {
+    const fragment = range.extractContents()
+    console.log(range.commonAncestorContainer)
+
+    const newOptions = []
+    let texts = ""
+    for (const node of fragment.childNodes) {
+        /* if (withText) {
+            texts += getTexts(node)
+        }
+        if (!insertInNewLine && isDiv(node)) {
+        } */
+        if (isDiv(node)) {
+            node.replaceChildren(getNewOptionNode(getTexts(node)))
+        }
+    }
+    range.insertNode(fragment)
+}
+
+/* export default function rangeSelectionHandler<WT extends boolean, ON extends OptionNode>({withText, getNewOptionNode, insertInNewLine, range}: Args<WT, ON>) {
     const copySelectedFragment = range.cloneContents()
     console.log(copySelectedFragment.childNodes)
 
@@ -142,4 +161,4 @@ export default function rangeSelectionHandler<WT extends boolean, ON extends Opt
     range.deleteContents()
     console.table(copySelectedFragment)
     range.insertNode(copySelectedFragment)
-}
+} */

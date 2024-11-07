@@ -5,18 +5,18 @@ type Args = {
     newNode: OptionNode
     insertInNewLine: boolean
     anchor: ChildNode
-    anchorOffSet: number
+    anchorOffset: number
 }
 
-export default function collapsedSelectionHandler({newNode, insertInNewLine, anchor, anchorOffSet}: Args) {
+export default function collapsedSelectionHandler({newNode, insertInNewLine, anchor, anchorOffset}: Args) {
     const anchorParent = anchor.parentElement
     if (anchorParent) {
         const anchorText = anchor.nodeValue ?? ""
         const anchorLength = anchorText.length
 
-        const isInside = anchorOffSet !== anchorLength
-        const isStart = anchorOffSet === 0
-        const isEnd = anchorOffSet === anchorLength
+        const isInside = anchorOffset !== anchorLength
+        const isStart = anchorOffset === 0
+        const isEnd = anchorOffset === anchorLength
         const isAnchorText = isText(anchor)
         const isParentDiv = isDiv(anchorParent)
         const isParentHtmlElement = isHtmlElement(anchorParent)
@@ -56,8 +56,8 @@ export default function collapsedSelectionHandler({newNode, insertInNewLine, anc
                 anchor.before(newNode)
                 break
             case (isInsideTextInDiv):
-                const leftText = createText(anchorText.substring(0, anchorOffSet))
-                const rightText = createText(anchorText.substring(anchorOffSet))
+                const leftText = createText(anchorText.substring(0, anchorOffset))
+                const rightText = createText(anchorText.substring(anchorOffset))
                 anchor.after(leftText, newNode, rightText)
                 anchor.remove()
                 break
@@ -69,9 +69,9 @@ export default function collapsedSelectionHandler({newNode, insertInNewLine, anc
                 break
             case (isInsideTextInHtmlElement):
                 const leftHtmlElement = anchorParent.cloneNode()
-                leftHtmlElement.appendChild(createText(anchorText.substring(0, anchorOffSet)))
+                leftHtmlElement.appendChild(createText(anchorText.substring(0, anchorOffset)))
                 const rightHtmlElement = anchorParent.cloneNode()
-                rightHtmlElement.appendChild(createText(anchorText.substring(anchorOffSet)))
+                rightHtmlElement.appendChild(createText(anchorText.substring(anchorOffset)))
                 anchorParent.after(leftHtmlElement, newNode, rightHtmlElement)
                 anchorParent.remove()
                 break

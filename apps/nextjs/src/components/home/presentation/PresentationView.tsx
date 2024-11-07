@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { Available } from "utils/src/types"
 import { presentationLayout as layout, maxWidthSmallestLayout, minWidthFullLayout, skillsChartLayout } from "../../../layouts"
 import { Observe } from "../../../pages/user/edit_home"
-import { mainColor } from "../../../theme"
+import { mainColor, secondColor, thirdColor } from "../../../theme"
 import { Presentation, PresentationHTMLElementIdsKey, ViewMode } from "../../../types/home"
 import { ImageViewSelector, ProcessSelectedImage } from "../../FormComponents"
 import SkillsChart, { CreateSkill, RemoveSkill } from "./SkillsChart"
@@ -141,6 +141,8 @@ const Container = styled.div`
   justify-content: center;
   width: 100%;
   border-bottom: 3px solid ${mainColor};
+  background-color: ${mainColor};
+  padding: 50px;
   @media (max-width: ${minWidthFullLayout}px) {
   }
     `
@@ -150,8 +152,10 @@ const InnerContainer = styled.div<{flexDirection: "row" | "column"}>`
     width: fit-content;
     gap: ${layout.gap}px;
     padding: ${layout.innerContainerPadding}px;
-    border-width: 2px;
+    border-style: solid;
     border-color: ${mainColor};
+    border-radius: 20px;
+    background-color: ${secondColor};
     @media (max-width: ${minWidthFullLayout}px) {
     }
       `
