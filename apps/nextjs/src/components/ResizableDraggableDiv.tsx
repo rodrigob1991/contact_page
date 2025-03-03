@@ -1,9 +1,10 @@
 import { Interpolation, SerializedStyles, Theme, css } from "@emotion/react"
-import { FocusEventHandler, MouseEventHandler, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
-import { PartialPositionCSS } from "utils/src/css/position"
-import { PartialSizeCSS } from "utils/src/css/size"
-import { exist } from "utils/src/objects"
+import { CSSProperties, Dispatch, FocusEventHandler, MouseEventHandler, SetStateAction, forwardRef, useImperativeHandle, useRef, useState } from "react"
+import { CSSSize } from "utils/src/css/size"
+import { CSSTranslate } from "utils/src/css/transform"
 import { getNumbers } from "utils/src/strings"
+import { UniteReturnType } from "utils/src/types"
+import { useGetDiffRef } from "../hooks/references/useGetDiffRef"
 import { GetRect } from "../types/dom"
 
 // attach this properties in mousedown event to prevent resize and/or drag 
@@ -23,16 +24,20 @@ export const dragPrevented = (e: MouseEvent | React.MouseEvent) => {
     return preventDragMouseDownEventPropertyKey in nativeEvent && nativeEvent[preventDragMouseDownEventPropertyKey] as boolean
 }
 
-export type GetStyle = (resizing: boolean, dragging: boolean) => Interpolation<Theme>
-export type SetSizeCSS = (size: PartialSizeCSS) => void
-export type SetPositionCSS = (position: PartialPositionCSS) => void
+export type SetCSSTranslate = Dispatch<SetStateAction<CSSTranslate | undefined>>
+export type SetCSSSize = Dispatch<SetStateAction<CSSSize | undefined>>
+/*export type UseCSSTranslateStateReturn = [PartialCSSTranslate, SetCSSTranslateState]
+export type UseCSSSizeStateReturn = [PartialCSSSize, SetCSSSizeState] */
+export type GetStyle = (resizing: boolean, dragging: boolean) => {inline?: CSSProperties, className?: string, interpolation?: Interpolation<Theme>}
 export type DoesContainsNode = (node: Node | undefined | null) => boolean
 export type ContainerDivApi = {
     observeIntersection: (observer: IntersectionObserver) => void
-    getComputedStyle: () => CSSStyleDeclaration
-    getRect: GetRect
+    getComputedStyle: () => CSSStyleDeclaration | undefined
+    getRect: UniteReturnType<GetRect, undefined>
     doesContainsNode: DoesContainsNode
     focus: () => void
+    setCssTranslate: SetCSSTranslate
+    setCssSize: SetCSSSize
 }
 export type EventsHandlers = {
     onMouseDownHandler?: MouseEventHandler<HTMLDivElement>
@@ -47,34 +52,39 @@ export type EventsHandlers = {
 type Props = {
     resizable: boolean
     draggable: boolean
+    /* useCSSTranslateStateReturn?: UseCSSTranslateStateReturn
+    useCSSSizeStateReturn?: UseCSSSizeStateReturn */
     getContainerStyle?: GetStyle
     getResizableDivStyle?: GetStyle
     getDraggableDivStyle?: GetStyle
     children?: JSX.Element | JSX.Element[]
-    size?: {value: PartialSizeCSS, set: SetSizeCSS}
-    position?: {value: PartialPositionCSS, set: SetPositionCSS}
 } & EventsHandlers
 
-export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, onStartResizingHandler, onEndResizingHandler, onStartDraggingHandler, onEndDraggingHandler, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, children: childrenProp, size: sizeProp, position: positionProp, onMouseDownHandler, onFocusHandler, onBlurHandler}, containerDivApiRef) => {
+export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resizable, draggable, getContainerStyle, getResizableDivStyle, getDraggableDivStyle, onStartResizingHandler, onEndResizingHandler, onStartDraggingHandler, onEndDraggingHandler, children: childrenProp, onMouseDownHandler, onFocusHandler, onBlurHandler}, containerDivApiRef) => {
     const containerRef = useRef<HTMLDivElement>(null)
-    const getContainer = () => containerRef.current as HTMLDivElement
+    const getContainer = () => containerRef.current
     useImperativeHandle(containerDivApiRef, () => 
         ({
           observeIntersection(observer) {
-            observer.observe(getContainer())
+            const container = getContainer()
+            container && observer.observe(container)
           },
           getComputedStyle() {
-            return window.getComputedStyle(getContainer())
+            const container = getContainer()
+            return container ? window.getComputedStyle(container) : undefined
           },
           getRect() {
-            return getContainer().getBoundingClientRect()
+            return getContainer()?.getBoundingClientRect()
           },
           doesContainsNode(node) {
-           return  exist(node) && getContainer().contains(node)
+           const container = getContainer()
+           return  !!(container && node && container.contains(node))
           },
           focus() {
-           getContainer().focus()
-          }
+           getContainer()?.focus()
+          }, 
+          setCssTranslate, 
+          setCssSize
         })
     , [])
     
@@ -87,123 +97,189 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
         return {rectHeight: height, rectWidth: width, rectTop: top , rectLeft: left}
     }
 
-    /* const [localSize, setLocalSize] = useState({})
-    let size: PartialSizeCSS
-    let setSize : SetSizeCSS
-    if(sizeProp){
-        size = sizeProp.value
-        setSize = sizeProp.set
-    }else{
-        size = localSize
-        setSize = setLocalSize
-    }
-
-    const [localPosition, setLocalPosition] = useState({})
-    let position: PartialPositionCSS
-    let setPosition: SetPositionCSS
-    if(positionProp) {
-        position = positionProp.value
-        setPosition = positionProp.set
-    }else {
-        position = localPosition
-        setPosition = setLocalPosition
-    } */
-
-    const [translate, setTranslate] = useState({x: 0, y: 0})
-    const [scale, setScale] = useState({x: 1, y: 1})
-
+    const [cssTranslate, setCssTranslate] = useState<CSSTranslate>(newCssTranslate())
+    const [cssSize, setCssSize] =  useState<CSSSize>(newCssSize())
 
     const [resizing, setResizing] = useState(false)
     const [dragging, setDragging] = useState(false)
 
     let children = <>{childrenProp}</>
 
-    useEffect(() => {
-        if (draggable) {
-            const handleMouseMove = (e: MouseEvent) => {
-                e.preventDefault()
-                /* const {height, width, top, left} = getContainerComputedNumbers()
-                setPosition({top: `${top + e.movementY}px`, left: `${left + e.movementX}px`}) */
-                setTranslate(({x,y}) => ({x: x + e.movementX, y: y + e.movementY}))
-            }
-            const handleMouseUp = (e: MouseEvent) => {
-                setDragging(false)
-                if (onEndDraggingHandler) onEndDraggingHandler()
-            }
-            const handleSelectStart = (e: Event) => {
-                e.preventDefault()
-            }
+    // const getDiff = useGetDiffRef({x: 0, y: 0})
+    // const getMouseMovement = (e: MouseEvent) => getDiff({x: e.screenX, y: e.screenY})
+    const getMouseMovement = useGetDiffRef({screenX: 0, screenY: 0})
+
+    // useEffect(() => {
+    //     if (draggable && dragging) {
+    //         if (onStartDraggingHandler) onStartDraggingHandler()
+
+    //         const mouseMoveHandler = (e: MouseEvent) => {
+    //             e.preventDefault()
+    //             /* const {height, width, top, left} = getContainerComputedNumbers()
+    //             setPosition({top: `${top + e.movementY}px`, left: `${left + e.movementX}px`}) */
+    //             //setCssTranslate((t={x: {value: 0, unit: "px"}, y: {value: 0, unit: "px"}}) => ({x: {value: t.x.value}}))
+    //             setCssTranslate((t) => t.getNewSum(getMouseMovement(e)))
+    //         }
+    //         const mouseUpHandler = (e: MouseEvent) => {
+    //             setDragging(false)
+    //             if (onEndDraggingHandler) onEndDraggingHandler()
+    //         }
+    //         const selectStartHandler = (e: Event) => {
+    //             e.preventDefault()
+    //         }
                 
-            if (dragging) {
-                window.addEventListener("mousemove", handleMouseMove)
-                window.addEventListener("mouseup", handleMouseUp)
-                window.addEventListener("selectstart", handleSelectStart)
-            }
-            return () => {
-                window.removeEventListener("mousemove", handleMouseMove)
-                window.removeEventListener("mouseup", handleMouseUp)
-                window.removeEventListener("selectstart", handleSelectStart)
-            }
-        }
-    },[dragging])
+    //         window.addEventListener("mousemove", mouseMoveHandler)
+    //         window.addEventListener("mouseup", mouseUpHandler)
+    //         window.addEventListener("selectstart", selectStartHandler)
+
+    //         return () => {
+    //             window.removeEventListener("mousemove", mouseMoveHandler)
+    //             window.removeEventListener("mouseup", mouseUpHandler)
+    //             window.removeEventListener("selectstart", selectStartHandler)
+    //         }
+    //     }
+    // }, [draggable, dragging])
+
+    // if (draggable) {
+    //     const onMouseDownDraggableDivHandler: MouseEventHandler<HTMLDivElement>  = (e) => {
+    //         if (e.target === e.currentTarget || !dragPrevented(e)) {
+    //             setDragging(true)
+    //             getMouseMovement(e)
+    //             setPreventFlag(e, true, false)
+    //         }
+    //     }
+    //     const {inline, className, interpolation} = getDraggableDivStyle ? getDraggableDivStyle(resizing, dragging) : {inline: undefined, className: undefined, interpolation: undefined}
+    //     children = <div style={inline} className={className} css={[getCursorStyle(resizing, dragging, draggableDivCursorStyle), interpolation]} onMouseDown={onMouseDownDraggableDivHandler}>{children}</div>
+    // }
 
     if (draggable) {
-        const handleOnMouseDownDraggableDiv: MouseEventHandler<HTMLDivElement>  = (e) => {
-            if (e.target == e.currentTarget || !dragPrevented(e)) {
-                if (onStartDraggingHandler) onStartDraggingHandler()
-                setDragging(true)
-                setPreventFlag(e, true, false)
-            }
+      const onMouseDownDraggableDivHandler: MouseEventHandler<HTMLDivElement> = (e) => {
+        if (e.target === e.currentTarget || !dragPrevented(e)) {
+          setDragging(true)
+          getMouseMovement(e)
+          setPreventFlag(e, true, false)
+
+          const mouseMoveHandler = (e: MouseEvent) => {
+            e.preventDefault()
+            const {screenX, screenY} = getMouseMovement(e)
+            setCssTranslate((t) => t.getNewSum({x: screenX, y: screenY}))
+          }
+          const selectStartHandler = (e: Event) => {
+            e.preventDefault()
+          }
+          const mouseUpHandler = (e: MouseEvent) => {
+            setDragging(false)
+            window.removeEventListener("mousemove", mouseMoveHandler)
+            window.removeEventListener("mouseup", mouseUpHandler)
+            window.removeEventListener("selectstart", selectStartHandler)
+            if (onEndDraggingHandler) onEndDraggingHandler()
+          }
+
+          window.addEventListener("mousemove", mouseMoveHandler)
+          window.addEventListener("selectstart", selectStartHandler)
+          window.addEventListener("mouseup", mouseUpHandler)
+
+          if (onStartDraggingHandler) onStartDraggingHandler()
         }
-        children = <div css={[getCursorStyle(resizing, dragging, draggableDivCursorStyle), getDraggableDivStyle ? getDraggableDivStyle(resizing, dragging) : undefined]} onMouseDown={handleOnMouseDownDraggableDiv}>{children}</div>
+      }
+      const {inline, className, interpolation} = getDraggableDivStyle ? getDraggableDivStyle(resizing, dragging) : {inline: undefined, className: undefined, interpolation: undefined}
+
+      children = <div style={inline} className={className} css={[getCursorStyle(resizing, dragging, draggableDivCursorStyle), interpolation]} onMouseDown={onMouseDownDraggableDivHandler}>
+                 {children}
+                 </div>
     }
 
-    useEffect(() => {
-        if (resizable) {
-            const handleMouseMove = (e: MouseEvent) => {
-                e.preventDefault()
-                /* const {height, width, top, left} = getContainerComputedNumbers()
-                const {rectHeight, rectWidth, rectTop, rectLeft} = getContainerRectNumbers()
-                setSize({height: `${height + e.movementY*2*(e.clientY >  rectTop + (rectHeight/2) ? 1 : -1)}px`, width: `${width + e.movementX*2*(e.clientX >  rectLeft + (rectWidth/2)  ? 1 : -1)}px`}) */
-                setScale(({x, y}) => ({x: x + e.movementX/100, y: y + e.movementY/100}))
-            }
-            const handleMouseUp = (e: MouseEvent) => {
-                setResizing(false)
-                if (onEndResizingHandler) onEndResizingHandler()
-            }
-            const handleSelectStart = (e: Event) => {
-                e.preventDefault()
-            }
+    // useEffect(() => {
+    //     if (resizable && resizing) {
+    //         if (onStartResizingHandler) onStartResizingHandler()
 
-            if (resizing) {
-                window.addEventListener("mousemove", handleMouseMove)
-                window.addEventListener("mouseup", handleMouseUp)
-                window.addEventListener("selectstart", handleSelectStart)
-            }
-            return () => {
-                window.removeEventListener("mousemove", handleMouseMove)
-                window.removeEventListener("mouseup", handleMouseUp)
-                window.removeEventListener("", handleSelectStart)
-            }
-        }
-    }, [resizing])
+    //         const mouseMoveHandler = (e: MouseEvent) => {
+    //             e.preventDefault()
+    //             //const {height, width, top, left} = getContainerComputedNumbers()
+    //             const {rectHeight, rectWidth, rectTop, rectLeft} = getContainerRectNumbers()
+    //             //setSize({height: `${height + e.movementY*2*(e.clientY >  rectTop + (rectHeight/2) ? 1 : -1)}px`, width: `${width + e.movementX*2*(e.clientX >  rectLeft + (rectWidth/2)  ? 1 : -1)}px`}) 
+    //             setCssSize(s => s.getNewSum(getMouseMovement(e)))
+    //         }
+    //         const mouseUpHandler = (e: MouseEvent) => {
+    //             setResizing(false)
+    //             if (onEndResizingHandler) onEndResizingHandler()
+    //         }
+    //         const selectStartHandler  = (e: Event) => {
+    //             e.preventDefault()
+    //         }
+
+    //         window.addEventListener("mousemove", mouseMoveHandler)
+    //         window.addEventListener("mouseup", mouseUpHandler)
+    //         window.addEventListener("selectstart", selectStartHandler)
+
+    //         return () => {
+    //             window.removeEventListener("mousemove", mouseMoveHandler)
+    //             window.removeEventListener("mouseup", mouseUpHandler)
+    //             window.removeEventListener("selectstart", selectStartHandler)
+    //         }
+    //     }
+    // }, [resizable, resizing])
+
+    // if (resizable) {
+    //     const onMouseDownResizableDivHandler: MouseEventHandler<HTMLDivElement> = (e) => {
+    //         if (e.target === e.currentTarget || !resizePrevented(e)) {
+    //             setResizing(true)
+    //             getMouseMovement(e)
+    //         }
+    //     }
+    //     const {inline, className, interpolation} = getResizableDivStyle ? getResizableDivStyle(resizing, dragging) : {inline: undefined, className: undefined, interpolation: undefined}
+    //     children = <div style={inline} className={className} css={[getCursorStyle(resizing, dragging, resizableDivCursorStyle), interpolation]} onMouseDown={onMouseDownResizableDivHandler}>{children}</div>
+    // }
 
     if (resizable) {
-        const handleOnMouseDownResizableDiv: MouseEventHandler<HTMLDivElement>  = (e) => {
-            if(e.target === e.currentTarget || !resizePrevented(e)) {
-                if (onStartResizingHandler) onStartResizingHandler()
-                setResizing(true)
+      const onMouseDownResizableDivHandler: MouseEventHandler<HTMLDivElement> = (e) => {
+        if (e.target === e.currentTarget || !resizePrevented(e)) {
+          setResizing(true)
+          getMouseMovement(e)
+
+          const mouseMoveHandler = (e: MouseEvent) => {
+            const container = getContainer()
+            if (container) {
+              e.preventDefault()
+              const {height, width} = container.getBoundingClientRect()
+              const {screenX, screenY} = getMouseMovement(e)
+              setCssSize(newCssSize({height: height + screenY, width: width + screenX}))
             }
+          }
+          const selectStartHandler = (e: Event) => {
+            e.preventDefault()
+          }
+          const mouseUpHandler = (e: MouseEvent) => {
+            setResizing(false)
+            window.removeEventListener("mousemove", mouseMoveHandler)
+            window.removeEventListener("mouseup", mouseUpHandler)
+            window.removeEventListener("selectstart", selectStartHandler)
+            if (onEndResizingHandler) onEndResizingHandler()
+          }
+
+          window.addEventListener("mousemove", mouseMoveHandler)
+          window.addEventListener("selectstart", selectStartHandler)
+          window.addEventListener("mouseup", mouseUpHandler)
+
+          if (onStartResizingHandler) onStartResizingHandler()
         }
-        children = <div css={[getCursorStyle(resizing, dragging, resizableDivCursorStyle), getResizableDivStyle ? getResizableDivStyle(resizing, dragging) : undefined]} onMouseDown={handleOnMouseDownResizableDiv}>{children}</div>
+      }
+
+      const {inline, className, interpolation} = getResizableDivStyle ? getResizableDivStyle(resizing, dragging) : { inline: undefined, className: undefined, interpolation: undefined }
+
+      children = <div style={inline} className={className} css={[getCursorStyle(resizing, dragging, resizableDivCursorStyle), interpolation]} onMouseDown={onMouseDownResizableDivHandler}>
+                 {children}
+                 </div>
     }
 
-    const handleOnMouseLeaveContainer: MouseEventHandler<HTMLDivElement>  = (e) => {
+    const handleOnMouseLeaveContainer: MouseEventHandler<HTMLDivElement> = (e) => {
         //setResizing(false)
         //setDragging(false)
-     }
-    
-    return <div ref={containerRef} style={{transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale.x}, ${scale.y})`}} css={[getCursorStyle(resizing, dragging), getContainerStyle ? getContainerStyle(resizing, dragging) : undefined]} onMouseLeave={handleOnMouseLeaveContainer} onMouseDown={onMouseDownHandler} onFocus={onFocusHandler} onBlur={onBlurHandler}>
+    }
+
+    const {inline, className, interpolation} = getContainerStyle ? getContainerStyle(resizing, dragging) : {inline: undefined, className: undefined, interpolation: undefined}
+
+    return <div ref={containerRef} style={{translate: cssTranslate.toString(), ...cssSize.toKeyValue(), ...inline}} className={className} css={[getCursorStyle(resizing, dragging), interpolation]} onMouseLeave={handleOnMouseLeaveContainer} onMouseDown={onMouseDownHandler} onFocus={onFocusHandler} onBlur={onBlurHandler}>
            {children}
            </div>
 })
@@ -224,9 +300,9 @@ const getCursorStyle = (resizing: boolean, dragging: boolean, defaultCursorStyle
     let style
     if (resizing) {
       style = resizingStyle
-    }else if (dragging) {
+    } else if (dragging) {
       style = draggingStyle
-    }else{
+    } else { 
       style = defaultCursorStyle
     }
     return style

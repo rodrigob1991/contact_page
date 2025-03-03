@@ -9,6 +9,7 @@ export const cssAbsoluteUnitsLengths = {
 	pixels: "px"
 } as const
 export const cssRelativeUnitsLengths = {
+	parentPercentage: "%",
     parentLength: "em", 	
     heightFont: "ex",	
 	widthCeroCharacter: "ch",
@@ -40,3 +41,14 @@ export type CSSRelativeUnitLength = CSSRelativeUnitsLengths[CSSRelativeUnitsLeng
 export type CSSUnitsLengths = CSSAbsoluteUnitsLengths | CSSRelativeUnitsLengths
 export type CSSUnitsLengthsKey = CSSAbsoluteUnitsLengthsKey | CSSRelativeUnitsLengthsKey
 export type CSSUnitLength = CSSAbsoluteUnitLength | CSSRelativeUnitLength
+
+export type CSSUnitLengthValueStr = `${number}${CSSUnitLength}` | "0"
+export type CSSUnitLengthValue = {value: number, unit: CSSUnitLength} 
+
+export class MyInterface {
+    method1: function () {return "" },
+}  
+
+export function cssUnitLengthValueToString<T extends {[]: CSSUnitLengthValue}>(unitLengthValue: T) {
+
+}

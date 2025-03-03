@@ -152,10 +152,9 @@ const InnerContainer = styled.div<{flexDirection: "row" | "column"}>`
     width: fit-content;
     gap: ${layout.gap}px;
     padding: ${layout.innerContainerPadding}px;
-    border-style: solid;
-    border-color: ${mainColor};
     border-radius: 20px;
     background-color: ${secondColor};
+    box-shadow: 0 0 10px 10px ${secondColor};
     @media (max-width: ${minWidthFullLayout}px) {
     }
       `

@@ -72,7 +72,7 @@ const positionsCssOpposites = {
 } as const
 const executeEffectValues = {1: 2, 2: 1} as const
 
-const defaultPositionTypeCss = "absolute"
+const defaultPositionTypeCss = "fixed"
 
 export default function useModal<N extends ModalName=undefined, PT extends ModalPositionType="absolute">({
                                name,
@@ -304,7 +304,6 @@ export default function useModal<N extends ModalName=undefined, PT extends Modal
       min-width: ${minSize?.width};
       max-height: 100%;
       max-width: 100%;
-      transform: translate(${translateCss.left}, ${translateCss.top});
       z-index: 9;
       ${!resizable && !draggable
         ? css`

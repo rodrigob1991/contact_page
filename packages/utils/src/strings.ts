@@ -1,4 +1,4 @@
-import { numberRgx } from "./regularExpressions"
+import { numberRgx } from "./regular_expressions"
 import {isNonEmpty, NonEmptyArray} from "./types"
 
 export const getContainedString = (str: string, betweenLeft?: string, betweenRight?: string) => {

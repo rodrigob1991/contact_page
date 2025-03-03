@@ -47,4 +47,5 @@ export type ReadOnlyOrMutableArray<T> = (readonly T[]) | T[];
 export type ArrayIndex<A extends unknown[], I extends number[] = number[]> = A["length"] extends 0 ? never : I["length"] extends A["length"] ? I[number] : ArrayIndex<A, [...I, I["length"]]>;
 type ChangeType<E, T extends [unknown, unknown][]> = T extends [infer T0 extends [unknown, unknown], ...infer TR extends [unknown, unknown][]] ? T0[0] extends E ? Exclude<E, T0[0]> | T0[1] : ChangeType<E, TR> : E;
 export type ChangeArrayTypes<A extends unknown[], T extends [unknown, unknown][]> = A extends [infer E0, ...infer ER extends unknown[]] ? [ChangeType<E0, T>, ...ChangeArrayTypes<ER, T>] : ChangeType<A[number], T>[];
+export type UniteReturnType<F extends Function, JR> = F extends (...args: infer A) => infer R ? (...args: A) => R | JR : never;
 export {};

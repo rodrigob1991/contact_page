@@ -34,10 +34,9 @@ const Container = styled.div`
   width: 100%;
   min-height: 90px; 
   max-height: 90px;
-  border-bottom-style: solid;
-  border-color: ${mainColor};
   padding: 20px;
   background-color: ${secondColor};
+  box-shadow: 0 0 10px 10px ${secondColor};
   z-index: 7;
   @media (max-width: 768px) {
     height: 60px;
