@@ -13,6 +13,15 @@ export type CamelOrPascalToKebab<S extends string, B extends boolean=true> = S e
             : `-${Lowercase<F>}${CamelOrPascalToKebab<R, false>}`
     : `${F}${CamelOrPascalToKebab<R, false>}`
   : ""
+
+export type InterpolateType = string | number | bigint | boolean | null | undefined
+
+export type Join<A extends InterpolateType[]> = A extends [infer F extends InterpolateType, ...infer R extends InterpolateType[]]
+  ? R extends []
+    ? `${F}`
+    : `${F}${Join<R>}`
+  : ""
+
 // ----------------------
 
 // -------Objects---------
@@ -97,6 +106,11 @@ export type ArrayIndex<A extends unknown[], I extends number[]=number[]> =
 
 type ChangeType<E, T extends [unknown, unknown][]> = T extends [infer T0 extends [unknown, unknown], ...infer TR extends [unknown, unknown][]] ? E  extends T0[0] ? Exclude<E, T0[0]> | T0[1] : ChangeType<E, TR> : E
 export type ChangeArrayTypes<A extends unknown[], T extends [unknown, unknown][]> = A extends [infer E0, ...infer ER extends unknown[]] ? [ChangeType<E0, T>, ...ChangeArrayTypes<ER, T>] : ChangeType<A[number], T>[]
+export type Permutations<T, U = T> = [T] extends [never]
+  ? []
+  : T extends U
+  ? [T, ...Permutations<Exclude<U, T>>]
+  : never
 
 //--------------------------
 

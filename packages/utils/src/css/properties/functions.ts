@@ -1,11 +1,12 @@
-import type {Properties} from 'csstype'
-import { CamelOrPascalToKebab, FunctionUnionAccumulateArgs, IfExtendsUndefinedAndOther } from 'src/types'
+import type { Properties } from 'csstype'
+import { CamelOrPascalToKebab, IfExtendsUndefinedAndOther } from 'src/types'
 import { KeyValue } from 'src/types_checks'
 
-export type PropertyKey = keyof Properties
-export type PropertyValue = Properties[PropertyKey]
+export type CSSProperties = Properties
+export type CSSPropertyKey = keyof CSSProperties
+export type CSSPropertyValue = CSSProperties[CSSPropertyKey]
 
-export function getCSSValueStr(values: string[]) {
+/* export function getCSSValueStr(values: string[]) {
     return values.join(" ")
 }
 export function getCSSPropertyStr(name: string, values: string[]) {
@@ -20,7 +21,7 @@ export function getCSSFunctionStr(name: string, values: string[]) {
 export function getCSSPropertyWithFunctionsStr(name: string, fnNamesValues: [string, string[]][]) {
     return getCSSPropertyStr(name, fnNamesValues.map(([fnName, fnValues]) => getCSSFunctionStr(fnName, fnValues)))
 }
-
+ */
 //type UniqueKey = PropertyKey | undefined 
 type ExtraProperties<UK extends UniqueKey> = IfExtendsUndefinedAndOther<UK, KeyValue<PropertyKey>, KeyValue>
 type MapExtraProperty<UK extends UniqueKey, EP extends ExtraProperties<UK>> = <K extends keyof EP>(key: K, value: EP[K]) => PropertyValue
@@ -43,19 +44,20 @@ export type CSSObject<UK extends UniqueKey, EP extends ExtraProperties<UK>> = {
     functionString: () => string
 } & EP
 
-export type CSSObjectWithUniqueKey<UK extends PropertyKey, EP extends KeyValue, UKK extends CamelOrPascalToKebab<UK>=CamelOrPascalToKebab<UK>> = {
+export type CSSObjectWithUniqueKey<UK extends CSSPropertyKey, EP extends KeyValue, UKK extends CamelOrPascalToKebab<UK>=CamelOrPascalToKebab<UK>> = {
     uniqueKey: UK
-    mapExtraProperty: (key: keyof EP, value: EP[keyof EP]) => PropertyValue
-    keysValues: {[K in UK]: PropertyValue}
-    string: () => `${UKK}: ${string}`
+    mapExtraProperty: <K extends keyof EP>(key: K, value: EP[K]) => CSSPropertyValue
+    keysValues: {[K in UK]: CSSPropertyValue}
+    string: () => `${UKK}:${string};`
     functionString: () => `${UKK}(${string})`
 } & EP
-export type CSSObjectWithoutUniqueKey<EP extends ExtraProperties> = {
-    mapExtraProperty: MapExtraProperty<UK, EP>
-    keysValues: Properties
+
+export type CSSObjectWithoutUniqueKey<EP extends KeyValue<CSSPropertyKey>> = {
+    mapExtraProperty: <K extends keyof Pick<EP, CSSPropertyKey>>(key: K, value: EP[K]) => CSSProperties[K]
+    keysValues: Pick<EP, CSSPropertyKey>
     string: () => string
     functionString: () => string
-} & EP
+} & Pick<EP, CSSPropertyKey>
 
 export const cssObject: CSSObject<undefined, {}> = {
     uniqueKey: undefined,
