@@ -1,6 +1,6 @@
 //TODO: ORDER THE TYPES IN THE DIFFERENT SECTIONS, OBJECTS, ARRAYS ....
 
-import { Callable } from "./types_checks"
+import { Callable, KeyValue } from "./types_checks"
 
 export type EqualTypes<T0, T1> = T0 extends T1 ? T1 extends T0 ? T0 : never : never
 
@@ -16,11 +16,17 @@ export type CamelOrPascalToKebab<S extends string, B extends boolean=true> = S e
 
 export type InterpolateType = string | number | bigint | boolean | null | undefined
 
-export type Join<A extends InterpolateType[]> = A extends [infer F extends InterpolateType, ...infer R extends InterpolateType[]]
+export type InterpolateElements<A extends InterpolateType[]> = A extends [infer F extends InterpolateType, ...infer R extends InterpolateType[]]
   ? R extends []
     ? `${F}`
-    : `${F}${Join<R>}`
+    : `${F}${InterpolateElements<R>}`
   : ""
+
+export type InterpolateKeyValue<KV extends KeyValue<PropertyKey, InterpolateType>, B extends InterpolateType="", M extends InterpolateType="", E extends InterpolateType="">= {
+    [K in keyof KV]: `${B}${K extends symbol ? K["description"] : K}${M}${KV[K]}${E}`
+}[keyof KV]
+
+export type InterpolateKeysValues<KV extends KeyValue<PropertyKey, InterpolateType>, B extends InterpolateType="", M extends InterpolateType="", E extends InterpolateType="">= InterpolateElements<Permutations<InterpolateKeyValue<KV, B, M, E>>>
 
 // ----------------------
 
@@ -55,7 +61,7 @@ type ReadonlyKeys<T> = {
     [P in keyof T]-?: PickIfEquals<{ [Q in P]: T[P] }, { -readonly [Q in P]: T[P] }, never, P>
 }[keyof T]
 
-export  type AnyPropertiesCombination<O extends object> = {
+export type AnyPropertiesCombination<O extends object> = {
     [K in keyof O]: { [key in K]: O[K] }
 }[keyof O]
 export type AnyPropertiesCombinationRecursive<O extends object> = {
