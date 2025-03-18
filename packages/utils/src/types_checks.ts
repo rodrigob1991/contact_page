@@ -1,9 +1,8 @@
-import { NonEmptyArray } from "./types"
-
 export type KeyValue<K extends PropertyKey=PropertyKey, V=unknown>= Record<K, V>
 export type EmptyKeyValue = KeyValue<never, never>
 export type KeyNumberValue<K extends PropertyKey=PropertyKey, V extends number=number> = KeyValue<K, V>
 export type Callable<A extends unknown[]=[], R=unknown> = (...args: A) => R
+export type NonEmptyArray<T> = [T, ...T[]]
 
 export const isNumber = (v: unknown) : v is number => typeof v === "number"
 export const isString = (v: unknown) : v is string => typeof v === "string"

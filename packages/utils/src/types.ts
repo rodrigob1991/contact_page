@@ -1,8 +1,35 @@
-//TODO: ORDER THE TYPES IN THE DIFFERENT SECTIONS, OBJECTS, ARRAYS ....
-
 import { Callable, KeyValue } from "./types_checks"
 
+// Types are order by the result type.
+
+// -------Any types---------
+
 export type EqualTypes<T0, T1> = T0 extends T1 ? T1 extends T0 ? T0 : never : never
+
+// if the first type of each tuple of I extends T then the second element of the tuple will be part of the union result, never otherwise
+export type IfFirstExtendsThenSecond<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown],  ...infer RI extends [unknown, unknown][]] ?  (FI[0] extends T ? FI[1] : never) | IfFirstExtendsThenSecond<T, RI> : never
+// if one member of the first type of each tuple of I extends T then the second element of the tuple will be part of the union result, never otherwise
+export type IfOneOfFirstExtendsThenSecond<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown],  ...infer RI extends [unknown, unknown][]] ? IfOneExtends<FI[0], T, FI[1]> | IfOneOfFirstExtendsThenSecond<T, RI> : never
+
+// if one element from "U" extends "IN" then the result is "IF", otherwise is "ELSE"
+export type IfOneExtends<U, IN, IF, ELSE = never> = IF extends { [K in U as ""]: K extends IN ? IF : never }[""] ? IF : ELSE
+
+// if all elements from "U" extends "IN" then the result is "IF", otherwise is "ELSE"
+export type IfExtends<U, IN, IF, ELSE = never> = false extends { [K in U as ""]: K extends IN ? true : false }[""] ? ELSE : IF
+
+// if one elements from "U" not extends "IN" then the result is "IF", otherwise is "ELSE"
+export type IfOneNotExtends<U, IN, IF, ELSE = never> = IfExtends<U, IN, ELSE, IF>
+
+// if all elements from "U" not extends "IN" then the result is "IF", otherwise is "ELSE"
+export type IfNotExtends<U, IN, IF, ELSE = never> = IfOneExtends<U, IN, ELSE, IF>
+
+export type IfAllPropertiesIn<P extends object, IN extends object, IF, Else={}> = P extends IN ? IF : Else 
+
+export type IfExtendsUndefinedAndOther<T, IU, IO>= IfFirstExtendsThenSecond<T, [[undefined, IU], [Exclude<T, undefined> extends never ? 1 : Exclude<T, undefined>, IO]]>
+
+export type IfExtendsTrueAndFalse<T extends boolean, IT, IF>= IfFirstExtendsThenSecond<T, [[true, IT], [false, IF]]>
+
+// ----------------
 
 // -------String---------
 
@@ -64,37 +91,16 @@ type ReadonlyKeys<T> = {
 export type AnyPropertiesCombination<O extends object> = {
     [K in keyof O]: { [key in K]: O[K] }
 }[keyof O]
+
 export type AnyPropertiesCombinationRecursive<O extends object> = {
     [K in keyof O]: { [key in K]: O[K] extends object ? AnyPropertiesCombinationRecursive<O[K]> : O[K]}
 }[keyof O]
 
-// if the first type of each tuple of I extends T then the second element of the tuple will be part of the union result, never otherwise
-export type IfFirstExtendsThenSecond<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown],  ...infer RI extends [unknown, unknown][]] ?  (FI[0] extends T ? FI[1] : never) | IfFirstExtendsThenSecond<T, RI> : never
-// if one member of the first type of each tuple of I extends T then the second element of the tuple will be part of the union result, never otherwise
-export type IfOneOfFirstExtendsThenSecond<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown],  ...infer RI extends [unknown, unknown][]] ? IfOneExtends<FI[0], T, FI[1]> | IfOneOfFirstExtendsThenSecond<T, RI> : never
-
-// if one element from "U" extends "IN" then the result is "IF", otherwise is "ELSE"
-export type IfOneExtends<U, IN, IF, ELSE = never> = IF extends { [K in U as ""]: K extends IN ? IF : never }[""] ? IF : ELSE
-
-// if all elements from "U" extends "IN" then the result is "IF", otherwise is "ELSE"
-export type IfExtends<U, IN, IF, ELSE = never> = false extends { [K in U as ""]: K extends IN ? true : false }[""] ? ELSE : IF
-
-// if one elements from "U" not extends "IN" then the result is "IF", otherwise is "ELSE"
-export type IfOneNotExtends<U, IN, IF, ELSE = never> = IfExtends<U, IN, ELSE, IF>
-
-// if all elements from "U" not extends "IN" then the result is "IF", otherwise is "ELSE"
-export type IfNotExtends<U, IN, IF, ELSE = never> = IfOneExtends<U, IN, ELSE, IF>
-
-export type IfAllPropertiesIn<P extends object, IN extends object, IF, Else={}> = P extends IN ? IF : Else 
-
-export type NonEmptyArray<T> = [T, ...T[]]
-
 export type ChangeKeysNames<O extends object, NewKeysNames extends [keyof O, PropertyKey][]> = {[K in keyof O as SeekNewType<K, NewKeysNames> extends infer V ? V extends PropertyKey ? V : K : never]: O[K]}
+
 export type ChangeKeyName<O extends object, NewKeyName extends [keyof O, PropertyKey]> = ChangeKeysNames<O, [NewKeyName]>
 
 export type Available<T, U, A extends object> = T extends U ? A : {[K in keyof A]?: never}
-
-export type IfExtendsUndefinedAndOther<T, IU, IO>= IfFirstExtendsThenSecond<T, [[undefined, IU], [Exclude<T, undefined> extends never ? 1 : Exclude<T, undefined>, IO]]>
 
 //--------------------------
 

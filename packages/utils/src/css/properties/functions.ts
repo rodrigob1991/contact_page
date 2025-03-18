@@ -1,5 +1,5 @@
 import type { Properties } from 'csstype'
-import { CamelOrPascalToKebab, IfExtendsUndefinedAndOther } from 'src/types'
+import { CamelOrPascalToKebab, IfExtendsTrueAndFalse, IfExtendsUndefinedAndOther, InterpolateKeysValues } from 'src/types'
 import { KeyValue } from 'src/types_checks'
 
 export type CSSProperties = Properties
@@ -44,18 +44,20 @@ export type CSSObject<UK extends UniqueKey, EP extends ExtraProperties<UK>> = {
     functionString: () => string
 } & EP
 
-export type CSSObjectWithUniqueKey<UK extends CSSPropertyKey, EP extends KeyValue, UKK extends CamelOrPascalToKebab<UK>=CamelOrPascalToKebab<UK>> = {
+export type CSSObjectWithUniqueKey<UK extends CSSPropertyKey, EP extends KeyValue, TF extends boolean> = {
     uniqueKey: UK
     mapExtraProperty: <K extends keyof EP>(key: K, value: EP[K]) => CSSPropertyValue
-    keysValues: {[K in UK]: CSSPropertyValue}
-    string: () => `${UKK}:${string};`
-    functionString: () => `${UKK}(${string})`
+    keysValues: {[K in UK]: CSSProperties[K]}
+    string: () => `${CamelOrPascalToKebab<UK>}:${string};`
+    toFunction: TF
+    functionString: () => IfExtendsTrueAndFalse<TF, `${CamelOrPascalToKebab<UK>}(${string})`, undefined>
 } & EP
 
-export type CSSObjectWithoutUniqueKey<EP extends KeyValue<CSSPropertyKey>> = {
+export type CSSObjectWithoutUniqueKey<EP extends KeyValue<CSSPropertyKey>, TF extends boolean> = {
     mapExtraProperty: <K extends keyof Pick<EP, CSSPropertyKey>>(key: K, value: EP[K]) => CSSProperties[K]
-    keysValues: Pick<EP, CSSPropertyKey>
-    string: () => string
+    keysValues: {[K in keyof EP]: K extends CSSPropertyKey ? CSSProperties[K] : never}
+    string: () => InterpolateKeysValues<>
+    toFunction: TF
     functionString: () => string
 } & Pick<EP, CSSPropertyKey>
 
