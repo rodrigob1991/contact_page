@@ -1,5 +1,5 @@
 import type { Properties } from 'csstype'
-import { CamelOrPascalToKebab, IfExtendsTrueAndFalse, IfExtendsUndefinedAndOther, InterpolateKeysValues } from 'src/types'
+import { CamelOrPascalToKebab, IfTrueFalseExtends, InterpolateKeysValues, PropertiesUnion } from 'src/types'
 import { KeyValue } from 'src/types_checks'
 
 export type CSSProperties = Properties
@@ -47,21 +47,31 @@ export type CSSObject<UK extends UniqueKey, EP extends ExtraProperties<UK>> = {
 export type CSSObjectWithUniqueKey<UK extends CSSPropertyKey, EP extends KeyValue, TF extends boolean> = {
     uniqueKey: UK
     mapExtraProperty: <K extends keyof EP>(key: K, value: EP[K]) => CSSPropertyValue
-    keysValues: {[K in UK]: CSSProperties[K]}
-    string: () => `${CamelOrPascalToKebab<UK>}:${string};`
+    keysValues: PropertiesUnion<{[K in UK]: CSSProperties[K]}>
+    string: () => `${CamelOrPascalToKebab<UK>}:${CSSProperties[UK]};`
     toFunction: TF
-    functionString: () => IfExtendsTrueAndFalse<TF, `${CamelOrPascalToKebab<UK>}(${string})`, undefined>
+    functionString: () => IfTrueFalseExtends<TF, `${CamelOrPascalToKebab<UK>}(${string})`, undefined>
 } & EP
 
 export type CSSObjectWithoutUniqueKey<EP extends KeyValue<CSSPropertyKey>, TF extends boolean> = {
     mapExtraProperty: <K extends keyof Pick<EP, CSSPropertyKey>>(key: K, value: EP[K]) => CSSProperties[K]
-    keysValues: {[K in keyof EP]: K extends CSSPropertyKey ? CSSProperties[K] : never}
-    string: () => InterpolateKeysValues<>
+    keysValues: {[K in Extract<keyof EP, CSSPropertyKey>]: CSSProperties[K]}
+    string: () => InterpolateKeysValues<{[K in Extract<keyof EP, CSSPropertyKey> as CamelOrPascalToKebab<K>]: CSSProperties[K]}, "", ":", ";">
     toFunction: TF
-    functionString: () => string
+    functionString: () => IfTrueFalseExtends<TF, InterpolateKeysValues<{[K in Extract<keyof EP, CSSPropertyKey> as CamelOrPascalToKebab<K>]: CSSProperties[K]}, "", "(", ")">, undefined>
 } & Pick<EP, CSSPropertyKey>
 
-export const cssObject: CSSObject<undefined, {}> = {
+export const cssObjectWithUniqueKey: CSSObjectWithUniqueKey<CSSPropertyKey, KeyValue, boolean> = {
+    uniqueKey: "",
+    mapExtraProperty(key, value) {return ""},
+    keysValues: {},
+    string() {return `${CamelOrPascalToKebab(this.uniqueKey)}:${this[this.uniqueKey]};`},
+    toFunction: false,
+    functionString() {return undefined}
+
+}
+
+/* export const cssObject: CSSObject<undefined, {}> = {
     uniqueKey: undefined,
     mapExtraProperty() {return ""},
     mapExtraProperties(withUniqueKey, withoutUniqueKey) {
@@ -126,7 +136,7 @@ export const cssObject: CSSObject<undefined, {}> = {
         return string
     }
 }
-
+ */
 // const p = {one: "",get two(){return this.one}}
 
 // Object.crea

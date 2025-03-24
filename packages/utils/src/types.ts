@@ -23,16 +23,19 @@ export type IfOneNotExtends<U, IN, IF, ELSE = never> = IfExtends<U, IN, ELSE, IF
 // if all elements from "U" not extends "IN" then the result is "IF", otherwise is "ELSE"
 export type IfNotExtends<U, IN, IF, ELSE = never> = IfOneExtends<U, IN, ELSE, IF>
 
-export type IfAllPropertiesIn<P extends object, IN extends object, IF, Else={}> = P extends IN ? IF : Else 
+export type IfObjectExtends<P extends object, IN extends object, IF, Else={}> = P extends IN ? IF : Else 
 
-export type IfExtendsUndefinedAndOther<T, IU, IO>= IfFirstExtendsThenSecond<T, [[undefined, IU], [Exclude<T, undefined> extends never ? 1 : Exclude<T, undefined>, IO]]>
+export type IfUndefinedOtherExtends<T, IU, IO>= IfFirstExtendsThenSecond<T, [[undefined, IU], [Exclude<T, undefined> extends never ? 1 : Exclude<T, undefined>, IO]]>
 
-export type IfExtendsTrueAndFalse<T extends boolean, IT, IF>= IfFirstExtendsThenSecond<T, [[true, IT], [false, IF]]>
+export type IfTrueFalseExtends<T extends boolean, IT, IF>= IfFirstExtendsThenSecond<T, [[true, IT], [false, IF]]>
 
 // ----------------
 
 // -------String---------
 
+export type CaseType = "camel" | "pascal" | "kebab" | "snake"
+
+// TODO: change this type for one that take a string and a CaseType and return the string turn into the CaseType.
 export type CamelOrPascalToKebab<S extends string, B extends boolean=true> = S extends `${infer F}${infer R}`
   ? F extends Uppercase<F>
         ? B extends true 
@@ -81,19 +84,19 @@ type PickIfEquals<X, Y, A=X, B=never> =
     (<T>() => T extends X ? 1 : 2) extends
         (<T>() => T extends Y ? 1 : 2) ? A : B
 
-export type ExtractWritableProps<O extends object> = {
+export type WritableProps<O extends object> = {
     [K in keyof O as PickIfEquals<{ [Q in K]: O[K] }, { -readonly [Q in K]: O[K] }, K>]: O[K]
 }
 type ReadonlyKeys<T> = {
     [P in keyof T]-?: PickIfEquals<{ [Q in P]: T[P] }, { -readonly [Q in P]: T[P] }, never, P>
 }[keyof T]
 
-export type AnyPropertiesCombination<O extends object> = {
+export type PropertiesUnion<O extends object> = {
     [K in keyof O]: { [key in K]: O[K] }
 }[keyof O]
 
-export type AnyPropertiesCombinationRecursive<O extends object> = {
-    [K in keyof O]: { [key in K]: O[K] extends object ? AnyPropertiesCombinationRecursive<O[K]> : O[K]}
+export type PropertiesUnionRecursive<O extends object> = {
+    [K in keyof O]: { [key in K]: O[K] extends object ? PropertiesUnionRecursive<O[K]> : O[K]}
 }[keyof O]
 
 export type ChangeKeysNames<O extends object, NewKeysNames extends [keyof O, PropertyKey][]> = {[K in keyof O as SeekNewType<K, NewKeysNames> extends infer V ? V extends PropertyKey ? V : K : never]: O[K]}
