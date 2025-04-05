@@ -44,31 +44,64 @@ export type CSSObject<UK extends UniqueKey, EP extends ExtraProperties<UK>> = {
     functionString: () => string
 } & EP
 
-export type CSSObjectWithUniqueKey<UK extends CSSPropertyKey, EP extends KeyValue, TF extends boolean> = {
+export type CSSObjectWithUniqueKey<UK extends CSSPropertyKey, MP extends KeyValue, TF extends boolean> = {
     uniqueKey: UK
-    mapExtraProperty: <K extends keyof EP>(key: K, value: EP[K]) => CSSPropertyValue
+    mappedProperties: MP
+    mapProperties: (properties: MP) => CSSPropertyValue
     keysValues: PropertiesUnion<{[K in UK]: CSSProperties[K]}>
-    string: () => `${CamelOrPascalToKebab<UK>}:${CSSProperties[UK]};`
+    string: `${CamelOrPascalToKebab<UK>}:${CSSProperties[UK]};`
     toFunction: TF
-    functionString: () => IfTrueFalseExtends<TF, `${CamelOrPascalToKebab<UK>}(${string})`, undefined>
-} & EP
-
-export type CSSObjectWithoutUniqueKey<EP extends KeyValue<CSSPropertyKey>, TF extends boolean> = {
-    mapExtraProperty: <K extends keyof Pick<EP, CSSPropertyKey>>(key: K, value: EP[K]) => CSSProperties[K]
-    keysValues: {[K in Extract<keyof EP, CSSPropertyKey>]: CSSProperties[K]}
-    string: () => InterpolateKeysValues<{[K in Extract<keyof EP, CSSPropertyKey> as CamelOrPascalToKebab<K>]: CSSProperties[K]}, "", ":", ";">
-    toFunction: TF
-    functionString: () => IfTrueFalseExtends<TF, InterpolateKeysValues<{[K in Extract<keyof EP, CSSPropertyKey> as CamelOrPascalToKebab<K>]: CSSProperties[K]}, "", "(", ")">, undefined>
-} & Pick<EP, CSSPropertyKey>
+    functionString: IfTrueFalseExtends<TF, `${CamelOrPascalToKebab<UK>}(${string})`, undefined>
+}
 
 export const cssObjectWithUniqueKey: CSSObjectWithUniqueKey<CSSPropertyKey, KeyValue, boolean> = {
-    uniqueKey: "",
-    mapExtraProperty(key, value) {return ""},
-    keysValues: {},
-    string() {return `${CamelOrPascalToKebab(this.uniqueKey)}:${this[this.uniqueKey]};`},
+    uniqueKey: "widows", // dummy
+    mappedProperties: {},
+    mapProperties(properties) {return ""},
+    get keysValues() {
+        return  {[this.uniqueKey]: this.mapProperties(this.mappedProperties)}
+    },
+    get string() {
+        this.uniqueKey.replace(/([A-Z])/g, "-$1").toLowerCase()
+        const kebabUniqueKey = CamelOrPascalToKebab(this.uniqueKey)
+        return `${this.uniqueKey}:${this.mapProperties(this.mappedProperties)};`
+    },
     toFunction: false,
-    functionString() {return undefined}
+    get functionString() {
+        let functionString = undefined
+        if (this.toFunction) {
+            functionString = `${this.uniqueKey}(${this.mapProperties(this.mappedProperties)})`
+        }
+        return functionString
+    }
+}
 
+export type CSSObjectWithoutUniqueKey<MP extends KeyValue<CSSPropertyKey>, TF extends boolean> = {
+    mappedProperties: Pick<MP, CSSPropertyKey>
+    mapProperty: <K extends keyof Pick<MP, CSSPropertyKey>>(key: K, value: MP[K]) => CSSProperties[K]
+    keysValues: {[K in Extract<keyof MP, CSSPropertyKey>]: CSSProperties[K]}
+    string: () => InterpolateKeysValues<{[K in Extract<keyof MP, CSSPropertyKey> as CamelOrPascalToKebab<K>]: CSSProperties[K]}, "", ":", ";">
+    toFunction: TF
+    functionString: () => IfTrueFalseExtends<TF, InterpolateKeysValues<{[K in Extract<keyof MP, CSSPropertyKey> as CamelOrPascalToKebab<K>]: CSSProperties[K]}, "", "(", ")">, undefined>
+}
+
+export const cssObjectWithoutUniqueKey: CSSObjectWithoutUniqueKey<CSSPropertyKey, KeyValue, boolean> = {
+    mappedProperties: {},
+    mapProperties(properties) {return ""},
+    get keysValues() {
+        return  {[this.uniqueKey]: this.mapProperties(this.mappedProperties)}
+    },
+    get string() {
+        return `${this.uniqueKey}:${this.mapProperties(this.mappedProperties)};`
+    },
+    toFunction: false,
+    functionString() {
+        let functionString = undefined
+        if (this.toFunction) {
+            functionString = `${this.uniqueKey}(${this.mapProperties(this.mappedProperties)})`
+        }
+        return functionString
+    }
 }
 
 /* export const cssObject: CSSObject<undefined, {}> = {

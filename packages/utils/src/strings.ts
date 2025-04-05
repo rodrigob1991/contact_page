@@ -1,5 +1,6 @@
 import { numberRgx } from "./regular_expressions"
-import {isNonEmpty, NonEmptyArray} from "./types"
+import { CaseType } from "./types"
+import { NonEmptyArray, isNonEmpty } from "./types_checks"
 
 export const getContainedString = (str: string, betweenLeft?: string, betweenRight?: string) => {
     let containedString
@@ -62,3 +63,31 @@ export const getNumber = (str: string): number | undefined => {
 }
 
 export const upperCaseFirstChar = <S extends string>(str: S) => (str.substring(0, 1).toUpperCase() + str.substring(1)) as Capitalize<S>
+
+export const toCase = (str: string, to: CaseType, wordSeparators?: string) => {
+    let defaultWordSeparators
+    let replacer: ((match: string) => string) | string  
+    let get: (str: string) => string
+    switch (to) {
+        case "camel":
+            defaultWordSeparators = "-_ "
+            replacer = (match) => match[1].toUpperCase()
+            get = (str) => str[0].toLowerCase() + str.substring(1)
+            break
+        case "pascal":
+            defaultWordSeparators = "-_ "
+            replacer = (match) => match[1].toUpperCase()
+            get = (str) => str[0].toUpperCase() + str.substring(1)
+            break
+        case "kebab":
+            defaultWordSeparators = "[a-z][A-Z] "
+            replacer = "$1-$2"
+            get = (str) => str.toLowerCase()
+            break
+        case "snake":
+            defaultWordSeparators = "[a-z][A-Z] "
+            replacer = "$1_$2"
+            get = (str) => str.toLowerCase()
+    }
+    return get(str.replace(new RegExp(`[${wordSeparators ?? defaultWordSeparators}]`), replacer))
+}
