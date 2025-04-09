@@ -64,30 +64,26 @@ export const getNumber = (str: string): number | undefined => {
 
 export const upperCaseFirstChar = <S extends string>(str: S) => (str.substring(0, 1).toUpperCase() + str.substring(1)) as Capitalize<S>
 
+export const matchWord = /d/
 export const toCase = (str: string, to: CaseType, wordSeparators?: string) => {
-    let defaultWordSeparators
-    let replacer: ((match: string) => string) | string  
-    let get: (str: string) => string
+    let convertWord: (word: string, index: number) => string
+    let separator: string
     switch (to) {
         case "camel":
-            defaultWordSeparators = "-_ "
-            replacer = (match) => match[1].toUpperCase()
-            get = (str) => str[0].toLowerCase() + str.substring(1)
+            convertWord = (word, index) => index === 0 ? word.toLowerCase() : word[0].toUpperCase() + word.substring(1)
+            separator = ""
             break
         case "pascal":
-            defaultWordSeparators = "-_ "
-            replacer = (match) => match[1].toUpperCase()
-            get = (str) => str[0].toUpperCase() + str.substring(1)
+            convertWord = (word, index) => word[0].toUpperCase() + word.substring(1)
+            separator = ""
             break
         case "kebab":
-            defaultWordSeparators = "[a-z][A-Z] "
-            replacer = "$1-$2"
-            get = (str) => str.toLowerCase()
+            convertWord = (word, index) => word.toLowerCase()
+            separator = "-"
             break
         case "snake":
-            defaultWordSeparators = "[a-z][A-Z] "
-            replacer = "$1_$2"
-            get = (str) => str.toLowerCase()
+            convertWord = (word, index) => word.toLowerCase()
+            separator = "_"
     }
-    return get(str.replace(new RegExp(`[${wordSeparators ?? defaultWordSeparators}]`), replacer))
+    return str.match(new RegExp(`[${wordSeparators ?? defaultWordSeparators}]`)).map(convertWord).join(separator)
 }
