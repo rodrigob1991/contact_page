@@ -1,4 +1,5 @@
 import type { Properties } from 'csstype'
+import { toCase } from 'src/strings'
 import { CamelOrPascalToKebab, IfTrueFalseExtends, InterpolateKeysValues, PropertiesUnion } from 'src/types'
 import { KeyValue } from 'src/types_checks'
 
@@ -35,7 +36,7 @@ type DoLast<UK extends UniqueKey> = IfExtendsUndefinedAndOther<UK, KeyValue<Prop
 type MapExtraPropertiesArg<UK extends UniqueKey> = {doFirst: DoFirst<UK>, map: Map<UK>, doLast: DoLast<UK>}
 type MapExtraProperties = (withUniqueKey: MapExtraPropertiesArg<true>, withoutUniqueKey: MapExtraPropertiesArg) => void
 
-export type CSSObject<UK extends UniqueKey, EP extends ExtraProperties<UK>> = { 
+/* export type CSSObject<UK extends UniqueKey, EP extends ExtraProperties<UK>> = { 
     uniqueKey: UK
     mapExtraProperty: MapExtraProperty<UK, EP>
     mapExtraProperties: MapExtraProperties 
@@ -43,34 +44,30 @@ export type CSSObject<UK extends UniqueKey, EP extends ExtraProperties<UK>> = {
     string: () => string
     functionString: () => string
 } & EP
-
+ */
 export type CSSObjectWithUniqueKey<UK extends CSSPropertyKey, MP extends KeyValue, TF extends boolean> = {
     uniqueKey: UK
-    mappedProperties: MP
     mapProperties: (properties: MP) => CSSPropertyValue
     keysValues: PropertiesUnion<{[K in UK]: CSSProperties[K]}>
     string: `${CamelOrPascalToKebab<UK>}:${CSSProperties[UK]};`
     toFunction: TF
     functionString: IfTrueFalseExtends<TF, `${CamelOrPascalToKebab<UK>}(${string})`, undefined>
-}
+} & MP
 
 export const cssObjectWithUniqueKey: CSSObjectWithUniqueKey<CSSPropertyKey, KeyValue, boolean> = {
     uniqueKey: "widows", // dummy
-    mappedProperties: {},
     mapProperties(properties) {return ""},
     get keysValues() {
         return  {[this.uniqueKey]: this.mapProperties(this.mappedProperties)}
     },
     get string() {
-        this.uniqueKey.replace(/([A-Z])/g, "-$1").toLowerCase()
-        const kebabUniqueKey = CamelOrPascalToKebab(this.uniqueKey)
-        return `${this.uniqueKey}:${this.mapProperties(this.mappedProperties)};`
+        return `${toCase(this.uniqueKey, "kebab")}:${this.mapProperties(this.mappedProperties)};`
     },
     toFunction: false,
     get functionString() {
         let functionString = undefined
         if (this.toFunction) {
-            functionString = `${this.uniqueKey}(${this.mapProperties(this.mappedProperties)})`
+            functionString = `${toCase(this.uniqueKey, "kebab")}(${this.mapProperties(this.mappedProperties)})`
         }
         return functionString
     }

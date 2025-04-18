@@ -64,26 +64,35 @@ export const getNumber = (str: string): number | undefined => {
 
 export const upperCaseFirstChar = <S extends string>(str: S) => (str.substring(0, 1).toUpperCase() + str.substring(1)) as Capitalize<S>
 
-export const matchWord = /d/
-export const toCase = (str: string, to: CaseType, wordSeparators?: string) => {
-    let convertWord: (word: string, index: number) => string
+export const defaultStartWord = ["[A-Z]", "[a-z]"]
+export const defaultBodyWord = ["[a-z]"]
+
+/**
+ * @param str the string from which to match the words
+ * @param to case type to form the returned string
+ * @param [startWord] strings that can be the start of a word, could have rgx format, defaults: "[A-Z]" y "[a-z]"
+ * @param [bodyWord] strings that can be the body of a word, could have rgx format, defaults: "[a-z]"
+ * @returns words matched from str turned into a string in the "to" param case type format
+ */
+export const toCase = (str: string, to: CaseType, startWord: string[]=defaultStartWord, bodyWord: string[]=defaultBodyWord): string => {
+    let mapWord: (word: string, index: number) => string
     let separator: string
     switch (to) {
         case "camel":
-            convertWord = (word, index) => index === 0 ? word.toLowerCase() : word[0].toUpperCase() + word.substring(1)
+            mapWord = (word, index) => index === 0 ? word.toLowerCase() : word[0].toUpperCase() + word.substring(1)
             separator = ""
             break
         case "pascal":
-            convertWord = (word, index) => word[0].toUpperCase() + word.substring(1)
+            mapWord = (word, index) => word[0].toUpperCase() + word.substring(1)
             separator = ""
             break
         case "kebab":
-            convertWord = (word, index) => word.toLowerCase()
+            mapWord = (word, index) => word.toLowerCase()
             separator = "-"
             break
         case "snake":
-            convertWord = (word, index) => word.toLowerCase()
+            mapWord = (word, index) => word.toLowerCase()
             separator = "_"
     }
-    return str.match(new RegExp(`[${wordSeparators ?? defaultWordSeparators}]`)).map(convertWord).join(separator)
+    return (str.match(new RegExp(`(${startWord.join("|")})(${bodyWord.join("|")})*`))??[]).map(mapWord).join(separator)
 }
