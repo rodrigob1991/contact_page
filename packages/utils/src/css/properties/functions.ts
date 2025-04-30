@@ -1,89 +1,60 @@
 import type { Properties } from 'csstype'
 import { toCase } from 'src/strings'
-import { CamelOrPascalToKebab, IfTrueFalseExtends, InterpolateKeysValues, PropertiesUnion } from 'src/types'
+import { CamelOrPascalToKebab, IfTrueFalseExtends, IfUndefinedOtherExtends, InterpolateKeysValues, PropertiesUnion } from 'src/types'
 import { KeyValue } from 'src/types_checks'
 
 export type CSSProperties = Properties
 export type CSSPropertyKey = keyof CSSProperties
 export type CSSPropertyValue = CSSProperties[CSSPropertyKey]
 
-/* export function getCSSValueStr(values: string[]) {
-    return values.join(" ")
-}
-export function getCSSPropertyStr(name: string, values: string[]) {
-    return name + ": " + getCSSValueStr(values) + ";"
-}
-export function getCSSPropertyKeyValue(name: string, values: string[]) {
-    return {[name]: getCSSValueStr(values)}
-}
-export function getCSSFunctionStr(name: string, values: string[]) {
-    return name + "(" + values.join(",") + ")"
-}
-export function getCSSPropertyWithFunctionsStr(name: string, fnNamesValues: [string, string[]][]) {
-    return getCSSPropertyStr(name, fnNamesValues.map(([fnName, fnValues]) => getCSSFunctionStr(fnName, fnValues)))
-}
- */
-//type UniqueKey = PropertyKey | undefined 
-type ExtraProperties<UK extends UniqueKey> = IfExtendsUndefinedAndOther<UK, KeyValue<PropertyKey>, KeyValue>
-type MapExtraProperty<UK extends UniqueKey, EP extends ExtraProperties<UK>> = <K extends keyof EP>(key: K, value: EP[K]) => PropertyValue
+export type CSSPropertyStr<K extends CSSPropertyKey> = K extends K ? `${CamelOrPascalToKebab<K>}:${CSSProperties[K]};` : never
+export type CSSFunctionStr<K extends CSSPropertyKey> = K extends K ? `${CamelOrPascalToKebab<K>}(${string})` : never
 
-//type DoFirst<WUK extends boolean=false> = FunctionUnionAccumulateArgs<WUK, [[false, [[], void]], [true, [[string], void]]]> 
-//type Map<WUK extends boolean=false> = FunctionUnionAccumulateArgs<WUK, [[false, [[string, string], void]], [true, [[string], void]]]>
-//type DoLast<WUK extends boolean=false> = FunctionUnionAccumulateArgs<WUK, [[false, [[], void]], [true, [[string], void]]]> 
-type DoFirst<UK extends UniqueKey> = IfExtendsUndefinedAndOther<UK, KeyValue<PropertyKey>, KeyValue>
-type Map<UK extends UniqueKey> = IfExtendsUndefinedAndOther<UK, KeyValue<PropertyKey>, KeyValue>
-type DoLast<UK extends UniqueKey> = IfExtendsUndefinedAndOther<UK, KeyValue<PropertyKey>, KeyValue>
-type MapExtraPropertiesArg<UK extends UniqueKey> = {doFirst: DoFirst<UK>, map: Map<UK>, doLast: DoLast<UK>}
-type MapExtraProperties = (withUniqueKey: MapExtraPropertiesArg<true>, withoutUniqueKey: MapExtraPropertiesArg) => void
-
-/* export type CSSObject<UK extends UniqueKey, EP extends ExtraProperties<UK>> = { 
-    uniqueKey: UK
-    mapExtraProperty: MapExtraProperty<UK, EP>
-    mapExtraProperties: MapExtraProperties 
-    keysValues: Properties
-    string: () => string
-    functionString: () => string
-} & EP
- */
-export type CSSObjectWithUniqueKey<UK extends CSSPropertyKey, MP extends KeyValue, TF extends boolean> = {
-    uniqueKey: UK
-    mapProperties: (properties: MP) => CSSPropertyValue
-    keysValues: PropertiesUnion<{[K in UK]: CSSProperties[K]}>
-    string: `${CamelOrPascalToKebab<UK>}:${CSSProperties[UK]};`
+export type CSSObjectOneKey<K extends CSSPropertyKey | undefined, MP extends KeyValue, TF extends IfUndefinedOtherExtends<K, boolean, false>> = {
+    key: K
+    mapProperties: (properties: MP) => IfUndefinedOtherExtends<K, CSSProperties[Exclude<K, undefined>]>
+    keysValues: IfUndefinedOtherExtends<K, PropertiesUnion<{[OK in Exclude<K, undefined>]: CSSProperties[OK]}>>
+    string: IfUndefinedOtherExtends<K, CSSPropertyStr<Exclude<K, undefined>>>
     toFunction: TF
-    functionString: IfTrueFalseExtends<TF, `${CamelOrPascalToKebab<UK>}(${string})`, undefined>
+    functionString: IfTrueFalseExtends<TF, CSSFunctionStr<Exclude<K, undefined>>, undefined>
 } & MP
 
-export const cssObjectWithUniqueKey: CSSObjectWithUniqueKey<CSSPropertyKey, KeyValue, boolean> = {
-    uniqueKey: "widows", // dummy
-    mapProperties(properties) {return ""},
+export const cssObjectOneKey: CSSObjectOneKey<CSSPropertyKey | undefined, KeyValue, boolean> = {
+    key: undefined,
+    mapProperties(properties) {return undefined},
     get keysValues() {
-        return  {[this.uniqueKey]: this.mapProperties(this.mappedProperties)}
+        let keysValues = undefined
+        if (this.key) {
+            keysValues = {[this.key]: this.mapProperties(this)} as Required<PropertiesUnion<CSSProperties>>
+        } 
+        return  keysValues
     },
     get string() {
-        return `${toCase(this.uniqueKey, "kebab")}:${this.mapProperties(this.mappedProperties)};`
+        let string = undefined
+        if (this.key) {
+            string = `${toCase(this.key, "kebab")}:${this.mapProperties(this)};` as CSSPropertyStr<CSSPropertyKey>
+        }
+        return  string
     },
     toFunction: false,
     get functionString() {
         let functionString = undefined
-        if (this.toFunction) {
-            functionString = `${toCase(this.uniqueKey, "kebab")}(${this.mapProperties(this.mappedProperties)})`
+        if (this.key && this.toFunction) {
+            functionString = `${toCase(this.key, "kebab")}(${this.mapProperties(this)})` as CSSFunctionStr<CSSPropertyKey>
         }
         return functionString
     }
 }
 
-export type CSSObjectWithoutUniqueKey<MP extends KeyValue<CSSPropertyKey>, TF extends boolean> = {
-    mappedProperties: Pick<MP, CSSPropertyKey>
+export type CSSObjectMultipleKeys<MP extends KeyValue<CSSPropertyKey>, TF extends boolean> = {
     mapProperty: <K extends keyof Pick<MP, CSSPropertyKey>>(key: K, value: MP[K]) => CSSProperties[K]
     keysValues: {[K in Extract<keyof MP, CSSPropertyKey>]: CSSProperties[K]}
     string: () => InterpolateKeysValues<{[K in Extract<keyof MP, CSSPropertyKey> as CamelOrPascalToKebab<K>]: CSSProperties[K]}, "", ":", ";">
     toFunction: TF
     functionString: () => IfTrueFalseExtends<TF, InterpolateKeysValues<{[K in Extract<keyof MP, CSSPropertyKey> as CamelOrPascalToKebab<K>]: CSSProperties[K]}, "", "(", ")">, undefined>
-}
+} & Pick<MP, CSSPropertyKey>
 
-export const cssObjectWithoutUniqueKey: CSSObjectWithoutUniqueKey<CSSPropertyKey, KeyValue, boolean> = {
-    mappedProperties: {},
+export const cssObjectMultipleKeys: CSSObjectWithoutUniqueKey<CSSPropertyKey, KeyValue, boolean> = {
     mapProperties(properties) {return ""},
     get keysValues() {
         return  {[this.uniqueKey]: this.mapProperties(this.mappedProperties)}

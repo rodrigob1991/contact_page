@@ -25,7 +25,7 @@ export type IfNotExtends<U, IN, IF, ELSE = never> = IfOneExtends<U, IN, ELSE, IF
 
 export type IfObjectExtends<P extends object, IN extends object, IF, Else={}> = P extends IN ? IF : Else 
 
-export type IfUndefinedOtherExtends<T, IU, IO>= IfFirstExtendsThenSecond<T, [[undefined, IU], [Exclude<T, undefined> extends never ? 1 : Exclude<T, undefined>, IO]]>
+export type IfUndefinedOtherExtends<T, IO, IU=undefined>= IfFirstExtendsThenSecond<T, [[undefined, IU], [Exclude<T, undefined> extends never ? 1 : Exclude<T, undefined>, IO]]>
 
 export type IfTrueFalseExtends<T extends boolean, IT, IF>= IfFirstExtendsThenSecond<T, [[true, IT], [false, IF]]>
 
@@ -91,13 +91,13 @@ type ReadonlyKeys<T> = {
     [P in keyof T]-?: PickIfEquals<{ [Q in P]: T[P] }, { -readonly [Q in P]: T[P] }, never, P>
 }[keyof T]
 
-export type PropertiesUnion<O extends object> = {
-    [K in keyof O]: { [key in K]: O[K] }
-}[keyof O]
+export type PropertiesUnion<O extends object> = Exclude<{
+    [K in keyof O]: { [K1 in K] : O[K] }
+}[keyof O], undefined>
 
-export type PropertiesUnionRecursive<O extends object> = {
-    [K in keyof O]: { [key in K]: O[K] extends object ? PropertiesUnionRecursive<O[K]> : O[K]}
-}[keyof O]
+export type PropertiesUnionRecursive<O extends object> = Exclude<{
+    [K in keyof O]: { [K1 in K]: O[K] extends object ? PropertiesUnionRecursive<O[K]> : O[K]}
+}[keyof O], undefined>
 
 export type ChangeKeysNames<O extends object, NewKeysNames extends [keyof O, PropertyKey][]> = {[K in keyof O as SeekNewType<K, NewKeysNames> extends infer V ? V extends PropertyKey ? V : K : never]: O[K]}
 
