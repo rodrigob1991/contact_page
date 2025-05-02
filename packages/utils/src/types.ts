@@ -56,7 +56,7 @@ export type InterpolateKeyValue<KV extends KeyValue<PropertyKey, InterpolateType
     [K in keyof KV]: `${B}${K extends symbol ? K["description"] : K}${M}${KV[K]}${E}`
 }[keyof KV]
 
-export type InterpolateKeysValues<KV extends KeyValue<PropertyKey, InterpolateType>, B extends InterpolateType="", M extends InterpolateType="", E extends InterpolateType="">= InterpolateElements<Permutations<InterpolateKeyValue<KV, B, M, E>>>
+export type InterpolateKeysValues<KV extends KeyValue<PropertyKey, InterpolateType>, B extends InterpolateType="", M extends InterpolateType="", E extends InterpolateType="">= InterpolateElements<AllCombinations<InterpolateKeyValue<KV, B, M, E>>>
 
 // ----------------------
 
@@ -121,10 +121,11 @@ export type ArrayIndex<A extends unknown[], I extends number[]=number[]> =
 
 type ChangeType<E, T extends [unknown, unknown][]> = T extends [infer T0 extends [unknown, unknown], ...infer TR extends [unknown, unknown][]] ? E  extends T0[0] ? Exclude<E, T0[0]> | T0[1] : ChangeType<E, TR> : E
 export type ChangeArrayTypes<A extends unknown[], T extends [unknown, unknown][]> = A extends [infer E0, ...infer ER extends unknown[]] ? [ChangeType<E0, T>, ...ChangeArrayTypes<ER, T>] : ChangeType<A[number], T>[]
-export type Permutations<T, U = T> = [T] extends [never]
+// TODO: when T include unions types like boolean then the result could be undesired. Try to fix this using other type parameter type
+export type AllCombinations<T, U = T> = [T] extends [never]
   ? []
   : T extends U
-  ? [T, ...Permutations<Exclude<U, T>>]
+  ? [T, ...AllCombinations<Exclude<U, T>>]
   : never
 
 //--------------------------
