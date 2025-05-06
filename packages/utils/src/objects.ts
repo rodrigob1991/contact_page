@@ -1,14 +1,17 @@
-/*return shallow copy of the record replacing properties with the array of tuples provided*/
 import {ChangePropertiesType} from "./types"
+import { KeyValue } from "./types_checks"
 
-export const getObjectWithNewProps = <O extends object, P extends [keyof O, any][]>(object: O, newProps: P): ChangePropertiesType<O, P> => {
-    const modifiedObject = {...object}
+/** 
+ * @return shallow copy of the kv param with replaced properties with newProps param provided
+ * */
+export const getObjectWithNewProps = <KV extends KeyValue, P extends [keyof KV, unknown][]>(kv: KV, newProps: P): ChangePropertiesType<KV, P> => {
+    const modifiedKv: ChangePropertiesType<KV, P> = {...kv}
     for (const [key, newProp] of newProps) {
-        modifiedObject[key] = newProp
+        modifiedKv[key] = newProp
     }
-
-    return modifiedObject
+    return modifiedKv
 }
 
-export const isEmpty = (o: object) => Object.keys(o).length === 0
-export const exist = <O extends object>(o: O | null | undefined): o is O => o !== undefined && o !== null
+export const isEmpty = (kv: KeyValue) => Object.keys(kv).length === 0
+export const exist = <KV extends KeyValue>(kv: KV | null | undefined): kv is KV => kv !== undefined && kv !== null
+export const writableProperty = <KV extends KeyValue>(kv: KV, key: keyof KV) => Object.getOwnPropertyDescriptor(kv, key)?.writable ?? false
