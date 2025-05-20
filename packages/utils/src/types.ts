@@ -84,12 +84,16 @@ type PickIfEquals<X, Y, A=X, B=never> =
     (<T>() => T extends X ? 1 : 2) extends
         (<T>() => T extends Y ? 1 : 2) ? A : B
 
-export type WritableProps<O extends object> = {
+
+export type Writable<O extends object> = {
+    -readonly [K in keyof O]: O[K]
+}
+export type ExtractWritable<O extends object> = {
     [K in keyof O as PickIfEquals<{ [Q in K]: O[K] }, { -readonly [Q in K]: O[K] }, K>]: O[K]
 }
-type ReadonlyKeys<T> = {
-    [P in keyof T]-?: PickIfEquals<{ [Q in P]: T[P] }, { -readonly [Q in P]: T[P] }, never, P>
-}[keyof T]
+export type ExtractReadonly<O extends object> = {
+    [P in keyof O]-?: PickIfEquals<{ [Q in P]: O[P] }, { -readonly [Q in P]: O[P] }, never, P>
+}[keyof O]
 
 export type PropertiesUnion<O extends object> = Exclude<{
     [K in keyof O]: { [K1 in K] : O[K] }

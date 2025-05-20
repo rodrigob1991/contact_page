@@ -1,5 +1,5 @@
 import { CSSUnitLength } from "src/css/units/lengths"
-import { CSSObject, getCSSFunctionStr, getCSSPropertyStr, getCSSPropertyWithFunctionsStr, getCSSValueStr } from "../functions"
+import { CSSObject, getCSSFunctionStr, getCSSPropertyStr, getCSSPropertyWithFunctionsStr, getCSSValueStr } from "../base"
 
 export type CSSLengthValue = {value: number, unit: CSSUnitLength}
 export type CSSLengthValues = CSSLengthValue[]

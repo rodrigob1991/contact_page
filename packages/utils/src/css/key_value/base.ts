@@ -1,14 +1,23 @@
 import type { Properties } from 'csstype'
 import { toCase } from 'src/strings'
-import { AllCombinations, CamelOrPascalToKebab, IfTrueFalseExtends, IfUndefinedOtherExtends, PropertiesUnion } from 'src/types'
+import { AllCombinations, CamelOrPascalToKebab, IfTrueFalseExtends, IfUndefinedOtherExtends, PropertiesUnion, Writable } from 'src/types'
 import { KeyValue } from 'src/types_checks'
 
 export type CSSPropertyKey = keyof Properties
 export type CSSProperties<K extends CSSPropertyKey=CSSPropertyKey> = Pick<Properties, K>
-export type CSSPropertyValue = CSSProperties[CSSPropertyKey]
+export type CSSPropertyValue<K extends CSSPropertyKey=CSSPropertyKey> = CSSProperties[K]
+
+export const d: CSSPropertyValue<"width"> = "der"
 
 export type CSSPropertyStr<K extends CSSPropertyKey> = K extends K ? `${CamelOrPascalToKebab<K>}:${CSSProperties[K]};` : never
 export type CSSFunctionStr<K extends CSSPropertyKey> = K extends K ? `${CamelOrPascalToKebab<K>}(${string})` : never
+
+type MapProperty<K extends CSSPropertyKey, PM extends KeyValue> = (properties: PM) => CSSProperties[Exclude<K, undefined>]
+
+type CSSObject = {
+    mapProperty: () => CSSPropertyValue
+
+}
 
 type MapProperties<K extends CSSPropertyKey, PM extends KeyValue> = (properties: PM) => CSSProperties[Exclude<K, undefined>]
 type MapPropertiesOrUndefined<K extends CSSPropertyKey | undefined, MP extends KeyValue> = IfUndefinedOtherExtends<K, MapProperties<Exclude<K, undefined>, MP>>
@@ -56,7 +65,7 @@ export const newCssObjectOneKey = <K extends CSSPropertyKey | undefined, PM exte
 type PropertiesToMap = KeyValue<CSSPropertyKey>
 type MapProperty<PM extends PropertiesToMap> = <K extends keyof Pick<PM, CSSPropertyKey>>(key: K, value: PM[K]) => CSSProperties[K]
 
-export type CSSObjectMultipleKeys<PM extends PropertiesToMap | undefined, TF extends IfUndefinedOtherExtends<PM, boolean, false>> = Readonly<{
+export type CSSObjectMultipleKeys<PM extends Writable<PropertiesToMap> | undefined, TF extends IfUndefinedOtherExtends<PM, boolean, false>> = Readonly<{
     mapProperty: IfUndefinedOtherExtends<PM, MapProperty<Exclude<PM, undefined>>>
     keyValue: IfUndefinedOtherExtends<PM, CSSProperties<Extract<keyof PM, CSSPropertyKey>>>
     string: IfUndefinedOtherExtends<PM, AllCombinations<CSSPropertyStr<Extract<keyof PM, CSSPropertyKey>>>>

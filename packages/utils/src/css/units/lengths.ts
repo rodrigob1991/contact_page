@@ -44,11 +44,3 @@ export type CSSUnitLength = CSSAbsoluteUnitLength | CSSRelativeUnitLength
 
 export type CSSUnitLengthValueStr = `${number}${CSSUnitLength}` | "0"
 export type CSSUnitLengthValue = {value: number, unit: CSSUnitLength} 
-
-export class MyInterface {
-    method1: function () {return "" },
-}  
-
-export function cssUnitLengthValueToString<T extends {[]: CSSUnitLengthValue}>(unitLengthValue: T) {
-
-}
