@@ -8,3 +8,4 @@ export const cssWideKeywords = {
     unsetLayer: "unset-layer"
 } as const
 
+percentage
