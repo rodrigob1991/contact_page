@@ -1,0 +1,13 @@
+export type KeyValue<K extends PropertyKey = PropertyKey, V = unknown> = Record<K, V>;
+export type EmptyKeyValue = KeyValue<never, never>;
+export type KeyNumberValue<K extends PropertyKey = PropertyKey, V extends number = number> = KeyValue<K, V>;
+export type Callable<A extends unknown[] = [], R = unknown> = (...args: A) => R;
+export type NonEmptyArray<T> = [T, ...T[]];
+export declare const isNumber: (v: unknown) => v is number;
+export declare const isString: (v: unknown) => v is string;
+export declare const isKeyValue: (v: unknown) => v is KeyValue<PropertyKey, unknown>;
+export declare const isCallable: (v: unknown) => v is Callable<[], unknown>;
+export declare const isArray: (v: unknown) => v is unknown[];
+export declare const isNonEmpty: <T>(a: T[]) => a is NonEmptyArray<T>;
+export declare const isNumberArray: (v: unknown) => v is number[];
+export declare const isKeyNumberValue: (v: unknown) => v is KeyNumberValue<PropertyKey, number>;

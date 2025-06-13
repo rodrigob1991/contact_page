@@ -7,6 +7,9 @@ export declare const cssAbsoluteUnitsLengths: {
     readonly points: "pt";
     readonly pixels: "px";
 };
+export type CSSAbsoluteUnitsLengths = typeof cssAbsoluteUnitsLengths;
+export type CSSAbsoluteUnitsLengthsKey = keyof CSSAbsoluteUnitsLengths;
+export type CSSAbsoluteUnitLength = CSSAbsoluteUnitsLengths[CSSAbsoluteUnitsLengthsKey];
 export declare const cssRelativeUnitsLengths: {
     readonly parentLength: "em";
     readonly heightFont: "ex";
@@ -27,12 +30,34 @@ export declare const cssRelativeUnitsLengths: {
     readonly onePercentDynamicViewportWidth: "dvw";
     readonly onePercentDynamicViewportHeight: "dvh";
 };
-export type CSSAbsoluteUnitsLengths = typeof cssAbsoluteUnitsLengths;
-export type CSSAbsoluteUnitsLengthsKey = keyof CSSAbsoluteUnitsLengths;
-export type CSSAbsoluteUnitLength = CSSAbsoluteUnitsLengths[CSSAbsoluteUnitsLengthsKey];
 export type CSSRelativeUnitsLengths = typeof cssRelativeUnitsLengths;
 export type CSSRelativeUnitsLengthsKey = keyof CSSRelativeUnitsLengths;
 export type CSSRelativeUnitLength = CSSRelativeUnitsLengths[CSSRelativeUnitsLengthsKey];
 export type CSSUnitsLengths = CSSAbsoluteUnitsLengths | CSSRelativeUnitsLengths;
 export type CSSUnitsLengthsKey = CSSAbsoluteUnitsLengthsKey | CSSRelativeUnitsLengthsKey;
 export type CSSUnitLength = CSSAbsoluteUnitLength | CSSRelativeUnitLength;
+declare const cssAngleUnits: {
+    readonly degrees: "deg";
+    readonly radians: "rad";
+    readonly gradians: "grad";
+    readonly turns: "turn";
+};
+export type CSSAngleUnits = typeof cssAngleUnits;
+export type CSSAngleUnitsKey = keyof CSSAngleUnits;
+export type CSSUnitAngle = CSSAngleUnits[CSSAngleUnitsKey];
+declare const cssFrequencyUnits: {
+    readonly hertz: "Hz";
+    readonly kilohertz: "kHz";
+};
+export type CSSFrequencyUnits = typeof cssFrequencyUnits;
+export type CSSFrequencyUnitsKey = keyof CSSFrequencyUnits;
+export type CSSUnitFrequency = CSSFrequencyUnits[CSSFrequencyUnitsKey];
+declare const cssTimeUnits: {
+    readonly seconds: "s";
+    readonly milliseconds: "ms";
+};
+export type CSSTimeUnits = typeof cssTimeUnits;
+export type CSSTimeUnitsKey = keyof CSSTimeUnits;
+export type CSSUnitTime = CSSTimeUnits[CSSTimeUnitsKey];
+export type CSSUnit = CSSUnitLength | CSSUnitAngle | CSSUnitFrequency | CSSUnitTime;
+export {};

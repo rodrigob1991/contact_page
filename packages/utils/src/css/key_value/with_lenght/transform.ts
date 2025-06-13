@@ -18,5 +18,3 @@ export function getCSSTranslateFunctionStr<T extends CSSTranslate, F extends boo
 
     return str
 }
-
-export function newC

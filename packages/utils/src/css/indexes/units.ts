@@ -41,5 +41,30 @@ export type CSSUnitsLengths = CSSAbsoluteUnitsLengths | CSSRelativeUnitsLengths
 export type CSSUnitsLengthsKey = CSSAbsoluteUnitsLengthsKey | CSSRelativeUnitsLengthsKey
 export type CSSUnitLength = CSSAbsoluteUnitLength | CSSRelativeUnitLength
 
-export type CSSUnitLengthValueStr = `${number}${CSSUnitLength}` | "0"
-export type CSSUnitLengthValue = {value: number, unit: CSSUnitLength} 
+const cssAngleUnits = {
+	degrees: "deg",
+	radians: "rad",
+	gradians: "grad",
+	turns: "turn"
+} as const
+export type CSSAngleUnits = typeof cssAngleUnits
+export type CSSAngleUnitsKey = keyof CSSAngleUnits
+export type CSSUnitAngle = CSSAngleUnits[CSSAngleUnitsKey]
+
+const cssFrequencyUnits = {
+	hertz: "Hz",
+	kilohertz: "kHz",
+} as const
+export type CSSFrequencyUnits = typeof cssFrequencyUnits	
+export type CSSFrequencyUnitsKey = keyof CSSFrequencyUnits
+export type CSSUnitFrequency = CSSFrequencyUnits[CSSFrequencyUnitsKey]
+
+const cssTimeUnits = {
+	seconds: "s",
+	milliseconds: "ms"
+} as const
+export type CSSTimeUnits = typeof cssTimeUnits
+export type CSSTimeUnitsKey = keyof CSSTimeUnits
+export type CSSUnitTime = CSSTimeUnits[CSSTimeUnitsKey]
+
+export type CSSUnit = CSSUnitLength | CSSUnitAngle | CSSUnitFrequency | CSSUnitTime

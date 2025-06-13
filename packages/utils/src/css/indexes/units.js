@@ -31,3 +31,17 @@ exports.cssRelativeUnitsLengths = {
     onePercentDynamicViewportWidth: "dvw",
     onePercentDynamicViewportHeight: "dvh",
 };
+const cssAngleUnits = {
+    degrees: "deg",
+    radians: "rad",
+    gradians: "grad",
+    turns: "turn"
+};
+const cssFrequencyUnits = {
+    hertz: "Hz",
+    kilohertz: "kHz",
+};
+const cssTimeUnits = {
+    seconds: "s",
+    milliseconds: "ms"
+};

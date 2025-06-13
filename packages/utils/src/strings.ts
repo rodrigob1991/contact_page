@@ -1,6 +1,7 @@
 import { numberRgx } from "./regular_expressions"
 import { CaseType } from "./types"
 import { NonEmptyArray, isNonEmpty } from "./types_checks"
+import * as ts from 'typescript'
 
 export const getContainedString = (str: string, betweenLeft?: string, betweenRight?: string) => {
     let containedString
