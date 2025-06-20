@@ -4,7 +4,7 @@
     "rootDir": "./src",
     "baseUrl": "./", 
     "exactOptionalPropertyTypes": true,
-    "plugins": [{ "transform": "./src/transformer.ts", "type": "raw"}]
+    "plugins": [{ "transform": "./src/transformer.ts", "type": "raw"}],
   },
   "files": [
     "src/css/indexes/values.ts",
