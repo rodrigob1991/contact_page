@@ -1,7 +1,9 @@
 import { CSSUnit, CSSUnitAngle, CSSUnitFrequency, CSSUnitLength, CSSUnitTime } from "./units"
+import { InterpolateElements } from "../../types"
+import { PositiveNumber } from "src/types_checks"
 
 //TODO: maybe use descriptive key names instead.
-export const cssWideKeywordsValues = {
+export const cssWideKeywords = {
     inherit: "inherit",
     initial: "initial",
     unset: "unset",
@@ -9,8 +11,11 @@ export const cssWideKeywordsValues = {
     revertLayer: "revert-layer",
     unsetLayer: "unset-layer"
 } as const
+export type CSSWideKeywords = typeof cssWideKeywords
+export type CSSWideKeywordKey = keyof CSSWideKeywords
+export type CSSWideKeywordValue = CSSWideKeywords[CSSWideKeywordKey]
 
-export const cssKeywordsValues = {
+export const cssKeywords = {
     inline: "inline",
     scroll:  "scroll",
     fixed: "fixed", 
@@ -31,8 +36,16 @@ export const cssKeywordsValues = {
     collapse: "collapse",
     separate: "separate",
 } as const
+export type CSSKeywords = typeof cssKeywords
+export type CSSKeywordKey = keyof CSSKeywords
+export type CSSKeywordsValues = CSSKeywords[CSSKeywordKey]
 
-export const cssNumericValuesProducers = {
+export type PositiveLength = `${PositiveNumber}${CSSUnitLength}`
+export type LineWidth = PositiveLength | CSSKeywords["thin" | "medium" | "thick"]
+
+export type CSSValue = LineWidth
+
+/* export const cssNumericValuesProducers = {
     number: <N extends number>(n: N) => `${n}` as const,
     integer: <N extends number>(n: N) => `${Number.isInteger(n) ? n : Math.floor(n)}` as const,
     dimension: <N extends number, U extends CSSUnit>(n: N, u: U) => `${n}${u}` as const,
@@ -48,12 +61,7 @@ export const cssDimensionTypes = {
     frequency: <N extends number, U extends CSSUnitFrequency>(n: N, u: U) => `${n}${u}` as const,
     angle: <N extends number, U extends CSSUnitAngle>(n: N, u: U) => `${n}${u}` as const,
 }
-
-export const getValueProducer = () => {
-    const producer = () => {}
-
-    return producer
-}
-
-export type Int = number & { __brand: 'int' }
-export const n : Int = 34
+ */
+type ValueProducerResult<V extends CSSValue[] | [CSSWideKeywordValue]> = InterpolateElements<V, " ">
+export type ValueProducer<V extends CSSValue[] | [CSSValue, ...(CSSValue | undefined)[]]> = <A extends V | [CSSWideKeywordValue]>(...args: A) => ValueProducerResult<A>
+export const valueProducer: ValueProducer<CSSValue[]> = (...args) => args.join(" ") as ValueProducerResult<typeof args>

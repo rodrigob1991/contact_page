@@ -4,10 +4,5 @@
     "rootDir": "./src",
     "baseUrl": "./", 
     "exactOptionalPropertyTypes": true,
-    "plugins": [{ "transform": "./src/transformer.ts", "type": "raw"}],
-  },
-  "files": [
-    "src/css/indexes/values.ts",
-    "src/css/indexes/units.ts"
-  ]
+  }
 }

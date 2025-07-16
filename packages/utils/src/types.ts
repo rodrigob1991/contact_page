@@ -46,11 +46,13 @@ export type CamelOrPascalToKebab<S extends string, B extends boolean=true> = S e
 
 export type InterpolateType = string | number | bigint | boolean | null | undefined
 
-export type InterpolateElements<A extends InterpolateType[]> = A extends [infer F extends InterpolateType, ...infer R extends InterpolateType[]]
+export type InterpolateElements<A extends InterpolateType[], S extends InterpolateType =""> = A extends [infer F extends InterpolateType, ...infer R extends InterpolateType[]]
   ? R extends []
     ? `${F}`
-    : `${F}${InterpolateElements<R>}`
-  : ""
+    : `${F}${S}${InterpolateElements<R>}`
+  : A extends [] 
+    ? "" 
+    : string
 
 export type InterpolateKeyValue<KV extends KeyValue<PropertyKey, InterpolateType>, B extends InterpolateType="", M extends InterpolateType="", E extends InterpolateType="">= {
     [K in keyof KV]: `${B}${K extends symbol ? K["description"] : K}${M}${KV[K]}${E}`

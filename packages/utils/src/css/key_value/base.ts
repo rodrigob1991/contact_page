@@ -7,8 +7,6 @@ export type CSSPropertyKey = keyof Properties
 export type CSSProperties<K extends CSSPropertyKey=CSSPropertyKey> = Pick<Properties, K>
 export type CSSPropertyValue<K extends CSSPropertyKey=CSSPropertyKey> = CSSProperties[K]
 
-export const d: CSSPropertyValue<"width"> = "der"
-
 export type CSSPropertyStr<K extends CSSPropertyKey> = K extends K ? `${CamelOrPascalToKebab<K>}:${CSSProperties[K]};` : never
 export type CSSFunctionStr<K extends CSSPropertyKey> = K extends K ? `${CamelOrPascalToKebab<K>}(${string})` : never
 
