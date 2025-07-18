@@ -126,7 +126,7 @@ export type ArrayIndex<A extends unknown[], I extends number[]=number[]> =
             : ArrayIndex<A, [...I, I["length"]]>
 
 type ChangeType<E, T extends [unknown, unknown][]> = T extends [infer T0 extends [unknown, unknown], ...infer TR extends [unknown, unknown][]] ? E  extends T0[0] ? Exclude<E, T0[0]> | T0[1] : ChangeType<E, TR> : E
-export type ChangeArrayTypes<A extends unknown[], T extends [unknown, unknown][]> = A extends [infer E0, ...infer ER extends unknown[]] ? [ChangeType<E0, T>, ...ChangeArrayTypes<ER, T>] : ChangeType<A[number], T>[]
+export type ChangeElementsType<A extends unknown[], T extends [unknown, unknown][]> = A extends [infer E0, ...infer ER extends unknown[]] ? [ChangeType<E0, T>, ...ChangeElementsType<ER, T>] : ChangeType<A[number], T>[]
 // TODO: when T include unions types like boolean then the result could be undesired. Try to fix this using other type parameter type
 export type AllCombinations<T, U = T> = [T] extends [never]
   ? []

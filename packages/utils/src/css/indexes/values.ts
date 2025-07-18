@@ -1,6 +1,6 @@
-import { CSSUnit, CSSUnitAngle, CSSUnitFrequency, CSSUnitLength, CSSUnitTime } from "./units"
-import { InterpolateElements } from "../../types"
-import { PositiveNumber } from "src/types_checks"
+import { NumberInRange, PositiveNumber } from "src/types_checks"
+import { ChangeElementsType, InterpolateElements } from "../../types"
+import { CSSUnitLength } from "./units"
 
 //TODO: maybe use descriptive key names instead.
 export const cssWideKeywords = {
@@ -16,6 +16,7 @@ export type CSSWideKeywordKey = keyof CSSWideKeywords
 export type CSSWideKeywordValue = CSSWideKeywords[CSSWideKeywordKey]
 
 export const cssKeywords = {
+    none: "none",
     inline: "inline",
     scroll:  "scroll",
     fixed: "fixed", 
@@ -40,10 +41,13 @@ export type CSSKeywords = typeof cssKeywords
 export type CSSKeywordKey = keyof CSSKeywords
 export type CSSKeywordsValues = CSSKeywords[CSSKeywordKey]
 
-export type PositiveLength = `${PositiveNumber}${CSSUnitLength}`
+export type Length<N extends NumberInRange=NumberInRange, U extends CSSUnitLength | ""=CSSUnitLength | ""> = `${N}${U}`
+export type PositiveLength<N extends PositiveNumber=PositiveNumber> = Length<N>
+export type Percentage<N extends NumberInRange=NumberInRange> = `${N}%`
+export type LengthPercentage = Length | Percentage
 export type LineWidth = PositiveLength | CSSKeywords["thin" | "medium" | "thick"]
 
-export type CSSValue = LineWidth
+export type CSSValue = LengthPercentage | LineWidth
 
 /* export const cssNumericValuesProducers = {
     number: <N extends number>(n: N) => `${n}` as const,
@@ -62,6 +66,6 @@ export const cssDimensionTypes = {
     angle: <N extends number, U extends CSSUnitAngle>(n: N, u: U) => `${n}${u}` as const,
 }
  */
-type ValueProducerResult<V extends CSSValue[] | [CSSWideKeywordValue]> = InterpolateElements<V, " ">
-export type ValueProducer<V extends CSSValue[] | [CSSValue, ...(CSSValue | undefined)[]]> = <A extends V | [CSSWideKeywordValue]>(...args: A) => ValueProducerResult<A>
-export const valueProducer: ValueProducer<CSSValue[]> = (...args) => args.join(" ") as ValueProducerResult<typeof args>
+type ValueProducerResult<V extends (CSSValue | undefined)[] | [CSSWideKeywordValue | CSSKeywordsValues]> = InterpolateElements<ChangeElementsType<V, [[undefined, ""]]>, " ">
+export type ValueProducer<V extends (CSSValue | undefined)[], KK extends CSSKeywordKey=never> = <A extends V | [CSSWideKeywordValue | CSSKeywords[KK]]>(...args: A) => ValueProducerResult<A>
+export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>

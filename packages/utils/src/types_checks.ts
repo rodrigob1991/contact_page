@@ -1,5 +1,5 @@
 export type IntegerNumber = number & { __brand: "integer_number" }
-export type NumberInRange<F extends number, T extends number> = number & { __brand: "number_in_range" }
+export type NumberInRange<F extends number | "-"= "-", T extends number | "+"= "+"> = number & { __brand: "number_in_range" }
 export type PositiveNumber = NumberInRange<0, number>
 export type NegativeNumber = NumberInRange<number, -1>
 export type IntegerNumberInRange<F extends IntegerNumber, T extends IntegerNumber> = NumberInRange<F, T> & IntegerNumber
