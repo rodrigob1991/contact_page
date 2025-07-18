@@ -1,5 +1,5 @@
 import { toCase } from "../../strings"
-import { valueProducer, LineWidth, ValueProducer, CSSKeywords, LengthPercentage } from "./values"
+import { CSSKeywords, LengthPercentage, LineWidth, ValueProducer, valueProducer } from "./values"
 
 export const cssPropertiesProducer = {
     borderWidth: valueProducer as ValueProducer<[a: LineWidth, b?:LineWidth, c?: LineWidth, d?:LineWidth], CSSKeywords["none"]>,
@@ -7,8 +7,6 @@ export const cssPropertiesProducer = {
     height: valueProducer as ValueProducer<[a: LengthPercentage]>,
     width: valueProducer as ValueProducer<[a: LengthPercentage]>
 } as const
-
-export const v = cssPropertiesProducer.borderWidth("4px")
 
 type KeyArgs<K extends CSSPropertyKey> = K extends CSSPropertyKey ? [K, CSSPropertyArgs<K>] : never
 type KeysArgs<KL extends CSSPropertyKey[]> = KL extends [infer K extends CSSPropertyKey, ...infer R extends CSSPropertyKey[]] ? [[K, CSSPropertyArgs<K>], ...KeysArgs<R>] : KeyArgs<KL[number]>[]
