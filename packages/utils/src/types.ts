@@ -29,6 +29,26 @@ export type IfUndefinedOtherExtends<T, IO, IU=undefined>= IfFirstExtendsThenSeco
 
 export type IfTrueFalseExtends<T extends boolean, IT, IF>= IfFirstExtendsThenSecond<T, [[true, IT], [false, IF]]>
 
+// if all members of ST extends T[0] then T[1] member of result, D type parameter otherwise.
+export type Seek<ST, T extends [unknown, unknown], DI extends boolean=false> = T extends [infer F, infer S]
+        ? DI extends false 
+            ? [ST] extends [F]
+                ? S
+                : ST
+        : ST extends F
+            ? S
+            : ST
+        : ST
+
+/* export type SeekType<SearchKey, NewTypes extends [unknown, unknown][]> =
+    NewTypes extends [infer NewType extends [unknown, unknown], ...infer Rest]
+            ? SearchKey extends NewType[0]
+                ? NewType[1]
+                : Rest extends [unknown, unknown][]
+                    ? SeekType<SearchKey, Rest>
+                    : never
+            : never */
+
 // ----------------
 
 // -------String---------
@@ -46,10 +66,10 @@ export type CamelOrPascalToKebab<S extends string, B extends boolean=true> = S e
 
 export type InterpolateType = string | number | bigint | boolean | null | undefined
 
-export type InterpolateElements<A extends InterpolateType[], S extends InterpolateType =""> = A extends [infer F extends InterpolateType, ...infer R extends InterpolateType[]]
+export type InterpolateElements<A extends InterpolateType[], S extends InterpolateType ="", INS=never, AU=ElementsMembersCombinations<A>> = AU extends [infer F extends InterpolateType, ...infer R extends InterpolateType[]]
   ? R extends []
     ? `${F}`
-    : `${F}${S}${InterpolateElements<R>}`
+    : `${F}${F extends INS ? "" : R[number] extends INS ? "" : S}${InterpolateElements<R, S, INS>}`
   : A extends [] 
     ? "" 
     : string
@@ -58,29 +78,15 @@ export type InterpolateKeyValue<KV extends KeyValue<PropertyKey, InterpolateType
     [K in keyof KV]: `${B}${K extends symbol ? K["description"] : K}${M}${KV[K]}${E}`
 }[keyof KV]
 
-export type InterpolateKeysValues<KV extends KeyValue<PropertyKey, InterpolateType>, B extends InterpolateType="", M extends InterpolateType="", E extends InterpolateType="">= InterpolateElements<AllCombinations<InterpolateKeyValue<KV, B, M, E>>>
+export type InterpolateKeysValues<KV extends KeyValue<PropertyKey, InterpolateType>, B extends InterpolateType="", M extends InterpolateType="", E extends InterpolateType="">= InterpolateElements<MembersCombinations<InterpolateKeyValue<KV, B, M, E>>>
 
 // ----------------------
 
 // -------Objects---------
 
-type SeekNewType<SearchKey, NewTypes extends [PropertyKey, unknown][]> =
-    NewTypes extends [infer NewType, ...infer Rest]
-        ? NewType extends [PropertyKey, unknown]
-            ? SearchKey extends NewType[0]
-                ? NewType[1]
-                : Rest extends [PropertyKey, unknown][]
-                    ? SeekNewType<SearchKey, Rest>
-                    : never
-            : never
-        : undefined
-export type ChangePropertiesType<O extends object, NewTypes extends [keyof O, unknown][]> = {
-    [Key in keyof O]
-    : SeekNewType<Key, NewTypes> extends undefined
-        ? O[Key]
-        : SeekNewType<Key, NewTypes>
+export type ChangePropertiesValues<O extends object, T extends [keyof O, unknown]> = {
+    [K in keyof O] : Seek<K, T, O[K]>
 }
-export type ChangePropertyType<O extends object, NewType extends [keyof O, unknown]> = ChangePropertiesType<O, [NewType]>
 
 type PickIfEquals<X, Y, A=X, B=never> =
     (<T>() => T extends X ? 1 : 2) extends
@@ -105,9 +111,7 @@ export type PropertiesUnionRecursive<O extends object> = Exclude<{
     [K in keyof O]: { [K1 in K]: O[K] extends object ? PropertiesUnionRecursive<O[K]> : O[K]}
 }[keyof O], undefined>
 
-export type ChangeKeysNames<O extends object, NewKeysNames extends [keyof O, PropertyKey][]> = {[K in keyof O as SeekNewType<K, NewKeysNames> extends infer V ? V extends PropertyKey ? V : K : never]: O[K]}
-
-export type ChangeKeyName<O extends object, NewKeyName extends [keyof O, PropertyKey]> = ChangeKeysNames<O, [NewKeyName]>
+export type ChangeKeys<O extends object, NK extends [keyof O, PropertyKey]> = {[K in keyof O as Seek<K, NK>]: O[K]}
 
 export type Available<T, U, A extends object> = T extends U ? A : {[K in keyof A]?: never}
 
@@ -125,15 +129,26 @@ export type ArrayIndex<A extends unknown[], I extends number[]=number[]> =
             ? I[number]
             : ArrayIndex<A, [...I, I["length"]]>
 
-type ChangeType<E, T extends [unknown, unknown][]> = T extends [infer T0 extends [unknown, unknown], ...infer TR extends [unknown, unknown][]] ? E  extends T0[0] ? Exclude<E, T0[0]> | T0[1] : ChangeType<E, TR> : E
-export type ChangeElementsType<A extends unknown[], T extends [unknown, unknown][]> = A extends [infer E0, ...infer ER extends unknown[]] ? ER extends [] ? [ChangeType<E0, T>] : [ChangeType<E0, T>, ...ChangeElementsType<ER, T>] : ChangeType<A[number], T>[]
+export type ChangeElements<A extends unknown[], T extends [unknown, unknown]> = A extends [infer E0, ...infer ER extends unknown[]] ? ER extends [] ? [Seek<E0, T, E0>] : [Seek<E0, T, E0>, ...ChangeElements<ER, T>] : A[number] extends never ? [] : Seek<A[number], T, >[]
+
+export type RemoveElements<A extends unknown[], R> = A extends [infer E0, ...infer ER extends unknown[]] ? ER extends [] ? IfExtends<E0, R, [], []> [ChangeType<E0, T>] : [ChangeType<E0, T>, ...ChangeElementsType<ER, T>] : ChangeType<A[number], T>[]
+
 // TODO: when T include unions types like boolean then the result could be undesired. Try to fix this using other type parameter type
-export type AllCombinations<T, U = T> = [T] extends [never]
+export type MembersCombinations<T, U = T> = [T] extends [never]
   ? []
   : T extends U
-  ? [T, ...AllCombinations<Exclude<U, T>>]
+  ? [T, ...MembersCombinations<Exclude<U, T>>]
   : never
 
+export type ElementsMembersCombinations<A extends unknown[]> = A extends [infer F, ...infer R] 
+  ? F extends unknown 
+  ? [F, ...ElementsMembersCombinations<R>]
+  : never
+  : []
+
+export type KeyValueTuple<KV extends KeyValue> = {
+    [K in keyof KV]: [K, KV[K]]
+}[keyof KV]
 //--------------------------
 
 // -------FUNCTIONS(Callable)---------

@@ -1,5 +1,5 @@
 import { NumberInRange, PositiveNumber } from "src/types_checks"
-import { ChangeElementsType, InterpolateElements } from "../../types"
+import { ChangeElements, InterpolateElements } from "../../types"
 import { CSSUnitLength } from "./units"
 
 //TODO: maybe use descriptive key names instead.
@@ -66,8 +66,6 @@ export const cssDimensionTypes = {
     angle: <N extends number, U extends CSSUnitAngle>(n: N, u: U) => `${n}${u}` as const,
 }
  */
-export type T = ChangeElementsType<["none"], [[undefined, ""]]>
-export const U:  [string, ...string[]] = ["string"]
-type ValueProducerResult<V extends (CSSValue | undefined)[] | [CSSWideKeywordValue | CSSKeywordsValues]> = InterpolateElements<ChangeElementsType<V, [[undefined, ""]]>, " ">
+type ValueProducerResult<V extends (CSSValue | undefined)[] | [CSSWideKeywordValue | CSSKeywordsValues]> = InterpolateElements<ChangeElements<V, [[undefined, ""]]>, " ", "">
 export type ValueProducer<V extends (CSSValue | undefined)[], KK extends CSSKeywordKey=never> = <A extends V | [CSSWideKeywordValue | CSSKeywords[KK]]>(...args: A) => ValueProducerResult<A>
 export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>
