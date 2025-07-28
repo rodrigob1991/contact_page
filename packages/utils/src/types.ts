@@ -30,24 +30,15 @@ export type IfUndefinedOtherExtends<T, IO, IU=undefined>= IfFirstExtendsThenSeco
 export type IfTrueFalseExtends<T extends boolean, IT, IF>= IfFirstExtendsThenSecond<T, [[true, IT], [false, IF]]>
 
 // if all members of ST extends T[0] then T[1] member of result, D type parameter otherwise.
-export type Seek<ST, T extends [unknown, unknown], DI extends boolean=false> = T extends [infer F, infer S]
+export type Seek<ST, T extends [unknown, unknown], D=never, DI extends boolean=true> = T extends [infer F, infer S]
         ? DI extends false 
             ? [ST] extends [F]
                 ? S
-                : ST
+                : D extends never ? ST : D
         : ST extends F
             ? S
-            : ST
-        : ST
-
-/* export type SeekType<SearchKey, NewTypes extends [unknown, unknown][]> =
-    NewTypes extends [infer NewType extends [unknown, unknown], ...infer Rest]
-            ? SearchKey extends NewType[0]
-                ? NewType[1]
-                : Rest extends [unknown, unknown][]
-                    ? SeekType<SearchKey, Rest>
-                    : never
-            : never */
+            : D extends never ? ST : D
+        : D extends never ? ST : D
 
 // ----------------
 
@@ -129,9 +120,9 @@ export type ArrayIndex<A extends unknown[], I extends number[]=number[]> =
             ? I[number]
             : ArrayIndex<A, [...I, I["length"]]>
 
-export type ChangeElements<A extends unknown[], T extends [unknown, unknown]> = A extends [infer E0, ...infer ER extends unknown[]] ? ER extends [] ? [Seek<E0, T, E0>] : [Seek<E0, T, E0>, ...ChangeElements<ER, T>] : A[number] extends never ? [] : Seek<A[number], T, >[]
+export type ChangeElements<A extends unknown[], T extends [unknown, unknown]> = A extends [infer E0, ...infer ER extends unknown[]] ? [Seek<E0, T>, ...ChangeElements<ER, T>] : A[number] extends never ? [] : Seek<A[number], T>[]
 
-export type RemoveElements<A extends unknown[], R> = A extends [infer E0, ...infer ER extends unknown[]] ? ER extends [] ? IfExtends<E0, R, [], []> [ChangeType<E0, T>] : [ChangeType<E0, T>, ...ChangeElementsType<ER, T>] : ChangeType<A[number], T>[]
+export type RemoveElements<A extends unknown[], R> = A extends [infer E0, ...infer ER extends unknown[]] ? [...[Seek<E0, [R, never]>], ...RemoveElements<ER, R>] : A[number] | Seek<A[number], [R, never]> extends never ? [] : Seek<A[number], [R, never]>[]
 
 // TODO: when T include unions types like boolean then the result could be undesired. Try to fix this using other type parameter type
 export type MembersCombinations<T, U = T> = [T] extends [never]
