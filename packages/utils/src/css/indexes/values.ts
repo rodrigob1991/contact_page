@@ -44,28 +44,11 @@ export type CSSKeywordsValues = CSSKeywords[CSSKeywordKey]
 export type Length<N extends NumberInRange=NumberInRange, U extends CSSUnitLength | ""=CSSUnitLength | ""> = `${N}${U}`
 export type PositiveLength<N extends PositiveNumber=PositiveNumber> = Length<N>
 export type Percentage<N extends NumberInRange=NumberInRange> = `${N}%`
-export type LengthPercentage = Length | Percentage
+export type LengthPercentage<N extends NumberInRange=NumberInRange> = Length<N> | Percentage<N>
 export type LineWidth = PositiveLength | CSSKeywords["thin" | "medium" | "thick"]
 
 export type CSSValue = LengthPercentage | LineWidth
 
-/* export const cssNumericValuesProducers = {
-    number: <N extends number>(n: N) => `${n}` as const,
-    integer: <N extends number>(n: N) => `${Number.isInteger(n) ? n : Math.floor(n)}` as const,
-    dimension: <N extends number, U extends CSSUnit>(n: N, u: U) => `${n}${u}` as const,
-    percentage: <N extends number>(n: N) => `${n}%` as const
-}
-export type CSSNumericValuesProducers = typeof cssNumericValuesProducers
-export type CSSNumericValueKey = keyof CSSNumericValuesProducers
-//export type CSSNumericValue<K extends CSSNumericValueKey> = 
-
-export const cssDimensionTypes = {
-    time: <N extends number, U extends CSSUnitTime>(n: N, u: U) => `${n}${u}` as const,
-    length: <N extends number, U extends CSSUnitLength>(n: N, u: U) => `${n}${u}` as const,
-    frequency: <N extends number, U extends CSSUnitFrequency>(n: N, u: U) => `${n}${u}` as const,
-    angle: <N extends number, U extends CSSUnitAngle>(n: N, u: U) => `${n}${u}` as const,
-}
- */
-type ValueProducerResult<V extends (CSSValue | undefined)[] | [CSSWideKeywordValue | CSSKeywordsValues]> = InterpolateElements<ChangeElements<V, [[undefined, ""]]>, " ", "">
+export type ValueProducerResult<V extends (CSSValue | undefined)[] | [CSSWideKeywordValue | CSSKeywordsValues]> = InterpolateElements<ChangeElements<V, [undefined, ""]>, " ", "">
 export type ValueProducer<V extends (CSSValue | undefined)[], KK extends CSSKeywordKey=never> = <A extends V | [CSSWideKeywordValue | CSSKeywords[KK]]>(...args: A) => ValueProducerResult<A>
 export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>

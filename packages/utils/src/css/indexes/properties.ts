@@ -9,29 +9,33 @@ export const cssPropertiesProducer = {
 } as const
 
 type KeyArgs<K extends CSSPropertyKey> = K extends CSSPropertyKey ? [K, CSSPropertyArgs<K>] : never
-type KeysArgs<KL extends CSSPropertyKey[]> = KL extends [infer K extends CSSPropertyKey, ...infer R extends CSSPropertyKey[]] ? [[K, CSSPropertyArgs<K>], ...KeysArgs<R>] : KeyArgs<KL[number]>[]
+type KeysArgs<KL extends CSSPropertyKey[]=CSSPropertyKey[]> = KL extends [infer K extends CSSPropertyKey, ...infer R extends CSSPropertyKey[]] ? [[K, CSSPropertyArgs<K>], ...KeysArgs<R>] : KeyArgs<KL[number]>[]
 
-export const getCssPropertiesStr = <KL extends CSSPropertyKey[], KA extends KeysArgs<KL>>(keysArgs: KA) => {
+export type CSSPropertiesStr<K extends CSSPropertyKey=CSSPropertyKey> = {
+    [OK in K]: ReturnType<CSSPropertiesProducer[OK]>
+}
+export const getCssPropertiesStr = <KA extends KeysArgs>(...keysArgs: KA) => {
     let str = ""
     for (const [key, args] of keysArgs) {
         const value = cssPropertiesProducer[key](...args)
         str += `${toCase(key, "kebab")}: ${value};`
     }
-    return str
+    return str as CSSPropertiesStr<KA>
 }
 
-export const getCssPropertiesKeyValue = <KL extends CSSPropertyKey[], KA extends KeysArgs<KL>>(keysArgs: KA) => {
+export type CSSPropertiesKeyValue<K extends CSSPropertyKey=CSSPropertyKey> = {
+    [OK in K]: ReturnType<CSSPropertiesProducer[OK]>
+}
+export const getCssPropertiesKeyValue = <KA extends KeysArgs>(...keysArgs: KA) => {
     const keyValue: Partial<CSSPropertiesKeyValue> = {}
     for (const [key, args] of keysArgs) {
         const value = cssPropertiesProducer[key](...args)
         keyValue[key] = value
     }
-    return keyValue
+    return keyValue as CSSPropertiesKeyValue<KA>
 }
 
 export type CSSPropertiesProducer = typeof cssPropertiesProducer
 export type CSSPropertyKey = keyof CSSPropertiesProducer
 export type CSSPropertyArgs<K extends CSSPropertyKey=CSSPropertyKey> = Parameters<CSSPropertiesProducer[K]>
-export type CSSPropertiesKeyValue<K extends CSSPropertyKey=CSSPropertyKey> = {
-    [OK in K]: ReturnType<CSSPropertiesProducer[OK]>
-}
+
