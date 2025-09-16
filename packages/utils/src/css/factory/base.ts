@@ -12,9 +12,9 @@ export type CSSFunctionStr<K extends CSSPropertyKey> = K extends K ? `${CamelOrP
 
 type MapProperty<K extends CSSPropertyKey, PM extends KeyValue> = (properties: PM) => CSSProperties[Exclude<K, undefined>]
 
-type CSSObject = {
-    mapProperty: () => CSSPropertyValue
-
+type CSSKeyValue<> = {
+    toString: () => string
+    toKeyValue: () => PropertiesUnion<CSSProperties>
 }
 
 type MapProperties<K extends CSSPropertyKey, PM extends KeyValue> = (properties: PM) => CSSProperties[Exclude<K, undefined>]

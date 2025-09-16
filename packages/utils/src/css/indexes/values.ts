@@ -39,7 +39,7 @@ export const cssKeywords = {
 } as const
 export type CSSKeywords = typeof cssKeywords
 export type CSSKeywordKey = keyof CSSKeywords
-export type CSSKeywordsValues = CSSKeywords[CSSKeywordKey]
+export type CSSKeywordValue = CSSKeywords[CSSKeywordKey]
 
 export type Length<N extends NumberInRange=NumberInRange, U extends CSSUnitLength | ""=CSSUnitLength | ""> = `${N}${U}`
 export type PositiveLength<N extends PositiveNumber=PositiveNumber> = Length<N>
@@ -49,6 +49,7 @@ export type LineWidth = PositiveLength | CSSKeywords["thin" | "medium" | "thick"
 
 export type CSSValue = LengthPercentage | LineWidth
 
-export type ValueProducerResult<V extends (CSSValue | undefined)[] | [CSSWideKeywordValue | CSSKeywordsValues]> = InterpolateElements<ChangeElements<V, [undefined, ""]>, " ", "">
-export type ValueProducer<V extends (CSSValue | undefined)[], KK extends CSSKeywordKey=never> = <A extends V | [CSSWideKeywordValue | CSSKeywords[KK]]>(...args: A) => ValueProducerResult<A>
+export type ValueProducerArgs<VL extends (CSSValue | undefined)[]=(CSSValue | undefined)[], KW extends CSSKeywordValue=CSSKeywordValue, WKW extends CSSWideKeywordValue=CSSWideKeywordValue> = [WKW | KW] | VL
+export type ValueProducerResult<A extends ValueProducerArgs> = InterpolateElements<ChangeElements<A, [undefined, ""]>, " ", "">
+export type ValueProducer<VL extends (CSSValue | undefined)[], KWK extends CSSKeywordKey=never> = <A extends ValueProducerArgs<VL, CSSKeywords[KWK]>>(...args: A) => ValueProducerResult<A>
 export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>

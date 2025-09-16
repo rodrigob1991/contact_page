@@ -140,6 +140,9 @@ export type ElementsMembersCombinations<A extends unknown[]> = A extends [infer 
 export type KeyValueTuple<KV extends KeyValue> = {
     [K in keyof KV]: [K, KV[K]]
 }[keyof KV]
+
+export type FromElements<A extends unknown[]> = A extends [infer F, infer S, ...infer R] ? F extends PropertyKey ? KeyValue<F, S> : {} & FromElements<R> : A extends [] ? {} : KeyValue<Extract<A[number], PropertyKey>, A[number]>
+
 //--------------------------
 
 // -------FUNCTIONS(Callable)---------
