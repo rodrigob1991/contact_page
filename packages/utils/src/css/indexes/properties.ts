@@ -1,18 +1,18 @@
 import { CamelOrPascalToKebab } from "src/types"
 import { toCase } from "../../strings"
-import { CSSKeywords, LengthPercentage, LineWidth, ValueProducer, ValueProducerResult, valueProducer } from "./values"
+import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, ValueProducer, ValueProducerResult, valueProducer } from "./values"
 
-const cssPropertiesDefinition = {
+const cssPropertiesData = {
     borderWidth: ["none", ["all", "topBottom", "top", "top", "medium" as LineWidth], ["leftRight", "leftRight", "right", "medium" as LineWidth], ["bottom", "bottom", "medium" as LineWidth], ["left", "medium" as LineWidth]],
     translate: ["none", ["x", "0px" as LengthPercentage, 3], ["y", "0px" as LengthPercentage, 2], ["z", "0px" as LengthPercentage, 1]]
 } as const
 
-export type CSSPropertiesDefinition = typeof cssPropertiesDefinition
-export type CSSPropertyKey = keyof CSSPropertiesDefinition
+export type CSSPropertiesData = typeof cssPropertiesData
+export type CSSPropertyKey = keyof CSSPropertiesData
 
 //type KeyValueArgs<LA extends [][]> = LA extends [infer F extends [], ...infer R extends [][]] ? F extends [infer K, infer T, infer C, ...infer RKTC] ? 
 export type CSSProperties = {
-    [K in CSSPropertyKey]: CSSPropertiesDefinition[K] extends [infer F, ...infer R extends [][]] ? F | KeyValueArgs<R> : never
+    [K in CSSPropertyKey]: CSSPropertiesData[K] extends [infer F, ...infer R extends [][]] ? F | KeyValueArgs<R> : never
 }
 const getPropertyValueStr = <K extends CSSPropertyKey, A extends CSSProperties[K]>(key: K, args: A) => {
     
@@ -67,8 +67,10 @@ export const getCssPropertiesKeyValue = <KA extends KeyArgs>(keyArgs: KA) => {
 
 //export type CSSPropertiesProducer = typeof cssPropertiesProducer
 
-export type CSSPropertyArgs<K extends CSSPropertyKey=CSSPropertyKey> = Parameters<CSSPropertiesProducer[K]>
+//export type CSSPropertyArgs<K extends CSSPropertyKey=CSSPropertyKey> = Parameters<CSSPropertiesProducer[K]>
 
-
-
-type KeyValueArgs<LA extends [][], CL extends number[]=[]> = LA extends [infer F extends [], ...infer R extends [][]] ? F extends [infer K, infer T, infer C, ...infer RKTC] ? KeyValueArgsMember<> | KeyValueArgs<[RKTC, ...R], [...CL, C]> : never : never
+type PropertyArgMemberData = [PropertyKey, CSSValue, number]
+type PropertyArgData = PropertyArgMemberData[number][]
+type PropertyArgsData = PropertyArgData[]
+type PropertyArgsMember<PADT extends PropertyArgMemberData, PAD extends PropertyArgsData, CL extends number[]=[]> = {[K in PADT[0]]: PADT[1]} & CL["length"] extends PADT[2] ? {} : PAD extends [infer F extends [infer K extends PropertyKey, infer T extends CSSValue, infer C extends number, ...infer RKTC extends PropertyArgData], ...infer R extends PropertyArgsData] ? PropertyArgsMember<[K, T, C], R> & PropertyArgsMember<PADT, [RKTC, ...R], [...CL, C]> : never
+type PropertyArgs<PAD extends PropertyArgsData>= PAD extends [infer F extends [infer K extends PropertyKey , infer T extends CSSValue, infer C extends number, ...infer RKTC extends PropertyArgData], ...infer R extends PropertyArgsData] ? PropertyArgsMember<[K, T, C], R> | PropertyArgs<[RKTC, ...R]> : never

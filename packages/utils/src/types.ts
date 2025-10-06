@@ -1,4 +1,4 @@
-import { Callable, KeyValue } from "./types_checks"
+import { KeyValue } from "./types_checks"
 
 // Types are order by the result type.
 
@@ -39,6 +39,12 @@ export type Seek<ST, T extends [unknown, unknown], D=never, DI extends boolean=t
             ? S
             : D extends never ? ST : D
         : D extends never ? ST : D
+
+// ----------------
+
+// -------numbers---------
+
+export type Multiply<A extends number[]> = Flat<Matrix<A>>["length"]
 
 // ----------------
 
@@ -106,6 +112,8 @@ export type ChangeKeys<O extends object, NK extends [keyof O, PropertyKey]> = {[
 
 export type Available<T, U, A extends object> = T extends U ? A : {[K in keyof A]?: never}
 
+export type FromElements<A extends unknown[]> = A extends [infer F, infer S, ...infer R] ? F extends PropertyKey ? KeyValue<F, S> : {} & FromElements<R> : A extends [] ? {} : KeyValue<Extract<A[number], PropertyKey>, A[number]>
+
 //--------------------------
 
 // -------ARRAYS---------
@@ -141,13 +149,16 @@ export type KeyValueTuple<KV extends KeyValue> = {
     [K in keyof KV]: [K, KV[K]]
 }[keyof KV]
 
-export type FromElements<A extends unknown[]> = A extends [infer F, infer S, ...infer R] ? F extends PropertyKey ? KeyValue<F, S> : {} & FromElements<R> : A extends [] ? {} : KeyValue<Extract<A[number], PropertyKey>, A[number]>
+export type Sized<L extends number, T=unknown, A extends T[]=[]> = A["length"] extends L ? number extends L ? T[] : A : Sized<L, T, [...A, T]>
 
-//--------------------------
+export type Flat<A extends unknown[]> = A extends [infer F, ...infer R]
+    ? [...(F extends unknown[] ? Flat<F> : [F]), ...Flat<R>]
+    : []
 
-// -------FUNCTIONS(Callable)---------
+export type Matrix<D extends number[], V=unknown> = D extends [infer F extends number, ...infer R extends number[]]
+    ? Sized<F, R extends [] ? V : Matrix<R>>
+    : D extends [] ? [] : V[]
 
-export type CallableReturnUnion<C extends Callable, JR> = C extends (...args: infer A) => infer R ? (...args: A) => R | JR : never
 //export type CallableUnion<T, A extends [unknown, Callable][]> = A extends [infer FA extends [unknown, Callable],  ...infer RA extends [unknown, Callable][]] ? (FA[0] extends T ? FA[1] : never) | FunctionUnion<T, RA> : never
 //export type FunctionUnionAccumulateArgs<T, A extends [unknown, [unknown[], unknown]][], AINE extends boolean=true, LA extends unknown[]=[]> = A extends [infer FA extends [unknown, [unknown[], unknown]],  ...infer RA extends [unknown, [unknown[], unknown]][]] ? FA[0] extends  T ? ((...args: [...LA, ...FA[1][0]]) => FA[1][1]) | FunctionUnionAccumulateArgs<T, RA, AINE, [...LA, ...FA[1][0]]> : FunctionUnionAccumulateArgs<T, RA, AINE, true extends AINE ? [...LA, ...FA[1][0]] : LA> : never
 
