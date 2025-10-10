@@ -44,8 +44,17 @@ export type Seek<ST, T extends [unknown, unknown], D=never, DI extends boolean=t
 
 // -------numbers---------
 
-export type Multiply<A extends number[]> = Flat<Matrix<A>>["length"]
+// TODO: subtract to the result the negatives elements in "N" and result to "number" if any element in N is "number".
+// "N" need to be integer.
+export type Sum<N extends number[], A extends unknown[]=[]> = N extends [infer F extends number, ...infer R extends number[]] ? Sum<R, [...A, ...Sized<F>]> : N extends [] ? A["length"] : number
 
+// TODO: add sign to the result and result to "number" if any element in N is "number".
+// "N" need to be integer.
+export type Multiply<N extends number[]> = Flat<Matrix<N>>["length"]
+
+export type ToNegative<N extends number> = `-${N}` extends `${infer R extends number}` ? R : never
+
+export type ToPositive<N extends number> = `${N}` extends `-${infer R extends number}` ? R : N
 // ----------------
 
 // -------String---------
