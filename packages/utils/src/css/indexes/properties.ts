@@ -1,4 +1,4 @@
-import { CamelOrPascalToKebab } from "src/types"
+import { CamelOrPascalToKebab, Sum } from "src/types"
 import { toCase } from "../../strings"
 import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, ValueProducer, ValueProducerResult, valueProducer } from "./values"
 
@@ -72,5 +72,20 @@ export const getCssPropertiesKeyValue = <KA extends KeyArgs>(keyArgs: KA) => {
 type PropertyArgMemberData = [PropertyKey, CSSValue, number]
 type PropertyArgData = PropertyArgMemberData[number][]
 type PropertyArgsData = PropertyArgData[]
-type PropertyArgsMember<PADT extends PropertyArgMemberData, PAD extends PropertyArgsData, CL extends number[]=[]> = {[K in PADT[0]]: PADT[1]} & CL["length"] extends PADT[2] ? {} : PAD extends [infer F extends [infer K extends PropertyKey, infer T extends CSSValue, infer C extends number, ...infer RKTC extends PropertyArgData], ...infer R extends PropertyArgsData] ? PropertyArgsMember<[K, T, C], R> & PropertyArgsMember<PADT, PAD, [...CL, 1]> : never
-type PropertyArgs<PAD extends PropertyArgsData>= PAD extends [infer F extends [infer K extends PropertyKey , infer T extends CSSValue, infer C extends number, ...infer RKTC extends PropertyArgData], ...infer R extends PropertyArgsData] ? PropertyArgsMember<[K, T, C], R> | PropertyArgs<[RKTC, ...R]> : never
+type PropertyArgsMember<PADT extends PropertyArgMemberData, PAD extends PropertyArgsData, CL extends number[]=[]> = 
+    {[K in PADT[0]]: PADT[1]} & 
+    Slice<CL, 1> extends infer CLS 
+        ? CLS["length"] extends PADT[2] 
+            ? {} 
+            : PAD extends [infer F extends PropertyArgData, ...infer R extends PropertyArgsData] 
+                ? Slice<F, Sum<[CL[0], CLS["lenght"]]>> extends [infer K extends PropertyKey , infer T extends CSSValue, infer C extends number] 
+                    ? PropertyArgsMember<[K, T, C], R, [Sum<CLS>]> & PropertyArgsMember<PADT, PAD, [...CL, C]> 
+                    : never
+                : never
+        : never
+type PropertyArgs<PAD extends PropertyArgsData, TC extends number = 0> = 
+    PAD extends [infer F extends PropertyArgData, ...infer R extends PropertyArgsData] 
+        ? F extends [infer K extends PropertyKey , infer T extends CSSValue, infer C extends number, ...infer RKTC extends PropertyArgData]
+            ? PropertyArgsMember<[K, T, C], R, [TC]> | PropertyArgs<[RKTC, ...R], Sum<[TC, C]>> 
+            : never
+        : never
