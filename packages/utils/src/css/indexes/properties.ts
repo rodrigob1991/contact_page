@@ -1,4 +1,4 @@
-import { CamelOrPascalToKebab, Sum } from "src/types"
+import { CamelOrPascalToKebab, Slice, Sum } from "src/types"
 import { toCase } from "../../strings"
 import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, ValueProducer, ValueProducerResult, valueProducer } from "./values"
 

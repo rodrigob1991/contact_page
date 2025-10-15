@@ -55,6 +55,9 @@ export type Multiply<N extends number[]> = Flat<Matrix<N>>["length"]
 export type ToNegative<N extends number> = `-${N}` extends `${infer R extends number}` ? R : never
 
 export type ToPositive<N extends number> = `${N}` extends `-${infer R extends number}` ? R : N
+
+export type Increment<N extends number, A extends number=1> = Sum<[N, A]>
+
 // ----------------
 
 // -------String---------
@@ -167,6 +170,17 @@ export type Flat<A extends unknown[]> = A extends [infer F, ...infer R]
 export type Matrix<D extends number[], V=unknown> = D extends [infer F extends number, ...infer R extends number[]]
     ? Sized<F, R extends [] ? V : Matrix<R>>
     : D extends [] ? [] : V[]
+
+export type Slice<A extends unknown[], S extends number, E extends number=A["length"], I extends number=0, B=true> =
+    A extends [infer F, ...infer R]
+        ? B extends true 
+            ? I extends S 
+                ? [F, ...Slice<R, S, E, Increment<I>, false>]
+                : Slice<R, S, E, Increment<I>>
+            : I extends E
+                ? [F] 
+                : [F, ...Slice<R, S, E, Increment<I>, false>]
+        : []
 
 //export type CallableUnion<T, A extends [unknown, Callable][]> = A extends [infer FA extends [unknown, Callable],  ...infer RA extends [unknown, Callable][]] ? (FA[0] extends T ? FA[1] : never) | FunctionUnion<T, RA> : never
 //export type FunctionUnionAccumulateArgs<T, A extends [unknown, [unknown[], unknown]][], AINE extends boolean=true, LA extends unknown[]=[]> = A extends [infer FA extends [unknown, [unknown[], unknown]],  ...infer RA extends [unknown, [unknown[], unknown]][]] ? FA[0] extends  T ? ((...args: [...LA, ...FA[1][0]]) => FA[1][1]) | FunctionUnionAccumulateArgs<T, RA, AINE, [...LA, ...FA[1][0]]> : FunctionUnionAccumulateArgs<T, RA, AINE, true extends AINE ? [...LA, ...FA[1][0]] : LA> : never
