@@ -2,42 +2,76 @@ import { CamelOrPascalToKebab, Slice, Sum } from "src/types"
 import { toCase } from "../../strings"
 import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, ValueProducer, ValueProducerResult, valueProducer } from "./values"
 
-const cssPropertiesData = {
-    borderWidth: ["none", ["all", "topBottom", "top", "top", "medium" as LineWidth], ["leftRight", "leftRight", "right", "medium" as LineWidth], ["bottom", "bottom", "medium" as LineWidth], ["left", "medium" as LineWidth]],
+/* const cssPropertiesData = {
+    borderWidth: ["none", ["all", "medium" as LineWidth, 0, "topBottom", "medium" as LineWidth, 1, "top", "medium" as LineWidth, 2], ["leftRight", "medium" as LineWidth, 2 , "right", "medium" as LineWidth, 1], ["bottom", "medium" as LineWidth, 1], ["left", "medium" as LineWidth, 0]],
     translate: ["none", ["x", "0px" as LengthPercentage, 3], ["y", "0px" as LengthPercentage, 2], ["z", "0px" as LengthPercentage, 1]]
+} as const */
+
+const cssPropertiesData = {
+    border: {
+        borderWidth: {
+            value: "medium" as LineWidth,
+            keys: [["all"], ["topBottom", "leftRight"], ["top", "leftRight", "bottom"], ["top", "bottom", "left", "right"]],
+            constituents: {
+                top: {},
+                bottom: {},
+                left: {},
+                right: {}
+            }
+        }
+    },
+    translate: {
+        value: "0px" as LengthPercentage,
+        keys: [["x"], ["x", "y"], ["x", "y", "z"]]
+    },
 } as const
 
 export type CSSPropertiesData = typeof cssPropertiesData
 export type CSSPropertyKey = keyof CSSPropertiesData
 
-//type KeyValueArgs<LA extends [][]> = LA extends [infer F extends [], ...infer R extends [][]] ? F extends [infer K, infer T, infer C, ...infer RKTC] ? 
+type PropertyArgMemberData = [PropertyKey, CSSValue, number]
+type PropertyArgData = PropertyArgMemberData[number][]
+type PropertyArgsData = PropertyArgData[]
+
+type PropertyArgsMember<PADT extends PropertyArgMemberData, PAD extends PropertyArgsData, CL extends number[]=[]> = 
+    {[K in PADT[0]]: PADT[1]} & 
+    Slice<CL, 1> extends infer CLS extends number[] 
+        ? CLS["length"] extends PADT[2] 
+            ? {} 
+            : PAD extends [infer F extends PropertyArgData, ...infer R extends PropertyArgsData] 
+                ? Slice<F, Sum<[CL[0], CLS["lenght"]]>> extends [infer K extends PropertyKey , infer T extends CSSValue, infer C extends number] 
+                    ? PropertyArgsMember<[K, T, C], R, [Sum<CLS>]> & PropertyArgsMember<PADT, PAD, [...CL, C]> 
+                    : never
+                : never
+        : never
+type PropertyArgs<PAD extends PropertyArgsData, TC extends number = 0> = 
+    PAD extends [infer F extends PropertyArgData, ...infer R extends PropertyArgsData] 
+        ? F extends [infer K extends PropertyKey , infer T extends CSSValue, infer C extends number, ...infer RKTC extends PropertyArgData]
+            ? PropertyArgsMember<[K, T, C], R, [TC]> | PropertyArgs<[RKTC, ...R], Sum<[TC, C]>> 
+            : never
+        : never
+
 export type CSSProperties = {
-    [K in CSSPropertyKey]: CSSPropertiesData[K] extends [infer F, ...infer R extends [][]] ? F | KeyValueArgs<R> : never
+    [K in CSSPropertyKey]: CSSPropertiesData[K] extends readonly[infer F, ...infer R] ? F | PropertyArgs<R> : never
 }
 const getPropertyValueStr = <K extends CSSPropertyKey, A extends CSSProperties[K]>(key: K, args: A) => {
     
 
 }
-/* export type CSSPropertiesArgs = {
-    borderWidth: [a: LineWidth, b?:LineWidth, c?: LineWidth, d?:LineWidth], CSSKeywords["none"],
-    translate: [a: LengthPercentage, b?: LengthPercentage, c?: LengthPercentage],
-    height: [a: LengthPercentage],
-    width: [a: LengthPercentage]
-} */
 
-export type CSSPropertiesProducer = {
+/* export type CSSPropertiesProducer = {
     borderWidth: ValueProducer<[a: LineWidth, b?:LineWidth, c?: LineWidth, d?:LineWidth], CSSKeywords["none"]>,
     translate: ValueProducer<[a: LengthPercentage, b?: LengthPercentage, c?: LengthPercentage]>,
     height: ValueProducer<[a: LengthPercentage]>,
     width: ValueProducer<[a: LengthPercentage]>
 }
-
-export const cssPropertiesProducer: CSSPropertiesProducer = {
+ */
+/* export const cssPropertiesProducer: CSSPropertiesProducer = {
     borderWidth: valueProducer,
     translate: valueProducer,
     height: valueProducer,
     width: valueProducer
-} as const
+} as const */
 
 type KeyArgsTuple<K extends CSSPropertyKey=CSSPropertyKey> = K extends CSSPropertyKey ? [K, CSSPropertyArgs<K>] : never
 type KeyArgsTuples<KL extends CSSPropertyKey[]=CSSPropertyKey[]> = KL extends [infer K extends CSSPropertyKey, ...infer R extends CSSPropertyKey[]] ? [[K, CSSPropertyArgs<K>], ...KeyArgsTuples<R>] : KeyArgsTuple<KL[number]>[]
@@ -69,23 +103,4 @@ export const getCssPropertiesKeyValue = <KA extends KeyArgs>(keyArgs: KA) => {
 
 //export type CSSPropertyArgs<K extends CSSPropertyKey=CSSPropertyKey> = Parameters<CSSPropertiesProducer[K]>
 
-type PropertyArgMemberData = [PropertyKey, CSSValue, number]
-type PropertyArgData = PropertyArgMemberData[number][]
-type PropertyArgsData = PropertyArgData[]
-type PropertyArgsMember<PADT extends PropertyArgMemberData, PAD extends PropertyArgsData, CL extends number[]=[]> = 
-    {[K in PADT[0]]: PADT[1]} & 
-    Slice<CL, 1> extends infer CLS 
-        ? CLS["length"] extends PADT[2] 
-            ? {} 
-            : PAD extends [infer F extends PropertyArgData, ...infer R extends PropertyArgsData] 
-                ? Slice<F, Sum<[CL[0], CLS["lenght"]]>> extends [infer K extends PropertyKey , infer T extends CSSValue, infer C extends number] 
-                    ? PropertyArgsMember<[K, T, C], R, [Sum<CLS>]> & PropertyArgsMember<PADT, PAD, [...CL, C]> 
-                    : never
-                : never
-        : never
-type PropertyArgs<PAD extends PropertyArgsData, TC extends number = 0> = 
-    PAD extends [infer F extends PropertyArgData, ...infer R extends PropertyArgsData] 
-        ? F extends [infer K extends PropertyKey , infer T extends CSSValue, infer C extends number, ...infer RKTC extends PropertyArgData]
-            ? PropertyArgsMember<[K, T, C], R, [TC]> | PropertyArgs<[RKTC, ...R], Sum<[TC, C]>> 
-            : never
-        : never
+
