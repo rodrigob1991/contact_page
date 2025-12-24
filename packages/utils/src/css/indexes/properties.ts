@@ -1,6 +1,7 @@
 import { CamelOrPascalToKebab, Slice, Sum } from "src/types"
 import { toCase } from "../../strings"
 import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, ValueProducer, ValueProducerResult, valueProducer } from "./values"
+import { KeyValue } from "src/types_checks"
 
 /* const cssPropertiesData = {
     borderWidth: ["none", ["all", "medium" as LineWidth, 0, "topBottom", "medium" as LineWidth, 1, "top", "medium" as LineWidth, 2], ["leftRight", "medium" as LineWidth, 2 , "right", "medium" as LineWidth, 1], ["bottom", "medium" as LineWidth, 1], ["left", "medium" as LineWidth, 0]],
@@ -9,25 +10,24 @@ import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, ValueProducer, Valu
 
 const cssPropertiesData = {
     border: {
-        borderWidth: {
-            value: "medium" as LineWidth,
-            keys: [["all"], ["topBottom", "leftRight"], ["top", "leftRight", "bottom"], ["top", "bottom", "left", "right"]],
-            constituents: {
-                top: {},
-                bottom: {},
-                left: {},
-                right: {}
-            }
-        }
+        width: {
+            _value: "medium" as LineWidth,
+            _keys: [["all"], ["topBottom", "leftRight"], ["top", "leftRight", "bottom"], ["top", "bottom", "left", "right"]],
+            top: {},
+            bottom: {},
+            left: {},
+            right: {}
+        },
     },
     translate: {
-        value: "0px" as LengthPercentage,
-        keys: [["x"], ["x", "y"], ["x", "y", "z"]]
+        _value: "0px" as LengthPercentage,
+        _keys: [["x"], ["x", "y"], ["x", "y", "z"]]
     },
 } as const
 
 export type CSSPropertiesData = typeof cssPropertiesData
-export type CSSPropertyKey = keyof CSSPropertiesData
+export type CSSPropertiesDataKey = keyof CSSPropertiesData
+export type CSSPropertyKey<TK extends string="", D extends KeyValue=CSSPropertiesData, DK extends keyof D =keyof D> = DK extends infer K extends keyof D & string ? K extends `_${string}` ? never : D[K] extends infer ND extends KeyValue ? `${TK}${TK extends "" ? K : Capitalize<K>}` extends infer NTK extends string ? NTK | CSSPropertyKey<NTK, ND> : never : never : never
 
 type PropertyArgMemberData = [PropertyKey, CSSValue, number]
 type PropertyArgData = PropertyArgMemberData[number][]
