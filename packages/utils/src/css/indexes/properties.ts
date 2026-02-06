@@ -3,20 +3,33 @@ import { toCase } from "../../strings"
 import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, ValueProducer, ValueProducerResult, valueProducer } from "./values"
 import { KeyValue } from "src/types_checks"
 
-/* const cssPropertiesData = {
-    borderWidth: ["none", ["all", "medium" as LineWidth, 0, "topBottom", "medium" as LineWidth, 1, "top", "medium" as LineWidth, 2], ["leftRight", "medium" as LineWidth, 2 , "right", "medium" as LineWidth, 1], ["bottom", "medium" as LineWidth, 1], ["left", "medium" as LineWidth, 0]],
-    translate: ["none", ["x", "0px" as LengthPercentage, 3], ["y", "0px" as LengthPercentage, 2], ["z", "0px" as LengthPercentage, 1]]
-} as const */
+/** in this key value object resides all the CSS properties data
+ *  all the keys that do not start with an underscore represents CSS properties
+ *  a CSS property key that has CSS properties keys in its value is a shorthand
+ * 
+ *  properties with underscore {
+ *      optionals {
+ *          _keys {
+ *               if array of arrays
+ *               if array of strings or string key and CSS value 
+ *          }
+ *          _value {
+ *          } 
+ *      }
+ *  }
+ *  
+ *  
+ */ 
 
-const cssPropertiesData = {
+export const cssPropertiesData = {
     border: {
         width: {
             _value: "medium" as LineWidth,
             _keys: [["all"], ["topBottom", "leftRight"], ["top", "leftRight", "bottom"], ["top", "bottom", "left", "right"]],
-            top: {},
-            bottom: {},
-            left: {},
-            right: {}
+            top: {name: "borderTopWidth"},
+            bottom: {name: "borderBottomWidth"},
+            left: {name: "borderLeftWidth"},
+            right: {name: "borderRightWidth"},
         },
     },
     translate: {
@@ -27,9 +40,20 @@ const cssPropertiesData = {
 
 export type CSSPropertiesData = typeof cssPropertiesData
 export type CSSPropertiesDataKey = keyof CSSPropertiesData
-export type CSSPropertyKey<TK extends string="", D extends KeyValue=CSSPropertiesData, DK extends keyof D =keyof D> = DK extends infer K extends keyof D & string ? K extends `_${string}` ? never : D[K] extends infer ND extends KeyValue ? `${TK}${TK extends "" ? K : Capitalize<K>}` extends infer NTK extends string ? NTK | CSSPropertyKey<NTK, ND> : never : never : never
+export type CSSPropertyKey<TK extends string="", D extends KeyValue=CSSPropertiesData, DK extends keyof D=keyof D> = 
+    DK extends infer K extends keyof D & string 
+        ? K extends `_${string}` 
+            ? never 
+            : D[K] extends infer ND extends KeyValue 
+                ? `${TK}${TK extends "" ? K : Capitalize<K>}` extends infer NTK extends string 
+                    ? NTK | CSSPropertyKey<NTK, ND> 
+                    : never 
+                : never 
+        : never
 
-type PropertyArgMemberData = [PropertyKey, CSSValue, number]
+
+
+/* type PropertyArgMemberData = [PropertyKey, CSSValue, number]
 type PropertyArgData = PropertyArgMemberData[number][]
 type PropertyArgsData = PropertyArgData[]
 
@@ -50,7 +74,7 @@ type PropertyArgs<PAD extends PropertyArgsData, TC extends number = 0> =
             ? PropertyArgsMember<[K, T, C], R, [TC]> | PropertyArgs<[RKTC, ...R], Sum<[TC, C]>> 
             : never
         : never
-
+ */
 export type CSSProperties = {
     [K in CSSPropertyKey]: CSSPropertiesData[K] extends readonly[infer F, ...infer R] ? F | PropertyArgs<R> : never
 }
