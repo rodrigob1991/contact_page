@@ -1,7 +1,10 @@
 import { CamelOrPascalToKebab, Slice, Sum } from "src/types"
 import { toCase } from "../../strings"
-import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, ValueProducer, ValueProducerResult, valueProducer } from "./values"
-import { KeyValue } from "src/types_checks"
+import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, PositiveLength, ValueProducer, ValueProducerResult, valueProducer } from "./values"
+import { KeyValue, PositiveNumber } from "src/types_checks"
+
+type FromStringsArrayArray<SAA extends string[][]> = 
+type FromStringsArray<S extends string[]> = 
 
 /** in this key value object resides all the CSS properties data
  *  all the keys that do not start with an underscore represents CSS properties
@@ -10,10 +13,12 @@ import { KeyValue } from "src/types_checks"
  *  properties with underscore {
  *      optionals {
  *          _keys {
- *               if array of arrays
- *               if array of strings or string key and CSS value 
+ *               if array of arrays of strings, each array of strings represents a key value object with the strings as the keys.
+ *               if array of strings 
  *          }
  *          _value {
+ *          } 
+ *          _values {
  *          } 
  *      }
  *  }
@@ -34,7 +39,7 @@ export const cssPropertiesData = {
     },
     translate: {
         _value: "0px" as LengthPercentage,
-        _keys: [["x"], ["x", "y"], ["x", "y", "z"]]
+        _keys: ["x", "y", "z"]
     },
 } as const
 
