@@ -3,6 +3,7 @@ import { toCase } from "../../strings"
 import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, PositiveLength, ValueProducer, ValueProducerResult, valueProducer } from "./values"
 import { KeyValue, PositiveNumber } from "src/types_checks"
 
+type OrderedOptionals<S extends string[], P extends string[]=[]> = S extends [infer F extends string, ...infer R extends string[]] ? [...P, F] | OrderedOptionals<R, [...P, F]> : never
 type FromStringsArrayArray<SAA extends string[][]> = 
 type FromStringsArray<S extends string[]> = 
 
