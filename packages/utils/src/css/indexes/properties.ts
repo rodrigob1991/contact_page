@@ -46,7 +46,7 @@ export const cssPropertiesData = {
 
 export type CSSPropertiesData = typeof cssPropertiesData
 export type CSSPropertiesDataKey = keyof CSSPropertiesData
-export type CSSPropertyKey<TK extends string="", D extends KeyValue=CSSPropertiesData, DK extends keyof D=keyof D> = 
+export type CSSProperties<TK extends string="", D extends KeyValue=CSSPropertiesData, DK extends keyof D=keyof D> = 
     DK extends infer K extends keyof D & string 
         ? K extends `_${string}` 
             ? never 
@@ -81,13 +81,13 @@ type PropertyArgs<PAD extends PropertyArgsData, TC extends number = 0> =
             : never
         : never
  */
-export type CSSProperties = {
+/* export type CSSProperties = {
     [K in CSSPropertyKey]: CSSPropertiesData[K] extends readonly[infer F, ...infer R] ? F | PropertyArgs<R> : never
 }
 const getPropertyValueStr = <K extends CSSPropertyKey, A extends CSSProperties[K]>(key: K, args: A) => {
     
 
-}
+} */
 
 /* export type CSSPropertiesProducer = {
     borderWidth: ValueProducer<[a: LineWidth, b?:LineWidth, c?: LineWidth, d?:LineWidth], CSSKeywords["none"]>,
@@ -103,30 +103,36 @@ const getPropertyValueStr = <K extends CSSPropertyKey, A extends CSSProperties[K
     width: valueProducer
 } as const */
 
-type KeyArgsTuple<K extends CSSPropertyKey=CSSPropertyKey> = K extends CSSPropertyKey ? [K, CSSPropertyArgs<K>] : never
-type KeyArgsTuples<KL extends CSSPropertyKey[]=CSSPropertyKey[]> = KL extends [infer K extends CSSPropertyKey, ...infer R extends CSSPropertyKey[]] ? [[K, CSSPropertyArgs<K>], ...KeyArgsTuples<R>] : KeyArgsTuple<KL[number]>[]
+//type KeyArgsTuple<K extends CSSPropertyKey=CSSPropertyKey> = K extends CSSPropertyKey ? [K, CSSPropertyArgs<K>] : never
+//type KeyArgsTuples<KL extends CSSPropertyKey[]=CSSPropertyKey[]> = KL extends [infer K extends CSSPropertyKey, ...infer R extends CSSPropertyKey[]] ? [[K, CSSPropertyArgs<K>], ...KeyArgsTuples<R>] : KeyArgsTuple<KL[number]>[]
 
-export type CSSPropertyStr<KAT extends KeyArgsTuple> = KAT extends KeyArgsTuple ? `${CamelOrPascalToKebab<KAT[0]>}: ${ValueProducerResult<KAT[1]>};` : never
-export type CSSPropertiesStr<KATS extends KeyArgsTuples> = KATS extends [infer KAT extends KeyArgsTuple, ...infer KATSR extends KeyArgsTuples] ? `${CSSPropertyStr<KAT>}${CSSPropertiesStr<KATSR>}` : KATS extends [] ? "" : string
-export const getCssPropertiesStr = <KATS extends KeyArgsTuples>(...keysArgs: KATS) => {
+type KeyPartsValueStr<P extends CSSProperties> = [[keyparts], `valuestr`]
+const getKeyPartsValueStr = <P extends CSSProperties>(properties: P) => {
+    
+    
+}
+//export type CSSPropertyStr<KAT extends KeyArgsTuple> = KAT extends KeyArgsTuple ? `${CamelOrPascalToKebab<KAT[0]>}: ${ValueProducerResult<KAT[1]>};` : never
+export type CSSPropertiesStr<P extends CSSProperties> =  KeyPartsValueStr<P> `str`
+export const getCssPropertiesStr = <P extends CSSProperties>(properties: P) => {
+    const keyPartsValueStr = getKeyPartsValueStr(properties)
     let str = ""
-    for (const [key, args] of keysArgs) {
-        const value = valueProducer[key](...args)
-        str += `${toCase(key, "kebab")}: ${value};`
+    for (const [keyParts, valueStr] of keyPartsValueStr) {
+        str += `${keyParts.join("-")}: ${valueStr};`
     }
-    return str as CSSPropertiesStr<KATS>
+    return str as CSSPropertiesStr<P>
 }
 
-type KeyArgs<K extends CSSPropertyKey=CSSPropertyKey> = {[MK in K]: CSSPropertyArgs<MK>}
+//type KeyArgs<K extends CSSPropertyKey=CSSPropertyKey> = {[MK in K]: CSSPropertyArgs<MK>}
 
-export type CSSPropertiesKeyValue<KA extends KeyArgs> = {[K in Extract<keyof KA, CSSPropertyKey>]: ValueProducerResult<KA[K]>}
-export const getCssPropertiesKeyValue = <KA extends KeyArgs>(keyArgs: KA) => {
-    const keyValue: Partial<CSSPropertiesKeyValue<KA>> = {}
-    for (const key in keyArgs) {
-        const value = cssPropertiesProducer[key](...keyArgs[key])
-        keyValue[key] = value
+export type CSSPropertiesKeyValue<P extends CSSProperties> = KeyPartsValueStr<P> {}
+export const getCssPropertiesKeyValue = <P extends CSSProperties>(properties: P) => {
+    const keyValue = {}
+
+    const keyPartsValueStr = getKeyPartsValueStr(properties)
+    for (const [keyParts, valueStr] of keyPartsValueStr) {
+        keyValue[keyParts.map((kp, i) => i != 0 ? toCase(kp, "camel") : kp).join()] =  valueStr
     }
-    return keyValue as CSSPropertiesKeyValue<KA>
+    return keyValue as CSSPropertiesKeyValue<P>
 }
 
 //export type CSSPropertiesProducer = typeof cssPropertiesProducer
