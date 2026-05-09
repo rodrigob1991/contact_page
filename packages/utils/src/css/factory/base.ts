@@ -3,7 +3,7 @@ import { toCase } from 'src/strings'
 import { AllCombinations, CamelOrPascalToKebab, IfTrueFalseExtends, IfUndefinedOtherExtends, PropertiesUnion, Writable } from 'src/types'
 import { KeyValue } from 'src/types_checks'
 
-export type CSSPropertyKey = keyof Properties
+/* export type CSSPropertyKey = keyof Properties
 export type CSSProperties<K extends CSSPropertyKey=CSSPropertyKey> = Pick<Properties, K>
 export type CSSPropertyValue<K extends CSSPropertyKey=CSSPropertyKey> = CSSProperties[K]
 
@@ -99,7 +99,7 @@ export const cssObjectMultipleKeys: CSSObjectMultipleKeys<PropertiesToMap | unde
         }
         return functionString
     }
-}
+} */
 
 /* export const cssObject: CSSObject<undefined, {}> = {
     uniqueKey: undefined,
@@ -178,6 +178,16 @@ export const cssObjectMultipleKeys: CSSObjectMultipleKeys<PropertiesToMap | unde
 // class CSSObject {
 //     #
 // }
+export type CSSProperties<P extends CSSProperties, R extends Root> = {
+    root: R
+    string: CSSPropertiesStr<P>
+    keyValue: CSSPropertiesKeyValue<P>
+} & P - R
 
+
+export const cssProperties: CSSProperties<{}, {}> = {
+    get string() {return ""},
+    get keyValue() {return {}}
+}
 
 

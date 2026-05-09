@@ -126,11 +126,10 @@ export const getCssPropertiesStr = <P extends CSSProperties>(properties: P) => {
 
 export type CSSPropertiesKeyValue<P extends CSSProperties> = KeyPartsValueStr<P> {}
 export const getCssPropertiesKeyValue = <P extends CSSProperties>(properties: P) => {
-    const keyValue = {}
-
     const keyPartsValueStr = getKeyPartsValueStr(properties)
+    const keyValue = {}
     for (const [keyParts, valueStr] of keyPartsValueStr) {
-        keyValue[keyParts.map((kp, i) => i != 0 ? toCase(kp, "camel") : kp).join()] =  valueStr
+        keyValue[keyParts.map((kp, i) => i != 0 ? kp[0].toUpperCase() + kp.substring(1) : kp).join()] = valueStr
     }
     return keyValue as CSSPropertiesKeyValue<P>
 }
