@@ -2,6 +2,7 @@ import type { Properties } from 'csstype'
 import { toCase } from 'src/strings'
 import { AllCombinations, CamelOrPascalToKebab, IfTrueFalseExtends, IfUndefinedOtherExtends, PropertiesUnion, Writable } from 'src/types'
 import { KeyValue } from 'src/types_checks'
+import { CSSPropertiesArgs, getCssPropertiesKeyValue, getCssPropertiesStr } from '../indexes/properties'
 
 /* export type CSSPropertyKey = keyof Properties
 export type CSSProperties<K extends CSSPropertyKey=CSSPropertyKey> = Pick<Properties, K>
@@ -178,16 +179,26 @@ export const cssObjectMultipleKeys: CSSObjectMultipleKeys<PropertiesToMap | unde
 // class CSSObject {
 //     #
 // }
-export type CSSProperties<P extends CSSProperties, R extends Root> = {
-    root: R
-    string: CSSPropertiesStr<P>
-    keyValue: CSSPropertiesKeyValue<P>
-} & P - R
+type ModifiableProperties<A extends CSSPropertiesArgs, SK extends string[]> = {} 
+export type CSSProperties<A extends CSSPropertiesArgs, SK extends string[]=[]> = {
+    args: A
+    string: CSSPropertiesStr<A>
+    keyValue: CSSPropertiesKeyValue<A>
+} & ModifiableProperties<A, SK>
 
 
-export const cssProperties: CSSProperties<{}, {}> = {
-    get string() {return ""},
-    get keyValue() {return {}}
+export const cssPropertiesBase: CSSProperties<{}> = {
+    args: {},
+    get string() {return getCssPropertiesStr(this.args)},
+    get keyValue() {return getCssPropertiesKeyValue(this.args)}
+}
+
+export const newCssProperties = <A extends CSSPropertiesArgs>(args: A) => {
+    const cssProperties = {
+        __proto__: cssPropertiesBase,
+        args,
+    }
+    return cssProperties as CSSProperties<A>
 }
 
 

@@ -46,7 +46,7 @@ export const cssPropertiesData = {
 
 export type CSSPropertiesData = typeof cssPropertiesData
 export type CSSPropertiesDataKey = keyof CSSPropertiesData
-export type CSSProperties<TK extends string="", D extends KeyValue=CSSPropertiesData, DK extends keyof D=keyof D> = 
+export type CSSPropertiesArgs<TK extends string="", D extends KeyValue=CSSPropertiesData, DK extends keyof D=keyof D> = 
     DK extends infer K extends keyof D & string 
         ? K extends `_${string}` 
             ? never 
@@ -108,6 +108,7 @@ const getPropertyValueStr = <K extends CSSPropertyKey, A extends CSSProperties[K
 
 type KeyPartsValueStr<P extends CSSProperties> = [[keyparts], `valuestr`]
 const getKeyPartsValueStr = <P extends CSSProperties>(properties: P) => {
+    
     
     
 }
