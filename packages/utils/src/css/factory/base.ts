@@ -1,6 +1,6 @@
 import type { Properties } from 'csstype'
 import { toCase } from 'src/strings'
-import { AllCombinations, CamelOrPascalToKebab, IfTrueFalseExtends, IfUndefinedOtherExtends, PropertiesUnion, Writable } from 'src/types'
+import { AllCombinations, CamelOrPascalToKebab, IfTrueFalseExtends, IfUndefinedOtherExtends, NarrowThis, PropertiesUnion, Writable } from 'src/types'
 import { KeyValue } from 'src/types_checks'
 import { CSSPropertiesArgs, getCssPropertiesKeyValue, getCssPropertiesStr } from '../indexes/properties'
 
@@ -186,19 +186,25 @@ export type CSSProperties<A extends CSSPropertiesArgs, SK extends string[]=[]> =
     keyValue: CSSPropertiesKeyValue<A>
 } & ModifiableProperties<A, SK>
 
-
 export const cssPropertiesBase: CSSProperties<{}> = {
     args: {},
     get string() {return getCssPropertiesStr(this.args)},
     get keyValue() {return getCssPropertiesKeyValue(this.args)}
 }
 
-export const newCssProperties = <A extends CSSPropertiesArgs>(args: A) => {
+type PropertyArgs = NarrowThis<[string[], KeyValue, boolean]>
+
+export const newCssProperties =<PAS extends PropertyArgs[]>(args: PAS) => {
+
     const cssProperties = {
         __proto__: cssPropertiesBase,
-        args,
+        ...modifiableArgs,
+        get args() {
+            
+        }
     }
-    return cssProperties as CSSProperties<A>
+    
+    return cssProperties as CSSProperties<MP, SP>
 }
 
 

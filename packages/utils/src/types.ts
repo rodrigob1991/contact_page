@@ -40,6 +40,9 @@ export type Seek<ST, T extends [unknown, unknown], D=never, DI extends boolean=t
             : D extends never ? ST : D
         : D extends never ? ST : D
 
+// this type use to indicate that the type should be narrowed.
+export type NarrowThis<T> = T
+
 // ----------------
 
 // -------numbers---------

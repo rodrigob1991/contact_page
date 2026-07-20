@@ -163,6 +163,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
             e.preventDefault()
             const {screenX, screenY} = getMouseMovement(e)
             setCssTranslate((t) => t.getNewSum({x: screenX, y: screenY}))
+            // cssTranslate.add({x: screenX, y: screenY})
           }
           const selectStartHandler = (e: Event) => {
             e.preventDefault()
@@ -244,6 +245,7 @@ export const ResizableDraggableDiv = forwardRef<ContainerDivApi, Props>(({resiza
               const {height, width} = container.getBoundingClientRect()
               const {screenX, screenY} = getMouseMovement(e)
               setCssSize(newCssSize({height: height + screenY, width: width + screenX}))
+              // cssSize.add({height: screenY, width: screenX})
             }
           }
           const selectStartHandler = (e: Event) => {
