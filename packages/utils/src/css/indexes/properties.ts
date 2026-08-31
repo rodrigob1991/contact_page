@@ -3,9 +3,9 @@ import { toCase } from "../../strings"
 import { CSSKeywords, CSSValue, LengthPercentage, LineWidth, PositiveLength, ValueProducer, ValueProducerResult, valueProducer } from "./values"
 import { KeyValue, PositiveNumber } from "src/types_checks"
 
-type OrderedOptionals<S extends string[], P extends string[]=[]> = S extends [infer F extends string, ...infer R extends string[]] ? [...P, F] | OrderedOptionals<R, [...P, F]> : never
-type FromStringsArrayArray<SAA extends string[][]> = 
-type FromStringsArray<S extends string[]> = 
+//type OrderedOptionals<S extends string[], P extends string[]=[]> = S extends [infer F extends string, ...infer R extends string[]] ? [...P, F] | OrderedOptionals<R, [...P, F]> : never
+//type FromStringsArrayArray<SAA extends string[][]> = 
+//type FromStringsArray<S extends string[]> = 
 
 /** in this key value object resides all the CSS properties data
  *  all the keys that do not start with an underscore represents CSS properties
@@ -27,20 +27,22 @@ type FromStringsArray<S extends string[]> =
  *  
  */ 
 
-export const cssPropertiesData = {
+ const cssPropertiesData = {
     border: {
         width: {
+            _keyPositionInName: 3,
             _value: "medium" as LineWidth,
-            _keys: [["all"], ["topBottom", "leftRight"], ["top", "leftRight", "bottom"], ["top", "bottom", "left", "right"]],
-            top: {name: "borderTopWidth"},
-            bottom: {name: "borderBottomWidth"},
-            left: {name: "borderLeftWidth"},
-            right: {name: "borderRightWidth"},
+            _valueKeys: [["all"], ["topBottom", "leftRight"], ["top", "leftRight", "bottom"], ["top", "bottom", "left", "right"]],
+            top:{},
+            bottom:{},
+            left:{},
+            right:{},
         },
     },
     translate: {
         _value: "0px" as LengthPercentage,
-        _keys: ["x", "y", "z"]
+        // 
+        _valueKeys: ["x", "y", "z"]
     },
 } as const
 

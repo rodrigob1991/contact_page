@@ -192,9 +192,10 @@ export const cssPropertiesBase: CSSProperties<{}> = {
     get keyValue() {return getCssPropertiesKeyValue(this.args)}
 }
 
-type PropertyArgs = NarrowThis<[string[], KeyValue, boolean]>
+type PropertyArgs = NarrowThis<[string[], KeyValue]>
 
 export const newCssProperties =<PAS extends PropertyArgs[]>(args: PAS) => {
+    
 
     const cssProperties = {
         __proto__: cssPropertiesBase,
@@ -204,7 +205,7 @@ export const newCssProperties =<PAS extends PropertyArgs[]>(args: PAS) => {
         }
     }
     
-    return cssProperties as CSSProperties<MP, SP>
+    return cssProperties as CSSProperties<PAS>
 }
 
 
