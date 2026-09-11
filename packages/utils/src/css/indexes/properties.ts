@@ -26,18 +26,36 @@ import { KeyValue, PositiveNumber } from "src/types_checks"
  *  
  *  
  */ 
-
+ const sides = { 
+    top: [1, 1, 1, 1],
+    bottom: [1, 1, 4, 3],
+    left: [1, 2, 3, 4],
+    right: [1, 2, 3, 2]
+ }
+ const cornerBox = {
+  $sides: ["topLeft", "topRight", "bottomRight", "bottomLeft"],
+};
  const cssPropertiesData = {
+    padding: {
+        type: "length-percentage",
+        sides,
+    },
     border: {
         width: {
+             sides,
             _keyPositionInName: 3,
             _value: "medium" as LineWidth,
-            _valueKeys: [["all"], ["topBottom", "leftRight"], ["top", "leftRight", "bottom"], ["top", "bottom", "left", "right"]],
-            top:{},
-            bottom:{},
-            left:{},
-            right:{},
+            _valuesKeys: [["all"], ["topBottom", "leftRight"], ["top", "leftRight", "bottom"], ["top", "bottom", "left", "right"]],
         },
+        style: {
+
+        },
+        color: {
+            
+        }
+    },
+    borderRadius: {
+
     },
     translate: {
         _value: "0px" as LengthPercentage,
