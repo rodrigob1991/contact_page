@@ -52,4 +52,9 @@ export type CSSValue = LengthPercentage | LineWidth
 export type ValueProducerArgs<VL extends (CSSValue | undefined)[]=(CSSValue | undefined)[], KW extends CSSKeywordValue=CSSKeywordValue, WKW extends CSSWideKeywordValue=CSSWideKeywordValue> = [WKW | KW] | VL
 export type ValueProducerResult<A extends ValueProducerArgs> = InterpolateElements<ChangeElements<A, [undefined, ""]>, " ", "">
 export type ValueProducer<VL extends (CSSValue | undefined)[], KWK extends CSSKeywordKey=never> = <A extends ValueProducerArgs<VL, CSSKeywords[KWK]>>(...args: A) => ValueProducerResult<A>
-export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>
+// export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>
+
+export const cssValues = {
+    length: predicate,
+    percentage: predicate,
+}

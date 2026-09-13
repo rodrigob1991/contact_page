@@ -32,7 +32,7 @@ import { KeyValue, PositiveNumber } from "src/types_checks"
     left: [1, 2, 3, 4],
     right: [1, 2, 3, 2]
  }
- const cornerBox = {
+ const corner = {
   $sides: ["topLeft", "topRight", "bottomRight", "bottomLeft"],
 };
  const cssPropertiesData = {
