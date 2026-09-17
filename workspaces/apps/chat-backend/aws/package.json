@@ -1,0 +1,14 @@
+{
+  "name": "contact_page",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "version": "1.0.0",
+  "scripts": {
+    "start": "yarn workspace chat-backend start",
+    "nextjs": "yarn workspace nextjs",
+    "chat-backend": "yarn workspace chat-backend",
+    "utils": "yarn workspace utils",
+    "chat-common": "yarn workspace chat-common",
+    "dev": "gnome-terminal --tab --title=chat-backend -e 'yarn chat-backend dev' --tab --title=nextjs -e 'yarn nextjs dev'"
+  }
+}

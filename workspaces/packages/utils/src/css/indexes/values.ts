@@ -1,0 +1,60 @@
+import { NumberInRange, PositiveNumber } from "src/types_checks"
+import { CSSUnitLength } from "./units"
+
+//TODO: maybe use descriptive key names instead.
+export const cssWideKeywords = {
+    inherit: "inherit",
+    initial: "initial",
+    unset: "unset",
+    revert: "revert",
+    revertLayer: "revert-layer",
+    unsetLayer: "unset-layer"
+} as const
+export type CSSWideKeywords = typeof cssWideKeywords
+export type CSSWideKeywordKey = keyof CSSWideKeywords
+export type CSSWideKeywordValue = CSSWideKeywords[CSSWideKeywordKey]
+
+export const cssKeywords = {
+    none: "none",
+    inline: "inline",
+    scroll:  "scroll",
+    fixed: "fixed", 
+    local: "local",
+    block: "block",
+    listItem: "list-item",
+    inlineBlock: "inline-block",
+    left: "left",
+    right: "right",
+    top: "top",
+    bottom: "bottom",
+    center: "center",
+    justify: "justify",
+    invert: "invert",
+    thin: "thin",
+    medium: "medium",
+    thick: "thick",
+    collapse: "collapse",
+    separate: "separate",
+} as const
+export type CSSKeywords = typeof cssKeywords
+export type CSSKeywordKey = keyof CSSKeywords
+export type CSSKeywordValue = CSSKeywords[CSSKeywordKey]
+
+export type Length<N extends number, U extends CSSUnitLength | ""=CSSUnitLength | ""> = `${N}${U}`
+export type PositiveLength<N extends PositiveNumber=PositiveNumber> = Length<N>
+export type Percentage<N extends number> = `${N}%`
+export type LengthPercentage<N extends NumberInRange=NumberInRange> = Length<N> | Percentage<N>
+export type LineWidth = PositiveLength | CSSKeywords["thin" | "medium" | "thick"]
+
+export type CSSValue = LengthPercentage | LineWidth
+
+//export type ValueProducerArgs<VL extends (CSSValue | undefined)[]=(CSSValue | undefined)[], KW extends CSSKeywordValue=CSSKeywordValue, WKW extends CSSWideKeywordValue=CSSWideKeywordValue> = [WKW | KW] | VL
+//export type ValueProducerResult<A extends ValueProducerArgs> = InterpolateElements<ChangeElements<A, [undefined, ""]>, " ", "">
+//export type ValueProducer<VL extends (CSSValue | undefined)[], KWK extends CSSKeywordKey=never> = <A extends ValueProducerArgs<VL, CSSKeywords[KWK]>>(...args: A) => ValueProducerResult<A>
+// export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>
+
+type P = Length<NumberInRange>
+export const cssValues = {
+    length: ()),
+    percentage: predicate,
+}

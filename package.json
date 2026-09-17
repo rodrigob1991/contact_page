@@ -2,8 +2,7 @@
   "name": "contact_page",
   "private": true,
   "workspaces": [
-    "packages/*",
-    "apps/*"
+    "workspaces/*"
   ],
   "version": "1.0.0",
   "scripts": {
