@@ -12,11 +12,11 @@
 
 # nextjs
 
-/apps/nextjs/.vercel
-/apps/nextjs/.next
+workspaces/apps/nextjs/.vercel
+workspaces/apps/nextjs/.next
 
 # chat_backend
-/apps/chat-backend/hosts
+workspaces/apps/chat-backend/hosts
 
 # production
 /build
