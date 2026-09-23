@@ -16,10 +16,10 @@
   },
   "packageManager": "yarn@3.6.3",
   "devDependencies": {
-    "typescript": "^5.2.2",
-    "eslint": "^8.48.0",
-    "@typescript-eslint/eslint-plugin": "^6.6.0",
-    "@typescript-eslint/parser": "^6.6.0",
-    "@yarnpkg/types": "^4.0.0-rc.51"
+    "@typescript-eslint/eslint-plugin": "^8.70.0",
+    "@typescript-eslint/parser": "^8.70.0",
+    "@yarnpkg/types": "^4.0.0-rc.51",
+    "eslint": "^10.11.0",
+    "typescript": "^7.0.2"
   }
 }

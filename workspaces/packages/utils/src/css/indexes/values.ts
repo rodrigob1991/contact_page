@@ -1,4 +1,4 @@
-import { NumberInRange, PositiveNumber } from "src/types_checks"
+import { NumberInRange, PositiveNumber, TypeGuard } from "../../types_checks"
 import { CSSUnitLength } from "./units"
 
 //TODO: maybe use descriptive key names instead.
@@ -52,9 +52,8 @@ export type CSSValue = LengthPercentage | LineWidth
 //export type ValueProducerResult<A extends ValueProducerArgs> = InterpolateElements<ChangeElements<A, [undefined, ""]>, " ", "">
 //export type ValueProducer<VL extends (CSSValue | undefined)[], KWK extends CSSKeywordKey=never> = <A extends ValueProducerArgs<VL, CSSKeywords[KWK]>>(...args: A) => ValueProducerResult<A>
 // export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>
-
-type P = Length<NumberInRange>
+const length: TypeGuard<Length> = (v): v is Length => 
 export const cssValues = {
-    length: ()),
-    percentage: predicate,
+    length: (v: unknown): v is Length => true ,
+    percentage: () => {},
 }

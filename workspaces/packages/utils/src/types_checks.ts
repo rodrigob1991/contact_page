@@ -14,6 +14,8 @@ export type Callable<A extends unknown[]=[], R=unknown> = (...args: A) => R
 
 export type NonEmptyArray<T> = [T, ...T[]]
 
+export type TypeGuard<T> = (v: unknown) => v is T
+
 export const isNumber = (v: unknown) : v is number => typeof v === "number"
 export const isIntegerNumber = (v: unknown) : v is IntegerNumber => Number.isInteger(v)
 export const isNumberInRange = <F extends number, T extends number>(v: unknown, f: F | undefined, t: T | undefined) : v is NumberInRange<F, T> => isNumber(v) && (f ? v >= f : true) && (t ? v <= t : true)

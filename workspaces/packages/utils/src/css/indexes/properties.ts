@@ -37,7 +37,7 @@ import { KeyValue, PositiveNumber } from "src/types_checks"
 };
  const cssPropertiesData = {
     padding: {
-        type: "length-percentage",
+        type: "lengthPercentage",
         sides,
     },
     border: {
