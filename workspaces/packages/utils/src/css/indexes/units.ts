@@ -11,7 +11,7 @@ export const cssAbsoluteUnitsLengths = {
 export type CSSAbsoluteUnitsLengths = typeof cssAbsoluteUnitsLengths 
 export type CSSAbsoluteUnitsLengthsKey = keyof CSSAbsoluteUnitsLengths
 export type CSSAbsoluteUnitLength = CSSAbsoluteUnitsLengths[CSSAbsoluteUnitsLengthsKey]
-
+export const isCSSAbsoluteUnitLength = <T extends CSSAbsoluteUnitLength | undefined=undefined>(v: unknown, t?: T): v is (undefined  extends T ? CSSAbsoluteUnitLength : T) => t ? t === v : cssAbsoluteUnitsLengths.isValue(v)
 
 export const cssRelativeUnitsLengths = {
     parentLength: "em", 	
