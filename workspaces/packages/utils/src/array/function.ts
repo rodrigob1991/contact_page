@@ -1,8 +1,14 @@
-type RecordWithNumber<KN extends string> = { [K in KN]:  number}
-type RecordWithString<KN extends string> = { [K in KN]:  string}
+//TODO: make this ugly code better.
+
+import { KeyValue } from "../keyvalue/type";
+import { NonEmptyArray } from "./type"
+import { isNonEmpty } from "./type_check"
+
+type KeyNumberValue<KN extends string> = KeyValue<KN, number>
+type KeyStringValue<KN extends string> = KeyValue<KN, string>
 type Direction = "ascendant" | "descendant"
 
-export const orderByCounting = <K extends string, R extends RecordWithNumber<K>[] | RecordWithString<K>[]>(array: R, key: K, getIndex: (v: R[number][K]) => number, direction: Direction = "ascendant") => {
+export const orderByCounting = <K extends string, R extends KeyNumberValue<K>[] | KeyStringValue<K>[]>(array: R, key: K, getIndex: (v: R[number][K]) => number, direction: Direction = "ascendant") => {
     const countingArray = []
     for (const e of array) {
         const countIndex = getIndex(e[key])
@@ -27,7 +33,7 @@ export const orderByCounting = <K extends string, R extends RecordWithNumber<K>[
 }
 
 // preferable use for smalls numbers of elements
-export const orderByComparePreviousByNumber = <K extends string, R extends RecordWithNumber<K>[]>(records: R, key: K, direction: Direction = "ascendant") => {
+export const orderByComparePreviousByNumber = <K extends string, R extends KeyNumberValue<K>[]>(records: R, key: K, direction: Direction = "ascendant") => {
     for (let i = 1; i < records.length; i++) {
         let currentIndex = i
         const areDifferent = direction === "ascendant"
@@ -43,7 +49,7 @@ export const orderByComparePreviousByNumber = <K extends string, R extends Recor
     return records
 }
 
-export const orderByComparePreviousByString = <K extends string, R extends RecordWithString<K>[]>(records: R, key: K, direction: Direction = "ascendant") => {
+export const orderByComparePreviousByString = <K extends string, R extends KeyStringValue<K>[]>(records: R, key: K, direction: Direction = "ascendant") => {
     for (let i = 1; i < records.length; i++) {
         let currentIndex = i
         const areDifferent = direction === "ascendant"
@@ -59,3 +65,19 @@ export const orderByComparePreviousByString = <K extends string, R extends Recor
     return records
 }
 
+
+type RecursiveSplitResult<S extends (NonEmptyArray<string>)>= S extends [infer F, ...infer R] ? R extends (NonEmptyArray<string>) ? RecursiveSplitResult<R>[] : string[] : never
+export const recursiveSplit = <S extends (NonEmptyArray<string>)>(str: string, separators: S): RecursiveSplitResult<S> => {
+    const finalParts = []
+    const currentParts = str.split(separators[0])
+    const separatorsRest = separators.slice(1)
+    if (isNonEmpty(separatorsRest)) {
+        for (const part of currentParts) {
+            finalParts.push(recursiveSplit(part, separatorsRest))
+        }
+    } else {
+        finalParts.push(...currentParts)
+    }
+
+    return finalParts as RecursiveSplitResult<S>
+}

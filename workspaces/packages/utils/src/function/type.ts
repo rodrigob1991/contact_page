@@ -1,0 +1,1 @@
+export type Callable<A extends unknown[]=[], R=unknown> = (...args: A) => R

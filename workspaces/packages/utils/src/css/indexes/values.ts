@@ -52,7 +52,7 @@ export type CSSValue = LengthPercentage | LineWidth
 //export type ValueProducerResult<A extends ValueProducerArgs> = InterpolateElements<ChangeElements<A, [undefined, ""]>, " ", "">
 //export type ValueProducer<VL extends (CSSValue | undefined)[], KWK extends CSSKeywordKey=never> = <A extends ValueProducerArgs<VL, CSSKeywords[KWK]>>(...args: A) => ValueProducerResult<A>
 // export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>
-const length: TypeGuard<Length> = (v): v is Length => isNumber(v) || (isString(v) && CSSUnitLength.test(v))
+const length: TypeGuard<Length> = (v): v is Length => isNumber(v) || (isString(v) && CSSUnitLength.have(v))
 const percentage: TypeGuard<Percentage> = (v): v is Percentage => isString(v) && v.endsWith("%") && isNumber(Number(v.slice(0, -1)))
 export const cssValues = {
     length,
