@@ -1,5 +1,5 @@
 import { isNumber, isString, NumberInRange, PositiveNumber, TypeGuard } from "../../types_checks"
-import { CSSUnitLength } from "./units"
+import { CSSUnitLength, CSSUnitLength } from "./units"
 
 //TODO: maybe use descriptive key names instead.
 export const cssWideKeywords = {
@@ -52,7 +52,7 @@ export type CSSValue = LengthPercentage | LineWidth
 //export type ValueProducerResult<A extends ValueProducerArgs> = InterpolateElements<ChangeElements<A, [undefined, ""]>, " ", "">
 //export type ValueProducer<VL extends (CSSValue | undefined)[], KWK extends CSSKeywordKey=never> = <A extends ValueProducerArgs<VL, CSSKeywords[KWK]>>(...args: A) => ValueProducerResult<A>
 // export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>
-const length: TypeGuard<Length> = (v): v is Length => isNumber(v) || (isString(v) && CSSUnitLength.have(v))
+const length: TypeGuard<Length> = (v): v is Length => isNumber(v) || (isString(v) && cssUnitLength.has(v))
 const percentage: TypeGuard<Percentage> = (v): v is Percentage => isString(v) && v.endsWith("%") && isNumber(Number(v.slice(0, -1)))
 export const cssValues = {
     length,
