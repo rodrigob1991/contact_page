@@ -34,6 +34,10 @@ export const cssRelativeUnitsLengths = {
 export type CSSRelativeUnitsLengths = typeof cssRelativeUnitsLengths
 export type CSSRelativeUnitLength = keyof CSSRelativeUnitsLengths
 
+export const cssUnitLength = {
+	absolute: cssAbsoluteUnitsLengths,
+	relative: cssRelativeUnitsLengths
+} as const
 export type CSSUnitsLengths = CSSAbsoluteUnitsLengths | CSSRelativeUnitsLengths
 export type CSSUnitLength = CSSAbsoluteUnitLength | CSSRelativeUnitLength
 

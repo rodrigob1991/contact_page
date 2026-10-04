@@ -1,5 +1,7 @@
+import { numberRgx } from "../../regular_expressions";
+import { getMatchedUnmatched } from "../../string/function";
 import { isNumber, isString, NumberInRange, PositiveNumber, TypeGuard } from "../../types_checks"
-import { CSSUnitLength, CSSUnitLength } from "./units"
+import { cssUnitLength, CSSUnitLength, CSSUnitLength } from "./units"
 
 //TODO: maybe use descriptive key names instead.
 export const cssWideKeywords = {
@@ -52,7 +54,19 @@ export type CSSValue = LengthPercentage | LineWidth
 //export type ValueProducerResult<A extends ValueProducerArgs> = InterpolateElements<ChangeElements<A, [undefined, ""]>, " ", "">
 //export type ValueProducer<VL extends (CSSValue | undefined)[], KWK extends CSSKeywordKey=never> = <A extends ValueProducerArgs<VL, CSSKeywords[KWK]>>(...args: A) => ValueProducerResult<A>
 // export const valueProducer: ValueProducer<(CSSValue | undefined)[]> = (...args) => args.filter(v => v).join(" ") as ValueProducerResult<typeof args>
-const length: TypeGuard<Length> = (v): v is Length => isNumber(v) || (isString(v) && cssUnitLength.has(v))
+const length: TypeGuard<Length> = (v): v is Length => {
+    let is = isNumber(v)
+    if (!is && isString(v)) {
+        const numberUnit = getMatchedUnmatched(v, numberRgx)
+        if (numberUnit.length > 0) {
+            const [number, ...rest] = numberUnit
+            if (isNumber(number) && (rest.length === 0 || (rest.length === 1 && cssUnitLength.has(rest[0])))) {
+                is = true
+            }
+        }
+    }
+    return is
+}
 const percentage: TypeGuard<Percentage> = (v): v is Percentage => isString(v) && v.endsWith("%") && isNumber(Number(v.slice(0, -1)))
 export const cssValues = {
     length,

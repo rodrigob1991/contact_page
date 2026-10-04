@@ -48,3 +48,16 @@ export const toCase = (str: string, to: CaseType, startWord: string[]=defaultSta
     }
     return (str.match(new RegExp(`(${startWord.join("|")})(${bodyWord.join("|")})*`))??[]).map(mapWord).join(separator)
 }
+
+export const getMatchedUnmatched = (str: string, regex: RegExp) => {
+    const matchedUnmatched = []
+    let lastIndex = 0
+    for (const matched of str.matchAll(regex)) {
+        const {"0": matchedStr, index} = matched
+        if (index > lastIndex)
+            matchedUnmatched.push(str.substring(lastIndex, index))
+        matchedUnmatched.push(matchedStr)
+        lastIndex = index + matchedStr.length
+    }
+    return matchedUnmatched
+}
