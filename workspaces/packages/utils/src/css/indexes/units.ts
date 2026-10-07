@@ -1,5 +1,8 @@
+import { create, createCombineProperties } from "../../keyvalue/prototype";
+
 // TODO: implement methods to convert from each absolute unit to pixels 
-export const cssAbsoluteUnitsLengths = {
+export const cssAbsoluteUnitsLengths = create(
+	{
     cm: "centimeters",
 	mm: "millimeters",
     Q:  "quarterMillimeters",		
@@ -7,11 +10,14 @@ export const cssAbsoluteUnitsLengths = {
 	pc: "picas",
 	pt: "points",
 	px: "pixels"
-} as const
+	} as const
+)
+
 export type CSSAbsoluteUnitsLengths = typeof cssAbsoluteUnitsLengths 
 export type CSSAbsoluteUnitLength = keyof CSSAbsoluteUnitsLengths
 
-export const cssRelativeUnitsLengths = {
+export const cssRelativeUnitsLengths = create(
+	{
     em: "parentLength", 	
     ex: "heightFont",	
 	ch: "widthCeroCharacter",
@@ -30,14 +36,22 @@ export const cssRelativeUnitsLengths = {
     lvh: "onePercentLargeViewportHeight",
     dvw: "onePercentDynamicViewportWidth",
     dvh: "onePercentDynamicViewportHeight",
-} as const
+	} as const
+)
+
 export type CSSRelativeUnitsLengths = typeof cssRelativeUnitsLengths
 export type CSSRelativeUnitLength = keyof CSSRelativeUnitsLengths
 
-export const cssUnitLength = {
+export const cssUnitLength = createCombineProperties(
+	{
 	absolute: cssAbsoluteUnitsLengths,
 	relative: cssRelativeUnitsLengths
-} as const
+	} as const
+	, "has"
+	, (combined, value) => combined && value
+)
+cssUnitLength.has("absolutec") // true
+
 export type CSSUnitsLengths = CSSAbsoluteUnitsLengths | CSSRelativeUnitsLengths
 export type CSSUnitLength = CSSAbsoluteUnitLength | CSSRelativeUnitLength
 
