@@ -1,26 +1,37 @@
 import { isArray } from "../array/type_check"
 import { isCallable } from "../function/type_check"
+import { isNumber } from "../number/type_check"
+import { isString } from "../string/type_check"
 import { KeyValue } from "./type"
-import { isKeyValue } from "./type_check"
+import { isKeyValue, isPropertyKey } from "./type_check"
 
-type Has = <K extends PropertyKey>(k: K) => this is KeyValue<K>
-type Prototype1 = {
+export function has<K>(this: KeyValue, k: K): this is KeyValue<K extends PropertyKey ? K : never> { return isPropertyKey(k) && k in this }
+export type Has = typeof has
+
+export function hasOwn<K>(this: KeyValue, k: K): this is KeyValue<K extends PropertyKey ? K : never> { return isPropertyKey(k) && this.hasOwnProperty(k) }
+export type HasOwn = typeof hasOwn
+
+export function map<T, CR extends [PropertyKey, T] | T>(this: KeyValue, callback: (value: unknown, key: string) => CR): KeyValue<string, unknown> {
+type Map = typeof map
+
+type BasePrototype = {
     has: Has
-    hasOwn: Has
+    hasOwn: HasOwn
+    map: Map
 }
 
-export const prototype1: Prototype1 = {
-    has(k): this is KeyValue<typeof k> {
-        return k in this
-    },
-    hasOwn(k): this is KeyValue<typeof k> {
-        return this.hasOwnProperty(k)
-    },
+
+export const basePrototype: BasePrototype = {
+    has,
+    hasOwn,
+    map
 }
 
-export type Prototyped<KV extends KeyValue> = KV & Prototype1
+export type Prototyped<KV extends KeyValue> = KV & BasePrototype
 
-export const create = <KV extends KeyValue | KeyValue<PropertyKey, PropertyDescriptor>>(kv: KV) => Object.create(prototype1, {"lo": {value: 4}}) 
+const isPropertyDescriptor = (value: unknown): value is PropertyDescriptor => true
+
+export const create = <KV extends KeyValue | KeyValue<PropertyKey, PropertyDescriptor>>(kv: KV) => Object.create(prototype1, kv.map((value, key) => isPropertyDescriptor(value) ? [key, value] : [key, {value}]) as PropertyDescriptorMap)
 
 export type CombineProperties<KV extends KeyValue, KF extends PropertyKey, AF, RF> = Prototyped<KV> & {[K in KF]: (this: KeyValue, ...args: AF[]) => RF}
 
