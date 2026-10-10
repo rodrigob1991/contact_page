@@ -11,27 +11,38 @@ export type Has = typeof has
 export function hasOwn<K>(this: KeyValue, k: K): this is KeyValue<K extends PropertyKey ? K : never> { return isPropertyKey(k) && this.hasOwnProperty(k) }
 export type HasOwn = typeof hasOwn
 
-export function map<T, CR extends [PropertyKey, T] | T>(this: KeyValue, callback: (value: unknown, key: string) => CR): KeyValue<string, unknown> {
+export function map<KV extends KeyValue, CRV, CR extends [PropertyKey, CRV] | CRV, T extends "array" | "keyvale" | undefined>(this: KV, callback: <K extends keyof KV>(k: K, v: KV[K]) => CR, to?: T): KeyValue<string, unknown> {
+    let mappedResult 
+    let fill
+    if (to === "array") {
+        mappedResult = []
+        fill = (mappedResult as unknown[]).push.bind(mappedResult)
+    } else {
+        mappedResult = create()
+        fill = (k: string, v: unknown) => (mappedResult as KeyValue<string, unknown>)[k] = v
+    }
+
+    for (const k in this) {
+        const v = this[k]
+        const r = callback(k, v)
+       fill(callback(kv))
+    }
+    return mappedResult
+}
 type Map = typeof map
 
-type BasePrototype = {
-    has: Has
-    hasOwn: HasOwn
-    map: Map
-}
-
-
-export const basePrototype: BasePrototype = {
+export const basePrototype = {
     has,
     hasOwn,
     map
 }
+type BasePrototype = typeof basePrototype
 
 export type Prototyped<KV extends KeyValue> = KV & BasePrototype
 
 const isPropertyDescriptor = (value: unknown): value is PropertyDescriptor => true
 
-export const create = <KV extends KeyValue | KeyValue<PropertyKey, PropertyDescriptor>>(kv: KV) => Object.create(prototype1, kv.map((value, key) => isPropertyDescriptor(value) ? [key, value] : [key, {value}]) as PropertyDescriptorMap)
+export const create = <KV extends KeyValue>(kv?: KV) => Object.create(basePrototype, map.call(kv, (key, value) => [key, isPropertyDescriptor(value) ? value : {value}]))
 
 export type CombineProperties<KV extends KeyValue, KF extends PropertyKey, AF, RF> = Prototyped<KV> & {[K in KF]: (this: KeyValue, ...args: AF[]) => RF}
 
