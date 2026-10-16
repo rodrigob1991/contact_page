@@ -1,4 +1,4 @@
-import { PickIfEquals, Seek } from "../type"
+import { PickIfEquals, Seek, UnionToIntersection } from "../type"
 
 export type KeyValue<K extends PropertyKey=PropertyKey, V=unknown>= Record<K, V>
 export type EmptyKeyValue = KeyValue<never, never>
@@ -27,6 +27,8 @@ export type ChangeKeys<KV extends KeyValue, NK extends [keyof KV, PropertyKey]> 
 export type Available<T, U, A extends KeyValue> = T extends U ? A : {[K in keyof A]?: never}
 
 export type FromElements<A extends unknown[]> = A extends [infer F, infer S, ...infer R] ? F extends PropertyKey ? KeyValue<F, S> : {} & FromElements<R> : A extends [] ? {} : KeyValue<Extract<A[number], PropertyKey>, A[number]>
+
+export type FromUnionElements<A extends unknown[]> = UnionToIntersection<FromElements<A>>
 
 export type ChangePropertiesValues<KV extends KeyValue, T extends [keyof KV, unknown]> = {
     [K in keyof KV] : Seek<K, T, KV[K]>

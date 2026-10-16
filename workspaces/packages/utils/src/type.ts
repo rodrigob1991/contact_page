@@ -47,4 +47,6 @@ export type PickIfEquals<X, Y, A=X, B=never> =
     (<T>() => T extends X ? 1 : 2) extends
         (<T>() => T extends Y ? 1 : 2) ? A : B
 
+export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
+
 

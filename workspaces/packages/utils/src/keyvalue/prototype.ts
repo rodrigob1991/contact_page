@@ -3,7 +3,7 @@ import { isCallable } from "../function/type_check"
 import { isNumber } from "../number/type_check"
 import { isString } from "../string/type_check"
 import { IfOneOfFirstExtendsThenSecond } from "../type"
-import { KeyValue } from "./type"
+import { FromUnionElements, KeyValue } from "./type"
 import { isKeyValue, isPropertyKey } from "./type_check"
 
 export function has<K>(this: KeyValue, k: K): this is KeyValue<K extends PropertyKey ? K : never> { return isPropertyKey(k) && k in this }
@@ -15,8 +15,8 @@ export type HasOwn = typeof hasOwn
 type MapTo = "array" | "keyvalue" | undefined
 type MapCallbackResult<T extends MapTo=MapTo> = IfOneOfFirstExtendsThenSecond<T, [["array", unknown], ["keyvalue" | undefined, [PropertyKey, unknown]]]>
 type MapCallback<KV extends KeyValue, R extends MapCallbackResult> = <K extends keyof KV>(k: K, v: KV[K]) => R
-type MapResult<MT extends MapTo, CR extends MapCallbackResult<MT>> =  CR extends [infer K, infer V] ? unknown[] : CR extends ["keyvalue" | undefined, [PropertyKey, unknown]] ? KeyValue : never
-export function map<KV extends KeyValue, MT extends MapTo, MCR extends MapCallbackResult<MT>>(this: KV, callback: MapCallback<KV, MCR>, to?: MT): MapResult<MCR> {
+type MapResult<T extends MapTo, CR extends MapCallbackResult<T>> = IfOneOfFirstExtendsThenSecond<T, [["array", CR[]], ["keyvalue" | undefined, FromUnionElements<CR extends MapCallbackResult<"keyvalue" | undefined> ? CR : never>]]>
+export function map<KV extends KeyValue, MT extends MapTo, MCR extends MapCallbackResult<MT>>(this: KV, callback: MapCallback<KV, MCR>, to?: MT): MapResult<MT, MCR> {
     let mappedResult
     let fill: (cr: MCR) => void
     if (to === "array") {
@@ -26,7 +26,7 @@ export function map<KV extends KeyValue, MT extends MapTo, MCR extends MapCallba
         mappedResult = create()
         fill = (cr) => {
             if (isArray(cr) && cr.length === 2 && isPropertyKey(cr[0])) 
-             mappedResult[cr[0]] = cr[1] 
+                mappedResult[cr[0]] = cr[1] 
         }
     }
     for (const k in this) {
