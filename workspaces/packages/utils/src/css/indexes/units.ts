@@ -50,7 +50,6 @@ export const cssUnitLength = createCombineProperties(
 	, "has"
 	, (combined, value) => combined && value
 )
-cssUnitLength.has("absolutec") // true
 
 export type CSSUnitsLengths = CSSAbsoluteUnitsLengths | CSSRelativeUnitsLengths
 export type CSSUnitLength = CSSAbsoluteUnitLength | CSSRelativeUnitLength

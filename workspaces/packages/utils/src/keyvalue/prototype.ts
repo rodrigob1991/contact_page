@@ -2,6 +2,7 @@ import { isArray } from "../array/type_check"
 import { isCallable } from "../function/type_check"
 import { isNumber } from "../number/type_check"
 import { isString } from "../string/type_check"
+import { IfOneOfFirstExtendsThenSecond } from "../type"
 import { KeyValue } from "./type"
 import { isKeyValue, isPropertyKey } from "./type_check"
 
@@ -11,25 +12,31 @@ export type Has = typeof has
 export function hasOwn<K>(this: KeyValue, k: K): this is KeyValue<K extends PropertyKey ? K : never> { return isPropertyKey(k) && this.hasOwnProperty(k) }
 export type HasOwn = typeof hasOwn
 
-export function map<KV extends KeyValue, CRV, CR extends [PropertyKey, CRV] | CRV, T extends "array" | "keyvale" | undefined>(this: KV, callback: <K extends keyof KV>(k: K, v: KV[K]) => CR, to?: T): KeyValue<string, unknown> {
-    let mappedResult 
-    let fill
+type MapTo = "array" | "keyvalue" | undefined
+type MapCallbackResult<T extends MapTo=MapTo> = IfOneOfFirstExtendsThenSecond<T, [["array", unknown], ["keyvalue" | undefined, [PropertyKey, unknown]]]>
+type MapCallback<KV extends KeyValue, R extends MapCallbackResult> = <K extends keyof KV>(k: K, v: KV[K]) => R
+type MapResult<MT extends MapTo, CR extends MapCallbackResult<MT>> =  CR extends [infer K, infer V] ? unknown[] : CR extends ["keyvalue" | undefined, [PropertyKey, unknown]] ? KeyValue : never
+export function map<KV extends KeyValue, MT extends MapTo, MCR extends MapCallbackResult<MT>>(this: KV, callback: MapCallback<KV, MCR>, to?: MT): MapResult<MCR> {
+    let mappedResult
+    let fill: (cr: MCR) => void
     if (to === "array") {
         mappedResult = []
-        fill = (mappedResult as unknown[]).push.bind(mappedResult)
+        fill = (cr) => { mappedResult.push(cr) }
     } else {
         mappedResult = create()
-        fill = (k: string, v: unknown) => (mappedResult as KeyValue<string, unknown>)[k] = v
+        fill = (cr) => {
+            if (isArray(cr) && cr.length === 2 && isPropertyKey(cr[0])) 
+             mappedResult[cr[0]] = cr[1] 
+        }
     }
-
     for (const k in this) {
-        const v = this[k]
-        const r = callback(k, v)
-       fill(callback(kv))
+       fill(callback(k, this[k]))
     }
     return mappedResult
 }
 type Map = typeof map
+
+export const r = map.call({a: 1, b: 2}, (k, v) => [k, v]) // {a: 2, b: 4}
 
 export const basePrototype = {
     has,

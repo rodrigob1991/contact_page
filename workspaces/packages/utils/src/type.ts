@@ -7,7 +7,7 @@ export type EqualTypes<T0, T1> = T0 extends T1 ? T1 extends T0 ? T0 : never : ne
 // if the first type of each tuple of I extends T then the second element of the tuple will be part of the union result, never otherwise
 export type IfFirstExtendsThenSecond<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown],  ...infer RI extends [unknown, unknown][]] ?  (FI[0] extends T ? FI[1] : never) | IfFirstExtendsThenSecond<T, RI> : never
 // if one member of the first type of each tuple of I extends T then the second element of the tuple will be part of the union result, never otherwise
-export type IfOneOfFirstExtendsThenSecond<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown],  ...infer RI extends [unknown, unknown][]] ? IfOneExtends<FI[0], T, FI[1]> | IfOneOfFirstExtendsThenSecond<T, RI> : never
+export type IfOneOfFirstExtendsThenSecond<T, I extends [unknown, unknown][]> = I extends [infer FI extends [unknown, unknown], ...infer RI extends [unknown, unknown][]] ? IfOneExtends<FI[0], T, FI[1]> | IfOneOfFirstExtendsThenSecond<T, RI> : never
 
 // if one element from "U" extends "IN" then the result is "IF", otherwise is "ELSE"
 export type IfOneExtends<U, IN, IF, ELSE = never> = IF extends { [K in U as ""]: K extends IN ? IF : never }[""] ? IF : ELSE
