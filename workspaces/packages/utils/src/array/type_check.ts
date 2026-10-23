@@ -1,4 +1,4 @@
-import { isNumber } from "../type_check"
+import { isNumber } from "../number/type_check"
 import { NonEmptyArray } from "./type"
 
 export const isArray = (v: unknown) : v is Array<unknown> =>  Array.isArray(v)

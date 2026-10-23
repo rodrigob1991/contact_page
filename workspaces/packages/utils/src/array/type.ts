@@ -1,5 +1,6 @@
-import { Increment, Seek } from "../type";
-import { KeyValue } from "../type_check";
+import { KeyValue } from "../keyvalue/type"
+import { Increment } from "../number/type"
+import { Seek } from "../type"
 
 export type NonEmptyArray<T> = [T, ...T[]]
 
@@ -30,7 +31,7 @@ export type ElementsMembersCombinations<A extends unknown[]> = A extends [infer 
   : never
   : []
 
-export type KeyValueTuple<KV extends KeyValue> = {
+export type KeyValueTuple<KV extends KeyValue=KeyValue> = {
     [K in keyof KV]: [K, KV[K]]
 }[keyof KV]
 
@@ -54,3 +55,5 @@ export type Slice<A extends unknown[], S extends number, E extends number=A["len
                 ? [F] 
                 : [F, ...Slice<R, S, E, Increment<I>, false>]
         : []
+
+        
