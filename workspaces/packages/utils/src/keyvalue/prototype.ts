@@ -65,6 +65,7 @@ type BasePrototype = typeof basePrototype
 
 export type Prototyped<KV extends KeyValue> = KV & BasePrototype
 
+// specific for using in this context.
 // maybe check for value type
 const isPropertyDescriptor = (value: unknown): value is PropertyDescriptor => isKeyValue(value) && ("enumerable" in value || "configurable" in value || "writable" in value || "get" in value || "set" in value)
  
@@ -73,8 +74,9 @@ type MapToPropertyDescriptor<KV extends CreateKV> = KV extends KeyValueTuple[] ?
 export const create = <KV extends CreateKV, P extends KeyValue | undefined>(kv: KV, p?: P) => Object.create(p ?? basePrototype, map.call(isArray(kv) ? Object.fromEntries(kv) : kv, (key, value) => [key, isPropertyDescriptor(value) ? value : {value}]) as MapToPropertyDescriptor<KV>)
 
 export type ValuesUnion<KV extends KeyValue, CK extends keyof KV> = {[K in keyof KV]: CK extends K ? KV[K] : KV[K] extends KeyValue ? ValuesUnion<KV[K], CK> : never}[keyof KV]
-export type CombineProperties<KV extends KeyValue, KF extends PropertyKey, AF, RF> = Prototyped<KV> & {[K in KF]: (this: KeyValue, ...args: AF[]) => RF}
-export const createCombineProperties = <KV extends CreateKV, KF extends PropertyKey, AF, RF>(kv: KV, kf: KF, fn: (cum: RF | undefined, value: unknown) => RF) =>
+export type SharePropertyUnionCallback<R, V> = (lastResult: R | undefined, value: V) => R
+export type SharePropertyUnion<KV extends CreateKV, KF extends PropertyKey, AF, RF> = Prototyped<KV> & {[K in KF]: (this: KeyValue, ...args: AF[]) => RF}
+export const createSharePropertyUnion = <KV extends CreateKV, P extends KeyValue | undefined, KF extends PropertyKey, AF, RF>(kv: KV, kf: KF, callback: SharePropertyUnionCallback, p?: P) => {
     ({
         __proto__: prototype1,
         ...kv,
@@ -90,4 +92,4 @@ export const createCombineProperties = <KV extends CreateKV, KF extends Property
             return combined
         }
     }) as CombineProperties<KV, KF, AF, RF>
-
+}
